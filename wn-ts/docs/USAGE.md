@@ -15,7 +15,8 @@ This guide provides a comprehensive overview of how to use the `wn-ts` TypeScrip
     - [Module Functions](#module-functions)
     - [Project Management](#project-management)
     - [Data Management](#data-management)
-    - [Similarity \& Information Content](#similarity--information-content)
+    - [Similarity & Information Content](#similarity--information-content)
+  - [Advanced API: Submodule Exports](#advanced-api-submodule-exports)
   - [Command-Line Interface (CLI)](#command-line-interface-cli)
   - [Advanced Features](#advanced-features)
     - [Browser Usage](#browser-usage)
@@ -23,7 +24,7 @@ This guide provides a comprehensive overview of how to use the `wn-ts` TypeScrip
     - [Working with Multiple Languages](#working-with-multiple-languages)
     - [Exporting Data](#exporting-data)
     - [Error Handling](#error-handling)
-  - [Testing \& Examples](#testing--examples)
+  - [Testing & Examples](#testing--examples)
   - [Troubleshooting](#troubleshooting)
   - [Glossary](#glossary)
   - [Further Reading](#further-reading)
@@ -69,6 +70,8 @@ synsets.forEach(synset => {
 ---
 
 ## API Usage
+
+> **Note:** As of v0.1.1, advanced features are available via submodule exports. You can now import similarity, taxonomy, morphy, and information content utilities directly from submodules, e.g. `import { path } from 'wn-ts/similarity'`.
 
 ### Wordnet Class
 
@@ -152,7 +155,9 @@ const oewnVersions = getProjectVersions('oewn');
 ### Similarity & Information Content
 
 ```typescript
-import { path, wup, lch, res, jcn, lin, compute, information_content } from 'wn-ts';
+// For advanced similarity and IC, see the submodule section below!
+import { path, wup, lch, res, jcn, lin } from 'wn-ts/similarity';
+import { compute, information_content } from 'wn-ts/ic';
 
 // Compute Information Content (IC) from a corpus
 const freq = await compute(['run', 'running', 'runner'], wn);
@@ -162,6 +167,47 @@ const ic = information_content(synsets[0], freq);
 
 // Path similarity
 const sim = await path(synsets[0], synsets[1], wn);
+```
+
+---
+
+## Advanced API: Submodule Exports
+
+As of v0.1.1, you can import advanced features directly from submodules:
+
+### Similarity Metrics
+```typescript
+import { path, wup, lch, res, jcn, lin } from 'wn-ts/similarity';
+
+const sim = await path(synset1, synset2, wn);
+const wupSim = await wup(synset1, synset2, wn);
+// ...and so on
+```
+
+### Taxonomy Utilities
+```typescript
+import { roots, leaves, taxonomyDepth, hypernymPaths, minDepth, taxonomyShortestPath } from 'wn-ts/taxonomy';
+
+const rootSynsets = await roots(wn);
+const leafSynsets = await leaves(wn);
+const depth = await taxonomyDepth(wn, 'n');
+```
+
+### Morphological Analysis
+```typescript
+import { createMorphy } from 'wn-ts/morphy';
+
+const morphy = createMorphy(wn);
+const analysis = await morphy.analyze('running');
+console.log(analysis);
+```
+
+### Information Content (IC)
+```typescript
+import { compute, information_content } from 'wn-ts/ic';
+
+const freq = await compute(['run', 'running', 'runner'], wn);
+const ic = information_content(synset, freq);
 ```
 
 ---

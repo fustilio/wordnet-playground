@@ -14,9 +14,11 @@
   "scripts": {
     "dev": "node --watch src/demo.js",
     "start": "node src/demo.js",
-    "test": "node src/demo.js"
+    "test": "node src/demo.js",
+    "kitchen-sink": "node src/kitchen-sink-demo.js",
+    "demo:kitchen-sink": "node src/kitchen-sink-demo.js"
   },
   "dependencies": {
-    "wn-ts": "0.1.0"
+    "wn-ts": "0.1.1"
   }
 }

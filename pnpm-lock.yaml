@@ -87,8 +87,8 @@ importers:
   demo:
     dependencies:
       wn-ts:
-        specifier: 0.1.0
-        version: 0.1.0(ws@7.5.10)
+        specifier: 0.1.1
+        version: 0.1.1(ws@7.5.10)
 
   wn-pybridge:
     dependencies:
@@ -2426,8 +2426,8 @@ packages:
   wide-align@1.1.5:
     resolution: {integrity: sha512-eDMORYaPNZ4sQIuuYPDHdQvf4gyCF9rEEV/yPxGfwPkRodwEgiMUUXTx/dex+Me0wxx53S+NgUHaP7y3MGlDmg==}
 
-  wn-ts@0.1.0:
-    resolution: {integrity: sha512-+kk0bkvaUAhgpI1QfwbD00q88P99ZvqzN7Z3PcTNUJ0k9SUFuu+44aiQSpDNbiQiBiQok2FIiG89+1Am3erFMw==}
+  wn-ts@0.1.1:
+    resolution: {integrity: sha512-qgd+LgrRqaXuq9BgsAgd3nnCseceNoP/+WnY5JMAW4mjMAcuJIHAHTbNg/laWEkO6ayKb1igaP1Yk0Nwjx5cDw==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
@@ -4865,7 +4865,7 @@ snapshots:
       string-width: 4.2.3
     optional: true
 
-  wn-ts@0.1.0(ws@7.5.10):
+  wn-ts@0.1.1(ws@7.5.10):
     dependencies:
       '@types/sax': 1.2.7
       commander: 11.1.0

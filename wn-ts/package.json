@@ -1,6 +1,6 @@
 {
   "name": "wn-ts",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Wordnet interface library - TypeScript port",
   "keywords": [
     "wordnet",
@@ -23,7 +23,23 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./cli": "./dist/cli.js"
+    "./cli": "./dist/cli.js",
+    "./similarity": {
+      "types": "./dist/similarity.d.ts",
+      "default": "./dist/similarity.js"
+    },
+    "./taxonomy": {
+      "types": "./dist/taxonomy.d.ts",
+      "default": "./dist/taxonomy.js"
+    },
+    "./morphy": {
+      "types": "./dist/morphy.d.ts",
+      "default": "./dist/morphy.js"
+    },
+    "./ic": {
+      "types": "./dist/ic.d.ts",
+      "default": "./dist/ic.js"
+    }
   },
   "bin": {
     "wn-ts": "dist/cli.js"
@@ -37,7 +53,7 @@
     "format": "prettier --write src/**/*.ts",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
-    "publish-packages": "pnpm run build && changeset version && changeset publish",
+    "publish-package": "pnpm run build && changeset version && changeset publish",
     "test": "vitest run --reporter=verbose --exclude \"**/e2e*.test.ts\"",
     "test:bench": "vitest bench --run",
     "test:coverage": "vitest run --coverage --reporter=verbose --exclude \"**/e2e*.test.ts\"",

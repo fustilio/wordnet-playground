@@ -13,6 +13,7 @@
   "scripts": {
     "build": "pnpm --filter wn-ts build",
     "demo": "pnpm --filter wn-ts-demo start",
+    "demo:kitchen-sink": "pnpm --filter wn-ts-demo kitchen-sink",
     "build:demo": "pnpm build && pnpm demo",
     "test": "pnpm --filter wn-ts test",
     "test:bench": "pnpm --filter wn-ts test:bench",
