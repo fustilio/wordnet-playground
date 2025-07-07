@@ -1,48 +1,69 @@
 // wn-ts WordNet library implementation
-import { WordNetLibraryBase, WordNetLibraryTester, QueryOptions } from '../WordNetLibraryBase.ts';
+import { MultilingualWordNetLibraryBase, WordNetLibraryTester, QueryOptions } from '../WordNetLibraryBase.ts';
 // Import from the main wn-ts package - no more deep imports needed
 import { Wordnet as TSWordnet, db, download, add } from 'wn-ts';
 
-export class WnTsLibrary extends WordNetLibraryBase {
+export class WnTsLibrary extends MultilingualWordNetLibraryBase {
   name = 'wn-ts';
 
-  async init() {
+  async init(options?: { lexicon?: string }) {
     await db.initialize();
-    // Get all available lexicons
-    const tempWn = new TSWordnet('*');
-    const lexicons = await tempWn.lexicons();
-    let omwLex = lexicons.find(l => l.id === 'omw-en31' && l.version === '1.4');
-    if (!omwLex) {
-      console.log('📥 Downloading omw-en31:1.4 (Princeton WordNet 3.1) for wn-ts...');
-      const downloadedPath = await download('omw-en31:1.4');
-      console.log(`✅ Downloaded omw-en31:1.4 to: ${downloadedPath}`);
+    
+    // For multilingual testing, we need to download and add multiple language datasets
+    const datasets = [
+      'omw-en31:1.4',  // English
+      'omw-fr31:1.4',  // French  
+      'omw-es31:1.4',  // Spanish
+    ];
+    
+    for (const dataset of datasets) {
       try {
-        await add(downloadedPath, { force: true });
-        console.log('✅ omw-en31:1.4 added to wn-ts database');
-      } catch (addError) {
-        if (addError && (addError as Error).message && (addError as Error).message.includes('already exists')) {
-          console.log('ℹ️ omw-en31:1.4 already exists in database, continuing...');
+        // Check if dataset is already available
+        const tempWn = new TSWordnet('*');
+        const lexicons = await tempWn.lexicons();
+        let lex = lexicons.find(l => l.id === dataset.split(':')[0] && l.version === dataset.split(':')[1]);
+        
+        if (!lex) {
+          console.log(`📥 Downloading ${dataset} for wn-ts...`);
+          const downloadedPath = await download(dataset);
+          console.log(`✅ Downloaded ${dataset} to: ${downloadedPath}`);
+          try {
+            await add(downloadedPath, { force: true });
+            console.log(`✅ ${dataset} added to wn-ts database`);
+          } catch (addError) {
+            if (addError && (addError as Error).message && (addError as Error).message.includes('already exists')) {
+              console.log(`ℹ️ ${dataset} already exists in database, continuing...`);
+            } else {
+              throw addError;
+            }
+          }
         } else {
-          throw addError;
+          console.log(`✅ ${dataset} already available in wn-ts database`);
         }
+      } catch (error) {
+        console.warn(`Failed to setup ${dataset}:`, error);
       }
-      // Refresh lexicons after adding
-      const refreshedWn = new TSWordnet('*');
-      const refreshedLexicons = await refreshedWn.lexicons();
-      omwLex = refreshedLexicons.find(l => l.id === 'omw-en31' && l.version === '1.4');
-      if (!omwLex) {
-        throw new Error('Failed to add omw-en31:1.4 to wn-ts database.');
-      }
-    } else {
-      console.log('✅ omw-en31:1.4 already available in wn-ts database');
     }
-    // Use the correct lexicon
+    
+    // Use the English dataset as default
     this.lib = new TSWordnet('omw-en31:1.4');
-    console.log('✅ wn-ts library initialized with omw-en31:1.4');
+    console.log('✅ wn-ts library initialized with multilingual support');
   }
 
   async synsetLookup(word: string, options?: QueryOptions) {
     if (!this.lib) return [];
+    
+    // Handle multilingual queries
+    if (options?.lang) {
+      try {
+        const langWordnet = new TSWordnet(`omw-${options.lang}31:1.4`);
+        const result = await langWordnet.synsets(word, options?.pos as any);
+        return result;
+      } catch (error) {
+        console.warn(`wn-ts multilingual synset lookup error for "${word}" in ${options.lang}:`, error);
+        return [];
+      }
+    }
     
     // Handle POS parameter mapping
     let pos = options?.pos;
@@ -63,6 +84,18 @@ export class WnTsLibrary extends WordNetLibraryBase {
   async wordLookup(word: string, options?: QueryOptions) {
     if (!this.lib) return [];
     
+    // Handle multilingual queries
+    if (options?.lang) {
+      try {
+        const langWordnet = new TSWordnet(`omw-${options.lang}31:1.4`);
+        const result = await langWordnet.words(word, options?.pos as any);
+        return result;
+      } catch (error) {
+        console.warn(`wn-ts multilingual word lookup error for "${word}" in ${options.lang}:`, error);
+        return [];
+      }
+    }
+    
     // Handle POS parameter mapping
     let pos = options?.pos;
     if (pos === 'noun') pos = 'n';
@@ -81,6 +114,18 @@ export class WnTsLibrary extends WordNetLibraryBase {
 
   async senseLookup(word: string, options?: QueryOptions) {
     if (!this.lib) return [];
+    
+    // Handle multilingual queries
+    if (options?.lang) {
+      try {
+        const langWordnet = new TSWordnet(`omw-${options.lang}31:1.4`);
+        const result = await langWordnet.senses(word, options?.pos as any);
+        return result;
+      } catch (error) {
+        console.warn(`wn-ts multilingual sense lookup error for "${word}" in ${options.lang}:`, error);
+        return [];
+      }
+    }
     
     // Handle POS parameter mapping
     let pos = options?.pos;
@@ -102,7 +147,7 @@ export class WnTsLibrary extends WordNetLibraryBase {
     if (!Array.isArray(output)) return [];
     return output.map((s: any) => ({
       id: s.id,
-      pos: s.pos,
+      pos: s.pos ?? s.partOfSpeech,
       lemma: s.lemma ?? (s.members ? s.members[0]?.lemma : undefined),
       // Add more fields as needed for comparison
     }));

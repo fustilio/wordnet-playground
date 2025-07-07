@@ -1,35 +1,40 @@
 // wn-pybridge (Python bridge) WordNet library implementation
-import { WordNetLibraryBase, WordNetLibraryTester, QueryOptions } from '../WordNetLibraryBase.ts';
+import { MultilingualWordNetLibraryBase, WordNetLibraryTester, QueryOptions } from '../WordNetLibraryBase.ts';
 import { WnBridge } from 'wn-pybridge';
 
-export class WnPybridgeLibrary extends WordNetLibraryBase {
+export class WnPybridgeLibrary extends MultilingualWordNetLibraryBase {
   name = 'wn-pybridge';
 
   async init(options?: { lexicon?: string }) {
     try {
       this.lib = new WnBridge();
       
-      // Download and add Princeton WordNet 3.1 dataset to match wn-ts and natural libraries
-      try {
-        // Check if omw-en31:1.4 is already available
-        const isDownloaded = await this.lib.download.isDownloaded('omw-en31:1.4');
-        if (!isDownloaded) {
-          console.log('📥 Downloading omw-en31:1.4 (Princeton WordNet 3.1) for wn-pybridge...');
-          await this.lib.download.download('omw-en31:1.4', { force: true });
-          console.log('✅ omw-en31:1.4 downloaded successfully');
-        } else {
-          console.log('✅ omw-en31:1.4 already available');
+      // For multilingual testing, we need to download and add multiple language datasets
+      const datasets = [
+        'omw-en31:1.4',  // English
+        'omw-fr31:1.4',  // French  
+        'omw-es31:1.4',  // Spanish
+      ];
+      
+      for (const dataset of datasets) {
+        try {
+          // Check if dataset is already available
+          const isDownloaded = await this.lib.download.isDownloaded(dataset);
+          if (!isDownloaded) {
+            console.log(`📥 Downloading ${dataset} for wn-pybridge...`);
+            await this.lib.download.download(dataset, { force: true });
+            console.log(`✅ ${dataset} downloaded successfully`);
+          } else {
+            console.log(`✅ ${dataset} already available`);
+          }
+        } catch (downloadError) {
+          console.warn(`Failed to setup ${dataset}:`, downloadError);
         }
-        
-        // Initialize with the Princeton WordNet 3.1 dataset
-        await this.lib.init('omw-en31:1.4');
-        console.log('✅ wn-pybridge library initialized with omw-en31:1.4');
-      } catch (downloadError) {
-        console.warn('Failed to download omw-en31:1.4, falling back to default:', downloadError);
-        // Fall back to default initialization
-        await this.lib.init();
-        console.log('✅ wn-pybridge library initialized with default dataset');
       }
+      
+      // Initialize with the English dataset as default
+      await this.lib.init('omw-en31:1.4');
+      console.log('✅ wn-pybridge library initialized with multilingual support');
     } catch (error) {
       console.warn('WnBridge initialization failed:', error);
       this.lib = null;
@@ -38,6 +43,20 @@ export class WnPybridgeLibrary extends WordNetLibraryBase {
 
   async synsetLookup(word: string, options?: QueryOptions) {
     if (!this.lib) return [];
+    
+    // Handle multilingual queries
+    if (options?.lang) {
+      try {
+        // For wn-pybridge, we need to initialize with the specific language
+        const langBridge = new WnBridge();
+        await langBridge.init(`omw-${options.lang}31:1.4`);
+        return await langBridge.synsets(word, options);
+      } catch (error) {
+        console.warn(`wn-pybridge multilingual synset lookup error for "${word}" in ${options.lang}:`, error);
+        return [];
+      }
+    }
+    
     try {
       return await this.lib.synsets(word, options);
     } catch (error) {
@@ -48,6 +67,20 @@ export class WnPybridgeLibrary extends WordNetLibraryBase {
 
   async wordLookup(word: string, options?: QueryOptions) {
     if (!this.lib) return [];
+    
+    // Handle multilingual queries
+    if (options?.lang) {
+      try {
+        // For wn-pybridge, we need to initialize with the specific language
+        const langBridge = new WnBridge();
+        await langBridge.init(`omw-${options.lang}31:1.4`);
+        return await langBridge.words(word, options);
+      } catch (error) {
+        console.warn(`wn-pybridge multilingual word lookup error for "${word}" in ${options.lang}:`, error);
+        return [];
+      }
+    }
+    
     try {
       return await this.lib.words(word, options);
     } catch (error) {
@@ -58,6 +91,20 @@ export class WnPybridgeLibrary extends WordNetLibraryBase {
 
   async senseLookup(word: string, options?: QueryOptions) {
     if (!this.lib) return [];
+    
+    // Handle multilingual queries
+    if (options?.lang) {
+      try {
+        // For wn-pybridge, we need to initialize with the specific language
+        const langBridge = new WnBridge();
+        await langBridge.init(`omw-${options.lang}31:1.4`);
+        return await langBridge.senses(word, options);
+      } catch (error) {
+        console.warn(`wn-pybridge multilingual sense lookup error for "${word}" in ${options.lang}:`, error);
+        return [];
+      }
+    }
+    
     try {
       return await this.lib.senses(word, options);
     } catch (error) {
@@ -70,7 +117,7 @@ export class WnPybridgeLibrary extends WordNetLibraryBase {
     if (!Array.isArray(output)) return [];
     return output.map((s: any) => ({
       id: s.id,
-      pos: s.pos,
+      pos: s.pos ?? s.partOfSpeech,
       lemma: s.lemma ?? (s.members ? s.members[0]?.lemma : undefined),
       // Add more fields as needed for comparison
     }));

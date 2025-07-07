@@ -38,6 +38,7 @@ describe("WordNet Performance & Resource Benchmark", () => {
       runWordLookupBenchmark(),
       runBulkOperationsBenchmark(),
       runMemoryUsageBenchmark(),
+      runMultilingualBenchmark(),
     ];
     
     log(`📋 Running ${benchmarkSuites.length} performance benchmark suites in parallel`);
@@ -340,6 +341,86 @@ describe("WordNet Performance & Resource Benchmark", () => {
     return results;
   }
 
+  async function runMultilingualBenchmark() {
+    log("🌍 Running multilingual benchmarks...");
+    
+    // Only test libraries that support multilingual queries
+    const multilingualLibraries = ALL_LIBRARIES.filter(lib => lib.supportsMultilingual);
+    
+    if (multilingualLibraries.length === 0) {
+      log("⚠️ No multilingual libraries found, skipping multilingual benchmark");
+      return [];
+    }
+    
+    const progress = new ProgressTracker(multilingualLibraries.length, "multilingual library");
+    
+    const multilingualPromises = multilingualLibraries.map(async (lib) => {
+      try {
+        log(`🔧 Initializing ${lib.name} for multilingual testing`, 'debug');
+        await withTimeout(
+          () => lib.init(),
+          30000,
+          `${lib.name} initialization for multilingual testing`
+        );
+        
+        const testWords = ['computer', 'house', 'book'];
+        const testLanguages = ['en', 'fr', 'es'];
+        const results: Array<{word: string, lang: string, time: number}> = [];
+        
+        // Test multilingual word lookups
+        for (const word of testWords) {
+          for (const lang of testLanguages) {
+            try {
+              log(`🌍 ${lib.name}: looking up "${word}" in ${lang}`, 'debug');
+              const start = performance.now();
+              
+              await withTimeout(
+                () => lib.wordLookup(word, { lang }),
+                15000,
+                `${lib.name} multilingual word lookup (${word}, ${lang})`
+              );
+              
+              const end = performance.now();
+              const time = end - start;
+              log(`${lib.name} multilingual word lookup (${word}, ${lang}): ${time.toFixed(2)}ms`);
+              results.push({ word, lang, time });
+            } catch (error) {
+              log(`${lib.name} multilingual word lookup (${word}, ${lang}) failed: ${error}`, 'error');
+            }
+          }
+        }
+        
+        const successfulResults = results.filter(r => r.time > 0);
+        const avgTime = successfulResults.length > 0 
+          ? successfulResults.reduce((sum, r) => sum + r.time, 0) / successfulResults.length 
+          : 0;
+        
+        log(`${lib.name} multilingual: ${avgTime.toFixed(2)}ms average (${successfulResults.length}/${results.length} successful)`);
+        
+        if (lib.cleanup) {
+          log(`🧹 Cleaning up ${lib.name}`, 'debug');
+          await withTimeout(
+            () => lib.cleanup!(),
+            10000,
+            `${lib.name} cleanup`
+          );
+        }
+        
+        progress.update();
+        return { library: lib.name, avgTime, success: true, results: successfulResults.length };
+      } catch (error) {
+        log(`${lib.name} multilingual benchmark failed: ${error}`, 'error');
+        progress.update();
+        return { library: lib.name, success: false, error };
+      }
+    });
+
+    const results = await Promise.all(multilingualPromises);
+    progress.complete();
+    log("✅ Multilingual benchmarks completed");
+    return results;
+  }
+
   describe("🚀 Parallel Performance Benchmark Execution", () => {
     it("should run all performance benchmarks in parallel for maximum speed", async () => {
       await runParallelBenchmarks();
@@ -631,6 +712,89 @@ describe("WordNet Performance & Resource Benchmark", () => {
       
       log(`Total memory change: ${(totalMemoryChange / 1024 / 1024).toFixed(2)}MB`);
       log("✅ Memory usage analysis completed");
+    }, 60000);
+  });
+
+  describe("Multilingual Support Analysis", () => {
+    it("should test multilingual capabilities of supported libraries", async () => {
+      log("🌍 Starting multilingual support analysis");
+      
+      // Only test libraries that support multilingual queries
+      const multilingualLibraries = ALL_LIBRARIES.filter(lib => lib.supportsMultilingual);
+      
+      if (multilingualLibraries.length === 0) {
+        log("⚠️ No multilingual libraries found");
+        return;
+      }
+      
+      log(`🌍 Found ${multilingualLibraries.length} multilingual libraries: ${multilingualLibraries.map(lib => lib.name).join(', ')}`);
+      
+      // Test each multilingual library
+      const multilingualPromises = multilingualLibraries.map(async (lib) => {
+        try {
+          log(`🔧 Initializing ${lib.name} for multilingual testing`, 'debug');
+          await withTimeout(
+            () => lib.init(),
+            30000,
+            `${lib.name} initialization for multilingual testing`
+          );
+          
+          const testCases = [
+            { word: 'computer', lang: 'en' },
+            { word: 'ordinateur', lang: 'fr' },
+            { word: 'computadora', lang: 'es' },
+          ];
+          
+          const results: Array<{word: string, lang: string, success: boolean, count: number}> = [];
+          
+          for (const testCase of testCases) {
+            try {
+              log(`🌍 ${lib.name}: testing "${testCase.word}" in ${testCase.lang}`, 'debug');
+              const wordResults = await withTimeout(
+                () => lib.wordLookup(testCase.word, { lang: testCase.lang }),
+                15000,
+                `${lib.name} multilingual word lookup (${testCase.word}, ${testCase.lang})`
+              );
+              
+              const success = Array.isArray(wordResults) && wordResults.length > 0;
+              log(`${lib.name} multilingual word lookup (${testCase.word}, ${testCase.lang}): ${success ? 'SUCCESS' : 'NO RESULTS'}`);
+              results.push({ word: testCase.word, lang: testCase.lang, success, count: wordResults?.length || 0 });
+            } catch (error) {
+              log(`${lib.name} multilingual word lookup (${testCase.word}, ${testCase.lang}) failed: ${error}`, 'error');
+              results.push({ word: testCase.word, lang: testCase.lang, success: false, count: 0 });
+            }
+          }
+          
+          const successfulTests = results.filter(r => r.success).length;
+          log(`${lib.name} multilingual: ${successfulTests}/${results.length} successful tests`);
+          
+          if (lib.cleanup) {
+            log(`🧹 Cleaning up ${lib.name}`, 'debug');
+            await withTimeout(
+              () => lib.cleanup!(),
+              10000,
+              `${lib.name} cleanup`
+            );
+          }
+          
+          return { library: lib.name, success: true, results: successfulTests };
+        } catch (error) {
+          log(`${lib.name} multilingual analysis failed: ${error}`, 'error');
+          return { library: lib.name, success: false, error };
+        }
+      });
+
+      const multilingualResults = await Promise.all(multilingualPromises);
+      log("📋 Multilingual Support Summary:");
+      multilingualResults.forEach(r => {
+        if (r.success) {
+          log(`  ${r.library}: ${r.results} successful tests`);
+        } else {
+          log(`  ${r.library}: FAILED`, 'error');
+        }
+      });
+      
+      log("✅ Multilingual support analysis completed");
     }, 60000);
   });
 

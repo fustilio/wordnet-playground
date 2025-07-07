@@ -11,6 +11,11 @@ export abstract class WordNetLibraryBase {
   protected lib: any = undefined;
 
   /**
+   * Indicates if the library supports multilingual queries (e.g., lang parameter)
+   */
+  supportsMultilingual: boolean = false;
+
+  /**
    * Initialize the library (e.g., load data, connect, etc.)
    */
   abstract init(options?: { lexicon?: string }): Promise<void>;
@@ -51,6 +56,25 @@ export abstract class WordNetLibraryBase {
   /**
    * (Optional) Shared logging, timing, or error hooks can be added here
    */
+}
+
+/**
+ * Extension for libraries that support multilingual queries (e.g., wn-ts, wn-pybridge)
+ */
+export abstract class MultilingualWordNetLibraryBase extends WordNetLibraryBase {
+  supportsMultilingual = true;
+
+  /**
+   * Lookup synsets in a specific language
+   */
+  abstract synsetLookup(word: string, options: QueryOptions & { lang: string }): Promise<any>;
+
+  /**
+   * Lookup words in a specific language
+   */
+  abstract wordLookup(word: string, options: QueryOptions & { lang: string }): Promise<any>;
+
+  // Optionally, add more multilingual-specific methods here
 }
 
 /**
