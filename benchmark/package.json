@@ -1,8 +1,8 @@
 {
   "name": "wordnet-benchmark",
   "version": "1.0.0",
+  "private": true,
   "description": "Comprehensive performance benchmarking suite for WordNet implementations - comparing 6 major libraries with detailed performance metrics and feature parity analysis",
-  "type": "module",
   "keywords": [
     "wordnet",
     "benchmark",
@@ -12,14 +12,24 @@
     "python",
     "natural-language-processing"
   ],
-  "author": "fustilio",
-  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/fustilio/wordnet-playground.git",
     "directory": "benchmark"
   },
+  "license": "MIT",
+  "author": "fustilio",
+  "type": "module",
+  "files": [
+    "dist/**/*",
+    "tests/**/*",
+    "lib/**/*",
+    "README.md"
+  ],
   "scripts": {
+    "benchmark:full": "pnpm test:all",
+    "benchmark:quick": "pnpm test:perf",
+    "benchmark:report": "pnpm test:func && echo '📊 Benchmark Report Generated'",
     "build": "tsc",
     "clean": "rimraf dist",
     "test": "vitest run",
@@ -27,14 +37,11 @@
     "test:bench": "vitest bench --run",
     "test:bench:cross": "pnpm test:bench cross",
     "test:bench:lmf": "pnpm test:bench lmf",
-    "test:func": "vitest tests --run",
-    "test:perf": "vitest tests/performance-benchmark.test.ts --run",
-    "test:parity": "vitest tests/feature-parity.test.ts --run",
-    "test:watch": "vitest",
     "test:coverage": "vitest --coverage",
-    "benchmark:report": "pnpm test:func && echo '📊 Benchmark Report Generated'",
-    "benchmark:quick": "pnpm test:perf",
-    "benchmark:full": "pnpm test:all"
+    "test:func": "vitest tests --run",
+    "test:parity": "vitest tests/feature-parity.test.ts --run",
+    "test:perf": "vitest tests/performance-benchmark.test.ts --run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "natural": "^8.1.0",
@@ -48,19 +55,13 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "catalog:",
     "rimraf": "catalog:",
-    "typescript": "catalog:",
-    "@vitest/coverage-v8": "catalog:"
+    "typescript": "catalog:"
   },
   "engines": {
     "node": ">=18.0.0"
   },
-  "files": [
-    "dist/**/*",
-    "tests/**/*",
-    "lib/**/*",
-    "README.md"
-  ],
   "publishConfig": {
     "access": "public"
   }

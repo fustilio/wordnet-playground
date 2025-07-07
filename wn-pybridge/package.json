@@ -1,30 +1,8 @@
 {
   "name": "wn-pybridge",
   "version": "1.0.0",
+  "private": true,
   "description": "TypeScript interface to Python wn library via pythonia bridge",
-  "main": "dist/index.js",
-  "type": "module",
-  "exports": {
-    ".": "./dist/index.js",
-    "./similarity": "./dist/similarity.js",
-    "./taxonomy": "./dist/taxonomy.js",
-    "./morphy": "./dist/morphy.js",
-    "./types": "./dist/types.js"
-  },
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "test": "vitest run",
-    "test:bench": "vitest bench",
-    "test:coverage": "vitest --coverage",
-    "clean": "rimraf -rf dist",
-    "prebuild": "npm run clean",
-    "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix",
-    "format": "prettier --write src/**/*.ts",
-    "check": "npm run lint && npm run test"
-  },
   "keywords": [
     "wordnet",
     "python",
@@ -36,17 +14,40 @@
     "morphology",
     "taxonomy"
   ],
-  "license": "MIT",
-  "author": "fustilio",
+  "homepage": "https://github.com/fustilio/wordnet-playground#readme",
+  "bugs": {
+    "url": "https://github.com/fustilio/wordnet-playground/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/fustilio/wordnet-playground.git",
     "directory": "wn-pybridge"
   },
-  "bugs": {
-    "url": "https://github.com/fustilio/wordnet-playground/issues"
+  "license": "MIT",
+  "author": "fustilio",
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.js",
+    "./similarity": "./dist/similarity.js",
+    "./taxonomy": "./dist/taxonomy.js",
+    "./morphy": "./dist/morphy.js",
+    "./types": "./dist/types.js"
   },
-  "homepage": "https://github.com/fustilio/wordnet-playground#readme",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "prebuild": "npm run clean",
+    "build": "tsc",
+    "check": "npm run lint && npm run test",
+    "clean": "rimraf -rf dist",
+    "dev": "tsc --watch",
+    "format": "prettier --write src/**/*.ts",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "test": "vitest run",
+    "test:bench": "vitest bench",
+    "test:coverage": "vitest --coverage"
+  },
   "dependencies": {
     "pythonia": "catalog:"
   },
@@ -54,12 +55,12 @@
     "@types/node": "catalog:",
     "@typescript-eslint/eslint-plugin": "catalog:",
     "@typescript-eslint/parser": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
     "eslint": "catalog:",
     "prettier": "catalog:",
+    "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:",
-    "@vitest/coverage-v8": "catalog:",
-    "rimraf": "catalog:"
+    "vitest": "catalog:"
   },
   "engines": {
     "node": ">=18.0.0"

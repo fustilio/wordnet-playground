@@ -1,21 +1,22 @@
 {
   "name": "wn-ts-demo",
   "version": "1.0.0",
+  "private": true,
   "description": "Demo application for wn-ts library showing live WordNet downloads and usage",
-  "type": "module",
-  "author": "fustilio",
-  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/fustilio/wordnet-playground.git",
     "directory": "demo"
   },
+  "license": "MIT",
+  "author": "fustilio",
+  "type": "module",
   "scripts": {
-    "start": "node src/demo.js",
     "dev": "node --watch src/demo.js",
+    "start": "node src/demo.js",
     "test": "node src/demo.js"
   },
   "dependencies": {
     "wn-ts": "workspace:*"
   }
-} 
+}

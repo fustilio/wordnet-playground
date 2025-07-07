@@ -10,13 +10,13 @@
     "library",
     "typescript"
   ],
-  "license": "MIT",
-  "author": "fustilio",
   "repository": {
     "type": "git",
     "url": "https://github.com/fustilio/wordnet-playground.git",
     "directory": "wn-ts"
   },
+  "license": "MIT",
+  "author": "fustilio",
   "type": "module",
   "exports": {
     ".": {
@@ -37,6 +37,7 @@
     "format": "prettier --write src/**/*.ts",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
+    "publish-packages": "pnpm run build && changeset version && changeset publish",
     "test": "vitest run --reporter=verbose --exclude \"**/e2e*.test.ts\"",
     "test:bench": "vitest bench --run",
     "test:coverage": "vitest run --coverage --reporter=verbose --exclude \"**/e2e*.test.ts\"",
@@ -56,6 +57,7 @@
     "sqlite3": "^5.1.6"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.27.7",
     "@types/node": "catalog:",
     "@typescript-eslint/eslint-plugin": "catalog:",
     "@typescript-eslint/parser": "catalog:",
