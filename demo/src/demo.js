@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { config, download, add, Wordnet, words, synsets, projects, db } from 'wn-ts';
+import { config, download, add, Wordnet, words, synsets, projects } from 'wn-ts';
 import { join } from 'path';
 import { homedir } from 'os';
 
@@ -26,6 +26,8 @@ async function setupDataDirectory() {
 }
 
 async function runDemo() {
+  let wordnet = null;
+  
   try {
     console.log('🔧 Setting up demo...');
     
@@ -95,7 +97,7 @@ async function runDemo() {
     
     try {
       // Create Wordnet instance
-      const wordnet = new Wordnet('oewn:2024');
+      wordnet = new Wordnet('oewn:2024');
       
       // Search for words
       console.log('\n📝 Searching for words containing "information":');
@@ -156,19 +158,19 @@ async function runDemo() {
     console.log('   • odenet:1.4 (Open German WordNet)');
     console.log('   • omw-fr:1.4 (French WordNet)');
 
-    // Explicitly close the database to avoid native errors
-    try {
-      await db.close?.();
+    // Close the database using Wordnet instance method
+    if (wordnet) {
+      await wordnet.close();
       console.log('✅ Database closed gracefully.');
-    } catch (e) {
-      console.warn('⚠️ Error closing database:', e);
     }
 
   } catch (error) {
     console.error('❌ Demo failed:', error.message);
     try {
-      await db.close?.();
-      console.log('✅ Database closed gracefully (after error).');
+      if (wordnet) {
+        await wordnet.close();
+        console.log('✅ Database closed gracefully (after error).');
+      }
     } catch (e) {
       console.warn('⚠️ Error closing database (after error):', e);
     }

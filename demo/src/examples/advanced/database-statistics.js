@@ -139,6 +139,25 @@ async function demonstrateDatabaseStatistics() {
         Object.entries(byPOS).forEach(([pos, synsets]) => {
           console.log(`    ${pos.toUpperCase()}: ${synsets.length} synsets`);
         });
+        
+        // Show detailed information for the first synset
+        const firstSynset = synsetEntries[0];
+        console.log(`  📖 Sample synset: ${firstSynset.id}`);
+        console.log(`    Members: ${firstSynset.members.join(", ")}`);
+        console.log(`    ILI: ${firstSynset.ili || 'None'}`);
+        
+        // Display definition
+        if (firstSynset.definitions && firstSynset.definitions.length > 0) {
+          console.log(`    Definition: ${firstSynset.definitions[0].text}`);
+        }
+        
+        // Display examples
+        if (firstSynset.examples && firstSynset.examples.length > 0) {
+          console.log(`    Examples:`);
+          firstSynset.examples.forEach((example, index) => {
+            console.log(`      ${index + 1}. "${example.text}"`);
+          });
+        }
       }
     }
 
@@ -208,6 +227,58 @@ async function demonstrateDatabaseStatistics() {
     console.log(`\n📝 Entries with definitions: ${entriesWithDefs.length} (${((entriesWithDefs.length / allILIs.length) * 100).toFixed(2)}%)`);
 
     console.log(`
+🔍 Example 8: Detailed Synset Content Analysis
+=============================================`);
+
+    // Analyze detailed content of synsets
+    console.log('\n🔍 Detailed synset content analysis for "bank":');
+    
+    const bankSynsets = await synsets('bank');
+    console.log(`📚 Found ${bankSynsets.length} synsets for "bank"`);
+    
+    // Group by part of speech
+    const bankByPOS = {};
+    bankSynsets.forEach(synset => {
+      const pos = synset.partOfSpeech;
+      if (!bankByPOS[pos]) bankByPOS[pos] = [];
+      bankByPOS[pos].push(synset);
+    });
+    
+    Object.entries(bankByPOS).forEach(([pos, synsets]) => {
+      console.log(`\n📚 ${pos.toUpperCase()} senses (${synsets.length}):`);
+      synsets.forEach((synset, index) => {
+        console.log(`\n  ${index + 1}. ${synset.id}`);
+        console.log(`     Members: ${synset.members.join(", ")}`);
+        console.log(`     ILI: ${synset.ili || 'None'}`);
+        
+        // Display definition
+        if (synset.definitions && synset.definitions.length > 0) {
+          console.log(`     Definition: ${synset.definitions[0].text}`);
+        }
+        
+        // Display examples
+        if (synset.examples && synset.examples.length > 0) {
+          console.log(`     Examples:`);
+          synset.examples.forEach((example, exIndex) => {
+            console.log(`       ${exIndex + 1}. "${example.text}"`);
+          });
+        }
+        
+        // Display relations
+        if (synset.relations && synset.relations.length > 0) {
+          const relationTypes = {};
+          synset.relations.forEach(rel => {
+            relationTypes[rel.type] = (relationTypes[rel.type] || 0) + 1;
+          });
+          const relationSummary = Object.entries(relationTypes)
+            .map(([type, count]) => `${type}(${count})`)
+            .join(", ");
+          console.log(`     Relations: ${relationSummary}`);
+        }
+      });
+    });
+
+    console.log(`
 🎉 Database Statistics Demo Completed!
 
 💡 Key Insights:
@@ -216,6 +287,7 @@ async function demonstrateDatabaseStatistics() {
    • Synset sizes vary significantly, indicating rich lexical relationships
    • Part-of-speech distribution shows balanced coverage
    • Data quality metrics help assess resource suitability
+   • Detailed synset content enables comprehensive analysis
 
 🚀 Practical Applications:
    • Data quality assessment for research projects

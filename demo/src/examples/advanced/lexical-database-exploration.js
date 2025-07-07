@@ -151,6 +151,19 @@ async function demonstrateLexicalDatabaseExploration() {
         synsets.slice(0, 2).forEach((synset, index) => {
           console.log(`  ${index + 1}. ${synset.id} (${synset.members.length} members)`);
           console.log(`     ILI: ${synset.ili}`);
+          
+          // Display definition
+          if (synset.definitions && synset.definitions.length > 0) {
+            console.log(`     Definition: ${synset.definitions[0].text}`);
+          }
+          
+          // Display examples
+          if (synset.examples && synset.examples.length > 0) {
+            console.log(`     Examples:`);
+            synset.examples.forEach((example, exIndex) => {
+              console.log(`       ${exIndex + 1}. "${example.text}"`);
+            });
+          }
         });
       });
     }
@@ -207,6 +220,58 @@ async function demonstrateLexicalDatabaseExploration() {
     });
 
     console.log(`
+🔍 Example 7: Detailed Synset Exploration
+========================================`);
+
+    // Show detailed synset information for research purposes
+    console.log('\n🔍 Detailed synset exploration for "information":');
+    
+    const informationSynsets = await synsets('information');
+    console.log(`📚 Found ${informationSynsets.length} synsets for "information"`);
+    
+    // Group by part of speech
+    const infoByPOS = {};
+    informationSynsets.forEach(synset => {
+      const pos = synset.partOfSpeech;
+      if (!infoByPOS[pos]) infoByPOS[pos] = [];
+      infoByPOS[pos].push(synset);
+    });
+    
+    Object.entries(infoByPOS).forEach(([pos, synsets]) => {
+      console.log(`\n📚 ${pos.toUpperCase()} senses:`);
+      synsets.forEach((synset, index) => {
+        console.log(`\n  ${index + 1}. ${synset.id}`);
+        console.log(`     Members: ${synset.members.join(", ")}`);
+        console.log(`     ILI: ${synset.ili || 'None'}`);
+        
+        // Display definition
+        if (synset.definitions && synset.definitions.length > 0) {
+          console.log(`     Definition: ${synset.definitions[0].text}`);
+        }
+        
+        // Display examples
+        if (synset.examples && synset.examples.length > 0) {
+          console.log(`     Examples:`);
+          synset.examples.forEach((example, exIndex) => {
+            console.log(`       ${exIndex + 1}. "${example.text}"`);
+          });
+        }
+        
+        // Display relations
+        if (synset.relations && synset.relations.length > 0) {
+          const relationTypes = {};
+          synset.relations.forEach(rel => {
+            relationTypes[rel.type] = (relationTypes[rel.type] || 0) + 1;
+          });
+          const relationSummary = Object.entries(relationTypes)
+            .map(([type, count]) => `${type}(${count})`)
+            .join(", ");
+          console.log(`     Relations: ${relationSummary}`);
+        }
+      });
+    });
+
+    console.log(`
 🎉 Lexical Database Exploration Demo Completed!
 
 💡 Key Insights:
@@ -214,6 +279,7 @@ async function demonstrateLexicalDatabaseExploration() {
    • Different languages and versions offer various coverage
    • Lexicon metadata helps with resource selection
    • Word and synset coverage varies across lexicons
+   • Detailed synset information enables comprehensive research
 
 🚀 Practical Applications:
    • Research and academic studies

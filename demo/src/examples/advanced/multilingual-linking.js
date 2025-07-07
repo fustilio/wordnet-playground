@@ -10,7 +10,7 @@
  */
 
 import { 
-  Wordnet, 
+  Wordnet,
   words, 
   synsets, 
   ili,
@@ -66,6 +66,20 @@ async function demonstrateMultilingualLinking() {
         const computerSynset = computerSynsets[0];
         console.log(`📚 Synset ID: ${computerSynset.id}`);
         console.log(`🌍 ILI ID: ${computerSynset.ili}`);
+        console.log(`👥 Members: ${computerSynset.members.join(", ")}`);
+        
+        // Display definition
+        if (computerSynset.definitions && computerSynset.definitions.length > 0) {
+          console.log(`📖 Definition: ${computerSynset.definitions[0].text}`);
+        }
+        
+        // Display examples
+        if (computerSynset.examples && computerSynset.examples.length > 0) {
+          console.log(`💡 Examples:`);
+          computerSynset.examples.forEach((example, index) => {
+            console.log(`  ${index + 1}. "${example.text}"`);
+          });
+        }
         
         // Get ILI entry
         const iliEntry = await ili(computerSynset.ili);
@@ -73,12 +87,6 @@ async function demonstrateMultilingualLinking() {
           console.log(`📖 ILI Definition: ${iliEntry.definition}`);
           console.log(`🏷️  ILI Status: ${iliEntry.status || 'active'}`);
         }
-        
-        // Show all members of this synset
-        console.log(`👥 Synset members (${computerSynset.members.length}):`);
-        computerSynset.members.forEach((memberId, index) => {
-          console.log(`  ${index + 1}. ${memberId}`);
-        });
       }
     }
 
@@ -90,10 +98,11 @@ async function demonstrateMultilingualLinking() {
     const iliEntries = await ilis();
     console.log(`📊 Total ILI entries: ${iliEntries.length}`);
     
-    // Show sample ILI entries
+    // Show sample ILI entries with definitions
     console.log('\n🌐 Sample ILI entries for cross-language mapping:');
     iliEntries.slice(0, 10).forEach((entry, index) => {
-      console.log(`  ${index + 1}. ${entry.id}: ${entry.definition.substring(0, 60)}...`);
+      const definition = entry.definition ? entry.definition.substring(0, 60) + '...' : 'No definition';
+      console.log(`  ${index + 1}. ${entry.id}: ${definition}`);
     });
 
     console.log(`
@@ -115,15 +124,81 @@ async function demonstrateMultilingualLinking() {
       if (synsetEntries.length > 0) {
         const firstSynset = synsetEntries[0];
         console.log(`  🌍 First synset ILI: ${firstSynset.ili}`);
+        console.log(`  👥 Members: ${firstSynset.members.join(", ")}`);
+        
+        // Display definition
+        if (firstSynset.definitions && firstSynset.definitions.length > 0) {
+          console.log(`  📖 Definition: ${firstSynset.definitions[0].text}`);
+        }
+        
+        // Display examples
+        if (firstSynset.examples && firstSynset.examples.length > 0) {
+          console.log(`  💡 Examples:`);
+          firstSynset.examples.slice(0, 2).forEach((example, index) => {
+            console.log(`    ${index + 1}. "${example.text}"`);
+          });
+        }
         
         if (firstSynset.ili) {
           const iliEntry = await ili(firstSynset.ili);
           if (iliEntry) {
-            console.log(`  📖 Definition: ${iliEntry.definition.substring(0, 80)}...`);
+            console.log(`  📖 ILI Definition: ${iliEntry.definition.substring(0, 80)}...`);
           }
         }
       }
     }
+
+    console.log(`
+🔍 Example 4: Detailed Cross-Language Concept Analysis
+=====================================================`);
+
+    // Show detailed analysis of a specific concept across languages
+    console.log('\n🔍 Detailed analysis of "computer" concept:');
+    
+    const computerSynsets = await synsets('computer');
+    console.log(`📚 Found ${computerSynsets.length} synsets for "computer"`);
+    
+    // Group by part of speech
+    const computerByPOS = {};
+    computerSynsets.forEach(synset => {
+      const pos = synset.partOfSpeech;
+      if (!computerByPOS[pos]) computerByPOS[pos] = [];
+      computerByPOS[pos].push(synset);
+    });
+    
+    Object.entries(computerByPOS).forEach(([pos, synsets]) => {
+      console.log(`\n📚 ${pos.toUpperCase()} senses:`);
+      synsets.forEach((synset, index) => {
+        console.log(`\n  ${index + 1}. ${synset.id}`);
+        console.log(`     Members: ${synset.members.join(", ")}`);
+        console.log(`     ILI: ${synset.ili || 'None'}`);
+        
+        // Display definition
+        if (synset.definitions && synset.definitions.length > 0) {
+          console.log(`     Definition: ${synset.definitions[0].text}`);
+        }
+        
+        // Display examples
+        if (synset.examples && synset.examples.length > 0) {
+          console.log(`     Examples:`);
+          synset.examples.forEach((example, exIndex) => {
+            console.log(`       ${exIndex + 1}. "${example.text}"`);
+          });
+        }
+        
+        // Display relations
+        if (synset.relations && synset.relations.length > 0) {
+          const relationTypes = {};
+          synset.relations.forEach(rel => {
+            relationTypes[rel.type] = (relationTypes[rel.type] || 0) + 1;
+          });
+          const relationSummary = Object.entries(relationTypes)
+            .map(([type, count]) => `${type}(${count})`)
+            .join(", ");
+          console.log(`     Relations: ${relationSummary}`);
+        }
+      });
+    });
 
     console.log(`
 🎉 Multilingual Linking Demo Completed!
@@ -133,6 +208,7 @@ async function demonstrateMultilingualLinking() {
    • Each synset has a unique ILI identifier for concept linking
    • Definitions are available in ILI entries for concept understanding
    • Multiple lexicons provide diverse linguistic coverage
+   • Detailed synset information enables rich cross-language analysis
 
 🚀 Practical Applications:
    • Multilingual dictionary systems

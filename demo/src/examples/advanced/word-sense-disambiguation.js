@@ -2,21 +2,16 @@
 
 /**
  * Use Case 2: Word Sense Disambiguation
- * 
+ *
  * Problem: You need to understand the different meanings of a polysemous word.
  * Solution: Analyze all synsets for a word to identify different senses.
- * 
+ *
  * Real-world application: Natural language processing, text analysis, semantic understanding
  */
 
-import { 
-  Wordnet, 
-  words, 
-  synsets, 
-  senses
-} from 'wn-ts';
-import { join } from 'path';
-import { homedir } from 'os';
+import { Wordnet, words, synsets, senses } from "wn-ts";
+import { join } from "path";
+import { homedir } from "os";
 
 console.log(`
 🎯 Use Case 2: Word Sense Disambiguation
@@ -29,21 +24,21 @@ Real-world application: Natural language processing, text analysis
 `);
 
 // Use a dedicated data directory for this demo
-const dataDirectory = join(homedir(), '.wn_disambiguation_demo');
+const dataDirectory = join(homedir(), ".wn_disambiguation_demo");
 console.log(`📁 Using data directory: ${dataDirectory}`);
 
 // Initialize Wordnet
 let wordnet;
 try {
-  wordnet = new Wordnet('*', {
+  wordnet = new Wordnet("*", {
     dataDirectory,
-    downloadDirectory: join(dataDirectory, 'downloads'),
-    extractDirectory: join(dataDirectory, 'extracted'),
-    databasePath: join(dataDirectory, 'wordnet.db')
+    downloadDirectory: join(dataDirectory, "downloads"),
+    extractDirectory: join(dataDirectory, "extracted"),
+    databasePath: join(dataDirectory, "wordnet.db"),
   });
-  console.log('✅ Wordnet initialized successfully');
+  console.log("✅ Wordnet initialized successfully");
 } catch (error) {
-  console.error('❌ Failed to initialize Wordnet:', error.message);
+  console.error("❌ Failed to initialize Wordnet:", error.message);
   process.exit(1);
 }
 
@@ -55,30 +50,56 @@ async function demonstrateWordSenseDisambiguation() {
 
     // Get different senses of "bank"
     console.log('\n🏦 Analyzing "bank" senses...');
-    const bankWords = await words('bank');
+    const bankWords = await words("bank");
     console.log(`📝 Found ${bankWords.length} word forms for "bank"`);
-    
+
     bankWords.forEach((word, index) => {
       console.log(`  ${index + 1}. ${word.lemma} (${word.partOfSpeech})`);
     });
 
-    const bankSynsets = await synsets('bank');
+    const bankSynsets = await synsets("bank");
     console.log(`\n📚 Found ${bankSynsets.length} synsets for "bank"`);
-    
+
     // Group by part of speech
     const bankByPOS = {};
-    bankSynsets.forEach(synset => {
+    bankSynsets.forEach((synset) => {
       const pos = synset.partOfSpeech;
       if (!bankByPOS[pos]) bankByPOS[pos] = [];
       bankByPOS[pos].push(synset);
     });
-    
+
+    // Display detailed synset information with definitions and examples
     Object.entries(bankByPOS).forEach(([pos, synsets]) => {
       console.log(`\n📚 ${pos.toUpperCase()} senses (${synsets.length}):`);
-      synsets.slice(0, 3).forEach((synset, index) => {
-        console.log(`  ${index + 1}. ${synset.id} (${synset.members.length} members)`);
-        console.log(`     ILI: ${synset.ili}`);
-        console.log(`     Sample: ${synset.members.slice(0, 3).join(', ')}`);
+      synsets.forEach((synset, index) => {
+        console.log(`\n  ${index + 1}. ${synset.id} (${synset.members.length} members)`);
+        console.log(`     Members: ${synset.members.join(", ")}`);
+        console.log(`     ILI: ${synset.ili || 'None'}`);
+        
+        // Display definitions
+        if (synset.definitions && synset.definitions.length > 0) {
+          console.log(`     Definition: ${synset.definitions[0].text}`);
+        }
+        
+        // Display examples
+        if (synset.examples && synset.examples.length > 0) {
+          console.log(`     Examples:`);
+          synset.examples.forEach((example, exIndex) => {
+            console.log(`       ${exIndex + 1}. "${example.text}"`);
+          });
+        }
+        
+        // Display relations count
+        if (synset.relations && synset.relations.length > 0) {
+          const relationTypes = {};
+          synset.relations.forEach(rel => {
+            relationTypes[rel.type] = (relationTypes[rel.type] || 0) + 1;
+          });
+          const relationSummary = Object.entries(relationTypes)
+            .map(([type, count]) => `${type}(${count})`)
+            .join(", ");
+          console.log(`     Relations: ${relationSummary}`);
+        }
       });
     });
 
@@ -88,36 +109,49 @@ async function demonstrateWordSenseDisambiguation() {
 
     // Get different senses of "light"
     console.log('\n💡 Analyzing "light" senses...');
-    const lightWords = await words('light');
+    const lightWords = await words("light");
     console.log(`📝 Found ${lightWords.length} word forms for "light"`);
-    
+
     lightWords.forEach((word, index) => {
       console.log(`  ${index + 1}. ${word.lemma} (${word.partOfSpeech})`);
     });
 
-    const lightSynsets = await synsets('light');
+    const lightSynsets = await synsets("light");
     console.log(`\n💡 Found ${lightSynsets.length} synsets for "light"`);
-    
+
     // Show different parts of speech
     const lightByPOS = {};
-    lightSynsets.forEach(synset => {
+    lightSynsets.forEach((synset) => {
       const pos = synset.partOfSpeech;
       if (!lightByPOS[pos]) lightByPOS[pos] = [];
       lightByPOS[pos].push(synset);
     });
-    
-    console.log('\n💡 Light by part of speech:');
+
+    console.log("\n💡 Light by part of speech:");
     Object.entries(lightByPOS).forEach(([pos, synsets]) => {
       console.log(`  ${pos.toUpperCase()}: ${synsets.length} synsets`);
     });
 
-    // Show some examples from each POS
+    // Show detailed examples from each POS
     Object.entries(lightByPOS).forEach(([pos, synsets]) => {
       console.log(`\n💡 ${pos.toUpperCase()} examples:`);
-      synsets.slice(0, 2).forEach((synset, index) => {
-        console.log(`  ${index + 1}. ${synset.id} (${synset.members.length} members)`);
-        console.log(`     ILI: ${synset.ili}`);
-        console.log(`     Sample: ${synset.members.slice(0, 3).join(', ')}`);
+      synsets.slice(0, 3).forEach((synset, index) => {
+        console.log(`\n  ${index + 1}. ${synset.id} (${synset.members.length} members)`);
+        console.log(`     Members: ${synset.members.join(", ")}`);
+        console.log(`     ILI: ${synset.ili || 'None'}`);
+        
+        // Display definitions
+        if (synset.definitions && synset.definitions.length > 0) {
+          console.log(`     Definition: ${synset.definitions[0].text}`);
+        }
+        
+        // Display examples
+        if (synset.examples && synset.examples.length > 0) {
+          console.log(`     Examples:`);
+          synset.examples.forEach((example, exIndex) => {
+            console.log(`       ${exIndex + 1}. "${example.text}"`);
+          });
+        }
       });
     });
 
@@ -126,27 +160,27 @@ async function demonstrateWordSenseDisambiguation() {
 ===================================================`);
 
     // Demonstrate sense disambiguation for multiple words
-    const polysemousWords = ['run', 'play', 'set', 'get'];
-    
+    const polysemousWords = ["run", "play", "set", "get"];
+
     for (const word of polysemousWords) {
       console.log(`\n🔍 "${word}" sense analysis:`);
-      
+
       const wordEntries = await words(word);
       const synsetEntries = await synsets(word);
       const senseEntries = await senses(word);
-      
+
       console.log(`  📝 Word forms: ${wordEntries.length}`);
       console.log(`  📚 Synsets: ${synsetEntries.length}`);
       console.log(`  🎯 Senses: ${senseEntries.length}`);
-      
+
       // Group by part of speech
       const byPOS = {};
-      synsetEntries.forEach(synset => {
+      synsetEntries.forEach((synset) => {
         const pos = synset.partOfSpeech;
         if (!byPOS[pos]) byPOS[pos] = [];
         byPOS[pos].push(synset);
       });
-      
+
       Object.entries(byPOS).forEach(([pos, synsets]) => {
         console.log(`    ${pos.toUpperCase()}: ${synsets.length} senses`);
       });
@@ -157,26 +191,39 @@ async function demonstrateWordSenseDisambiguation() {
 ==========================================`);
 
     // Demonstrate how context could help select the right sense
-    console.log('\n🎭 Context-based sense selection examples:');
-    
+    console.log("\n🎭 Context-based sense selection examples:");
+
     const contexts = [
-      { word: 'bank', context: 'I went to the bank to deposit money', expectedPOS: 'n' },
-      { word: 'bank', context: 'The plane will bank to the left', expectedPOS: 'v' },
-      { word: 'light', context: 'The light is too bright', expectedPOS: 'n' },
-      { word: 'light', context: 'She is light on her feet', expectedPOS: 'a' }
+      {
+        word: "bank",
+        context: "I went to the bank to deposit money",
+        expectedPOS: "n",
+      },
+      {
+        word: "bank",
+        context: "The plane will bank to the left",
+        expectedPOS: "v",
+      },
+      { word: "light", context: "The light is too bright", expectedPOS: "n" },
+      { word: "light", context: "She is light on her feet", expectedPOS: "a" },
     ];
-    
+
     for (const { word, context, expectedPOS } of contexts) {
       console.log(`\n📝 Context: "${context}"`);
       console.log(`🔍 Word: "${word}" (expected POS: ${expectedPOS})`);
-      
+
       const wordSynsets = await synsets(word, expectedPOS);
       console.log(`📚 Found ${wordSynsets.length} ${expectedPOS} synsets`);
-      
+
       if (wordSynsets.length > 0) {
         const firstSynset = wordSynsets[0];
         console.log(`🏷️  First synset: ${firstSynset.id}`);
-        console.log(`👥 Members: ${firstSynset.members.slice(0, 3).join(', ')}`);
+        console.log(`👥 Members: ${firstSynset.members.slice(0, 3).join(", ")}`);
+        
+        // Show definition for context
+        if (firstSynset.definitions && firstSynset.definitions.length > 0) {
+          console.log(`📖 Definition: ${firstSynset.definitions[0].text}`);
+        }
       }
     }
 
@@ -188,6 +235,7 @@ async function demonstrateWordSenseDisambiguation() {
    • Part-of-speech tagging helps narrow down relevant senses
    • Context can be used to select the most appropriate sense
    • Rich sense data enables sophisticated NLP applications
+   • Definitions and examples provide crucial disambiguation context
 
 🚀 Practical Applications:
    • Natural language processing systems
@@ -205,20 +253,20 @@ async function demonstrateWordSenseDisambiguation() {
 
     // Close the database using Wordnet instance method
     await wordnet.close();
-    console.log('✅ Database connection closed successfully');
+    console.log("✅ Database connection closed successfully");
   } catch (error) {
-    console.error('❌ Word sense disambiguation demo failed:', error.message);
-    try { 
-      await wordnet.close(); 
-      console.log('✅ Database connection closed after error');
+    console.error("❌ Word sense disambiguation demo failed:", error.message);
+    try {
+      await wordnet.close();
+      console.log("✅ Database connection closed after error");
     } catch (closeError) {
-      console.error('⚠️  Error closing database:', closeError.message);
+      console.error("⚠️  Error closing database:", closeError.message);
     }
   }
 }
 
 // Run the word sense disambiguation demo
-demonstrateWordSenseDisambiguation().catch(error => {
-  console.error('❌ Fatal error:', error.message);
+demonstrateWordSenseDisambiguation().catch((error) => {
+  console.error("❌ Fatal error:", error.message);
   process.exit(1);
-}); 
+});

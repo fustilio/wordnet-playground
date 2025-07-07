@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 /**
- * Master Demo Runner - All Use Cases
+ * Master Demo Runner - All Examples
  * 
- * Runs all individual use case demos in sequence to showcase the complete
+ * Runs all individual example demos in sequence to showcase the complete
  * capabilities of the WordNet TypeScript library.
  */
 
@@ -15,102 +15,112 @@ import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const useCases = [
+const examples = [
   {
-    name: 'Multilingual Word Linking',
-    file: '01-multilingual-linking.js',
-    description: 'Linking words across languages using ILI'
+    name: 'Word Sense Disambiguation (Basic)',
+    file: 'examples/basic/word-sense-disambiguation.js',
+    description: 'Understanding different meanings of polysemous words - focused demo'
   },
   {
-    name: 'Word Sense Disambiguation',
-    file: '02-word-sense-disambiguation.js',
-    description: 'Understanding different meanings of polysemous words'
+    name: 'Database Statistics (Basic)',
+    file: 'examples/basic/database-statistics.js',
+    description: 'Analyzing database scope and quality - focused demo'
   },
   {
-    name: 'Lexical Database Exploration',
-    file: '03-lexical-database-exploration.js',
-    description: 'Discovering available linguistic resources'
+    name: 'Multilingual Word Linking (Advanced)',
+    file: 'examples/advanced/multilingual-linking.js',
+    description: 'Linking words across languages using ILI - comprehensive demo'
   },
   {
-    name: 'Database Statistics and Coverage',
-    file: '04-database-statistics.js',
-    description: 'Analyzing database scope and quality'
+    name: 'Lexical Database Exploration (Advanced)',
+    file: 'examples/advanced/lexical-database-exploration.js',
+    description: 'Discovering available linguistic resources - comprehensive demo'
+  },
+  {
+    name: 'Word Sense Disambiguation (Advanced)',
+    file: 'examples/advanced/word-sense-disambiguation.js',
+    description: 'Understanding different meanings of polysemous words - comprehensive demo'
+  },
+  {
+    name: 'Database Statistics (Advanced)',
+    file: 'examples/advanced/database-statistics.js',
+    description: 'Analyzing database scope and quality - comprehensive demo'
   }
 ];
 
 console.log(`
-🚀 WordNet TypeScript - Complete Use Cases Demo
-===============================================
+🚀 WordNet TypeScript - Complete Examples Demo
+==============================================
 
-Running all use cases to showcase the library's capabilities...
+Running all examples to showcase the library's capabilities...
 `);
 
-async function runUseCase(useCase, index) {
+async function runExample(example, index) {
   return new Promise((resolve, reject) => {
     console.log(`\n${'='.repeat(60)}`);
-    console.log(`🎯 Use Case ${index + 1}: ${useCase.name}`);
-    console.log(`📝 ${useCase.description}`);
+    console.log(`🎯 Example ${index + 1}: ${example.name}`);
+    console.log(`📝 ${example.description}`);
     console.log(`${'='.repeat(60)}\n`);
     
-    const useCasePath = join(__dirname, 'use-cases', useCase.file);
-    const child = spawn('node', [useCasePath], {
+    const examplePath = join(__dirname, example.file);
+    const child = spawn('node', [examplePath], {
       stdio: 'inherit',
       cwd: process.cwd()
     });
     
     child.on('close', (code) => {
       if (code === 0) {
-        console.log(`\n✅ Use Case ${index + 1} completed successfully!\n`);
+        console.log(`\n✅ Example ${index + 1} completed successfully!\n`);
         resolve();
       } else {
-        console.log(`\n❌ Use Case ${index + 1} failed with code ${code}\n`);
-        reject(new Error(`Use case ${index + 1} failed`));
+        console.log(`\n❌ Example ${index + 1} failed with code ${code}\n`);
+        reject(new Error(`Example ${index + 1} failed`));
       }
     });
     
     child.on('error', (error) => {
-      console.log(`\n❌ Use Case ${index + 1} error: ${error.message}\n`);
+      console.log(`\n❌ Example ${index + 1} error: ${error.message}\n`);
       reject(error);
     });
   });
 }
 
-async function runAllUseCases() {
-  console.log(`📋 Running ${useCases.length} use cases...\n`);
+async function runAllExamples() {
+  console.log(`📋 Running ${examples.length} examples...\n`);
   
   const startTime = Date.now();
   let successCount = 0;
   let failureCount = 0;
   
-  for (let i = 0; i < useCases.length; i++) {
-    const useCase = useCases[i];
+  for (let i = 0; i < examples.length; i++) {
+    const example = examples[i];
     try {
-      await runUseCase(useCase, i);
+      await runExample(example, i);
       successCount++;
     } catch (error) {
       failureCount++;
-      console.log(`⚠️  Continuing with next use case...\n`);
+      console.log(`⚠️  Continuing with next example...\n`);
     }
   }
   
   const totalTime = Date.now() - startTime;
   
   console.log(`\n${'='.repeat(60)}`);
-  console.log(`🎉 All Use Cases Demo Completed!`);
+  console.log(`🎉 All Examples Demo Completed!`);
   console.log(`${'='.repeat(60)}`);
   console.log(`📊 Results:`);
-  console.log(`  ✅ Successful: ${successCount}/${useCases.length}`);
-  console.log(`  ❌ Failed: ${failureCount}/${useCases.length}`);
+  console.log(`  ✅ Successful: ${successCount}/${examples.length}`);
+  console.log(`  ❌ Failed: ${failureCount}/${examples.length}`);
   console.log(`  ⏱️  Total time: ${(totalTime / 1000).toFixed(2)} seconds`);
   console.log(`\n🚀 WordNet TypeScript library is ready for real-world applications!`);
   console.log(`\n💡 Key capabilities demonstrated:`);
-  useCases.forEach((useCase, index) => {
-    console.log(`  ${index + 1}. ${useCase.name}: ${useCase.description}`);
+  examples.forEach((example, index) => {
+    console.log(`  ${index + 1}. ${example.name}: ${example.description}`);
   });
 }
 
-// Run all use cases
-runAllUseCases().catch(error => {
+// Run all examples
+runAllExamples().catch(error => {
   console.error('❌ Fatal error:', error.message);
   process.exit(1);
 }); 

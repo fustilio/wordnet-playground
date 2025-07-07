@@ -10,7 +10,6 @@
 import { 
   Wordnet, 
   projects, 
-  db, 
   words, 
   synsets, 
   senses, 
@@ -319,13 +318,13 @@ Example: Building a multilingual dictionary lookup system
 🚀 WordNet is ready for real-world applications!
 `);
 
-    // Close the database
-    await db.close();
+    // Close the database using Wordnet instance method
+    await wordnet.close();
     console.log('✅ Database connection closed successfully');
   } catch (error) {
     console.error('❌ Kitchen sink demo failed:', error.message);
     try { 
-      await db.close(); 
+      await wordnet.close(); 
       console.log('✅ Database connection closed after error');
     } catch (closeError) {
       console.error('⚠️  Error closing database:', closeError.message);
