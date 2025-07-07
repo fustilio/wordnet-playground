@@ -7,7 +7,7 @@
 // Core classes
 export { Wordnet } from './wordnet.js';
 export { config, ConfigManager } from './config.js';
-export { db } from './database.js';
+// Note: db export is for internal debugging only - use Wordnet instance methods instead
 
 // Download utilities
 export { downloadFile, DownloadError } from './utils/download.js';

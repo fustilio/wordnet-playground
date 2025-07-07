@@ -1,8 +1,8 @@
 {
-  "name": "wn-ts-demo",
+  "name": "wordnet-demo",
   "version": "1.0.0",
   "private": true,
-  "description": "Demo application for wn-ts library showing live WordNet downloads and usage",
+  "description": "WordNet TypeScript demonstration scripts",
   "repository": {
     "type": "git",
     "url": "https://github.com/fustilio/wordnet-playground.git",
@@ -12,13 +12,17 @@
   "author": "fustilio",
   "type": "module",
   "scripts": {
-    "dev": "node --watch src/demo.js",
     "start": "node src/demo.js",
-    "test": "node src/demo.js",
+    "demo": "node src/demo.js",
     "kitchen-sink": "node src/kitchen-sink-demo.js",
-    "demo:kitchen-sink": "node src/kitchen-sink-demo.js"
+    "debug": "node src/debug-demo.js",
+    "all-use-cases": "node src/run-all-use-cases.js",
+    "use-case:multilingual": "node src/use-cases/01-multilingual-linking.js",
+    "use-case:disambiguation": "node src/use-cases/02-word-sense-disambiguation.js",
+    "use-case:exploration": "node src/use-cases/03-lexical-database-exploration.js",
+    "use-case:statistics": "node src/use-cases/04-database-statistics.js"
   },
   "dependencies": {
-    "wn-ts": "0.1.1"
+    "wn-ts": "^0.2.0"
   }
 }

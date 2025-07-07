@@ -6,12 +6,22 @@ A comprehensive benchmark comparing different WordNet libraries for Node.js/Type
 
 This benchmark evaluates 6 WordNet libraries to help developers choose the right library for their needs:
 
-- **wn-ts** - Modern TypeScript implementation with full API parity
+- **wn-ts** - Modern TypeScript implementation with full API parity and clean API design
 - **wn-pybridge** - Python wn library bridge via Pythonia
 - **natural** - Natural language processing library with WordNet support
 - **WordsWordNet** - Lightweight WordNet wrapper
 - **node-wordnet** - Node.js WordNet interface
 - **wordpos** - Part-of-speech tagger with WordNet integration
+
+## 🎯 Clean API Design
+
+**Important**: The benchmark now uses clean API approaches for all libraries:
+
+- **wn-ts**: Uses Wordnet instance methods and module functions (no direct database access)
+- **wn-pybridge**: Uses clean API without direct database access
+- **All libraries**: Tested through their public APIs only
+
+This ensures the benchmark reflects real-world usage patterns and maintainable code practices.
 
 ## 📊 Performance Results
 
@@ -45,6 +55,7 @@ This benchmark evaluates 6 WordNet libraries to help developers choose the right
 | **Sense Lookup** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **POS Filtering** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | **Error Handling** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Clean API** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ### Advanced Features
 
@@ -55,6 +66,7 @@ This benchmark evaluates 6 WordNet libraries to help developers choose the right
 | **Relations** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Morphological Analysis** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Information Content** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Statistics & Analysis** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
 
 ## 🎯 Detailed Findings
 
@@ -68,13 +80,15 @@ This benchmark evaluates 6 WordNet libraries to help developers choose the right
 2. **wn-ts** - Best for feature-rich applications
    - Full API parity with Python wn library
    - Sense lookup support (only 2 libraries support this)
-   - Comprehensive feature set
+   - Comprehensive feature set including statistics and analysis
+   - Clean API design without direct database access
    - Good performance for complex queries
 
 3. **wn-pybridge** - Best for Python compatibility
    - Direct bridge to Python wn library
    - Full feature parity
    - Consistent performance
+   - Clean API design
 
 ### ⚠️ **Performance Considerations**
 
@@ -89,6 +103,7 @@ All libraries handle edge cases gracefully:
 - ✅ Non-existent words
 - ✅ Invalid POS tags
 - ✅ Error recovery
+- ✅ Clean API usage (no direct database access)
 
 ## 📈 Cross-Library Comparison Results
 
@@ -116,9 +131,10 @@ All libraries handle edge cases gracefully:
 
 ### For Feature-Rich Applications
 **Choose: wn-ts**
-- Full feature set
+- Full feature set including statistics and analysis
 - Sense lookup support
 - Modern TypeScript implementation
+- Clean API design without direct database access
 - Good performance for complex queries
 
 ### For Python Compatibility
@@ -126,6 +142,7 @@ All libraries handle edge cases gracefully:
 - Direct Python wn library bridge
 - Full feature parity
 - Consistent performance
+- Clean API design
 
 ### For Natural Language Processing
 **Choose: natural**
@@ -142,44 +159,65 @@ The benchmark includes comprehensive testing:
 - **API Consistency Tests**: Error handling and edge cases
 - **Cross-Library Comparison**: Result consistency analysis
 - **Robustness Tests**: Error handling and recovery
+- **Clean API Tests**: Verification of proper API usage
+
+## 🔄 CI Integration
+
+The benchmark is fully integrated with the workspace CI pipeline:
+
+```bash
+# Run all benchmark tests as part of CI
+pnpm ci:benchmark
+
+# Run individual benchmark components
+pnpm benchmark:func    # Functional tests
+pnpm benchmark:parity  # Feature parity tests
+pnpm benchmark:perf    # Performance tests
+```
 
 ## 📋 Library Details
 
 ### wn-ts
 - **Status**: Modern TypeScript implementation
-- **Features**: Full API parity with Python wn library
+- **Features**: Full API parity with Python wn library, clean API design
 - **Performance**: Moderate (580ms average)
-- **Best For**: Feature-rich applications requiring sense lookup
+- **Best For**: Feature-rich applications requiring sense lookup and analysis
+- **Clean API**: ✅ Uses Wordnet instance methods and module functions
 
 ### wn-pybridge
 - **Status**: Python wn library bridge
-- **Features**: Complete Python wn functionality
+- **Features**: Complete Python wn functionality, clean API design
 - **Performance**: Consistent (~500ms average)
 - **Best For**: Python compatibility and full feature set
+- **Clean API**: ✅ Uses clean API without direct database access
 
 ### natural
 - **Status**: Mature NLP library
 - **Features**: WordNet integration with NLP tools
 - **Performance**: Good for simple queries (309ms average)
 - **Best For**: Natural language processing workflows
+- **Clean API**: ✅ Uses public API only
 
 ### WordsWordNet
 - **Status**: Lightweight wrapper
 - **Features**: Basic WordNet functionality
 - **Performance**: Fastest (5.28ms average)
 - **Best For**: Speed-critical applications
+- **Clean API**: ✅ Uses public API only
 
 ### node-wordnet
 - **Status**: Node.js WordNet interface
 - **Features**: Standard WordNet API
 - **Performance**: Consistent (158ms average)
 - **Best For**: Production applications requiring reliability
+- **Clean API**: ✅ Uses public API only
 
 ### wordpos
 - **Status**: POS tagger with WordNet
 - **Features**: Part-of-speech tagging integration
 - **Performance**: Variable (1077ms average)
 - **Best For**: POS tagging workflows
+- **Clean API**: ✅ Uses public API only
 
 ## 🔧 Setup and Usage
 
@@ -198,102 +236,63 @@ pnpm test:parity  # Feature parity only
 ```
 
 ### Available Scripts
-
-| Script | Description | Use Case |
-|--------|-------------|----------|
-| `pnpm test:all` | Run all tests and benchmarks | Complete analysis |
-| `pnpm test:func` | Feature parity and API consistency | Library comparison |
-| `pnpm test:perf` | Performance benchmarks only | Speed analysis |
-| `pnpm test:parity` | Feature parity tests only | Functionality comparison |
-| `pnpm test:bench` | LMF parser benchmarks | XML parsing performance |
-| `pnpm test:watch` | Watch mode for development | Interactive testing |
-| `pnpm test:coverage` | Run with coverage report | Code quality analysis |
-| `pnpm benchmark:report` | Generate benchmark report | Documentation |
-| `pnpm benchmark:quick` | Quick performance check | Fast validation |
-| `pnpm benchmark:full` | Complete benchmark suite | Comprehensive analysis |
-
-### Development Workflow
 ```bash
-# Install and setup
-pnpm install
+# Benchmark scripts
+pnpm test:func      # Functional tests
+pnpm test:perf      # Performance tests
+pnpm test:parity    # Feature parity tests
+pnpm test:all       # All tests
 
-# Run quick performance check
-pnpm benchmark:quick
-
-# Run comprehensive analysis
-pnpm benchmark:full
-
-# Generate report
-pnpm benchmark:report
-
-# Watch mode for development
-pnpm test:watch
+# CI integration
+pnpm ci:benchmark   # Run as part of CI pipeline
 ```
 
-### Test Categories
+### Test Structure
+```
+tests/
+├── feature-parity.test.ts      # Core functionality comparison
+├── performance-benchmark.test.ts # Performance timing tests
+├── multilingual-benchmark.test.ts # Cross-language testing
+└── shared-test-utils.ts        # Common test utilities
+```
 
-**Performance Tests** (`test:perf`):
-- Word lookup timing across all libraries
-- Response time measurements
-- Performance rankings
+## 📊 Benchmark Methodology
 
-**Feature Parity Tests** (`test:func`):
-- Core functionality comparison
-- API consistency validation
-- Error handling verification
-- Cross-library result comparison
+### Performance Testing
+- **Test Words**: "run", "computer", "happy" (representing different complexity levels)
+- **Measurements**: Average response time across multiple runs
+- **Environment**: Consistent Node.js environment
+- **Methodology**: Clean API usage only (no direct database access)
 
-**LMF Parser Tests** (`test:bench`):
-- XML parsing performance
-- Memory usage analysis
-- Parser efficiency comparison
+### Feature Parity Testing
+- **Core Features**: Word lookup, synset lookup, sense lookup
+- **Advanced Features**: Examples, definitions, relations
+- **Error Handling**: Edge cases and error recovery
+- **API Consistency**: Cross-library result comparison
 
-## 📊 Test Results Summary
+### Clean API Verification
+- **wn-ts**: Uses Wordnet instance methods and module functions
+- **wn-pybridge**: Uses clean API without direct database access
+- **All libraries**: Tested through public APIs only
 
-- **✅ All Tests Passing**: 11/11 tests passed
-- **Performance**: Measured across 6 libraries
-- **Feature Parity**: Comprehensive comparison
-- **Error Handling**: All libraries handle edge cases properly
-- **API Consistency**: Standardized testing framework
+## 🎯 Key Insights
 
-## 🎯 Key Metrics
+### Performance vs Features
+- **Speed-focused**: WordsWordNet (5.28ms) for basic lookups
+- **Feature-focused**: wn-ts with full API parity and analysis capabilities
+- **Balance**: natural and node-wordnet for production use
 
-### Performance Rankings
-1. **WordsWordNet**: 5.28ms average (fastest)
-2. **node-wordnet**: 157.75ms average (consistent)
-3. **natural**: 308.93ms average (NLP-focused)
-4. **wn-ts**: 580.79ms average (feature-rich)
-5. **wn-pybridge**: ~500ms average (Python bridge)
-6. **wordpos**: 1076.64ms average (variable)
+### Clean API Benefits
+- **Maintainability**: No direct database access reduces coupling
+- **Testability**: Easier to test and mock
+- **Portability**: Better for different environments
+- **Documentation**: Clearer API boundaries
 
-### Feature Support
-- **Sense Lookup**: Only wn-ts and wn-pybridge
-- **Advanced Features**: wn-ts and wn-pybridge lead
-- **Error Handling**: All libraries pass
-- **API Consistency**: All libraries validated
-
-## 🤝 Contributing
-
-Contributions are welcome! Please see the contributing guidelines for details on:
-- Adding new libraries
-- Improving benchmarks
-- Enhancing test coverage
-- Performance optimizations
-
-### Adding New Libraries
-1. Create library implementation in `lib/wordnet-libraries/`
-2. Extend `WordNetLibraryBase` class
-3. Add to test suites in `tests/`
-4. Update performance tables in README
-
-### Improving Benchmarks
-1. Add new test scenarios in `tests/`
-2. Enhance performance metrics
-3. Update feature parity analysis
-4. Document new findings
+### Future Considerations
+- **Browser Compatibility**: wn-ts designed for browser environments
+- **Type Safety**: wn-ts provides full TypeScript support
+- **Extensibility**: wn-ts supports custom analysis and statistics
 
 ---
 
-*Last updated: December 2024*
-*Test results from latest benchmark run*
-*Package version: 1.0.0* 
+**Remember**: All benchmarks use clean API approaches, reflecting real-world usage patterns and maintainable code practices. 

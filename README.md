@@ -10,6 +10,7 @@ This repository contains the development of **wn-ts**, a TypeScript port of the 
 - TypeScript-first design with modern features
 - Comprehensive performance benchmarking
 - Browser-compatible architecture
+- Clean API without direct database access
 
 ## 📦 Projects
 
@@ -74,6 +75,56 @@ cd wn-ts
 pnpm build
 ```
 
+## 🔧 Development & CI
+
+### Workspace Setup
+This repository uses pnpm workspaces for managing the multi-package structure:
+
+```bash
+# Install all dependencies
+pnpm install
+
+# Build all packages
+pnpm build
+
+# Run tests across all packages
+pnpm test
+
+# Run benchmarks
+pnpm test:bench
+```
+
+### Comprehensive CI Pipeline
+The repository includes a complete CI pipeline that runs all tests, demos, and benchmarks:
+
+```bash
+# Run the complete CI pipeline
+pnpm ci:full
+
+# Run individual CI steps
+pnpm ci:build    # Build wn-ts library
+pnpm ci:test     # Run all tests (including e2e)
+pnpm ci:demo     # Run all demo use cases
+pnpm ci:benchmark # Run all benchmark tests
+```
+
+### Individual Scripts
+```bash
+# wn-ts specific
+pnpm test         # Run wn-ts tests
+pnpm test:e2e     # Run e2e tests
+pnpm test:coverage # Run tests with coverage
+
+# Demo specific
+pnpm demo:all-use-cases  # Run all demo use cases
+pnpm demo:kitchen-sink   # Run kitchen sink demo
+
+# Benchmark specific
+pnpm benchmark:func      # Run functional tests
+pnpm benchmark:parity    # Run parity tests
+pnpm benchmark:perf      # Run performance tests
+```
+
 ## 📊 Benchmark Results
 
 The repository includes comprehensive benchmarking tools that provide actionable insights:
@@ -97,25 +148,6 @@ This comprehensive benchmark compares 6 major WordNet libraries:
 
 **📖 [Read Full Benchmark Results →](./benchmark/README.md)**
 
-## 🔧 Development
-
-### Workspace Setup
-This repository uses pnpm workspaces for managing the multi-package structure:
-
-```bash
-# Install all dependencies
-pnpm install
-
-# Build all packages
-pnpm build
-
-# Run tests across all packages
-pnpm test
-
-# Run benchmarks
-pnpm test:bench
-```
-
 ## 🎯 Current Development Focus
 
 ### Strategic Approach Decision ✅ **COMPLETED**
@@ -127,6 +159,7 @@ We've completed comprehensive testing of different WordNet implementations and m
 - **Feature Completeness**: Both approaches achieve high feature parity
 - **Performance**: Native TypeScript outperforms bridge in most cases
 - **Strategic Decision**: Continue with native TypeScript development for optimal performance
+- **Clean API**: All components now use clean APIs without direct database access
 
 ### Library Recommendations ✅ **COMPLETED**
 
@@ -159,6 +192,8 @@ Based on comprehensive benchmarking:
 - ✅ **Performance Optimization**: Optimized implementation with good performance
 - ✅ **Feature Completion**: 95% feature parity achieved
 - ✅ **Benchmark Integration**: Proper exports and integration completed
+- ✅ **Clean API**: Removed direct database access, all components use clean APIs
+- ✅ **Comprehensive CI**: Complete CI pipeline with tests, demos, and benchmarks
 - [ ] **CLI Interface**: Command-line tools for data management
 - [ ] **Browser Compatibility**: Enhanced browser support for web applications
 - [ ] **Production Readiness**: Enhanced error handling, logging, monitoring

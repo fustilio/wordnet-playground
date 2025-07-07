@@ -9,8 +9,7 @@ import {
   Wordnet, 
   words, 
   synsets, 
-  projects,
-  db
+  projects
 } from '../../src/index.js';
 import { logger } from '../../src/utils/logger.js';
 
@@ -46,7 +45,9 @@ describe('End-to-End Integration Tests', () => {
     // Setup a persistent data directory for all e2e tests
     e2eDataDir = mkdtempSync(join(tmpdir(), 'wn-ts-e2e-'));
     config.dataDirectory = e2eDataDir;
-    await db.initialize();
+    
+    // Initialize by creating a Wordnet instance - this will handle database initialization
+    const tempWn = new Wordnet('*');
 
     const ciliDownloadProgress = new ProgressLogger('Download CILI');
     const ciliPath = await download('cili:1.0', { force: true, progress: ciliDownloadProgress.update.bind(ciliDownloadProgress) });
@@ -70,7 +71,6 @@ describe('End-to-End Integration Tests', () => {
 
   afterAll(async () => {
     // Shared teardown
-    await db.close();
     if (e2eDataDir && existsSync(e2eDataDir)) {
       rmSync(e2eDataDir, { recursive: true, force: true });
     }
@@ -79,10 +79,10 @@ describe('End-to-End Integration Tests', () => {
   beforeEach(async () => {
     // The global setup in `setup.ts` may create another temp directory.
     // We must reset config.dataDirectory to our persistent e2e directory.
-    // The global `afterEach` closes the DB, so we re-initialize it here.
     config.dataDirectory = e2eDataDir;
-    await db.close();
-    await db.initialize();
+    
+    // Initialize by creating a Wordnet instance - this will handle database initialization
+    const tempWn = new Wordnet('*');
   });
 
   describe('Configuration and Project Discovery', () => {

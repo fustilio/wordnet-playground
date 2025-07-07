@@ -1,13 +1,14 @@
 // wn-ts WordNet library implementation
 import { MultilingualWordNetLibraryBase, WordNetLibraryTester, QueryOptions } from '../WordNetLibraryBase.ts';
 // Import from the main wn-ts package - no more deep imports needed
-import { Wordnet as TSWordnet, db, download, add } from 'wn-ts';
+import { Wordnet as TSWordnet, download, add } from 'wn-ts';
 
 export class WnTsLibrary extends MultilingualWordNetLibraryBase {
   name = 'wn-ts';
 
   async init(options?: { lexicon?: string }) {
-    await db.initialize();
+    // Initialize by creating a Wordnet instance - this will handle database initialization
+    const tempWn = new TSWordnet('*');
     
     // For multilingual testing, we need to download and add multiple language datasets
     const datasets = [

@@ -532,4 +532,169 @@ export class Wordnet {
     
     return await db.all<ILI>(sql, params);
   }
+
+  // Statistics methods for use cases
+  async getStatistics(): Promise<{
+    totalWords: number;
+    totalSynsets: number;
+    totalSenses: number;
+    totalILIs: number;
+    totalLexicons: number;
+  }> {
+    await db.initialize();
+    
+    const wordCount = await db.get('SELECT COUNT(*) as count FROM words') as { count: number } | undefined;
+    const totalSynsetsResult = await db.get('SELECT COUNT(*) as count FROM synsets') as { count: number } | undefined;
+    const senseCount = await db.get('SELECT COUNT(*) as count FROM senses') as { count: number } | undefined;
+    const iliCount = await db.get('SELECT COUNT(*) as count FROM ilis') as { count: number } | undefined;
+    const lexiconCount = await db.get('SELECT COUNT(*) as count FROM lexicons') as { count: number } | undefined;
+    
+    const totalSynsets = totalSynsetsResult?.count ?? 0;
+    const totalWords = wordCount?.count || 0;
+    const totalSenses = senseCount?.count || 0;
+    const totalILIs = iliCount?.count || 0;
+    const totalLexicons = lexiconCount?.count || 0;
+    
+    return {
+      totalWords,
+      totalSynsets,
+      totalSenses,
+      totalILIs,
+      totalLexicons,
+    };
+  }
+
+  async getLexiconStatistics(lexiconId?: string): Promise<{
+    lexiconId: string;
+    label: string;
+    language: string;
+    version: string;
+    wordCount: number;
+    synsetCount: number;
+  }[]> {
+    await db.initialize();
+    
+    const lexicons = await this.lexicons();
+    const stats = [];
+    
+    for (const lexicon of lexicons) {
+      if (lexiconId && lexicon.id !== lexiconId) continue;
+      
+      const wordCount = await db.get('SELECT COUNT(*) as count FROM words WHERE lexicon = ?', [lexicon.id]) as { count: number } | undefined;
+      const synsetCount = await db.get('SELECT COUNT(*) as count FROM synsets WHERE lexicon = ?', [lexicon.id]) as { count: number } | undefined;
+      
+      stats.push({
+        lexiconId: lexicon.id,
+        label: lexicon.label,
+        language: lexicon.language,
+        version: lexicon.version || 'unknown',
+        wordCount: wordCount?.count || 0,
+        synsetCount: synsetCount?.count || 0,
+      });
+    }
+    
+    return stats;
+  }
+
+  async getDataQualityMetrics(): Promise<{
+    synsetsWithILI: number;
+    synsetsWithoutILI: number;
+    iliCoveragePercentage: number;
+    emptySynsets: number;
+    synsetsWithDefinitions: number;
+  }> {
+    await db.initialize();
+    
+    const totalSynsetsResult = await db.get('SELECT COUNT(*) as count FROM synsets') as { count: number } | undefined;
+    const synsetsWithILI = await db.get('SELECT COUNT(*) as count FROM synsets WHERE ili IS NOT NULL') as { count: number } | undefined;
+    const synsetsWithMembersResult = await db.get('SELECT COUNT(DISTINCT synset_id) as count FROM senses') as { count: number } | undefined;
+    
+    const totalSynsets = totalSynsetsResult?.count ?? 0;
+    const synsetsWithILICount = synsetsWithILI?.count || 0;
+    const synsetsWithMembers = synsetsWithMembersResult?.count ?? 0;
+    
+    return {
+      synsetsWithILI: synsetsWithILICount,
+      synsetsWithoutILI: totalSynsets - synsetsWithILICount,
+      iliCoveragePercentage: totalSynsets > 0 ? (synsetsWithILICount / totalSynsets) * 100 : 0,
+      emptySynsets: totalSynsets - synsetsWithMembers,
+      synsetsWithDefinitions: synsetsWithILICount, // ILI records contain definitions
+    };
+  }
+
+  async getPartOfSpeechDistribution(): Promise<Record<string, number>> {
+    await db.initialize();
+    
+    const synsets = await db.all('SELECT part_of_speech FROM synsets') as { part_of_speech: string }[];
+    const posCounts: Record<string, number> = {};
+    
+    for (const synset of synsets) {
+      const pos = synset.part_of_speech || 'undefined';
+      posCounts[pos] = (posCounts[pos] || 0) + 1;
+    }
+    
+    return posCounts;
+  }
+
+  async getSynsetSizeAnalysis(): Promise<{
+    averageSize: number;
+    maxSize: number;
+    minSize: number;
+    sizeDistribution: Record<number, number>;
+  }> {
+    await db.initialize();
+    
+    // Get statistics using SQL aggregation
+    const stats = await db.get(`
+      SELECT 
+        COUNT(*) as total_synsets,
+        SUM(size) as total_members,
+        MAX(size) as max_size,
+        MIN(size) as min_size
+      FROM (
+        SELECT synset_id, COUNT(*) as size 
+        FROM senses 
+        GROUP BY synset_id
+      )
+    `) as { total_synsets: number; total_members: number; max_size: number; min_size: number } | undefined;
+    
+    // Get size distribution (limit to most common sizes to avoid memory issues)
+    const sizeDistribution = await db.all(`
+      SELECT size, COUNT(*) as count
+      FROM (
+        SELECT synset_id, COUNT(*) as size 
+        FROM senses 
+        GROUP BY synset_id
+      )
+      GROUP BY size
+      ORDER BY count DESC
+      LIMIT 20
+    `) as { size: number; count: number }[];
+    
+    // Convert to Record format
+    const distribution: Record<number, number> = {};
+    sizeDistribution.forEach(row => {
+      distribution[row.size] = row.count;
+    });
+    
+    const totalSynsets = stats?.total_synsets ?? 0;
+    const totalMembers = stats?.total_members ?? 0;
+    const maxSize = stats?.max_size ?? 0;
+    const minSize = stats?.min_size ?? 0;
+    
+    return {
+      averageSize: totalSynsets > 0 ? totalMembers / totalSynsets : 0,
+      maxSize,
+      minSize,
+      sizeDistribution: distribution,
+    };
+  }
+
+  /**
+   * Close the database connection.
+   * Call this when you're done using the Wordnet instance.
+   */
+  async close(): Promise<void> {
+    await db.close();
+  }
 } 

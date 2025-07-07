@@ -18,6 +18,8 @@ A modern TypeScript implementation of the [wn library](https://github.com/goodma
 - ✅ **Download Utilities**: Simplified download functionality with comprehensive testing
 - ✅ **Comprehensive Testing**: Full test suite with verbose output for better debugging
 - ✅ **Benchmark Integration**: Proper exports for external benchmarking and comparison
+- ✅ **Clean API**: No direct database access - all functionality through Wordnet instance methods
+- ✅ **Statistics & Analysis**: Built-in methods for database statistics and data quality analysis
 
 ## 🟢 Parity with Python wn
 
@@ -28,6 +30,7 @@ This TypeScript port has undergone a thorough parity review against the Python `
 - **Hypernym Traversal in IC Calculations**: Information content calculations now traverse hypernyms as in Python.
 - **Export Functionality**: JSON, XML, and CSV export formats are all implemented and tested.
 - **Data Management**: Download and add functions are properly exported for external use.
+- **Clean API Design**: All database access is now handled through the Wordnet instance, providing a clean and maintainable API.
 
 All core logic, algorithms, and API signatures are now at full parity with the Python version. Remaining differences are limited to advanced features (see Roadmap below).
 
@@ -166,6 +169,31 @@ const wupSim = await wup(synset1, synset2, wn);
 // const linSim = await lin(synset1, synset2, ic, wn);
 ```
 
+### Statistics & Analysis
+
+```typescript
+// Get overall database statistics
+const stats = await wn.getStatistics();
+console.log(`Total words: ${stats.totalWords}`);
+console.log(`Total synsets: ${stats.totalSynsets}`);
+
+// Get lexicon-specific statistics
+const lexiconStats = await wn.getLexiconStatistics();
+lexiconStats.forEach(stat => {
+  console.log(`${stat.lexiconId}: ${stat.wordCount} words, ${stat.synsetCount} synsets`);
+});
+
+// Analyze data quality
+const quality = await wn.getDataQualityMetrics();
+console.log(`ILI coverage: ${quality.iliCoveragePercentage}%`);
+
+// Get part-of-speech distribution
+const posDist = await wn.getPartOfSpeechDistribution();
+Object.entries(posDist).forEach(([pos, count]) => {
+  console.log(`${pos}: ${count} synsets`);
+});
+```
+
 ## 🔧 Configuration
 
 ```typescript
@@ -198,59 +226,76 @@ pnpm test
 # Run tests with coverage
 pnpm test:coverage
 
-# Run specific test suites
+# Run e2e tests
 pnpm test:e2e
-
-# Run download utility tests
-pnpm test download.test.ts
 ```
 
-## 📊 Performance
+## 🔄 CI Integration
 
-The TypeScript port is designed for performance:
+The library is fully integrated with the workspace CI pipeline:
 
-- **Database**: SQLite with optimized queries and indexing
-- **Caching**: Hypernym and project index caching
-- **Memory**: Efficient data structures and memory management
-- **Async**: Non-blocking operations with proper async/await
-- **Download**: Stream-based file downloads with progress tracking
+```bash
+# Run the complete CI pipeline (from workspace root)
+pnpm ci:full
 
-### Benchmark Results
+# Run individual CI steps
+pnpm ci:build    # Build wn-ts library
+pnpm ci:test     # Run all tests (including e2e)
+pnpm ci:demo     # Run all demo use cases
+pnpm ci:benchmark # Run all benchmark tests
+```
 
-In recent benchmarks, wn-ts shows:
-- **Moderate Performance**: ~580ms average for word lookups
-- **Feature Rich**: Full API parity with Python wn library
-- **Sense Lookup Support**: One of only 2 libraries supporting sense lookup
-- **Consistent Results**: Reliable synset and word lookup across test cases
+## 🎯 Clean API Design
 
-## 🔄 Migration from Python wn
+**Important**: The library provides a clean API without direct database access. All functionality is available through:
 
-The TypeScript port maintains API compatibility with the Python `wn` library, with strict type safety and a focus on logic and feature parity. See the [Parity with Python wn](#parity-with-python-wn) section above for details on resolved and remaining differences.
+1. **Wordnet Instance Methods**: Use `new Wordnet()` for all data access
+2. **Module Functions**: Top-level functions like `words()`, `synsets()`, etc.
+3. **Submodule Exports**: Advanced features via `wn-ts/similarity`, `wn-ts/taxonomy`, etc.
+
+**Do not use direct database access** - the `db` export is for internal debugging only.
+
+## 📖 Documentation
+
+- **Usage Guide**: [USAGE.md](./docs/USAGE.md) - Comprehensive usage examples
+- **API Reference**: [API.md](./docs/API.md) - Complete API documentation
+- **CLI Guide**: [CLI.md](./docs/CLI.md) - Command-line interface documentation
+
+## 🎯 Roadmap
+
+### Completed ✅
+- ✅ **Core API Parity**: Full parity with Python wn library
+- ✅ **Examples Support**: Complete examples in synsets and senses
+- ✅ **Project Management**: TOML-based project index
+- ✅ **Information Content**: Complete IC calculations
+- ✅ **Export Formats**: JSON, XML, and CSV export
+- ✅ **Clean API**: Removed direct database access
+- ✅ **Statistics & Analysis**: Built-in database statistics and quality metrics
+- ✅ **Comprehensive Testing**: Full test suite with e2e tests
+- ✅ **CI Integration**: Complete CI pipeline integration
+
+### In Progress 🔄
+- 🔄 **Performance Optimization**: Further optimize database queries and memory usage
+- 🔄 **Browser Compatibility**: Enhanced browser support for web applications
+
+### Planned 📋
+- [ ] **CLI Interface**: Enhanced command-line tools for data management
+- [ ] **Advanced Analytics**: More sophisticated data analysis tools
+- [ ] **Production Readiness**: Enhanced error handling, logging, monitoring
+- [ ] **Documentation**: More comprehensive examples and tutorials
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+We welcome contributions! Please see our contributing guidelines and development setup:
 
-### Development Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/your-org/wn-ts.git
-cd wn-ts
-
-# Install dependencies
-pnpm install
-
-# Build the project
-pnpm build
-
-# Run tests
-pnpm test
-```
+1. **Development Setup**: Use `pnpm install` and `pnpm build` to set up the development environment
+2. **Testing**: Run `pnpm test` to ensure all tests pass
+3. **CI Integration**: The library is fully integrated with the workspace CI pipeline
+4. **Clean API**: Maintain the clean API design without direct database access
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License - see [LICENSE](./LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 

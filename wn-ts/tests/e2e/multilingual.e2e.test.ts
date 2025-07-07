@@ -10,7 +10,6 @@ import {
   words, 
   synsets, 
   projects,
-  db,
   ili,
   ilis
 } from '../../src/index.js';
@@ -48,7 +47,9 @@ describe('Multilingual End-to-End Integration Tests', () => {
     // Setup a persistent data directory for all multilingual e2e tests
     e2eDataDir = mkdtempSync(join(tmpdir(), 'wn-ts-multilingual-e2e-'));
     config.dataDirectory = e2eDataDir;
-    await db.initialize();
+    
+    // Initialize by creating a Wordnet instance - this will handle database initialization
+    const tempWn = new Wordnet('*');
 
     // Download and add CILI (Interlingual Index) first
     const ciliDownloadProgress = new ProgressLogger('Download CILI');
@@ -78,7 +79,6 @@ describe('Multilingual End-to-End Integration Tests', () => {
 
   afterAll(async () => {
     // Shared teardown
-    await db.close();
     if (e2eDataDir && existsSync(e2eDataDir)) {
       rmSync(e2eDataDir, { recursive: true, force: true });
     }
@@ -87,8 +87,9 @@ describe('Multilingual End-to-End Integration Tests', () => {
   beforeEach(async () => {
     // Reset config and reinitialize database
     config.dataDirectory = e2eDataDir;
-    await db.close();
-    await db.initialize();
+    
+    // Initialize by creating a Wordnet instance - this will handle database initialization
+    const tempWn = new Wordnet('*');
   });
 
   describe('Multilingual Project Discovery', () => {

@@ -12,19 +12,25 @@ This guide provides a comprehensive overview of how to use the `wn-ts` TypeScrip
   - [API Usage](#api-usage)
     - [Wordnet Class](#wordnet-class)
       - [Common Methods](#common-methods)
+      - [Example: Get all nouns for a word](#example-get-all-nouns-for-a-word)
+      - [Example: Get all synsets for a word in a specific language](#example-get-all-synsets-for-a-word-in-a-specific-language)
     - [Module Functions](#module-functions)
     - [Project Management](#project-management)
     - [Data Management](#data-management)
-    - [Similarity & Information Content](#similarity--information-content)
+    - [Similarity \& Information Content](#similarity--information-content)
   - [Advanced API: Submodule Exports](#advanced-api-submodule-exports)
+    - [Similarity Metrics](#similarity-metrics)
+    - [Taxonomy Utilities](#taxonomy-utilities)
+    - [Morphological Analysis](#morphological-analysis)
+    - [Information Content (IC)](#information-content-ic)
   - [Command-Line Interface (CLI)](#command-line-interface-cli)
   - [Advanced Features](#advanced-features)
     - [Browser Usage](#browser-usage)
-    - [Custom Queries & Filtering](#custom-queries--filtering)
+    - [Custom Queries \& Filtering](#custom-queries--filtering)
     - [Working with Multiple Languages](#working-with-multiple-languages)
     - [Exporting Data](#exporting-data)
     - [Error Handling](#error-handling)
-  - [Testing & Examples](#testing--examples)
+  - [Testing \& Examples](#testing--examples)
   - [Troubleshooting](#troubleshooting)
   - [Glossary](#glossary)
   - [Further Reading](#further-reading)
@@ -72,6 +78,8 @@ synsets.forEach(synset => {
 ## API Usage
 
 > **Note:** As of v0.1.1, advanced features are available via submodule exports. You can now import similarity, taxonomy, morphy, and information content utilities directly from submodules, e.g. `import { path } from 'wn-ts/similarity'`.
+
+> **Important:** The database (`db`) export is for internal debugging only and should not be used directly in applications. Always use the Wordnet instance methods or module functions for data access.
 
 ### Wordnet Class
 
@@ -169,44 +177,125 @@ const ic = information_content(synsets[0], freq);
 const sim = await path(synsets[0], synsets[1], wn);
 ```
 
+### Statistics & Analysis
+
+The library provides built-in methods for database statistics and data quality analysis:
+
+```typescript
+// Get overall database statistics
+const stats = await wn.getStatistics();
+console.log(`Total words: ${stats.totalWords}`);
+console.log(`Total synsets: ${stats.totalSynsets}`);
+console.log(`Total senses: ${stats.totalSenses}`);
+console.log(`Total ILI entries: ${stats.totalILIs}`);
+console.log(`Total lexicons: ${stats.totalLexicons}`);
+
+// Get lexicon-specific statistics
+const lexiconStats = await wn.getLexiconStatistics();
+lexiconStats.forEach(stat => {
+  console.log(`${stat.lexiconId}: ${stat.wordCount} words, ${stat.synsetCount} synsets`);
+});
+
+// Analyze data quality
+const quality = await wn.getDataQualityMetrics();
+console.log(`Synsets with ILI: ${quality.synsetsWithILI}`);
+console.log(`Synsets without ILI: ${quality.synsetsWithoutILI}`);
+console.log(`ILI coverage: ${quality.iliCoveragePercentage}%`);
+console.log(`Empty synsets: ${quality.emptySynsets}`);
+console.log(`Synsets with definitions: ${quality.synsetsWithDefinitions}`);
+
+// Get part-of-speech distribution
+const posDist = await wn.getPartOfSpeechDistribution();
+Object.entries(posDist).forEach(([pos, count]) => {
+  const percentage = ((count / stats.totalSynsets) * 100).toFixed(2);
+  console.log(`${pos.toUpperCase()}: ${count} synsets (${percentage}%)`);
+});
+
+// Get synset size analysis (for smaller databases)
+const sizeAnalysis = await wn.getSynsetSizeAnalysis();
+console.log(`Average synset size: ${sizeAnalysis.averageSize.toFixed(2)} words`);
+console.log(`Largest synset: ${sizeAnalysis.maxSize} words`);
+console.log(`Smallest synset: ${sizeAnalysis.minSize} words`);
+```
+
 ---
 
 ## Advanced API: Submodule Exports
 
-As of v0.1.1, you can import advanced features directly from submodules:
+For advanced features, import from specific submodules:
 
 ### Similarity Metrics
+
 ```typescript
 import { path, wup, lch, res, jcn, lin } from 'wn-ts/similarity';
 
-const sim = await path(synset1, synset2, wn);
+// Path similarity
+const pathSim = await path(synset1, synset2, wn);
+
+// Wu-Palmer similarity
 const wupSim = await wup(synset1, synset2, wn);
-// ...and so on
+
+// Leacock-Chodorow similarity
+const maxDepth = await taxonomyDepth(wn, 'n');
+const lchSim = await lch(synset1, synset2, maxDepth, wn);
+
+// Information Content-based metrics
+const freq = await compute(corpus, wn);
+const resSim = await res(synset1, synset2, freq, wn);
+const jcnSim = await jcn(synset1, synset2, freq, wn);
+const linSim = await lin(synset1, synset2, freq, wn);
 ```
 
 ### Taxonomy Utilities
-```typescript
-import { roots, leaves, taxonomyDepth, hypernymPaths, minDepth, taxonomyShortestPath } from 'wn-ts/taxonomy';
 
-const rootSynsets = await roots(wn);
-const leafSynsets = await leaves(wn);
+```typescript
+import { 
+  roots, 
+  leaves, 
+  taxonomyDepth, 
+  hypernymPaths, 
+  taxonomyShortestPath 
+} from 'wn-ts/taxonomy';
+
+// Find root synsets
+const rootSynsets = await roots(wn, 'n');
+
+// Find leaf synsets
+const leafSynsets = await leaves(wn, 'n');
+
+// Calculate taxonomy depth
 const depth = await taxonomyDepth(wn, 'n');
+
+// Get hypernym paths
+const paths = await hypernymPaths(synset, wn);
+
+// Find shortest path between synsets
+const path = await taxonomyShortestPath(synset1, synset2, wn);
 ```
 
 ### Morphological Analysis
+
 ```typescript
 import { createMorphy } from 'wn-ts/morphy';
 
+// Create a morphological analyzer
 const morphy = createMorphy(wn);
-const analysis = await morphy.analyze('running');
-console.log(analysis);
+
+// Analyze word forms
+const forms = await morphy.analyze('running', 'v');
+console.log(forms); // ['run', 'running']
 ```
 
 ### Information Content (IC)
+
 ```typescript
 import { compute, information_content } from 'wn-ts/ic';
 
-const freq = await compute(['run', 'running', 'runner'], wn);
+// Compute IC from corpus
+const corpus = ['run', 'running', 'runner', 'runs'];
+const freq = await compute(corpus, wn);
+
+// Calculate IC for a synset
 const ic = information_content(synset, freq);
 ```
 
@@ -214,18 +303,23 @@ const ic = information_content(synset, freq);
 
 ## Command-Line Interface (CLI)
 
-wn-ts provides a CLI for common operations. Run from your project root:
+The library includes a command-line interface for data management:
 
 ```bash
-pnpm exec wn-ts download oewn:2024
-pnpm exec wn-ts add oewn-2024-english-wordnet-2024.xml.gz
-pnpm exec wn-ts projects
-pnpm exec wn-ts query run --pos v
-```
+# Install globally
+npm install -g wn-ts
 
-See all commands:
-```bash
-pnpm exec wn-ts --help
+# Download a project
+wn-ts download oewn:2024
+
+# Add a lexical resource
+wn-ts add oewn-2024-english-wordnet-2024.xml.gz
+
+# Query the database
+wn-ts query run v
+
+# Export data
+wn-ts export --format json --output export.json --include oewn
 ```
 
 ---
@@ -234,60 +328,92 @@ pnpm exec wn-ts --help
 
 ### Browser Usage
 
-`wn-ts` is designed to be browser-compatible (with some limitations):
-- Use a bundler like Webpack, Vite, or Rollup.
-- You may need to polyfill Node.js modules (e.g., `fs`, `path`) for full compatibility.
-- For browser-only use, focus on querying pre-loaded data or using a REST API backend.
+The library is designed to work in browser environments:
+
+```typescript
+// In a browser environment
+import { Wordnet } from 'wn-ts';
+
+// Create instance with browser-compatible options
+const wn = new Wordnet('oewn', {
+  dataDirectory: '/path/to/data',
+  downloadDirectory: '/path/to/downloads'
+});
+```
 
 ### Custom Queries & Filtering
 
-You can filter by part of speech, language, or custom criteria:
-
 ```typescript
-// Get all verbs for a word
-const verbs = await wn.words('run', 'v');
+// Custom filtering options
+const synsets = await wn.synsets('run', 'v', {
+  lang: 'en',
+  lexicon: 'oewn'
+});
 
-// Get all synsets for a word in French
-const wnFr = new Wordnet('omw-fr:1.4');
-const synsetsFr = await wnFr.synsets('ordinateur', 'n');
-
-// Filter synsets by custom logic
-const filtered = synsets.filter(s => s.definitions.some(d => d.text.includes('financial')));
+// Advanced word lookup
+const words = await wn.words('run', 'v', {
+  searchAllForms: true,
+  normalize: true
+});
 ```
 
 ### Working with Multiple Languages
 
-`wn-ts` supports multilingual WordNets via OMW:
-
 ```typescript
-const wnDe = new Wordnet('odenet:1.4'); // German
-const wnFr = new Wordnet('omw-fr:1.4'); // French
-const wnEs = new Wordnet('omw-es:1.4'); // Spanish
+// English WordNet
+const wnEn = new Wordnet('oewn');
+
+// French WordNet
+const wnFr = new Wordnet('omw-fr:1.4');
+
+// Compare across languages
+const enSynsets = await wnEn.synsets('computer', 'n');
+const frSynsets = await wnFr.synsets('ordinateur', 'n');
 ```
 
 ### Exporting Data
 
-Export data in JSON, XML, or CSV formats:
-
 ```typescript
-import { exportData } from 'wn-ts';
-await exportData({ format: 'json', output: 'wn-export.json', include: ['oewn'] });
-await exportData({ format: 'xml', output: 'wn-export.xml', include: ['oewn'] });
-await exportData({ format: 'csv', output: 'wn-export.csv', include: ['oewn'] });
+// Export to JSON
+await exportData({
+  format: 'json',
+  output: 'export.json',
+  include: ['oewn']
+});
+
+// Export to XML
+await exportData({
+  format: 'xml',
+  output: 'export.xml',
+  include: ['oewn', 'omw-fr']
+});
+
+// Export to CSV
+await exportData({
+  format: 'csv',
+  output: 'export.csv',
+  include: ['oewn'],
+  exclude: ['test']
+});
 ```
 
 ### Error Handling
 
-All API methods throw errors for invalid input or database issues. Use try/catch for robust scripts:
-
 ```typescript
 try {
-  const words = await wn.words('nonexistentword');
-  if (words.length === 0) {
-    console.log('No words found.');
+  const synsets = await wn.synsets('nonexistentword', 'n');
+  if (synsets.length === 0) {
+    console.log('No synsets found');
   }
-} catch (err) {
-  console.error('Error querying WordNet:', err);
+} catch (error) {
+  console.error('Error querying synsets:', error.message);
+}
+
+// Handle download errors
+try {
+  await download('invalid-project:1.0');
+} catch (error) {
+  console.error('Download failed:', error.message);
 }
 ```
 
@@ -295,59 +421,96 @@ try {
 
 ## Testing & Examples
 
-- See [tests/e2e.test.ts](../tests/e2e.test.ts) for end-to-end usage examples.
-- See [tests/](../tests/) for more API and edge case tests.
-- See [README.md](../README.md) for a feature overview and more code samples.
-- See [src/cli.ts](../src/cli.ts) for CLI command examples.
+The library includes comprehensive tests and examples:
+
+```bash
+# Run all tests
+pnpm test
+
+# Run tests with coverage
+pnpm test:coverage
+
+# Run e2e tests
+pnpm test:e2e
+```
+
+### Example Test Structure
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import { Wordnet } from 'wn-ts';
+
+describe('Wordnet Class', () => {
+  it('should find words', async () => {
+    const wn = new Wordnet('oewn');
+    const words = await wn.words('run', 'v');
+    expect(words.length).toBeGreaterThan(0);
+  });
+});
+```
 
 ---
 
 ## Troubleshooting
 
-- **Database is locked:**
-  - Make sure no other process is using the database file.
-  - Delete the data directory and re-run if needed.
-- **No results found:**
-  - Ensure you have downloaded and added the correct project/version.
-  - Check your query spelling and part of speech.
-- **Native errors or crashes:**
-  - Always close the database with `await db.close()` in scripts.
-  - Update dependencies if you see native stack traces.
-- **Project listing shows 'unknown':**
-  - Some project metadata may be missing; check the TOML index or use `getProjectVersions` for details.
-- **Browser build errors:**
-  - Use a bundler and polyfills for Node.js modules as needed.
+### Common Issues
+
+**1. Database not initialized**
+```bash
+# Solution: Download and add a project first
+await download('oewn:2024');
+await add('oewn-2024-english-wordnet-2024.xml.gz');
+```
+
+**2. No results found**
+```typescript
+// Check if the word exists in the specified part of speech
+const words = await wn.words('word', 'n');
+if (words.length === 0) {
+  // Try without part of speech
+  const allWords = await wn.words('word');
+}
+```
+
+**3. Performance issues**
+```typescript
+// Use specific lexicons to improve performance
+const wn = new Wordnet('oewn'); // Instead of '*'
+```
+
+### Debug Mode
+
+Enable debug logging:
+
+```typescript
+import { logger } from 'wn-ts/utils/logger';
+
+// Set log level
+logger.setLevel('debug');
+```
 
 ---
 
 ## Glossary
 
-- **WordNet**: A large lexical database of English (or other languages), grouping words into sets of synonyms (synsets).
-- **Synset**: A set of synonymous words or phrases representing a single concept.
-- **Sense**: A specific meaning of a word, linked to a synset.
-- **Lexicon**: A collection of words and their properties for a particular language or project.
-- **LMF (Lexical Markup Framework)**: An ISO standard for representing lexical resources in XML.
-- **ILI (Interlingual Index)**: A mapping between synsets across different languages, enabling multilingual WordNet alignment.
-- **POS (Part of Speech)**: The grammatical category of a word (e.g., noun, verb, adjective, adverb).
-- **OMW (Open Multilingual Wordnet)**: A project providing multilingual WordNet resources.
-- **IC (Information Content)**: A measure of the specificity of a synset, often used in similarity calculations.
-- **LMF Parser**: A module or function that parses LMF XML files into usable data structures.
-- **CLI (Command-Line Interface)**: A tool for interacting with wn-ts from the terminal.
-- **Project**: A WordNet resource, such as OEWN, OMW, or a language-specific WordNet.
-- **Database**: The local SQLite database where wn-ts stores parsed WordNet data.
-- **TOML**: A configuration file format used for the project index.
+- **Synset**: A set of cognitive synonyms (words with the same meaning)
+- **Sense**: A specific meaning of a word
+- **Word**: A lexical item with its part of speech
+- **ILI**: Interlingual Index - cross-language concept mapping
+- **Lexicon**: A collection of words for a specific language
+- **Project**: A WordNet resource (e.g., oewn, omw)
+- **Corpus**: A collection of text used for frequency analysis
+- **Information Content**: A measure of word specificity based on frequency
 
 ---
 
 ## Further Reading
 
-- [Main README](../README.md)
-- [API Reference](../README.md#api-reference)
-- [Parsers Guide](../src/parsers/README.md)
-- [wn-ts CLI](../src/cli.ts)
-- [Project Management](../src/project.ts)
-- [End-to-End Tests](../tests/e2e.test.ts)
+- **Python wn Library**: [wn.readthedocs.io](https://wn.readthedocs.io/)
+- **WordNet**: [wordnet.princeton.edu](https://wordnet.princeton.edu/)
+- **Open English WordNet**: [github.com/globalwordnet/english-wordnet](https://github.com/globalwordnet/english-wordnet)
+- **Open Multilingual Wordnet**: [github.com/omwn/omw](https://github.com/omwn/omw)
 
 ---
 
-**wn-ts** aims to provide a modern, TypeScript-first, and Python-wn-compatible WordNet API for Node.js and browser environments. For more details, see the main README and the source code in `/src`.
+**Remember**: Always use the clean API through Wordnet instance methods or module functions. Do not access the database directly for application development.
