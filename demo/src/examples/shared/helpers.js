@@ -6,7 +6,7 @@
 
 import { join } from 'path';
 import { homedir } from 'os';
-import { Wordnet } from 'wn-ts';
+import { Wordnet, ili } from 'wn-ts';
 
 /**
  * Initialize Wordnet with common configuration
@@ -26,14 +26,33 @@ export function createWordnet(demoName) {
 /**
  * Display synset information with definitions and examples
  */
-export function displaySynset(synset, index = 1) {
+export async function displaySynset(synset, index = 1) {
   console.log(`\n  ${index}. ${synset.id} (${synset.members.length} members)`);
   console.log(`     Members: ${synset.members.join(", ")}`);
   console.log(`     ILI: ${synset.ili || 'None'}`);
   
-  // Display definition
+  // Prefer localized definition if available
+  const targetLang = synset.language || null;
+  let localizedDef = null;
   if (synset.definitions && synset.definitions.length > 0) {
+    localizedDef = synset.definitions.find(def => def.language === targetLang);
+  }
+
+  if (localizedDef) {
+    console.log(`     Localized Definition [${targetLang}]: ${localizedDef.text}`);
+  } else if (synset.definitions && synset.definitions.length > 0) {
+    // Fallback: show the first available definition
     console.log(`     Definition: ${synset.definitions[0].text}`);
+  } else if (synset.ili) {
+    // Fallback: show ILI definition
+    try {
+      const iliEntry = await ili(synset.ili);
+      if (iliEntry && iliEntry.definition) {
+        console.log(`     ILI Definition: ${iliEntry.definition}`);
+      }
+    } catch (error) {
+      // Silently ignore ILI lookup errors
+    }
   }
   
   // Display examples
@@ -60,7 +79,7 @@ export function displaySynset(synset, index = 1) {
 /**
  * Display synsets grouped by part of speech
  */
-export function displaySynsetsByPOS(synsets, title) {
+export async function displaySynsetsByPOS(synsets, title) {
   console.log(`\n📚 ${title}:`);
   
   // Group by part of speech
@@ -71,12 +90,12 @@ export function displaySynsetsByPOS(synsets, title) {
     byPOS[pos].push(synset);
   });
   
-  Object.entries(byPOS).forEach(([pos, posSynsets]) => {
+  for (const [pos, posSynsets] of Object.entries(byPOS)) {
     console.log(`\n📚 ${pos.toUpperCase()} senses (${posSynsets.length}):`);
-    posSynsets.forEach((synset, index) => {
-      displaySynset(synset, index + 1);
-    });
-  });
+    for (let i = 0; i < posSynsets.length; i++) {
+      await displaySynset(posSynsets[i], i + 1);
+    }
+  }
 }
 
 /**

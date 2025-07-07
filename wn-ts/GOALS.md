@@ -29,12 +29,12 @@ All previously identified critical gaps (examples, project index, IC hypernyms, 
 - [ ] **Query Optimization**: Further database query improvements
 - [ ] **Large Dataset Handling**: Optimizations for massive LMF files
 
-### 4. **Developer Experience** 🔄 85% Complete
+### 4. **Developer Experience** 🔄 90% Complete
 - [x] **Comprehensive Testing**: Vitest test suite with verbose output
 - [x] **Type Definitions**: Full TypeScript declarations
 - [x] **Documentation**: API documentation and examples
 - [x] **Robust Data Setup**: Automatic project index management
-- [x] **CLI Interface**: Basic command-line tools
+- [x] **Unified CLI Interface**: Command-line tools with database management
 - [x] **Download Utilities**: Simplified download functionality with comprehensive tests
 - [ ] **Advanced CLI**: Interactive mode and batch processing
 - [ ] **Debugging Tools**: Enhanced logging and debugging
@@ -69,10 +69,18 @@ All core parity gaps with Python wn are now resolved. The project is at full API
 - CSV export for tabular data
 - Progress tracking and error handling
 
+#### **Unified CLI Interface** (100% Complete)
+- Command-line interface with all major functions
+- Database management commands (status, unlock, clean, reset)
+- Data management commands (download, add, remove, export)
+- Query commands (query, projects, config)
+- Comprehensive error handling and user feedback
+
 ### 🔄 IN PROGRESS
 
-#### **CLI Interface** (50% Complete)
+#### **Advanced CLI Features** (25% Complete)
 - [x] Basic commands for download, add, query, etc.
+- [x] Database management commands
 - [ ] Interactive mode
 - [ ] Advanced options and batch processing
 
@@ -128,7 +136,7 @@ All core parity gaps with Python wn are now resolved. The project is at full API
 - Testing: 100%
 - Data Setup: 100%
 - Documentation: 85%
-- CLI interface: 75%
+- CLI interface: 90%
 - Download utilities: 100%
 
 ### **Overall Progress**: 95% ✅
@@ -143,8 +151,9 @@ All core parity gaps with Python wn are now resolved. The project is at full API
 - [x] Morphological analysis
 - [x] Complete similarity metrics
 
-### **Milestone 2: CLI & Tools** (75% Complete)
-- [x] Basic command-line interface
+### **Milestone 2: CLI & Tools** (90% Complete)
+- [x] Unified command-line interface
+- [x] Database management commands
 - [x] Download utilities with comprehensive testing
 - [x] Verbose test output for better debugging
 - [ ] Interactive mode
@@ -161,6 +170,7 @@ All core parity gaps with Python wn are now resolved. The project is at full API
 
 - **Full core API and logic parity with Python wn**
 - All previously identified critical gaps (examples, project index, IC hypernyms, export formats) are resolved
+- **Unified CLI with comprehensive database management**
 
 The TypeScript port has achieved significant milestones:
 
@@ -172,5 +182,6 @@ The TypeScript port has achieved significant milestones:
 6. **Production-Ready Architecture** with proper error handling
 7. **Comprehensive Testing** with verbose output and download utilities
 8. **Simplified Download System** with focused functionality and full test coverage
+9. **Unified CLI Interface** with database management capabilities
 
 The library is now suitable for most WordNet applications and provides a solid foundation for advanced features.

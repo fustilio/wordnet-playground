@@ -1,6 +1,6 @@
 {
   "name": "wn-ts",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Wordnet interface library - TypeScript port",
   "keywords": [
     "wordnet",
@@ -42,7 +42,7 @@
     }
   },
   "bin": {
-    "wn-ts": "dist/cli.js"
+    "wn-ts": "./dist/cli.js"
   },
   "scripts": {
     "prebuild": "pnpm run clean",
@@ -64,7 +64,7 @@
   },
   "dependencies": {
     "@types/sax": "^1.2.7",
-    "commander": "^11.1.0",
+    "commander": "^14.0.0",
     "fast-xml-parser": "^5.2.5",
     "lzma-native": "^8.0.6",
     "pythonia": "catalog:",

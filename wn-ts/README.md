@@ -14,7 +14,8 @@ A modern TypeScript implementation of the [wn library](https://github.com/goodma
 - ✅ **Type Safety**: Full TypeScript type definitions
 - ✅ **Morphological Analysis**: Lemmatization support via `morphy`
 - ✅ **Similarity Metrics**: Path-based and IC-based similarity measures
-- ✅ **CLI Interface**: Basic command-line tools for data management and querying
+- ✅ **Unified CLI**: Command-line interface for data management and querying
+- ✅ **Database Management**: Built-in database status, unlock, clean, and reset commands
 - ✅ **Download Utilities**: Simplified download functionality with comprehensive testing
 - ✅ **Comprehensive Testing**: Full test suite with verbose output for better debugging
 - ✅ **Benchmark Integration**: Proper exports for external benchmarking and comparison
@@ -31,6 +32,7 @@ This TypeScript port has undergone a thorough parity review against the Python `
 - **Export Functionality**: JSON, XML, and CSV export formats are all implemented and tested.
 - **Data Management**: Download and add functions are properly exported for external use.
 - **Clean API Design**: All database access is now handled through the Wordnet instance, providing a clean and maintainable API.
+- **Unified CLI**: Comprehensive command-line interface with database management capabilities.
 
 All core logic, algorithms, and API signatures are now at full parity with the Python version. Remaining differences are limited to advanced features (see Roadmap below).
 
@@ -42,6 +44,42 @@ All core logic, algorithms, and API signatures are now at full parity with the P
 npm install wn-ts
 # or
 pnpm add wn-ts
+```
+
+### Command-Line Interface
+
+The library includes a unified CLI for data management and querying:
+
+```bash
+# Install globally for CLI access
+npm install -g wn-ts
+
+# Download a WordNet project
+wn-ts download oewn:2024
+
+# Add a lexical resource
+wn-ts add oewn-2024-english-wordnet-2024.xml.gz
+
+# Query the database
+wn-ts query run v
+
+# Show database status
+wn-ts db status
+
+# Unlock locked databases
+wn-ts db unlock
+
+# Clean up cache directories
+wn-ts db clean
+
+# Export data
+wn-ts export --format json --output export.json --include oewn
+
+# List available projects
+wn-ts projects
+
+# Show configuration
+wn-ts config
 ```
 
 ### Basic Usage
@@ -259,7 +297,7 @@ pnpm ci:benchmark # Run all benchmark tests
 
 - **Usage Guide**: [USAGE.md](./docs/USAGE.md) - Comprehensive usage examples
 - **API Reference**: [API.md](./docs/API.md) - Complete API documentation
-- **CLI Guide**: [CLI.md](./docs/CLI.md) - Command-line interface documentation
+- **CLI Guide**: [USAGE-CLI.md](./docs/USAGE-CLI.md) - Command-line interface documentation
 
 ## 🎯 Roadmap
 
@@ -273,13 +311,14 @@ pnpm ci:benchmark # Run all benchmark tests
 - ✅ **Statistics & Analysis**: Built-in database statistics and quality metrics
 - ✅ **Comprehensive Testing**: Full test suite with e2e tests
 - ✅ **CI Integration**: Complete CI pipeline integration
+- ✅ **Unified CLI**: Command-line interface with database management
 
 ### In Progress 🔄
 - 🔄 **Performance Optimization**: Further optimize database queries and memory usage
 - 🔄 **Browser Compatibility**: Enhanced browser support for web applications
 
 ### Planned 📋
-- [ ] **CLI Interface**: Enhanced command-line tools for data management
+- [ ] **Advanced CLI**: Interactive mode and batch processing
 - [ ] **Advanced Analytics**: More sophisticated data analysis tools
 - [ ] **Production Readiness**: Enhanced error handling, logging, monitoring
 - [ ] **Documentation**: More comprehensive examples and tutorials
@@ -321,3 +360,6 @@ MIT License - see [LICENSE](./LICENSE) file for details.
 - ✅ Added proper data management function exports
 - ✅ Improved POS parameter handling
 - ✅ Enhanced error handling and edge case support
+- ✅ Unified CLI with database management commands
+- ✅ Comprehensive CLI documentation
+- ✅ Removed standalone scripts in favor of unified CLI

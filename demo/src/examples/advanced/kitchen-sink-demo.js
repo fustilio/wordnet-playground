@@ -1,14 +1,11 @@
 #!/usr/bin/env node
 
 /**
- * WordNet Kitchen Sink Demo
- * 
- * Comprehensive demonstration of all major WordNet features with realistic problem statements.
- * Based on actual data structure findings from debug demo.
+ * Kitchen Sink Demo: Comprehensive feature showcase for wn-ts.
+ * This file demonstrates all major features, not necessarily as a single use case.
  */
 
 import { 
-  Wordnet, 
   projects, 
   words, 
   synsets, 
@@ -21,8 +18,7 @@ import {
   synset,
   ili
 } from 'wn-ts';
-import { join } from 'path';
-import { homedir } from 'os';
+import { createWordnet, displaySynset, safeClose, runDemo } from '../shared/helpers.js';
 
 console.log(`
 🚀 WordNet Kitchen Sink Demo
@@ -31,27 +27,10 @@ console.log(`
 🎯 Comprehensive demonstration with realistic problem statements
 `);
 
-// Use a dedicated data directory for this demo
-const dataDirectory = join(homedir(), '.wn_kitchen_sink_demo');
-console.log(`📁 Using data directory: ${dataDirectory}`);
-
-// Initialize Wordnet with proper configuration
-let wordnet;
-try {
-  wordnet = new Wordnet('*', {
-    dataDirectory,
-    downloadDirectory: join(dataDirectory, 'downloads'),
-    extractDirectory: join(dataDirectory, 'extracted'),
-    databasePath: join(dataDirectory, 'wordnet.db')
-  });
-  
-  console.log('✅ Wordnet initialized successfully');
-} catch (error) {
-  console.error('❌ Failed to initialize Wordnet:', error.message);
-  process.exit(1);
-}
-
 async function runKitchenSinkDemo() {
+  const wordnet = createWordnet('kitchen_sink');
+  console.log('✅ Wordnet initialized successfully');
+
   try {
     console.log(`
 🔍 SECTION 1: Basic Word Queries
@@ -77,7 +56,7 @@ Example: Analyzing the word "computer"
     const computerSynsets = await synsets('computer');
     console.log(`Found ${computerSynsets.length} synsets for "computer"`);
     
-    computerSynsets.slice(0, 3).forEach((synset, index) => {
+    computerSynsets.slice(0, 3).forEach(async (synset, index) => {
       console.log(`\n🏦 Synset ${index + 1}:`);
       console.log(`  ID: ${synset.id}`);
       console.log(`  POS: ${synset.partOfSpeech}`);
@@ -147,7 +126,7 @@ Example: Understanding different senses of "bank"
     
     Object.entries(bankByPOS).forEach(([pos, synsets]) => {
       console.log(`\n📚 ${pos.toUpperCase()} senses (${synsets.length}):`);
-      synsets.slice(0, 3).forEach((synset, index) => {
+      synsets.slice(0, 3).forEach(async (synset, index) => {
         console.log(`  ${index + 1}. ${synset.id} (${synset.members.length} members)`);
         console.log(`     ILI: ${synset.ili}`);
         console.log(`     Sample: ${synset.members.slice(0, 3).join(', ')}`);
@@ -318,22 +297,16 @@ Example: Building a multilingual dictionary lookup system
 🚀 WordNet is ready for real-world applications!
 `);
 
-    // Close the database using Wordnet instance method
-    await wordnet.close();
-    console.log('✅ Database connection closed successfully');
+    await safeClose(wordnet);
   } catch (error) {
     console.error('❌ Kitchen sink demo failed:', error.message);
-    try { 
-      await wordnet.close(); 
-      console.log('✅ Database connection closed after error');
-    } catch (closeError) {
-      console.error('⚠️  Error closing database:', closeError.message);
-    }
+    await safeClose(wordnet);
+    throw error;
   }
 }
 
 // Run the kitchen sink demo
-runKitchenSinkDemo().catch(error => {
+runDemo(runKitchenSinkDemo, 'Kitchen Sink Demo').catch(error => {
   console.error('❌ Fatal error:', error.message);
   process.exit(1);
 }); 

@@ -12,9 +12,9 @@
   "author": "fustilio",
   "type": "module",
   "scripts": {
-    "start": "node src/demo.js",
-    "demo": "node src/demo.js",
-    "kitchen-sink": "node src/kitchen-sink-demo.js",
+    "start": "node src/examples/advanced/live-demo.js",
+    "demo": "node src/examples/advanced/live-demo.js",
+    "kitchen-sink": "node src/examples/advanced/kitchen-sink-demo.js",
     "debug": "node src/debug-demo.js",
     "all-use-cases": "node src/run-all-use-cases.js",
     "example:word-sense-disambiguation": "node src/examples/basic/word-sense-disambiguation.js",
@@ -22,9 +22,14 @@
     "example:multilingual-linking": "node src/examples/advanced/multilingual-linking.js",
     "example:lexical-exploration": "node src/examples/advanced/lexical-database-exploration.js",
     "example:word-sense-disambiguation-advanced": "node src/examples/advanced/word-sense-disambiguation.js",
-    "example:database-statistics-advanced": "node src/examples/advanced/database-statistics.js"
+    "example:database-statistics-advanced": "node src/examples/advanced/database-statistics.js",
+    "example:python-style": "node src/examples/basic/python-style-wordnet.js",
+    "example:multilingual-definitions": "node src/examples/basic/multilingual-definitions.js",
+    "cache:status": "wn-ts db status",
+    "cache:unlock": "wn-ts db unlock",
+    "cache:clear": "wn-ts db clean"
   },
   "dependencies": {
-    "wn-ts": "^0.2.0"
+    "wn-ts": "^0.3.0"
   }
 }

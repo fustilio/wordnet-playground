@@ -10,14 +10,12 @@
  */
 
 import { 
-  Wordnet,
   words, 
   synsets, 
   ili,
   ilis
 } from 'wn-ts';
-import { join } from 'path';
-import { homedir } from 'os';
+import { createWordnet, displaySynset, safeClose, runDemo } from '../shared/helpers.js';
 
 console.log(`
 🌍 Use Case 1: Multilingual Word Linking
@@ -29,26 +27,10 @@ Solution: Use ILI (Interlingual Index) to find common concepts across languages.
 Real-world application: Building multilingual dictionary systems
 `);
 
-// Use a dedicated data directory for this demo
-const dataDirectory = join(homedir(), '.wn_multilingual_demo');
-console.log(`📁 Using data directory: ${dataDirectory}`);
-
-// Initialize Wordnet
-let wordnet;
-try {
-  wordnet = new Wordnet('*', {
-    dataDirectory,
-    downloadDirectory: join(dataDirectory, 'downloads'),
-    extractDirectory: join(dataDirectory, 'extracted'),
-    databasePath: join(dataDirectory, 'wordnet.db')
-  });
-  console.log('✅ Wordnet initialized successfully');
-} catch (error) {
-  console.error('❌ Failed to initialize Wordnet:', error.message);
-  process.exit(1);
-}
-
 async function demonstrateMultilingualLinking() {
+  const wordnet = createWordnet('multilingual');
+  console.log('✅ Wordnet initialized successfully');
+
   try {
     console.log(`
 🔍 Example 1: Linking "computer" concepts across languages
@@ -68,18 +50,8 @@ async function demonstrateMultilingualLinking() {
         console.log(`🌍 ILI ID: ${computerSynset.ili}`);
         console.log(`👥 Members: ${computerSynset.members.join(", ")}`);
         
-        // Display definition
-        if (computerSynset.definitions && computerSynset.definitions.length > 0) {
-          console.log(`📖 Definition: ${computerSynset.definitions[0].text}`);
-        }
-        
-        // Display examples
-        if (computerSynset.examples && computerSynset.examples.length > 0) {
-          console.log(`💡 Examples:`);
-          computerSynset.examples.forEach((example, index) => {
-            console.log(`  ${index + 1}. "${example.text}"`);
-          });
-        }
+        // Display definition and examples
+        await displaySynset(computerSynset, 1);
         
         // Get ILI entry
         const iliEntry = await ili(computerSynset.ili);
@@ -126,18 +98,8 @@ async function demonstrateMultilingualLinking() {
         console.log(`  🌍 First synset ILI: ${firstSynset.ili}`);
         console.log(`  👥 Members: ${firstSynset.members.join(", ")}`);
         
-        // Display definition
-        if (firstSynset.definitions && firstSynset.definitions.length > 0) {
-          console.log(`  📖 Definition: ${firstSynset.definitions[0].text}`);
-        }
-        
-        // Display examples
-        if (firstSynset.examples && firstSynset.examples.length > 0) {
-          console.log(`  💡 Examples:`);
-          firstSynset.examples.slice(0, 2).forEach((example, index) => {
-            console.log(`    ${index + 1}. "${example.text}"`);
-          });
-        }
+        // Display definition and examples
+        await displaySynset(firstSynset, 1);
         
         if (firstSynset.ili) {
           const iliEntry = await ili(firstSynset.ili);
@@ -168,35 +130,8 @@ async function demonstrateMultilingualLinking() {
     
     Object.entries(computerByPOS).forEach(([pos, synsets]) => {
       console.log(`\n📚 ${pos.toUpperCase()} senses:`);
-      synsets.forEach((synset, index) => {
-        console.log(`\n  ${index + 1}. ${synset.id}`);
-        console.log(`     Members: ${synset.members.join(", ")}`);
-        console.log(`     ILI: ${synset.ili || 'None'}`);
-        
-        // Display definition
-        if (synset.definitions && synset.definitions.length > 0) {
-          console.log(`     Definition: ${synset.definitions[0].text}`);
-        }
-        
-        // Display examples
-        if (synset.examples && synset.examples.length > 0) {
-          console.log(`     Examples:`);
-          synset.examples.forEach((example, exIndex) => {
-            console.log(`       ${exIndex + 1}. "${example.text}"`);
-          });
-        }
-        
-        // Display relations
-        if (synset.relations && synset.relations.length > 0) {
-          const relationTypes = {};
-          synset.relations.forEach(rel => {
-            relationTypes[rel.type] = (relationTypes[rel.type] || 0) + 1;
-          });
-          const relationSummary = Object.entries(relationTypes)
-            .map(([type, count]) => `${type}(${count})`)
-            .join(", ");
-          console.log(`     Relations: ${relationSummary}`);
-        }
+      synsets.forEach(async (synset, index) => {
+        await displaySynset(synset, index + 1);
       });
     });
 
@@ -226,22 +161,16 @@ async function demonstrateMultilingualLinking() {
    })).then(lengths => lengths.reduce((acc, len) => acc + len, 0))}
 `);
 
-    // Close the database using Wordnet instance method
-    await wordnet.close();
-    console.log('✅ Database connection closed successfully');
+    await safeClose(wordnet);
   } catch (error) {
     console.error('❌ Multilingual linking demo failed:', error.message);
-    try { 
-      await wordnet.close(); 
-      console.log('✅ Database connection closed after error');
-    } catch (closeError) {
-      console.error('⚠️  Error closing database:', closeError.message);
-    }
+    await safeClose(wordnet);
+    throw error;
   }
 }
 
 // Run the multilingual linking demo
-demonstrateMultilingualLinking().catch(error => {
+runDemo(demonstrateMultilingualLinking, 'Multilingual Word Linking Demo').catch(error => {
   console.error('❌ Fatal error:', error.message);
   process.exit(1);
 }); 

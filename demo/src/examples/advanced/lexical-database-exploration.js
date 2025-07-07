@@ -10,13 +10,11 @@
  */
 
 import { 
-  Wordnet, 
   lexicons,
   words,
   synsets
 } from 'wn-ts';
-import { join } from 'path';
-import { homedir } from 'os';
+import { createWordnet, displaySynset, safeClose, runDemo } from '../shared/helpers.js';
 
 console.log(`
 📖 Use Case 3: Lexical Database Exploration
@@ -28,26 +26,10 @@ Solution: Explore lexicons and their metadata.
 Real-world application: Research, data analysis, resource discovery
 `);
 
-// Use a dedicated data directory for this demo
-const dataDirectory = join(homedir(), '.wn_exploration_demo');
-console.log(`📁 Using data directory: ${dataDirectory}`);
-
-// Initialize Wordnet
-let wordnet;
-try {
-  wordnet = new Wordnet('*', {
-    dataDirectory,
-    downloadDirectory: join(dataDirectory, 'downloads'),
-    extractDirectory: join(dataDirectory, 'extracted'),
-    databasePath: join(dataDirectory, 'wordnet.db')
-  });
-  console.log('✅ Wordnet initialized successfully');
-} catch (error) {
-  console.error('❌ Failed to initialize Wordnet:', error.message);
-  process.exit(1);
-}
-
 async function demonstrateLexicalDatabaseExploration() {
+  const wordnet = createWordnet('exploration');
+  console.log('✅ Wordnet initialized successfully');
+
   try {
     console.log(`
 🔍 Example 1: Discovering Available Lexicons
@@ -148,22 +130,8 @@ async function demonstrateLexicalDatabaseExploration() {
       
       Object.entries(synsetsByLexicon).forEach(([lexicon, synsets]) => {
         console.log(`\n📚 ${lexicon}: ${synsets.length} synsets`);
-        synsets.slice(0, 2).forEach((synset, index) => {
-          console.log(`  ${index + 1}. ${synset.id} (${synset.members.length} members)`);
-          console.log(`     ILI: ${synset.ili}`);
-          
-          // Display definition
-          if (synset.definitions && synset.definitions.length > 0) {
-            console.log(`     Definition: ${synset.definitions[0].text}`);
-          }
-          
-          // Display examples
-          if (synset.examples && synset.examples.length > 0) {
-            console.log(`     Examples:`);
-            synset.examples.forEach((example, exIndex) => {
-              console.log(`       ${exIndex + 1}. "${example.text}"`);
-            });
-          }
+        synsets.slice(0, 2).forEach(async (synset, index) => {
+          await displaySynset(synset, index + 1);
         });
       });
     }
@@ -239,35 +207,8 @@ async function demonstrateLexicalDatabaseExploration() {
     
     Object.entries(infoByPOS).forEach(([pos, synsets]) => {
       console.log(`\n📚 ${pos.toUpperCase()} senses:`);
-      synsets.forEach((synset, index) => {
-        console.log(`\n  ${index + 1}. ${synset.id}`);
-        console.log(`     Members: ${synset.members.join(", ")}`);
-        console.log(`     ILI: ${synset.ili || 'None'}`);
-        
-        // Display definition
-        if (synset.definitions && synset.definitions.length > 0) {
-          console.log(`     Definition: ${synset.definitions[0].text}`);
-        }
-        
-        // Display examples
-        if (synset.examples && synset.examples.length > 0) {
-          console.log(`     Examples:`);
-          synset.examples.forEach((example, exIndex) => {
-            console.log(`       ${exIndex + 1}. "${example.text}"`);
-          });
-        }
-        
-        // Display relations
-        if (synset.relations && synset.relations.length > 0) {
-          const relationTypes = {};
-          synset.relations.forEach(rel => {
-            relationTypes[rel.type] = (relationTypes[rel.type] || 0) + 1;
-          });
-          const relationSummary = Object.entries(relationTypes)
-            .map(([type, count]) => `${type}(${count})`)
-            .join(", ");
-          console.log(`     Relations: ${relationSummary}`);
-        }
+      synsets.forEach(async (synset, index) => {
+        await displaySynset(synset, index + 1);
       });
     });
 
@@ -297,22 +238,16 @@ async function demonstrateLexicalDatabaseExploration() {
    • Lexicons by language: ${Object.entries(lexiconsByLanguage).map(([lang, lexicons]) => `${lang}(${lexicons.length})`).join(', ')}
 `);
 
-    // Close the database using Wordnet instance method
-    await wordnet.close();
-    console.log('✅ Database connection closed successfully');
+    await safeClose(wordnet);
   } catch (error) {
     console.error('❌ Lexical database exploration demo failed:', error.message);
-    try { 
-      await wordnet.close(); 
-      console.log('✅ Database connection closed after error');
-    } catch (closeError) {
-      console.error('⚠️  Error closing database:', closeError.message);
-    }
+    await safeClose(wordnet);
+    throw error;
   }
 }
 
 // Run the lexical database exploration demo
-demonstrateLexicalDatabaseExploration().catch(error => {
+runDemo(demonstrateLexicalDatabaseExploration, 'Lexical Database Exploration Demo').catch(error => {
   console.error('❌ Fatal error:', error.message);
   process.exit(1);
 }); 

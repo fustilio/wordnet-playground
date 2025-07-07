@@ -1,11 +1,28 @@
 #!/usr/bin/env node
 
+/**
+ * Live Demo: Multi-step demonstration with setup, download, and querying
+ * 
+ * Problem: You need to demonstrate the complete workflow from setup to querying.
+ * Solution: Show download, setup, and query capabilities in sequence.
+ * 
+ * Real-world application: System setup, data management, workflow demonstration
+ */
+
 import { config, download, add, Wordnet, words, synsets, projects } from 'wn-ts';
 import { join } from 'path';
 import { homedir } from 'os';
+import { safeClose, runDemo } from '../shared/helpers.js';
 
-console.log('🌐 wn-ts Live Demo');
-console.log('==================\n');
+console.log(`
+🌐 wn-ts Live Demo
+==================
+
+Problem: You need to demonstrate the complete workflow from setup to querying.
+Solution: Show download, setup, and query capabilities in sequence.
+
+Real-world application: System setup, data management, workflow demonstration
+`);
 
 async function setupDataDirectory() {
   const demoDataDir = join(homedir(), '.wn_demo');
@@ -25,7 +42,7 @@ async function setupDataDirectory() {
   }
 }
 
-async function runDemo() {
+async function runLiveDemo() {
   let wordnet = null;
   
   try {
@@ -151,32 +168,51 @@ async function runDemo() {
       console.log(`⚠️  Could not get project info: ${error.message}`);
     }
 
-    console.log('\n🎉 Demo completed!');
+    console.log(`
+🎉 Live Demo Completed!
+
+💡 Key Insights:
+   • Complete workflow from setup to querying demonstrated
+   • Download and data management capabilities shown
+   • Real-time project discovery and configuration
+   • Practical data loading and querying examples
+
+🚀 Practical Applications:
+   • System setup and configuration
+   • Data management workflows
+   • Project discovery and selection
+   • Real-time demonstration capabilities
+   • Educational and training scenarios
+
+📊 Final Statistics:
+   • Projects discovered: ${availableProjects?.length || 0}
+   • Data sources downloaded: 2 (CILI + OEWN)
+   • Words queried: 2 (information, computer)
+   • Synsets retrieved: ${infoSynsets?.length || 0}
+`);
+
     console.log('\n💡 Try running this demo again to see cached downloads in action.');
     console.log('💡 You can also try other projects like:');
     console.log('   • omw-en:1.4 (OMW English WordNet)');
     console.log('   • odenet:1.4 (Open German WordNet)');
     console.log('   • omw-fr:1.4 (French WordNet)');
 
-    // Close the database using Wordnet instance method
+    // Close the database using consistent pattern
     if (wordnet) {
-      await wordnet.close();
-      console.log('✅ Database closed gracefully.');
+      await safeClose(wordnet, '✅ Database closed gracefully.');
     }
 
   } catch (error) {
-    console.error('❌ Demo failed:', error.message);
-    try {
-      if (wordnet) {
-        await wordnet.close();
-        console.log('✅ Database closed gracefully (after error).');
-      }
-    } catch (e) {
-      console.warn('⚠️ Error closing database (after error):', e);
+    console.error('❌ Live demo failed:', error.message);
+    if (wordnet) {
+      await safeClose(wordnet, '✅ Database closed gracefully (after error).');
     }
-    process.exit(1);
+    throw error;
   }
 }
 
-// Run the demo
-runDemo(); 
+// Run the live demo
+runDemo(runLiveDemo, 'Live Demo').catch(error => {
+  console.error('❌ Fatal error:', error.message);
+  process.exit(1);
+}); 

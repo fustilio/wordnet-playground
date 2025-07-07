@@ -10,15 +10,13 @@
  */
 
 import { 
-  Wordnet, 
   words, 
   synsets, 
   senses,
   ilis,
   lexicons
 } from 'wn-ts';
-import { join } from 'path';
-import { homedir } from 'os';
+import { createWordnet, displaySynset, safeClose, runDemo } from '../shared/helpers.js';
 
 console.log(`
 📊 Use Case 4: Database Statistics and Coverage Analysis
@@ -30,26 +28,10 @@ Solution: Analyze database statistics and content coverage.
 Real-world application: Data quality assessment, research planning
 `);
 
-// Use a dedicated data directory for this demo
-const dataDirectory = join(homedir(), '.wn_statistics_demo');
-console.log(`📁 Using data directory: ${dataDirectory}`);
-
-// Initialize Wordnet
-let wordnet;
-try {
-  wordnet = new Wordnet('*', {
-    dataDirectory,
-    downloadDirectory: join(dataDirectory, 'downloads'),
-    extractDirectory: join(dataDirectory, 'extracted'),
-    databasePath: join(dataDirectory, 'wordnet.db')
-  });
-  console.log('✅ Wordnet initialized successfully');
-} catch (error) {
-  console.error('❌ Failed to initialize Wordnet:', error.message);
-  process.exit(1);
-}
-
 async function demonstrateDatabaseStatistics() {
+  const wordnet = createWordnet('statistics');
+  console.log('✅ Wordnet initialized successfully');
+
   try {
     console.log(`
 🔍 Example 1: Overall Database Statistics
@@ -142,22 +124,7 @@ async function demonstrateDatabaseStatistics() {
         
         // Show detailed information for the first synset
         const firstSynset = synsetEntries[0];
-        console.log(`  📖 Sample synset: ${firstSynset.id}`);
-        console.log(`    Members: ${firstSynset.members.join(", ")}`);
-        console.log(`    ILI: ${firstSynset.ili || 'None'}`);
-        
-        // Display definition
-        if (firstSynset.definitions && firstSynset.definitions.length > 0) {
-          console.log(`    Definition: ${firstSynset.definitions[0].text}`);
-        }
-        
-        // Display examples
-        if (firstSynset.examples && firstSynset.examples.length > 0) {
-          console.log(`    Examples:`);
-          firstSynset.examples.forEach((example, index) => {
-            console.log(`      ${index + 1}. "${example.text}"`);
-          });
-        }
+        await displaySynset(firstSynset, 1);
       }
     }
 
@@ -246,35 +213,8 @@ async function demonstrateDatabaseStatistics() {
     
     Object.entries(bankByPOS).forEach(([pos, synsets]) => {
       console.log(`\n📚 ${pos.toUpperCase()} senses (${synsets.length}):`);
-      synsets.forEach((synset, index) => {
-        console.log(`\n  ${index + 1}. ${synset.id}`);
-        console.log(`     Members: ${synset.members.join(", ")}`);
-        console.log(`     ILI: ${synset.ili || 'None'}`);
-        
-        // Display definition
-        if (synset.definitions && synset.definitions.length > 0) {
-          console.log(`     Definition: ${synset.definitions[0].text}`);
-        }
-        
-        // Display examples
-        if (synset.examples && synset.examples.length > 0) {
-          console.log(`     Examples:`);
-          synset.examples.forEach((example, exIndex) => {
-            console.log(`       ${exIndex + 1}. "${example.text}"`);
-          });
-        }
-        
-        // Display relations
-        if (synset.relations && synset.relations.length > 0) {
-          const relationTypes = {};
-          synset.relations.forEach(rel => {
-            relationTypes[rel.type] = (relationTypes[rel.type] || 0) + 1;
-          });
-          const relationSummary = Object.entries(relationTypes)
-            .map(([type, count]) => `${type}(${count})`)
-            .join(", ");
-          console.log(`     Relations: ${relationSummary}`);
-        }
+      synsets.forEach(async (synset, index) => {
+        await displaySynset(synset, index + 1);
       });
     });
 
@@ -306,22 +246,16 @@ async function demonstrateDatabaseStatistics() {
    • ILI coverage: ${qualityMetrics.iliCoveragePercentage.toFixed(2)}%
 `);
 
-    // Close the database using Wordnet instance method
-    await wordnet.close();
-    console.log('✅ Database connection closed successfully');
+    await safeClose(wordnet);
   } catch (error) {
     console.error('❌ Database statistics demo failed:', error.message);
-    try { 
-      await wordnet.close(); 
-      console.log('✅ Database connection closed after error');
-    } catch (closeError) {
-      console.error('⚠️  Error closing database:', closeError.message);
-    }
+    await safeClose(wordnet);
+    throw error;
   }
 }
 
 // Run the database statistics demo
-demonstrateDatabaseStatistics().catch(error => {
+runDemo(demonstrateDatabaseStatistics, 'Database Statistics Demo').catch(error => {
   console.error('❌ Fatal error:', error.message);
   process.exit(1);
 }); 

@@ -30,14 +30,14 @@ async function demonstrateWordSenseDisambiguation() {
 =======================================`);
 
     const bankSynsets = await synsets('bank');
-    displaySynsetsByPOS(bankSynsets, 'Bank senses');
+    await displaySynsetsByPOS(bankSynsets, 'Bank senses');
 
     console.log(`
 🔍 Example 2: "light" - Complex Polysemy
 ========================================`);
 
     const lightSynsets = await synsets('light');
-    displaySynsetsByPOS(lightSynsets, 'Light senses');
+    await displaySynsetsByPOS(lightSynsets, 'Light senses');
 
     console.log(`
 🔍 Example 3: Context-Based Sense Selection

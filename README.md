@@ -11,14 +11,25 @@ This repository contains the development of **wn-ts**, a TypeScript port of the 
 - Comprehensive performance benchmarking
 - Browser-compatible architecture
 - Clean API without direct database access
+- Unified CLI for data management and querying
 
 ## 📦 Projects
 
 ### 📁 `/wn-ts` - TypeScript WordNet Port (Main Project) 📦 **NPM PUBLISHED**
 The primary TypeScript implementation providing full API parity with the Python wn library.
 
-**Status**: ✅ **95% Complete** - Core functionality implemented, advanced features in development.
+**Status**: ✅ **95% Complete** - Core functionality implemented, unified CLI completed.
 **NPM**: `npm install wn-ts`
+
+**Key Features:**
+- ✅ **Unified CLI**: Command-line interface with database management
+- ✅ **Core API Parity**: Full parity with Python wn library
+- ✅ **Examples System**: Complete examples support for synsets and senses
+- ✅ **Project Management**: TOML-based project index
+- ✅ **Information Content**: Complete IC calculations with hypernym traversal
+- ✅ **Export Formats**: JSON, XML, and CSV export
+- ✅ **Clean API**: No direct database access - all functionality through Wordnet instance methods
+- ✅ **Statistics & Analysis**: Built-in database statistics and quality metrics
 
 **📖 [Read wn-ts Documentation →](./wn-ts/README.md)**
 
@@ -59,6 +70,28 @@ import { Wordnet, download, add } from 'wn-ts';
   const synsets = await wn.synsets('run', 'v');
   console.log(synsets[0]?.definitions[0]?.text);
 })();
+```
+
+### Command-Line Interface
+```bash
+# Install globally for CLI access
+npm install -g wn-ts
+
+# Download and add WordNet data
+wn-ts download oewn:2024
+wn-ts add oewn-2024-english-wordnet-2024.xml.gz
+
+# Query the database
+wn-ts query run v
+
+# Show database status
+wn-ts db status
+
+# Unlock locked databases
+wn-ts db unlock
+
+# Export data
+wn-ts export --format json --output export.json
 ```
 
 ### Development Setup
@@ -160,6 +193,7 @@ We've completed comprehensive testing of different WordNet implementations and m
 - **Performance**: Native TypeScript outperforms bridge in most cases
 - **Strategic Decision**: Continue with native TypeScript development for optimal performance
 - **Clean API**: All components now use clean APIs without direct database access
+- **Unified CLI**: Comprehensive command-line interface with database management
 
 ### Library Recommendations ✅ **COMPLETED**
 
@@ -183,6 +217,7 @@ Based on comprehensive benchmarking:
 - **Python Bridge**: [wn-pybridge README](./wn-pybridge/README.md)
 - **Benchmark Results**: [Benchmark README](./benchmark/README.md)
 - **Demo Application**: [Demo README](./demo/README.md)
+- **CLI Documentation**: [wn-ts CLI Guide](./wn-ts/docs/USAGE-CLI.md)
 - **Python Reference**: [wn.readthedocs.io](https://wn.readthedocs.io/)
 
 ## 🎯 Roadmap
@@ -194,7 +229,8 @@ Based on comprehensive benchmarking:
 - ✅ **Benchmark Integration**: Proper exports and integration completed
 - ✅ **Clean API**: Removed direct database access, all components use clean APIs
 - ✅ **Comprehensive CI**: Complete CI pipeline with tests, demos, and benchmarks
-- [ ] **CLI Interface**: Command-line tools for data management
+- ✅ **Unified CLI**: Command-line interface with database management
+- [ ] **Advanced CLI**: Interactive mode and batch processing
 - [ ] **Browser Compatibility**: Enhanced browser support for web applications
 - [ ] **Production Readiness**: Enhanced error handling, logging, monitoring
 
@@ -213,6 +249,7 @@ We welcome contributions to the TypeScript port and benchmarking suite:
 2. **Feature Implementation**: Help complete remaining features
 3. **Documentation**: Improve examples and tutorials
 4. **Testing**: Enhance test coverage and edge case handling
+5. **CLI Enhancement**: Help improve the command-line interface
 
 ## 📄 License
 

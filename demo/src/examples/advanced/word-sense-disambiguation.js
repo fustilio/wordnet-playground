@@ -9,9 +9,8 @@
  * Real-world application: Natural language processing, text analysis, semantic understanding
  */
 
-import { Wordnet, words, synsets, senses } from "wn-ts";
-import { join } from "path";
-import { homedir } from "os";
+import { words, synsets, senses } from "wn-ts";
+import { createWordnet, displaySynsetsByPOS, safeClose, runDemo } from "../shared/helpers.js";
 
 console.log(`
 🎯 Use Case 2: Word Sense Disambiguation
@@ -23,26 +22,10 @@ Solution: Analyze all synsets for a word to identify different senses.
 Real-world application: Natural language processing, text analysis
 `);
 
-// Use a dedicated data directory for this demo
-const dataDirectory = join(homedir(), ".wn_disambiguation_demo");
-console.log(`📁 Using data directory: ${dataDirectory}`);
-
-// Initialize Wordnet
-let wordnet;
-try {
-  wordnet = new Wordnet("*", {
-    dataDirectory,
-    downloadDirectory: join(dataDirectory, "downloads"),
-    extractDirectory: join(dataDirectory, "extracted"),
-    databasePath: join(dataDirectory, "wordnet.db"),
-  });
-  console.log("✅ Wordnet initialized successfully");
-} catch (error) {
-  console.error("❌ Failed to initialize Wordnet:", error.message);
-  process.exit(1);
-}
-
 async function demonstrateWordSenseDisambiguation() {
+  const wordnet = createWordnet("disambiguation");
+  console.log("✅ Wordnet initialized successfully");
+
   try {
     console.log(`
 🔍 Example 1: Analyzing "bank" - A Classic Polysemous Word
@@ -60,48 +43,8 @@ async function demonstrateWordSenseDisambiguation() {
     const bankSynsets = await synsets("bank");
     console.log(`\n📚 Found ${bankSynsets.length} synsets for "bank"`);
 
-    // Group by part of speech
-    const bankByPOS = {};
-    bankSynsets.forEach((synset) => {
-      const pos = synset.partOfSpeech;
-      if (!bankByPOS[pos]) bankByPOS[pos] = [];
-      bankByPOS[pos].push(synset);
-    });
-
     // Display detailed synset information with definitions and examples
-    Object.entries(bankByPOS).forEach(([pos, synsets]) => {
-      console.log(`\n📚 ${pos.toUpperCase()} senses (${synsets.length}):`);
-      synsets.forEach((synset, index) => {
-        console.log(`\n  ${index + 1}. ${synset.id} (${synset.members.length} members)`);
-        console.log(`     Members: ${synset.members.join(", ")}`);
-        console.log(`     ILI: ${synset.ili || 'None'}`);
-        
-        // Display definitions
-        if (synset.definitions && synset.definitions.length > 0) {
-          console.log(`     Definition: ${synset.definitions[0].text}`);
-        }
-        
-        // Display examples
-        if (synset.examples && synset.examples.length > 0) {
-          console.log(`     Examples:`);
-          synset.examples.forEach((example, exIndex) => {
-            console.log(`       ${exIndex + 1}. "${example.text}"`);
-          });
-        }
-        
-        // Display relations count
-        if (synset.relations && synset.relations.length > 0) {
-          const relationTypes = {};
-          synset.relations.forEach(rel => {
-            relationTypes[rel.type] = (relationTypes[rel.type] || 0) + 1;
-          });
-          const relationSummary = Object.entries(relationTypes)
-            .map(([type, count]) => `${type}(${count})`)
-            .join(", ");
-          console.log(`     Relations: ${relationSummary}`);
-        }
-      });
-    });
+    await displaySynsetsByPOS(bankSynsets, 'Bank senses');
 
     console.log(`
 🔍 Example 2: Analyzing "light" - Complex Polysemy
@@ -133,27 +76,7 @@ async function demonstrateWordSenseDisambiguation() {
     });
 
     // Show detailed examples from each POS
-    Object.entries(lightByPOS).forEach(([pos, synsets]) => {
-      console.log(`\n💡 ${pos.toUpperCase()} examples:`);
-      synsets.slice(0, 3).forEach((synset, index) => {
-        console.log(`\n  ${index + 1}. ${synset.id} (${synset.members.length} members)`);
-        console.log(`     Members: ${synset.members.join(", ")}`);
-        console.log(`     ILI: ${synset.ili || 'None'}`);
-        
-        // Display definitions
-        if (synset.definitions && synset.definitions.length > 0) {
-          console.log(`     Definition: ${synset.definitions[0].text}`);
-        }
-        
-        // Display examples
-        if (synset.examples && synset.examples.length > 0) {
-          console.log(`     Examples:`);
-          synset.examples.forEach((example, exIndex) => {
-            console.log(`       ${exIndex + 1}. "${example.text}"`);
-          });
-        }
-      });
-    });
+    await displaySynsetsByPOS(lightSynsets, 'Light senses');
 
     console.log(`
 🔍 Example 3: Building a Sense Disambiguation System
@@ -251,22 +174,16 @@ async function demonstrateWordSenseDisambiguation() {
    • Total synsets explored: ${bankSynsets.length + lightSynsets.length}
 `);
 
-    // Close the database using Wordnet instance method
-    await wordnet.close();
-    console.log("✅ Database connection closed successfully");
+    await safeClose(wordnet);
   } catch (error) {
     console.error("❌ Word sense disambiguation demo failed:", error.message);
-    try {
-      await wordnet.close();
-      console.log("✅ Database connection closed after error");
-    } catch (closeError) {
-      console.error("⚠️  Error closing database:", closeError.message);
-    }
+    await safeClose(wordnet);
+    throw error;
   }
 }
 
 // Run the word sense disambiguation demo
-demonstrateWordSenseDisambiguation().catch((error) => {
+runDemo(demonstrateWordSenseDisambiguation, "Word Sense Disambiguation Demo").catch((error) => {
   console.error("❌ Fatal error:", error.message);
   process.exit(1);
 });

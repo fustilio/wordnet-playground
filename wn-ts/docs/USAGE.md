@@ -17,6 +17,7 @@ This guide provides a comprehensive overview of how to use the `wn-ts` TypeScrip
     - [Module Functions](#module-functions)
     - [Project Management](#project-management)
     - [Data Management](#data-management)
+    - [Statistics \& Analysis](#statistics--analysis)
     - [Similarity \& Information Content](#similarity--information-content)
   - [Advanced API: Submodule Exports](#advanced-api-submodule-exports)
     - [Similarity Metrics](#similarity-metrics)
@@ -30,8 +31,18 @@ This guide provides a comprehensive overview of how to use the `wn-ts` TypeScrip
     - [Working with Multiple Languages](#working-with-multiple-languages)
     - [Exporting Data](#exporting-data)
     - [Error Handling](#error-handling)
+  - [Real-World Use Cases](#real-world-use-cases)
+    - [1. Multilingual Word Linking](#1-multilingual-word-linking)
+    - [2. Word Sense Disambiguation](#2-word-sense-disambiguation)
+    - [3. Database Statistics \& Quality Analysis](#3-database-statistics--quality-analysis)
+    - [4. Lexical Database Exploration](#4-lexical-database-exploration)
+    - [5. Python-style API Compatibility](#5-python-style-api-compatibility)
   - [Testing \& Examples](#testing--examples)
+    - [Example Test Structure](#example-test-structure)
+    - [Demo Examples](#demo-examples)
   - [Troubleshooting](#troubleshooting)
+    - [Common Issues](#common-issues)
+    - [Debug Mode](#debug-mode)
   - [Glossary](#glossary)
   - [Further Reading](#further-reading)
 
@@ -117,12 +128,15 @@ console.log(synsetsFr);
 For convenience, you can use top-level functions:
 
 ```typescript
-import { words, synsets, senses, projects } from 'wn-ts';
+import { words, synsets, senses, projects, lexicons, ilis, ili } from 'wn-ts';
 
 const ws = await words('run', 'v');
 const ss = await synsets('run', 'v');
 const sensesList = await senses('run', 'v');
 const allProjects = await projects();
+const allLexicons = await lexicons();
+const allILIs = await ilis();
+const iliEntry = await ili('i12345');
 ```
 
 ### Project Management
@@ -159,23 +173,6 @@ const oewnVersions = getProjectVersions('oewn');
   import { exportData } from 'wn-ts';
   await exportData({ format: 'json', output: 'wn-export.json', include: ['oewn'] });
   ```
-
-### Similarity & Information Content
-
-```typescript
-// For advanced similarity and IC, see the submodule section below!
-import { path, wup, lch, res, jcn, lin } from 'wn-ts/similarity';
-import { compute, information_content } from 'wn-ts/ic';
-
-// Compute Information Content (IC) from a corpus
-const freq = await compute(['run', 'running', 'runner'], wn);
-
-// Calculate IC for a synset
-const ic = information_content(synsets[0], freq);
-
-// Path similarity
-const sim = await path(synsets[0], synsets[1], wn);
-```
 
 ### Statistics & Analysis
 
@@ -216,6 +213,23 @@ const sizeAnalysis = await wn.getSynsetSizeAnalysis();
 console.log(`Average synset size: ${sizeAnalysis.averageSize.toFixed(2)} words`);
 console.log(`Largest synset: ${sizeAnalysis.maxSize} words`);
 console.log(`Smallest synset: ${sizeAnalysis.minSize} words`);
+```
+
+### Similarity & Information Content
+
+```typescript
+// For advanced similarity and IC, see the submodule section below!
+import { path, wup, lch, res, jcn, lin } from 'wn-ts/similarity';
+import { compute, information_content } from 'wn-ts/ic';
+
+// Compute Information Content (IC) from a corpus
+const freq = await compute(['run', 'running', 'runner'], wn);
+
+// Calculate IC for a synset
+const ic = information_content(synsets[0], freq);
+
+// Path similarity
+const sim = await path(synsets[0], synsets[1], wn);
 ```
 
 ---
@@ -303,13 +317,15 @@ const ic = information_content(synset, freq);
 
 ## Command-Line Interface (CLI)
 
-The library includes a command-line interface for data management:
+The library includes a comprehensive command-line interface for data management and querying. For detailed CLI documentation, see [USAGE-CLI.md](./USAGE-CLI.md).
+
+### Basic CLI Usage
 
 ```bash
-# Install globally
+# Install globally for CLI access
 npm install -g wn-ts
 
-# Download a project
+# Download a WordNet project
 wn-ts download oewn:2024
 
 # Add a lexical resource
@@ -318,9 +334,47 @@ wn-ts add oewn-2024-english-wordnet-2024.xml.gz
 # Query the database
 wn-ts query run v
 
+# Show database status
+wn-ts db status
+
+# Unlock locked databases
+wn-ts db unlock
+
+# Clean up cache directories
+wn-ts db clean
+
 # Export data
 wn-ts export --format json --output export.json --include oewn
+
+# List available projects
+wn-ts projects
+
+# Show configuration
+wn-ts config
 ```
+
+### Database Management Commands
+
+The CLI includes comprehensive database management capabilities:
+
+```bash
+# Show database status and cache information
+wn-ts db status
+
+# Show cache contents and file sizes
+wn-ts db cache
+
+# Unlock locked databases
+wn-ts db unlock
+
+# Clean up cache directories
+wn-ts db clean
+
+# Reset all databases (WARNING: This removes all data)
+wn-ts db reset
+```
+
+For complete CLI documentation with all commands, options, and examples, see [USAGE-CLI.md](./USAGE-CLI.md).
 
 ---
 
@@ -419,6 +473,111 @@ try {
 
 ---
 
+## Real-World Use Cases
+
+The library supports various real-world applications:
+
+### 1. Multilingual Word Linking
+
+```typescript
+import { words, synsets, ili, ilis } from 'wn-ts';
+
+// Link words across languages using ILI
+const computerSynsets = await synsets('computer', 'n');
+if (computerSynsets.length > 0) {
+  const computerSynset = computerSynsets[0];
+  const iliEntry = await ili(computerSynset.ili);
+  console.log(`Cross-language concept: ${iliEntry.definition}`);
+}
+
+// Analyze ILI database
+const iliEntries = await ilis();
+console.log(`Total ILI entries: ${iliEntries.length}`);
+```
+
+### 2. Word Sense Disambiguation
+
+```typescript
+import { synsets } from 'wn-ts';
+
+// Analyze polysemous words
+const bankSynsets = await synsets('bank');
+console.log(`"bank" has ${bankSynsets.length} different senses`);
+
+// Group by part of speech
+const bankByPOS = {};
+bankSynsets.forEach(synset => {
+  const pos = synset.partOfSpeech;
+  if (!bankByPOS[pos]) bankByPOS[pos] = [];
+  bankByPOS[pos].push(synset);
+});
+
+Object.entries(bankByPOS).forEach(([pos, synsets]) => {
+  console.log(`${pos.toUpperCase()}: ${synsets.length} senses`);
+});
+```
+
+### 3. Database Statistics & Quality Analysis
+
+```typescript
+import { lexicons } from 'wn-ts';
+
+// Analyze available lexicons
+const allLexicons = await lexicons();
+console.log(`Available lexicons: ${allLexicons.length}`);
+
+// Group by language
+const lexiconsByLanguage = {};
+allLexicons.forEach(lexicon => {
+  const lang = lexicon.language;
+  if (!lexiconsByLanguage[lang]) lexiconsByLanguage[lang] = [];
+  lexiconsByLanguage[lang].push(lexicon);
+});
+
+Object.entries(lexiconsByLanguage).forEach(([lang, lexicons]) => {
+  console.log(`${lang.toUpperCase()}: ${lexicons.length} lexicons`);
+});
+```
+
+### 4. Lexical Database Exploration
+
+```typescript
+import { words, synsets } from 'wn-ts';
+
+// Analyze word coverage
+const testWords = ['computer', 'information', 'happy', 'run'];
+for (const word of testWords) {
+  const wordEntries = await words(word);
+  const synsetEntries = await synsets(word);
+  
+  console.log(`"${word}": ${wordEntries.length} word forms, ${synsetEntries.length} synsets`);
+}
+```
+
+### 5. Python-style API Compatibility
+
+```typescript
+import { synsets } from 'wn-ts';
+
+// Replicate Python wn library functionality
+const synsets = await wn.synsets('win', 'v');
+if (synsets.length > 0) {
+  const ss = synsets[0];
+  console.log(`Synset: ${ss.id}`);
+  console.log(`Members: ${ss.members.join(', ')}`);
+  
+  // Get definition via ILI
+  if (ss.ili) {
+    const iliEntry = await ili(ss.ili);
+    if (iliEntry) {
+      console.log(`Definition: ${iliEntry.definition}`);
+    }
+  }
+}
+```
+
+---
+
 ## Testing & Examples
 
 The library includes comprehensive tests and examples:
@@ -449,6 +608,20 @@ describe('Wordnet Class', () => {
 });
 ```
 
+### Demo Examples
+
+The library includes comprehensive demo examples organized by complexity:
+
+- **Basic Examples**: Python-style API, word sense disambiguation, database statistics
+- **Advanced Examples**: Live demo, multilingual linking, lexical exploration
+- **Comprehensive Examples**: Kitchen sink demo with all features
+
+Run all examples:
+```bash
+cd demo/src
+node run-all-use-cases.js
+```
+
 ---
 
 ## Troubleshooting
@@ -476,6 +649,36 @@ if (words.length === 0) {
 ```typescript
 // Use specific lexicons to improve performance
 const wn = new Wordnet('oewn'); // Instead of '*'
+```
+
+**4. Definition retrieval issues**
+```typescript
+// wn-ts doesn't include definitions in synsets by default
+// Use ILI fallback for definitions
+if (synset.ili) {
+  const iliEntry = await ili(synset.ili);
+  if (iliEntry && iliEntry.definition) {
+    console.log(`Definition: ${iliEntry.definition}`);
+  }
+}
+```
+
+**5. Database locked errors**
+```bash
+# Use the CLI to unlock databases
+wn-ts db unlock
+
+# Or check database status
+wn-ts db status
+```
+
+**5. Database locked errors**
+```bash
+# Use the CLI to unlock databases
+wn-ts db unlock
+
+# Or check database status
+wn-ts db status
 ```
 
 ### Debug Mode
@@ -510,6 +713,7 @@ logger.setLevel('debug');
 - **WordNet**: [wordnet.princeton.edu](https://wordnet.princeton.edu/)
 - **Open English WordNet**: [github.com/globalwordnet/english-wordnet](https://github.com/globalwordnet/english-wordnet)
 - **Open Multilingual Wordnet**: [github.com/omwn/omw](https://github.com/omwn/omw)
+- **CLI Documentation**: [USAGE-CLI.md](./USAGE-CLI.md) - Complete command-line interface documentation
 
 ---
 
