@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { config, download, add, Wordnet, words, synsets, projects } from 'wn-ts';
+import { config, download, add, Wordnet, words, synsets, projects, db } from 'wn-ts';
 import { join } from 'path';
 import { homedir } from 'os';
 
@@ -13,20 +13,10 @@ async function setupDataDirectory() {
   try {
     const fs = await import('fs');
     
-    // Remove anything at the path (file or directory)
-    if (fs.existsSync(demoDataDir)) {
-      const stats = fs.statSync(demoDataDir);
-      if (stats.isDirectory()) {
-        // Remove directory and all contents
-        fs.rmSync(demoDataDir, { recursive: true, force: true });
-      } else {
-        // Remove file
-        fs.unlinkSync(demoDataDir);
-      }
+    // Create directory if it doesn't exist
+    if (!fs.existsSync(demoDataDir)) {
+      fs.mkdirSync(demoDataDir, { recursive: true });
     }
-    
-    // Create fresh directory
-    fs.mkdirSync(demoDataDir, { recursive: true });
     
     return demoDataDir;
   } catch (error) {
@@ -51,21 +41,36 @@ async function runDemo() {
     console.log('🔧 Getting available projects...');
     // Show available projects
     console.log('📋 Available WordNet Projects:');
-    const availableProjects = await projects();
-    const projectList = availableProjects.slice(0, 5); // Show first 5
-    projectList.forEach(project => {
-      console.log(`  • ${project.id}:${project.version} - ${project.label} (${project.language})`);
-    });
-    console.log(`  ... and ${availableProjects.length - 5} more projects\n`);
+    try {
+      const availableProjects = await projects();
+      console.log(`🔍 Debug - Found ${availableProjects.length} projects`);
+      
+      if (availableProjects.length > 0) {
+        console.log('🔍 Debug - First project structure:', JSON.stringify(availableProjects[0], null, 2));
+        
+        const projectList = availableProjects.slice(0, 5); // Show first 5
+        projectList.forEach(project => {
+          // Use the actual properties from the project structure
+          const version = project.version || 'latest';
+          const language = project.language || project.lang || 'en';
+          const name = project.label || project.name || project.id || 'Unknown';
+          console.log(`  • ${project.id}:${version} - ${name} (${language})`);
+        });
+        console.log(`  ... and ${availableProjects.length - 5} more projects\n`);
+      } else {
+        console.log('  No projects found or projects() returned empty array\n');
+      }
+    } catch (error) {
+      console.log(`⚠️  Error getting projects: ${error.message}\n`);
+    }
 
     // Demo 1: Download and add CILI (Collaborative Interlingual Index)
     console.log('🔄 Demo 1: Downloading and processing CILI (Collaborative Interlingual Index)...');
     try {
-      await download('cili:1.0', { force: true });
+      const ciliPath = await download('cili:1.0', { force: true });
       console.log('✅ CILI downloaded successfully!');
       
-      // Add the downloaded file to the database
-      const ciliPath = join(config.downloadDirectory, 'cili-1.0.xml.gz');
+      // Add the downloaded file to the database using the returned path
       await add(ciliPath, { force: true });
       console.log('✅ CILI added to database!\n');
     } catch (error) {
@@ -75,11 +80,10 @@ async function runDemo() {
     // Demo 2: Download and add Open English WordNet
     console.log('🔄 Demo 2: Downloading and processing Open English WordNet (2024)...');
     try {
-      await download('oewn:2024', { force: true });
+      const oewnPath = await download('oewn:2024', { force: true });
       console.log('✅ Open English WordNet downloaded successfully!');
       
-      // Add the downloaded file to the database
-      const oewnPath = join(config.downloadDirectory, 'oewn-2024.xml.gz');
+      // Add the downloaded file to the database using the returned path
       await add(oewnPath, { force: true });
       console.log('✅ Open English WordNet added to database!\n');
     } catch (error) {
@@ -152,8 +156,22 @@ async function runDemo() {
     console.log('   • odenet:1.4 (Open German WordNet)');
     console.log('   • omw-fr:1.4 (French WordNet)');
 
+    // Explicitly close the database to avoid native errors
+    try {
+      await db.close?.();
+      console.log('✅ Database closed gracefully.');
+    } catch (e) {
+      console.warn('⚠️ Error closing database:', e);
+    }
+
   } catch (error) {
     console.error('❌ Demo failed:', error.message);
+    try {
+      await db.close?.();
+      console.log('✅ Database closed gracefully (after error).');
+    } catch (e) {
+      console.warn('⚠️ Error closing database (after error):', e);
+    }
     process.exit(1);
   }
 }

@@ -87,8 +87,8 @@ importers:
   demo:
     dependencies:
       wn-ts:
-        specifier: workspace:*
-        version: link:../wn-ts
+        specifier: 0.1.0
+        version: 0.1.0(ws@7.5.10)
 
   wn-pybridge:
     dependencies:
@@ -2425,6 +2425,11 @@ packages:
 
   wide-align@1.1.5:
     resolution: {integrity: sha512-eDMORYaPNZ4sQIuuYPDHdQvf4gyCF9rEEV/yPxGfwPkRodwEgiMUUXTx/dex+Me0wxx53S+NgUHaP7y3MGlDmg==}
+
+  wn-ts@0.1.0:
+    resolution: {integrity: sha512-+kk0bkvaUAhgpI1QfwbD00q88P99ZvqzN7Z3PcTNUJ0k9SUFuu+44aiQSpDNbiQiBiQok2FIiG89+1Am3erFMw==}
+    engines: {node: '>=18.0.0'}
+    hasBin: true
 
   wndb-with-exceptions@3.0.2:
     resolution: {integrity: sha512-EErtrDAl7z1f0eG+XzomB+I6Kj6eYuFukBbmWvdbwcLbUN6qbjFHDEW+/PFWOGKlqxIfOWYBn1ANRm/1Z5OQiA==}
@@ -4859,6 +4864,21 @@ snapshots:
     dependencies:
       string-width: 4.2.3
     optional: true
+
+  wn-ts@0.1.0(ws@7.5.10):
+    dependencies:
+      '@types/sax': 1.2.7
+      commander: 11.1.0
+      fast-xml-parser: 5.2.5
+      lzma-native: 8.0.6
+      pythonia: 1.2.2(ws@7.5.10)
+      sax: 1.4.1
+      smol-toml: 1.4.1
+      sqlite3: 5.1.7
+    transitivePeerDependencies:
+      - bluebird
+      - supports-color
+      - ws
 
   wndb-with-exceptions@3.0.2:
     dependencies:

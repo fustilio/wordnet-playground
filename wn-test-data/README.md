@@ -1,0 +1,1 @@
+taken from https://github.com/goodmami/wn/tree/main/tests/data

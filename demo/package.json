@@ -17,6 +17,6 @@
     "test": "node src/demo.js"
   },
   "dependencies": {
-    "wn-ts": "workspace:*"
+    "wn-ts": "0.1.0"
   }
 }

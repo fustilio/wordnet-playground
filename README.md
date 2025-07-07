@@ -1,84 +1,46 @@
-# WordNet TypeScript Port (wn-ts)
+# WordNet TypeScript Development
 
-This repository contains the development of **wn-ts**, a TypeScript port of the Python [wn library](https://github.com/goodmami/wn) for accessing WordNet data. The repository includes the original Python `wn` library as a reference submodule and provides comprehensive benchmarking tools.
+This repository contains the development of **wn-ts**, a TypeScript port of the Python [wn library](https://github.com/goodmami/wn) for accessing WordNet data, along with comprehensive benchmarking and testing infrastructure.
 
 ## 🎯 Primary Goal
 
-**Develop a high-performance TypeScript port of the Python wn library** with:
+**Develop a TypeScript port of the Python wn library** with the long-term goal of creating a fully browser-based implementation. The end motivation is to mirror the Python wn library in JavaScript/TypeScript.
+
 - Full API parity with the Python reference implementation
 - TypeScript-first design with modern features
 - Comprehensive performance benchmarking
-- Production-ready architecture
+- Browser-compatible architecture
 
-## 📦 NPM Publication
-
-**Only `wn-ts` is intended for npm publication.** The other components in this repository are supporting infrastructure for development, testing, and benchmarking.
-
-- **✅ `wn-ts`**: Main library - published to npm as `wn-ts`
-- **📁 `/benchmark`**: Development tool - comprehensive benchmarking suite
-- **📁 `/demo`**: Development tool - demonstration application
-- **📁 `/wn-test-data`**: Development tool - shared test data
-- **📁 `/wn`**: Reference implementation - Python submodule
-
-## 🏗️ Repository Structure
+## 📦 Projects
 
 ### 📁 `/wn-ts` - TypeScript WordNet Port (Main Project) 📦 **NPM PUBLISHED**
 The primary TypeScript implementation providing full API parity with the Python wn library.
 
-**Key Features:**
-- **95% API Parity**: Complete compatibility with Python wn library
-- **Type Safety**: Full TypeScript type definitions
-- **Modern Architecture**: ES2020+ modules, async/await, proper error handling
-- **Performance Optimized**: SQLite backend with indexing and caching
-- **Examples Support**: Full examples retrieval for synsets and senses
-- **Export Formats**: JSON, XML, and CSV export capabilities
-- **Information Content**: Complete IC calculations with hypernym traversal
-- **Organized Parsers**: Multiple LMF parser implementations for different use cases
-- **Benchmark Integration**: Proper exports for external benchmarking and comparison
-
-**Status**: ✅ **95% Complete** - Core functionality is production-ready, advanced features in development.
+**Status**: ✅ **95% Complete** - Core functionality implemented, advanced features in development.
 **NPM**: `npm install wn-ts`
 
-### 📁 `/wn` - Python Reference Implementation (Submodule) 🔧 **DEVELOPMENT TOOL**
-The original Python wn library included as a git submodule for reference and comparison.
+**📖 [Read wn-ts Documentation →](./wn-ts/README.md)**
 
-**Purpose:**
-- **Reference Implementation**: Serves as the authoritative source for API design and behavior
-- **Cross-Validation**: Ensures correctness by comparing results between implementations
-- **Feature Parity**: Guides development of missing features in the TypeScript port
-- **Documentation**: Provides comprehensive documentation and examples
+### 📁 `/wn-pybridge` - Python Bridge Implementation 🔧 **DEVELOPMENT TOOL**
+A TypeScript interface to the Python wn library via [pythonia](https://github.com/extremeheat/JSPyBridge). This serves as:
+- **Feature Parity Reference**: Simulates what wn-ts should be by providing direct access to Python wn
+- **Development Tool**: Helps during benchmarking to check feature parity between implementations
+- **Performance Benchmark**: Compare bridge vs native TypeScript performance
+
+**📖 [Read wn-pybridge Documentation →](./wn-pybridge/README.md)**
 
 ### 📁 `/benchmark` - Performance Benchmarking Suite ✅ **COMPLETED** 🔧 **DEVELOPMENT TOOL**
 A comprehensive benchmarking subproject that measures and compares performance across different WordNet implementations.
 
-**Features:**
-- **Cross-Library Comparison**: Tests 6 major WordNet libraries
-- **Performance Metrics**: Detailed timing and resource usage analysis
-- **Feature Parity Testing**: Comprehensive functionality comparison
-- **API Consistency**: Error handling and edge case validation
-- **Vitest Integration**: Modern benchmarking with detailed metrics
-- **Alternative Library Testing**: Comprehensive testing of all major WordNet libraries
-
-**Recent Results:**
-- **Performance Rankings**: WordsWordNet (5.28ms) → node-wordnet (158ms) → natural (309ms) → wn-ts (581ms) → wn-pybridge (~500ms) → wordpos (1077ms)
-- **Feature Support**: wn-ts and wn-pybridge lead with full feature sets including sense lookup
-- **Error Handling**: All libraries handle edge cases properly
+**📖 [Read Benchmark Documentation →](./benchmark/README.md)**
 
 ### 📁 `/demo` - Live Demo Application 🔧 **DEVELOPMENT TOOL**
 A Node.js demo application showcasing the `wn-ts` library in action with real WordNet data.
 
-**Features:**
-- **Live Downloads**: Downloads real WordNet data from the internet
-- **Project Discovery**: Lists available WordNet projects
-- **Data Querying**: Demonstrates word and synset lookups
-- **Project Information**: Shows metadata about available projects
+**📖 [Read Demo Documentation →](./demo/README.md)**
 
 ### 📁 `/wn-test-data` - Shared Test Data Directory 🔧 **DEVELOPMENT TOOL**
-This directory contains all test data files used by the `wn-ts` and `wn-pybridge` projects. The data files are **shared** between both projects to ensure consistency and comprehensive testing.
-
-- **Source:** The test data is taken directly from the original Python [wn](https://github.com/goodmami/wn) project, ensuring full compatibility and parity with the reference implementation.
-- **Location:** All test data files previously found in `wn-ts/tests/data/` are now located in `/wn-test-data/data/`.
-- **Usage:** Both `wn-ts` and `wn-pybridge` reference this directory for all integration, unit, and edge case tests.
+Shared test data files used by both `wn-ts` and `wn-pybridge` projects to ensure consistency and comprehensive testing.
 
 ## 🚀 Quick Start
 
@@ -100,8 +62,8 @@ import { Wordnet, download, add } from 'wn-ts';
 
 ### Development Setup
 ```bash
-# Clone with submodules
-git clone --recursive https://github.com/your-repo/wordnet.git
+# Clone the repository
+git clone https://github.com/your-repo/wordnet.git
 cd wordnet
 
 # Install dependencies
@@ -112,29 +74,9 @@ cd wn-ts
 pnpm build
 ```
 
-### Running Benchmarks (Development)
-```bash
-# Run comprehensive library comparison
-cd benchmark
-pnpm test:func
-
-# Run performance benchmarks
-pnpm test:perf
-
-# Run all benchmarks
-pnpm test
-```
-
-### Running the Demo (Development)
-```bash
-cd demo
-pnpm install
-pnpm start  # Downloads and queries real WordNet data
-```
-
 ## 📊 Benchmark Results
 
-The repository includes comprehensive benchmarking tools that have been completed and provide actionable insights:
+The repository includes comprehensive benchmarking tools that provide actionable insights:
 
 ### Cross-Library Performance Comparison ✅ **COMPLETED**
 ```bash
@@ -153,35 +95,7 @@ This comprehensive benchmark compares 6 major WordNet libraries:
 | **wn-pybridge** | ~500ms avg | Python parity | Python compatibility |
 | **wordpos** | 1077ms avg | POS-focused | POS tagging workflows |
 
-### Key Findings ✅ **COMPLETED**
-
-**Performance Rankings:**
-1. **WordsWordNet**: Fastest (5.28ms average) - Best for speed-critical applications
-2. **node-wordnet**: Consistent (158ms average) - Good for production use
-3. **natural**: Balanced (309ms average) - Excellent for NLP workflows
-4. **wn-ts**: Feature-rich (581ms average) - Full API parity with Python wn
-5. **wn-pybridge**: Python bridge (~500ms average) - Direct Python compatibility
-6. **wordpos**: Variable (1077ms average) - Specialized for POS tagging
-
-**Feature Support:**
-- **Sense Lookup**: Only wn-ts and wn-pybridge support this advanced feature
-- **Advanced Features**: wn-ts and wn-pybridge have complete feature sets
-- **Error Handling**: All libraries handle edge cases properly
-- **API Consistency**: Standardized testing framework validates all implementations
-
-### LMF Parser Performance
-```bash
-cd wn-ts
-pnpm test:bench lmf
-```
-
-This runs benchmarks comparing different LMF parser implementations:
-- **Native XML Parser**: Ultra-fast regex-based counting
-- **Optimized SAX Parser**: Minimal processing for maximum speed
-- **Streaming SAX Parser**: Memory-efficient for large files
-- **In-Memory SAX Parser**: Loads entire file before parsing
-- **Legacy Parser**: Original fast-xml-parser implementation
-- **Python Parser**: Python implementation via pythonia
+**📖 [Read Full Benchmark Results →](./benchmark/README.md)**
 
 ## 🔧 Development
 
@@ -202,48 +116,7 @@ pnpm test
 pnpm test:bench
 ```
 
-### Recent Fixes and Improvements ✅ **COMPLETED**
-
-**wn-ts Library Fixes:**
-- ✅ **Fixed exports**: Proper top-level exports for benchmark integration
-- ✅ **POS parameter handling**: Correct mapping of POS tags (`noun` → `n`, etc.)
-- ✅ **Error handling**: Enhanced error handling and edge case support
-- ✅ **Data management**: Automatic download and initialization of required lexicons
-- ✅ **Benchmark integration**: Seamless integration with comprehensive benchmarking suite
-
-**Benchmark Suite Completion:**
-- ✅ **Cross-library comparison**: Comprehensive testing of 6 major libraries
-- ✅ **Performance metrics**: Detailed timing and resource analysis
-- ✅ **Feature parity testing**: Complete functionality comparison
-- ✅ **API consistency**: Error handling and edge case validation
-- ✅ **Results documentation**: Comprehensive README with actionable insights
-
-### Adding New Benchmarks
-To add new benchmarks to the `/benchmark` subproject:
-
-1. Create benchmark files in `benchmark/tests/`
-2. Use Vitest's test API
-3. Follow the pattern established in `feature-parity.test.ts`
-4. Include multiple data sizes and scenarios
-
-### Parser Organization
-The wn-ts implementation includes a well-organized parser system:
-
-```
-src/parsers/
-├── index.ts          # Main exports and re-exports
-├── base.ts           # Base interfaces and types
-├── registry.ts       # Parser registry and utilities
-├── native-xml.ts     # Ultra-fast counting parsers
-├── optimized-sax.ts  # Optimized SAX parser
-├── streaming-sax.ts  # Streaming parsers
-├── in-memory-sax.ts  # In-memory parsers
-├── legacy.ts         # Legacy parser
-├── python.ts         # Python parser
-└── README.md         # Parser documentation
-```
-
-## 🔄 Current Development Focus
+## 🎯 Current Development Focus
 
 ### Strategic Approach Decision ✅ **COMPLETED**
 We've completed comprehensive testing of different WordNet implementations and made strategic decisions:
@@ -271,34 +144,13 @@ Based on comprehensive benchmarking:
 - **Choose: wn-pybridge** - Direct bridge to Python wn library
 - **Best for**: Projects requiring Python wn compatibility
 
-**For Natural Language Processing:**
-- **Choose: natural** - Good integration with NLP workflows
-- **Best for**: Natural language processing applications
-
-### Recent Achievements ✅ **COMPLETED**
-
-**Benchmark Suite:**
-- ✅ Comprehensive testing of 6 major WordNet libraries
-- ✅ Performance rankings and detailed metrics
-- ✅ Feature parity analysis and recommendations
-- ✅ API consistency validation
-- ✅ Complete documentation with actionable insights
-
-**wn-ts Improvements:**
-- ✅ Fixed exports for external integration
-- ✅ Enhanced POS parameter handling
-- ✅ Improved error handling and edge case support
-- ✅ Automatic data management and initialization
-- ✅ Seamless benchmark integration
-
 ## 📚 Documentation
 
-- **TypeScript Port**: See `/wn-ts/README.md` and `/wn-ts/GOALS.md`
-- **Parser System**: See `/wn-ts/src/parsers/README.md`
+- **TypeScript Port**: [wn-ts README](./wn-ts/README.md)
+- **Python Bridge**: [wn-pybridge README](./wn-pybridge/README.md)
+- **Benchmark Results**: [Benchmark README](./benchmark/README.md)
+- **Demo Application**: [Demo README](./demo/README.md)
 - **Python Reference**: [wn.readthedocs.io](https://wn.readthedocs.io/)
-- **Demo**: See `/demo/README.md`
-- **Benchmark Results**: See `/benchmark/README.md` for comprehensive results
-- **Alternative Libraries**: See `/benchmark/alternatives/README.md`
 
 ## 🎯 Roadmap
 
@@ -308,6 +160,7 @@ Based on comprehensive benchmarking:
 - ✅ **Feature Completion**: 95% feature parity achieved
 - ✅ **Benchmark Integration**: Proper exports and integration completed
 - [ ] **CLI Interface**: Command-line tools for data management
+- [ ] **Browser Compatibility**: Enhanced browser support for web applications
 - [ ] **Production Readiness**: Enhanced error handling, logging, monitoring
 
 ### Benchmark Suite ✅ **COMPLETED**
@@ -316,13 +169,6 @@ Based on comprehensive benchmarking:
 - ✅ **Feature Parity Testing**: Complete functionality comparison
 - ✅ **API Consistency**: Error handling and edge case validation
 - ✅ **Results Documentation**: Comprehensive README with actionable insights
-- [ ] **Performance Regression Testing**: Automated performance monitoring
-- [ ] **Benchmark Result Visualization**: Web-based performance dashboards
-
-### Demo Application
-- [ ] **Web Interface**: Interactive web UI for WordNet exploration
-- [ ] **Performance Dashboard**: Real-time performance metrics
-- [ ] **Interactive Query Builder**: Visual query construction
 
 ## 🤝 Contributing
 
@@ -335,10 +181,7 @@ We welcome contributions to the TypeScript port and benchmarking suite:
 
 ## 📄 License
 
-- **TypeScript Port**: MIT License (see `/wn-ts/LICENSE`)
-- **Python Library**: MIT License (see `/wn/LICENSE`)
-- **Demo**: MIT License
-- **Benchmark Suite**: MIT License
+MIT License - see [LICENSE](./LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
@@ -349,5 +192,5 @@ We welcome contributions to the TypeScript port and benchmarking suite:
 
 ---
 
-**This repository focuses on developing a high-performance TypeScript port of the Python wn library, with comprehensive benchmarking to ensure optimal performance across different use cases and data sizes. The benchmark suite is now complete and provides actionable insights for choosing the right WordNet library for different applications. Only `wn-ts` is published to npm; other components are development and testing infrastructure.**
+**This repository focuses on developing a TypeScript port of the Python wn library, with comprehensive benchmarking to ensure optimal performance across different use cases and data sizes. The long-term goal is to create a fully browser-based implementation that mirrors the Python wn library in JavaScript/TypeScript. Only `wn-ts` is published to npm; other components are development and testing infrastructure.**
 
