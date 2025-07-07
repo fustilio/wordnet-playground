@@ -11,8 +11,8 @@ import {
   synsets, 
   projects,
   db
-} from '../src/index.js';
-import { logger } from '../src/utils/logger.js';
+} from '../../src/index.js';
+import { logger } from '../../src/utils/logger.js';
 
 class ProgressLogger {
   private startTime: number;

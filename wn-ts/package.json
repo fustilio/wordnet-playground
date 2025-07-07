@@ -57,7 +57,7 @@
     "test": "vitest run --reporter=verbose --exclude \"**/e2e*.test.ts\"",
     "test:bench": "vitest bench --run",
     "test:coverage": "vitest run --coverage --reporter=verbose --exclude \"**/e2e*.test.ts\"",
-    "test:e2e": "vitest run --no-file-parallelism tests/e2e.test.ts tests/e2e-*.test.ts",
+    "test:e2e": "vitest run --no-file-parallelism tests/e2e",
     "test:run": "vitest run --reporter=verbose --exclude \"**/e2e*.test.ts\"",
     "test:ui": "vitest --ui --exclude \"**/e2e*.test.ts\"",
     "test:verbose": "node scripts/test-verbose.js"
@@ -83,8 +83,7 @@
     "prettier": "catalog:",
     "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:",
-    "wn-pybridge": "workspace:*"
+    "vitest": "catalog:"
   },
   "engines": {
     "node": ">=18.0.0"
