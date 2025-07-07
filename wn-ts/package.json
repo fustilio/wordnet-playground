@@ -1,0 +1,74 @@
+{
+  "name": "wn-ts",
+  "version": "0.1.0",
+  "description": "Wordnet interface library - TypeScript port",
+  "keywords": [
+    "wordnet",
+    "interlingual",
+    "linguistics",
+    "language",
+    "library",
+    "typescript"
+  ],
+  "license": "MIT",
+  "author": "fustilio",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fustilio/wordnet-playground.git",
+    "directory": "wn-ts"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./cli": "./dist/cli.js"
+  },
+  "bin": {
+    "wn-ts": "dist/cli.js"
+  },
+  "scripts": {
+    "prebuild": "pnpm run clean",
+    "build": "tsc && pnpm run copy-assets",
+    "clean": "rimraf dist",
+    "copy-assets": "copy src\\index.toml dist\\",
+    "dev": "tsc --watch",
+    "format": "prettier --write src/**/*.ts",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "test": "vitest run --reporter=verbose --exclude \"**/e2e*.test.ts\"",
+    "test:bench": "vitest bench --run",
+    "test:coverage": "vitest run --coverage --reporter=verbose --exclude \"**/e2e*.test.ts\"",
+    "test:e2e": "vitest run --no-file-parallelism tests/e2e.test.ts tests/e2e-*.test.ts",
+    "test:run": "vitest run --reporter=verbose --exclude \"**/e2e*.test.ts\"",
+    "test:ui": "vitest --ui --exclude \"**/e2e*.test.ts\"",
+    "test:verbose": "node scripts/test-verbose.js"
+  },
+  "dependencies": {
+    "@types/sax": "^1.2.7",
+    "commander": "^11.1.0",
+    "fast-xml-parser": "^5.2.5",
+    "lzma-native": "^8.0.6",
+    "pythonia": "catalog:",
+    "sax": "^1.4.1",
+    "smol-toml": "^1.4.1",
+    "sqlite3": "^5.1.6"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@typescript-eslint/eslint-plugin": "catalog:",
+    "@typescript-eslint/parser": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/ui": "^3.2.4",
+    "eslint": "catalog:",
+    "prettier": "catalog:",
+    "rimraf": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "wn-pybridge": "workspace:*"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

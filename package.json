@@ -1,0 +1,29 @@
+{
+  "name": "wordnet-workspace",
+  "version": "1.0.0",
+  "description": "WordNet TypeScript port with demo and benchmarks",
+  "private": true,
+  "type": "module",
+  "author": "fustilio",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fustilio/wordnet-playground.git"
+  },
+  "scripts": {
+    "build": "pnpm --filter wn-ts build",
+    "demo": "pnpm --filter wn-ts-demo start",
+    "build:demo": "pnpm build && pnpm demo",
+    "test": "pnpm --filter wn-ts test",
+    "test:bench": "pnpm --filter wn-ts test:bench",
+    "benchmark": "pnpm --filter wordnet-benchmark test:bench",
+    "benchmark:lmf": "pnpm --filter wordnet-benchmark test:bench:lmf",
+    "benchmark:operations": "pnpm --filter wordnet-benchmark test:bench:operations",
+    "benchmark:cross": "pnpm --filter wordnet-benchmark test:bench:cross",
+    "clean": "pnpm --filter wn-ts clean"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+} 

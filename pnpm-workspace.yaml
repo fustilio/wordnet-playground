@@ -1,0 +1,19 @@
+---
+catalog:
+  '@types/node': ^20.10.0
+  '@typescript-eslint/eslint-plugin': ^8.35.1
+  '@typescript-eslint/parser': ^8.35.1
+  '@vitest/coverage-v8': ^3.2.4
+  '@vitest/ui': ^3.2.4
+  eslint: ^9.30.1
+  prettier: ^3.6.2
+  pythonia: ^1.2.2
+  typescript: ^5.3.0
+  vitest: ^3.2.4
+  rimraf: ^5.0.0
+  zod: ^3.25.71
+packages:
+  - wn-ts
+  - demo
+  - benchmark
+  - wn-pybridge

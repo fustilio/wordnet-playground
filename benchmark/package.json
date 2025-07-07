@@ -1,0 +1,67 @@
+{
+  "name": "wordnet-benchmark",
+  "version": "1.0.0",
+  "description": "Comprehensive performance benchmarking suite for WordNet implementations - comparing 6 major libraries with detailed performance metrics and feature parity analysis",
+  "type": "module",
+  "keywords": [
+    "wordnet",
+    "benchmark",
+    "performance",
+    "nlp",
+    "typescript",
+    "python",
+    "natural-language-processing"
+  ],
+  "author": "fustilio",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fustilio/wordnet-playground.git",
+    "directory": "benchmark"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rimraf dist",
+    "test": "vitest run",
+    "test:all": "pnpm test:func && pnpm test:bench",
+    "test:bench": "vitest bench --run",
+    "test:bench:cross": "pnpm test:bench cross",
+    "test:bench:lmf": "pnpm test:bench lmf",
+    "test:func": "vitest tests --run",
+    "test:perf": "vitest tests/performance-benchmark.test.ts --run",
+    "test:parity": "vitest tests/feature-parity.test.ts --run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest --coverage",
+    "benchmark:report": "pnpm test:func && echo '📊 Benchmark Report Generated'",
+    "benchmark:quick": "pnpm test:perf",
+    "benchmark:full": "pnpm test:all"
+  },
+  "dependencies": {
+    "natural": "^8.1.0",
+    "node-wordnet": "https://github.com/morungos/wordnet#develop",
+    "vitest": "catalog:",
+    "wn-pybridge": "workspace:*",
+    "wn-ts": "workspace:*",
+    "wndb-with-exceptions": "^3.0.2",
+    "wordnet": "^2.0.0",
+    "wordpos": "^2.1.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "rimraf": "catalog:",
+    "typescript": "catalog:",
+    "@vitest/coverage-v8": "catalog:"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist/**/*",
+    "tests/**/*",
+    "lib/**/*",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
