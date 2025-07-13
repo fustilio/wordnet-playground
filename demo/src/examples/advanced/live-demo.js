@@ -44,7 +44,9 @@ async function setupDataDirectory() {
 
 async function runLiveDemo() {
   let wordnet = null;
-  
+  let availableProjects = [];
+  let infoSynsets = [];
+
   try {
     console.log('🔧 Setting up demo...');
     
@@ -61,12 +63,9 @@ async function runLiveDemo() {
     // Show available projects
     console.log('📋 Available WordNet Projects:');
     try {
-      const availableProjects = await projects();
-      console.log(`🔍 Debug - Found ${availableProjects.length} projects`);
+      availableProjects = await projects();
       
       if (availableProjects.length > 0) {
-        console.log('🔍 Debug - First project structure:', JSON.stringify(availableProjects[0], null, 2));
-        
         const projectList = availableProjects.slice(0, 5); // Show first 5
         projectList.forEach(project => {
           // Use the actual properties from the project structure
@@ -118,7 +117,7 @@ async function runLiveDemo() {
       
       // Search for words
       console.log('\n📝 Searching for words containing "information":');
-      const infoWords = await words('information');
+      const infoWords = await wordnet.words('information');
       if (infoWords.length > 0) {
         infoWords.slice(0, 3).forEach(word => {
           console.log(`  • ${word.lemma} (${word.partOfSpeech})`);
@@ -130,7 +129,7 @@ async function runLiveDemo() {
 
       // Get synsets
       console.log('\n📚 Getting synsets for "information":');
-      const infoSynsets = await synsets('information');
+      infoSynsets = await wordnet.synsets('information');
       if (infoSynsets.length > 0) {
         infoSynsets.slice(0, 2).forEach(synset => {
           console.log(`  • ${synset.id} - ${synset.definitions[0]?.text || 'No definition'}`);
@@ -142,7 +141,7 @@ async function runLiveDemo() {
 
       // Search for another word
       console.log('\n📝 Searching for words containing "computer":');
-      const computerWords = await words('computer');
+      const computerWords = await wordnet.words('computer');
       if (computerWords.length > 0) {
         computerWords.slice(0, 3).forEach(word => {
           console.log(`  • ${word.lemma} (${word.partOfSpeech})`);

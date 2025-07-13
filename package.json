@@ -1,6 +1,6 @@
 {
   "name": "wordnet-workspace",
-  "version": "1.0.0",
+  "version": "0.3.1",
   "private": true,
   "description": "WordNet TypeScript port with demo and benchmarks",
   "repository": {
@@ -11,7 +11,7 @@
   "author": "fustilio",
   "type": "module",
   "scripts": {
-    "autotest": "pnpm --filter wn-cli test:cli",
+    "autotest": "pnpm --filter wn-demo test",
     "benchmark": "pnpm --filter wordnet-benchmark test:bench",
     "benchmark:cross": "pnpm --filter wordnet-benchmark test:bench:cross",
     "benchmark:func": "pnpm --filter wordnet-benchmark test:func",
@@ -27,10 +27,9 @@
     "ci:full": "pnpm run ci:build && pnpm run ci:test && pnpm run ci:demo && pnpm run ci:benchmark",
     "ci:test": "echo '🧪 Running wn-ts tests...' && pnpm test && echo '🧪 Running wn-ts e2e tests...' && pnpm test:e2e",
     "clean": "pnpm --filter wn-ts clean",
-    "demo": "pnpm --filter wordnet-demo demo",
-    "demo:all-use-cases": "pnpm --filter wordnet-demo all-use-cases",
-    "demo:kitchen-sink": "pnpm --filter wordnet-demo kitchen-sink",
-    "demo:use-cases": "pnpm --filter wordnet-demo use-cases",
+    "demo": "pnpm --filter wn-demo test",
+    "demo:all-use-cases": "pnpm --filter wn-demo all-use-cases",
+    "demo:kitchen-sink": "pnpm --filter wn-demo kitchen-sink",
     "test": "pnpm --filter wn-ts test",
     "test:bench": "pnpm --filter wn-ts test:bench",
     "test:coverage": "pnpm --filter wn-ts test:coverage",

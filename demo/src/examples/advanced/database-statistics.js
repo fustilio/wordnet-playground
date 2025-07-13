@@ -10,26 +10,22 @@
  */
 
 import { 
-  words, 
-  synsets, 
-  senses,
-  ilis,
-  lexicons
+  ilis
 } from 'wn-ts';
 import { createWordnet, displaySynset, safeClose, runDemo } from '../shared/helpers.js';
 
 console.log(`
-📊 Use Case 4: Database Statistics and Coverage Analysis
-=======================================================
+📊 Use Case: Database Statistics (Advanced)
+========================================
 
 Problem: You need to understand the scope and quality of the WordNet database.
-Solution: Analyze database statistics and content coverage.
+Solution: Analyze database statistics and content coverage comprehensively.
 
 Real-world application: Data quality assessment, research planning
 `);
 
 async function demonstrateDatabaseStatistics() {
-  const wordnet = createWordnet('statistics');
+  const wordnet = await createWordnet('statistics');
   console.log('✅ Wordnet initialized successfully');
 
   try {
@@ -40,7 +36,7 @@ async function demonstrateDatabaseStatistics() {
     // Get overall statistics using Wordnet instance methods
     console.log('\n📊 Database Statistics:');
     
-    const allLexicons = await lexicons();
+    const allLexicons = await wordnet.lexicons();
     const allILIs = await ilis();
     const stats = await wordnet.getStatistics();
 
@@ -102,8 +98,8 @@ async function demonstrateDatabaseStatistics() {
     
     console.log('\n📝 Word Coverage Analysis:');
     for (const word of commonWords) {
-      const wordEntries = await words(word);
-      const synsetEntries = await synsets(word);
+      const wordEntries = await wordnet.words(word);
+      const synsetEntries = await wordnet.synsets(word);
       
       console.log(`\n🔍 "${word}":`);
       console.log(`  📝 Word forms: ${wordEntries.length}`);
@@ -200,7 +196,7 @@ async function demonstrateDatabaseStatistics() {
     // Analyze detailed content of synsets
     console.log('\n🔍 Detailed synset content analysis for "bank":');
     
-    const bankSynsets = await synsets('bank');
+    const bankSynsets = await wordnet.synsets('bank');
     console.log(`📚 Found ${bankSynsets.length} synsets for "bank"`);
     
     // Group by part of speech

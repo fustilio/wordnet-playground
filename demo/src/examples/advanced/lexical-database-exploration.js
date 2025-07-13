@@ -9,25 +9,21 @@
  * Real-world application: Research, data analysis, resource discovery
  */
 
-import { 
-  lexicons,
-  words,
-  synsets
-} from 'wn-ts';
+// No direct imports needed from wn-ts, using wordnet instance
 import { createWordnet, displaySynset, safeClose, runDemo } from '../shared/helpers.js';
 
 console.log(`
-📖 Use Case 3: Lexical Database Exploration
-===========================================
+📖 Use Case: Lexical Database Exploration
+======================================
 
 Problem: You want to understand what linguistic resources are available in the database.
-Solution: Explore lexicons and their metadata.
+Solution: Explore lexicons, their metadata, and coverage.
 
 Real-world application: Research, data analysis, resource discovery
 `);
 
 async function demonstrateLexicalDatabaseExploration() {
-  const wordnet = createWordnet('exploration');
+  const wordnet = await createWordnet('exploration');
   console.log('✅ Wordnet initialized successfully');
 
   try {
@@ -37,7 +33,7 @@ async function demonstrateLexicalDatabaseExploration() {
 
     // Get available lexicons
     console.log('\n📖 Exploring available lexicons...');
-    const allLexicons = await lexicons();
+    const allLexicons = await wordnet.lexicons();
     console.log(`Found ${allLexicons.length} lexicons:`);
     
     allLexicons.forEach((lexicon, index) => {
@@ -82,7 +78,7 @@ async function demonstrateLexicalDatabaseExploration() {
     for (const word of testWords) {
       console.log(`\n🔍 "${word}" coverage analysis:`);
       
-      const allWords = await words(word);
+      const allWords = await wordnet.words(word);
       console.log(`  📝 Total word forms: ${allWords.length}`);
       
       if (allWords.length > 0) {
@@ -114,7 +110,7 @@ async function demonstrateLexicalDatabaseExploration() {
     // Analyze synset coverage for a specific word
     console.log('\n📚 Synset coverage analysis for "computer":');
     
-    const computerSynsets = await synsets('computer');
+    const computerSynsets = await wordnet.synsets('computer');
     console.log(`📚 Total synsets: ${computerSynsets.length}`);
     
     if (computerSynsets.length > 0) {
@@ -194,7 +190,7 @@ async function demonstrateLexicalDatabaseExploration() {
     // Show detailed synset information for research purposes
     console.log('\n🔍 Detailed synset exploration for "information":');
     
-    const informationSynsets = await synsets('information');
+    const informationSynsets = await wordnet.synsets('information');
     console.log(`📚 Found ${informationSynsets.length} synsets for "information"`);
     
     // Group by part of speech

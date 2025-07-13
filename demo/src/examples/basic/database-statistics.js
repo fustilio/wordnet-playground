@@ -7,21 +7,21 @@
  * Focus: Short, clear demonstration of database statistics functionality.
  */
 
-import { lexicons, ilis, synsets } from 'wn-ts';
+import { ilis } from 'wn-ts';
 import { createWordnet, displaySynset, safeClose, runDemo } from '../shared/helpers.js';
 
 console.log(`
-📊 Use Case 7: Database Statistics (Short)
-==========================================
+📊 Use Case: Database Statistics (Basic)
+=======================================
 
-Problem: You need to understand the scope and quality of the WordNet database.
-Solution: Analyze key statistics and sample content.
+Problem: You need a quick overview of the scope and quality of the WordNet database.
+Solution: Analyze key statistics.
 
-Real-world application: Data quality assessment, research planning
+Real-world application: Quick data quality assessment
 `);
 
 async function demonstrateDatabaseStatistics() {
-  const wordnet = createWordnet('statistics_short');
+  const wordnet = await createWordnet('statistics_short');
   console.log('✅ Wordnet initialized successfully');
 
   try {
@@ -29,7 +29,7 @@ async function demonstrateDatabaseStatistics() {
 🔍 Example 1: Overall Database Statistics
 ========================================`);
 
-    const allLexicons = await lexicons();
+    const allLexicons = await wordnet.lexicons();
     const allILIs = await ilis();
     const stats = await wordnet.getStatistics();
     const qualityMetrics = await wordnet.getDataQualityMetrics();
@@ -55,7 +55,7 @@ async function demonstrateDatabaseStatistics() {
 🔍 Example 3: Sample Synset Analysis
 ===================================`);
 
-    const bankSynsets = await synsets('bank');
+    const bankSynsets = await wordnet.synsets('bank');
     console.log(`📚 Sample: "bank" has ${bankSynsets.length} synsets`);
     
     if (bankSynsets.length > 0) {

@@ -7,10 +7,6 @@
 
 import { 
   projects, 
-  words, 
-  synsets, 
-  senses, 
-  lexicons, 
   ilis,
   download,
   add,
@@ -28,7 +24,7 @@ console.log(`
 `);
 
 async function runKitchenSinkDemo() {
-  const wordnet = createWordnet('kitchen_sink');
+  const wordnet = await createWordnet('kitchen_sink', { multilingual: true });
   console.log('✅ Wordnet initialized successfully');
 
   try {
@@ -44,7 +40,7 @@ Example: Analyzing the word "computer"
 
     // Basic word queries
     console.log('\n📝 Querying words for "computer"...');
-    const computerWords = await words('computer');
+    const computerWords = await wordnet.words('computer');
     console.log(`Found ${computerWords.length} word forms for "computer"`);
     
     computerWords.forEach((word, index) => {
@@ -53,7 +49,7 @@ Example: Analyzing the word "computer"
 
     // Get synsets for computer
     console.log('\n📚 Getting synsets for "computer"...');
-    const computerSynsets = await synsets('computer');
+    const computerSynsets = await wordnet.synsets('computer');
     console.log(`Found ${computerSynsets.length} synsets for "computer"`);
     
     computerSynsets.slice(0, 3).forEach(async (synset, index) => {
@@ -89,12 +85,12 @@ Example: Linking "computer" concepts across languages
 
     // Show some ILI statistics
     console.log('\n📊 ILI Database Overview:');
-    const iliEntries = await ilis();
-    console.log(`Total ILI entries: ${iliEntries.length}`);
+    const allILIs = await ilis();
+    console.log(`Total ILI entries: ${allILIs.length}`);
     
     // Show sample ILI entries
     console.log('\n🌐 Sample ILI entries:');
-    iliEntries.slice(0, 5).forEach((entry, index) => {
+    allILIs.slice(0, 5).forEach((entry, index) => {
       console.log(`  ${index + 1}. ${entry.id}: ${entry.definition.substring(0, 60)}...`);
     });
 
@@ -110,10 +106,10 @@ Example: Understanding different senses of "bank"
 
     // Get different senses of "bank"
     console.log('\n🏦 Analyzing "bank" senses...');
-    const bankWords = await words('bank');
+    const bankWords = await wordnet.words('bank');
     console.log(`Found ${bankWords.length} word forms for "bank"`);
     
-    const bankSynsets = await synsets('bank');
+    const bankSynsets = await wordnet.synsets('bank');
     console.log(`Found ${bankSynsets.length} synsets for "bank"`);
     
     // Group by part of speech
@@ -145,10 +141,10 @@ Example: Discovering available WordNet projects
 
     // Get available lexicons
     console.log('\n📖 Exploring available lexicons...');
-    const availableLexicons = await lexicons();
-    console.log(`Found ${availableLexicons.length} lexicons:`);
+    const allLexicons = await wordnet.lexicons();
+    console.log(`Found ${allLexicons.length} lexicons:`);
     
-    availableLexicons.forEach((lexicon, index) => {
+    allLexicons.forEach((lexicon, index) => {
       console.log(`\n📚 Lexicon ${index + 1}:`);
       console.log(`  ID: ${lexicon.id}`);
       console.log(`  Label: ${lexicon.label}`);
@@ -170,9 +166,9 @@ Example: Analyzing "light" with its many meanings
 
     // Advanced analysis of "light"
     console.log('\n💡 Analyzing "light" comprehensively...');
-    const lightWords = await words('light');
-    const lightSynsets = await synsets('light');
-    const lightSenses = await senses('light');
+    const lightWords = await wordnet.words('light');
+    const lightSynsets = await wordnet.synsets('light');
+    const lightSenses = await wordnet.senses('light');
     
     console.log(`📝 Word forms: ${lightWords.length}`);
     console.log(`📚 Synsets: ${lightSynsets.length}`);
@@ -203,17 +199,15 @@ Example: Database overview and statistics
 
     // Get overall statistics
     console.log('\n📊 Database Statistics:');
-    const allWords = await words();
-    const allSynsets = await synsets();
-    const allSenses = await senses();
+    const stats = await wordnet.getStatistics();
     const allILIs = await ilis();
-    const allLexicons = await lexicons();
+    const allLexicons = await wordnet.lexicons();
 
-    console.log(`  📝 Total words: ${allWords.length}`);
-    console.log(`  📚 Total synsets: ${allSynsets.length}`);
-    console.log(`  🎯 Total senses: ${allSenses.length}`);
-    console.log(`  🌍 Total ILI entries: ${allILIs.length}`);
-    console.log(`  📖 Total lexicons: ${allLexicons.length}`);
+    console.log(`  📝 Total words: ${stats.totalWords}`);
+    console.log(`  📚 Total synsets: ${stats.totalSynsets}`);
+    console.log(`  🎯 Total senses: ${stats.totalSenses}`);
+    console.log(`  🌍 Total ILI entries: ${stats.totalILIs}`);
+    console.log(`  📖 Total lexicons: ${stats.totalLexicons}`);
 
     // Show lexicon breakdown
     console.log('\n📖 Lexicon Breakdown:');
@@ -223,14 +217,13 @@ Example: Database overview and statistics
 
     // Analyze data quality
     console.log('\n🔍 Data Quality Analysis:');
-    const synsetsWithILI = allSynsets.filter(synset => synset.ili);
-    const synsetsWithoutILI = allSynsets.filter(synset => !synset.ili);
+    const qualityMetrics = await wordnet.getDataQualityMetrics();
     
-    console.log(`  🌍 Synsets with ILI: ${synsetsWithILI.length}`);
-    console.log(`  ❌ Synsets without ILI: ${synsetsWithoutILI.length}`);
+    console.log(`  🌍 Synsets with ILI: ${qualityMetrics.synsetsWithILI}`);
+    console.log(`  ❌ Synsets without ILI: ${qualityMetrics.synsetsWithoutILI}`);
     
-    if (allSynsets.length > 0) {
-      const iliCoverage = ((synsetsWithILI.length / allSynsets.length) * 100).toFixed(2);
+    if (stats.totalSynsets > 0) {
+      const iliCoverage = ((qualityMetrics.synsetsWithILI / stats.totalSynsets) * 100).toFixed(2);
       console.log(`  📊 ILI coverage: ${iliCoverage}%`);
     }
 
@@ -251,8 +244,8 @@ Example: Building a multilingual dictionary lookup system
     for (const word of testWords) {
       console.log(`\n🔍 "${word}" analysis:`);
       
-      const wordEntries = await words(word);
-      const synsetEntries = await synsets(word);
+      const wordEntries = await wordnet.words(word);
+      const synsetEntries = await wordnet.synsets(word);
       
       console.log(`  📝 Word forms: ${wordEntries.length}`);
       console.log(`  📚 Synsets: ${synsetEntries.length}`);
@@ -291,7 +284,7 @@ Example: Building a multilingual dictionary lookup system
 📊 Final Statistics:
    • Words analyzed: ${computerWords.length + bankWords.length + lightWords.length}
    • Synsets explored: ${computerSynsets.length + bankSynsets.length + lightSynsets.length}
-   • ILI entries available: ${iliEntries.length}
+   • ILI entries available: ${allILIs.length}
    • Lexicons available: ${allLexicons.length}
 
 🚀 WordNet is ready for real-world applications!

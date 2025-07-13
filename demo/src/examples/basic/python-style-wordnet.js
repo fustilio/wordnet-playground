@@ -11,35 +11,35 @@
  * 'be the winner in a contest or competition; be victorious'
  */
 
-import { synsets } from 'wn-ts';
+// No direct wn-ts imports needed, using the wordnet instance
 import { createWordnet, displaySynset, safeClose, runDemo } from '../shared/helpers.js';
 
 console.log(`
-🐍 Python-style wn example with wn-ts
-=====================================
+🐍 Use Case: Python-style API
+==============================
 
-Problem: You need to replicate Python wn library functionality in TypeScript.
-Solution: Use wn-ts with similar API patterns and definition retrieval.
+Problem: You are familiar with the Python \`wn\` library and want to use similar patterns in TypeScript.
+Solution: Use \`wn-ts\` methods that mirror the Python library's API.
 
-Real-world application: Porting Python NLP code to TypeScript
+Real-world application: Porting Python NLP scripts, cross-language development
 `);
 
 async function pythonStyleExample() {
-  const wordnet = createWordnet('python_style');
+  const wordnet = await createWordnet('python_style');
   console.log('✅ Wordnet initialized successfully\n');
 
   try {
     // Get the first synset for 'win' (equivalent to: ss = en.synsets('win', pos='v')[0])
     console.log('🔍 Getting synsets for "win" with pos="v"...');
-    const synsets = await wordnet.synsets('win', 'v');
+    const winSynsets = await wordnet.synsets('win', 'v');
     
-    if (synsets.length === 0) {
+    if (winSynsets.length === 0) {
       console.log('❌ No synsets found for "win" with pos="v"');
       return;
     }
     
-    const ss = synsets[0]; // Get the first synset
-    console.log(`📚 Found ${synsets.length} synsets, using first one: ${ss.id}\n`);
+    const ss = winSynsets[0]; // Get the first synset
+    console.log(`📚 Found ${winSynsets.length} synsets, using first one: ${ss.id}\n`);
 
     // Display synset information
     console.log('📋 Synset Details:');
@@ -55,12 +55,12 @@ async function pythonStyleExample() {
 
     // Show additional information
     console.log('\n📚 Additional Information:');
-    console.log(`  Total synsets for "win": ${synsets.length}`);
+    console.log(`  Total synsets for "win": ${winSynsets.length}`);
     
     // Show all synsets for 'win' with their definitions
     console.log('\n📚 All synsets for "win":');
-    for (let i = 0; i < Math.min(5, synsets.length); i++) {
-      await displaySynset(synsets[i], i + 1);
+    for (let i = 0; i < Math.min(5, winSynsets.length); i++) {
+      await displaySynset(winSynsets[i], i + 1);
     }
 
     console.log(`
@@ -79,7 +79,7 @@ async function pythonStyleExample() {
    • Educational code examples
 
 📊 Final Statistics:
-   • Synsets found for "win": ${synsets.length}
+   • Synsets found for "win": ${winSynsets.length}
    • Python-style API compatibility: ✅
    • Definition retrieval: ✅
    • Error handling: ✅

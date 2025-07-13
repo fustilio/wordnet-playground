@@ -10,25 +10,23 @@
  */
 
 import { 
-  words, 
-  synsets, 
   ili,
   ilis
 } from 'wn-ts';
 import { createWordnet, displaySynset, safeClose, runDemo } from '../shared/helpers.js';
 
 console.log(`
-🌍 Use Case 1: Multilingual Word Linking
-========================================
+🌍 Use Case: Multilingual Word Linking
+=====================================
 
-Problem: You have English and French word lists that need to be linked by shared concepts.
-Solution: Use ILI (Interlingual Index) to find common concepts across languages.
+Problem: You need to link words with the same meaning across different languages.
+Solution: Use the Interlingual Index (ILI) to find shared concepts.
 
-Real-world application: Building multilingual dictionary systems
+Real-world application: Building multilingual dictionaries, cross-language information retrieval
 `);
 
 async function demonstrateMultilingualLinking() {
-  const wordnet = createWordnet('multilingual');
+  const wordnet = await createWordnet('multilingual', { multilingual: true });
   console.log('✅ Wordnet initialized successfully');
 
   try {
@@ -37,13 +35,13 @@ async function demonstrateMultilingualLinking() {
 =========================================================`);
 
     // Get English word
-    const englishWords = await words('computer', 'n');
+    const englishWords = await wordnet.words('computer', 'n');
     if (englishWords.length > 0) {
       const computerWord = englishWords[0];
       console.log(`📝 English word: ${computerWord.lemma} (${computerWord.partOfSpeech})`);
       
       // Get synsets for this word
-      const computerSynsets = await synsets('computer', 'n');
+      const computerSynsets = await wordnet.synsets('computer', 'n');
       if (computerSynsets.length > 0) {
         const computerSynset = computerSynsets[0];
         console.log(`📚 Synset ID: ${computerSynset.id}`);
@@ -87,8 +85,8 @@ async function demonstrateMultilingualLinking() {
     for (const word of commonWords) {
       console.log(`\n🔍 "${word}" multilingual analysis:`);
       
-      const wordEntries = await words(word);
-      const synsetEntries = await synsets(word);
+      const wordEntries = await wordnet.words(word);
+      const synsetEntries = await wordnet.synsets(word);
       
       console.log(`  📝 Word forms: ${wordEntries.length}`);
       console.log(`  📚 Synsets: ${synsetEntries.length}`);
@@ -117,7 +115,7 @@ async function demonstrateMultilingualLinking() {
     // Show detailed analysis of a specific concept across languages
     console.log('\n🔍 Detailed analysis of "computer" concept:');
     
-    const computerSynsets = await synsets('computer');
+    const computerSynsets = await wordnet.synsets('computer');
     console.log(`📚 Found ${computerSynsets.length} synsets for "computer"`);
     
     // Group by part of speech
@@ -156,7 +154,7 @@ async function demonstrateMultilingualLinking() {
    • ILI entries available: ${iliEntries.length}
    • Words analyzed: ${commonWords.length}
    • Synsets explored: ${await Promise.all(commonWords.map(async (word) => {
-     const wordSynsets = await synsets(word);
+     const wordSynsets = await wordnet.synsets(word);
      return wordSynsets.length;
    })).then(lengths => lengths.reduce((acc, len) => acc + len, 0))}
 `);

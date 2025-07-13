@@ -6,21 +6,50 @@
 
 import { join } from 'path';
 import { homedir } from 'os';
-import { Wordnet, ili } from 'wn-ts';
+import { Wordnet, download, add, config, ili } from 'wn-ts';
 
 /**
  * Initialize Wordnet with common configuration
+ * Ensures OEWN is present in the data directory before returning the instance.
+ * If multilingual is true, also ensures CILI is present.
  */
-export function createWordnet(demoName) {
+export async function createWordnet(demoName, { multilingual = false } = {}) {
   const dataDirectory = join(homedir(), `.wn_${demoName}_demo`);
   console.log(`📁 Using data directory: ${dataDirectory}`);
-  
-  return new Wordnet('*', {
-    dataDirectory,
-    downloadDirectory: join(dataDirectory, 'downloads'),
-    extractDirectory: join(dataDirectory, 'extracted'),
-    databasePath: join(dataDirectory, 'wordnet.db')
-  });
+
+  // Set the data directory for the wn-ts library instance
+  config.dataDirectory = dataDirectory;
+
+  // Ensure OEWN is present
+  const wn = new Wordnet('*');
+
+  const lexicons = await wn.lexicons();
+  const hasOEWN = lexicons.some(l => l.id === 'oewn');
+  if (!hasOEWN) {
+    console.log('⬇️  Downloading OEWN...');
+    const oewnPath = await download('oewn:2024', { force: true });
+    console.log('✅ OEWN downloaded. Adding to database...');
+    await add(oewnPath, { force: true });
+    console.log('✅ OEWN added to database.');
+  } else {
+    console.log('✅ OEWN already present in database.');
+  }
+
+  // If multilingual, ensure CILI is present
+  if (multilingual) {
+    const hasCILI = lexicons.some(l => l.id === 'cili');
+    if (!hasCILI) {
+      console.log('⬇️  Downloading CILI...');
+      const ciliPath = await download('cili:1.0', { force: true });
+      console.log('✅ CILI downloaded. Adding to database...');
+      await add(ciliPath, { force: true });
+      console.log('✅ CILI added to database.');
+    } else {
+      console.log('✅ CILI already present in database.');
+    }
+  }
+
+  return wn;
 }
 
 /**
@@ -51,7 +80,7 @@ export async function displaySynset(synset, index = 1) {
         console.log(`     ILI Definition: ${iliEntry.definition}`);
       }
     } catch (error) {
-      // Silently ignore ILI lookup errors
+      // Silently ignore ILI lookup errors in case CILI is not installed
     }
   }
   

@@ -9,21 +9,21 @@
  * Real-world application: Natural language processing, text analysis, semantic understanding
  */
 
-import { words, synsets, senses } from "wn-ts";
+// No direct imports needed from wn-ts, using wordnet instance
 import { createWordnet, displaySynsetsByPOS, safeClose, runDemo } from "../shared/helpers.js";
 
 console.log(`
-🎯 Use Case 2: Word Sense Disambiguation
-========================================
+🎯 Use Case: Word Sense Disambiguation (Advanced)
+==============================================
 
 Problem: You need to understand the different meanings of a polysemous word.
-Solution: Analyze all synsets for a word to identify different senses.
+Solution: Comprehensively analyze all synsets for a word to identify its different senses.
 
-Real-world application: Natural language processing, text analysis
+Real-world application: Natural language processing, text analysis, semantic search
 `);
 
 async function demonstrateWordSenseDisambiguation() {
-  const wordnet = createWordnet("disambiguation");
+  const wordnet = await createWordnet("disambiguation");
   console.log("✅ Wordnet initialized successfully");
 
   try {
@@ -33,14 +33,14 @@ async function demonstrateWordSenseDisambiguation() {
 
     // Get different senses of "bank"
     console.log('\n🏦 Analyzing "bank" senses...');
-    const bankWords = await words("bank");
+    const bankWords = await wordnet.words("bank");
     console.log(`📝 Found ${bankWords.length} word forms for "bank"`);
 
     bankWords.forEach((word, index) => {
       console.log(`  ${index + 1}. ${word.lemma} (${word.partOfSpeech})`);
     });
 
-    const bankSynsets = await synsets("bank");
+    const bankSynsets = await wordnet.synsets("bank");
     console.log(`\n📚 Found ${bankSynsets.length} synsets for "bank"`);
 
     // Display detailed synset information with definitions and examples
@@ -52,14 +52,14 @@ async function demonstrateWordSenseDisambiguation() {
 
     // Get different senses of "light"
     console.log('\n💡 Analyzing "light" senses...');
-    const lightWords = await words("light");
+    const lightWords = await wordnet.words("light");
     console.log(`📝 Found ${lightWords.length} word forms for "light"`);
 
     lightWords.forEach((word, index) => {
       console.log(`  ${index + 1}. ${word.lemma} (${word.partOfSpeech})`);
     });
 
-    const lightSynsets = await synsets("light");
+    const lightSynsets = await wordnet.synsets("light");
     console.log(`\n💡 Found ${lightSynsets.length} synsets for "light"`);
 
     // Show different parts of speech
@@ -88,9 +88,9 @@ async function demonstrateWordSenseDisambiguation() {
     for (const word of polysemousWords) {
       console.log(`\n🔍 "${word}" sense analysis:`);
 
-      const wordEntries = await words(word);
-      const synsetEntries = await synsets(word);
-      const senseEntries = await senses(word);
+      const wordEntries = await wordnet.words(word);
+      const synsetEntries = await wordnet.synsets(word);
+      const senseEntries = await wordnet.senses(word);
 
       console.log(`  📝 Word forms: ${wordEntries.length}`);
       console.log(`  📚 Synsets: ${synsetEntries.length}`);
@@ -135,7 +135,7 @@ async function demonstrateWordSenseDisambiguation() {
       console.log(`\n📝 Context: "${context}"`);
       console.log(`🔍 Word: "${word}" (expected POS: ${expectedPOS})`);
 
-      const wordSynsets = await synsets(word, expectedPOS);
+      const wordSynsets = await wordnet.synsets(word, expectedPOS);
       console.log(`📚 Found ${wordSynsets.length} ${expectedPOS} synsets`);
 
       if (wordSynsets.length > 0) {

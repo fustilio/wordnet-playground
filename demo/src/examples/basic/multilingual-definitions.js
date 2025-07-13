@@ -7,21 +7,21 @@
  * Focus: Short, clear demonstration of multilingual definition functionality.
  */
 
-import { synsets, ili, download, add } from 'wn-ts';
-import { createWordnet, displaySynset, displayMultilingualDefinitions, safeClose, runDemo } from '../shared/helpers.js';
+import { ili, download, add } from 'wn-ts';
+import { createWordnet, displaySynset, safeClose, runDemo } from '../shared/helpers.js';
 
 console.log(`
-🌍 Use Case: Multilingual Definitions (Basic)
-=============================================
+🌍 Use Case: Multilingual Definitions
+====================================
 
-Problem: You need to understand how a word is defined across different languages.
-Solution: Download and compare synsets and definitions from multiple language lexicons.
+Problem: You need to compare how a concept is defined across different languages.
+Solution: Query synsets for a concept and display their definitions from multiple lexicons.
 
 Real-world application: Cross-language research, translation validation
 `);
 
 async function demonstrateMultilingualDefinitions() {
-  const wordnet = createWordnet('multilingual_basic');
+  const wordnet = await createWordnet('multilingual_basic', { multilingual: true });
   console.log('✅ Wordnet initialized successfully');
 
   try {
@@ -148,7 +148,7 @@ async function demonstrateMultilingualDefinitions() {
     // Show how ILI provides cross-language concept mapping
     console.log(`\n🌍 ILI (Inter-Lingual Index) provides cross-language concept mapping:`);
     
-    const waterSynsets = await synsets('water');
+    const waterSynsets = await wordnet.synsets('water');
     if (waterSynsets.length > 0) {
       const firstWaterSynset = waterSynsets[0];
       console.log(`\n💧 "water" synset: ${firstWaterSynset.id}`);

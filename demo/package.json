@@ -1,6 +1,6 @@
 {
-  "name": "wordnet-demo",
-  "version": "1.0.0",
+  "name": "wn-demo",
+  "version": "0.3.1",
   "private": true,
   "description": "WordNet TypeScript demonstration scripts",
   "repository": {
@@ -16,6 +16,7 @@
     "demo": "node src/examples/advanced/live-demo.js",
     "kitchen-sink": "node src/examples/advanced/kitchen-sink-demo.js",
     "debug": "node src/debug-demo.js",
+    "test": "pnpm all-use-cases",
     "all-use-cases": "node src/run-all-use-cases.js",
     "example:word-sense-disambiguation": "node src/examples/basic/word-sense-disambiguation.js",
     "example:database-statistics": "node src/examples/basic/database-statistics.js",

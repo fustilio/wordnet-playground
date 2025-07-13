@@ -7,21 +7,21 @@
  * Focus: Short, clear demonstration of WSD functionality.
  */
 
-import { synsets } from 'wn-ts';
+// No direct wn-ts imports needed, using wordnet instance
 import { createWordnet, displaySynsetsByPOS, safeClose, runDemo } from '../shared/helpers.js';
 
 console.log(`
-🎯 Use Case 6: Word Sense Disambiguation (Short)
-================================================
+🎯 Use Case: Word Sense Disambiguation (Basic)
+=============================================
 
-Problem: You need to understand the different meanings of a polysemous word.
-Solution: Analyze synsets with definitions and examples.
+Problem: You need to quickly see the different meanings of an ambiguous word.
+Solution: Analyze the primary synsets for a word.
 
-Real-world application: Natural language processing, text analysis
+Real-world application: Basic text analysis, educational examples
 `);
 
 async function demonstrateWordSenseDisambiguation() {
-  const wordnet = createWordnet('disambiguation_short');
+  const wordnet = await createWordnet('disambiguation_short');
   console.log('✅ Wordnet initialized successfully');
 
   try {
@@ -29,14 +29,14 @@ async function demonstrateWordSenseDisambiguation() {
 🔍 Example 1: "bank" - Classic Polysemy
 =======================================`);
 
-    const bankSynsets = await synsets('bank');
+    const bankSynsets = await wordnet.synsets('bank');
     await displaySynsetsByPOS(bankSynsets, 'Bank senses');
 
     console.log(`
 🔍 Example 2: "light" - Complex Polysemy
 ========================================`);
 
-    const lightSynsets = await synsets('light');
+    const lightSynsets = await wordnet.synsets('light');
     await displaySynsetsByPOS(lightSynsets, 'Light senses');
 
     console.log(`
@@ -54,7 +54,7 @@ async function demonstrateWordSenseDisambiguation() {
       console.log(`\n📝 Context: "${context}"`);
       console.log(`🔍 Word: "${word}" (expected POS: ${pos})`);
 
-      const wordSynsets = await synsets(word, pos);
+      const wordSynsets = await wordnet.synsets(word, pos);
       console.log(`📚 Found ${wordSynsets.length} ${pos} synsets`);
 
       if (wordSynsets.length > 0) {
