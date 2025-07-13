@@ -25,6 +25,8 @@ This guide provides a comprehensive overview of how to use the `wn-ts` TypeScrip
     - [Morphological Analysis](#morphological-analysis)
     - [Information Content (IC)](#information-content-ic)
   - [Command-Line Interface (CLI)](#command-line-interface-cli)
+    - [Basic CLI Usage](#basic-cli-usage)
+    - [Database Management Commands](#database-management-commands)
   - [Advanced Features](#advanced-features)
     - [Browser Usage](#browser-usage)
     - [Custom Queries \& Filtering](#custom-queries--filtering)
@@ -317,40 +319,40 @@ const ic = information_content(synset, freq);
 
 ## Command-Line Interface (CLI)
 
-The library includes a comprehensive command-line interface for data management and querying. For detailed CLI documentation, see [USAGE-CLI.md](./USAGE-CLI.md).
+The CLI is now provided by the separate `wn-cli` package. For detailed CLI documentation, see [wn-cli](../../wn-cli/README.md).
 
-### Basic CLI Usage
+#### Basic CLI Usage
 
 ```bash
 # Install globally for CLI access
-npm install -g wn-ts
+npm install -g wn-cli
 
 # Download a WordNet project
-wn-ts download oewn:2024
+wn-cli data download oewn:2024
 
 # Add a lexical resource
-wn-ts add oewn-2024-english-wordnet-2024.xml.gz
+wn-cli data add oewn-2024-english-wordnet-2024.xml.gz
 
 # Query the database
-wn-ts query run v
+wn-cli query word run v
 
 # Show database status
-wn-ts db status
+wn-cli db status
 
 # Unlock locked databases
-wn-ts db unlock
+wn-cli db unlock
 
 # Clean up cache directories
-wn-ts db clean
+wn-cli db clean
 
 # Export data
-wn-ts export --format json --output export.json --include oewn
+wn-cli export --format json --output export.json --include oewn
 
 # List available projects
-wn-ts projects
+wn-cli projects
 
 # Show configuration
-wn-ts config
+wn-cli config
 ```
 
 ### Database Management Commands
@@ -359,19 +361,19 @@ The CLI includes comprehensive database management capabilities:
 
 ```bash
 # Show database status and cache information
-wn-ts db status
+wn-cli db status
 
 # Show cache contents and file sizes
-wn-ts db cache
+wn-cli db cache
 
 # Unlock locked databases
-wn-ts db unlock
+wn-cli db unlock
 
 # Clean up cache directories
-wn-ts db clean
+wn-cli db clean
 
 # Reset all databases (WARNING: This removes all data)
-wn-ts db reset
+wn-cli db reset
 ```
 
 For complete CLI documentation with all commands, options, and examples, see [USAGE-CLI.md](./USAGE-CLI.md).
@@ -666,19 +668,19 @@ if (synset.ili) {
 **5. Database locked errors**
 ```bash
 # Use the CLI to unlock databases
-wn-ts db unlock
+wn-cli db unlock
 
 # Or check database status
-wn-ts db status
+wn-cli db status
 ```
 
 **5. Database locked errors**
 ```bash
 # Use the CLI to unlock databases
-wn-ts db unlock
+wn-cli db unlock
 
 # Or check database status
-wn-ts db status
+wn-cli db status
 ```
 
 ### Debug Mode

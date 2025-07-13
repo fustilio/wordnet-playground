@@ -1,0 +1,112 @@
+{
+  "name": "wn-cli",
+  "version": "0.3.1",
+  "description": "A powerful command-line interface for WordNet data exploration with interactive TUI",
+  "license": "MIT",
+  "type": "module",
+  "bin": "dist/cli.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.cli.json",
+    "cli": "node dist/cli.js",
+    "dev": "tsc -p tsconfig.cli.json --watch",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:tui": "vitest run --exclude **/commands/**",
+    "test:cli": "pnpm test:cli:func && pnpm test:cli:e2e",
+    "test:cli:func": "vitest run tests/commands --exclude \"**/e2e*.test.ts\"",
+    "test:cli:debug": "pnpm with-debug && pnpm test:cli",
+    "test:cli:e2e": "vitest run --no-file-parallelism tests/e2e/commands",
+    "test:layout": "vitest run layout-test-tool.test.tsx layout-system.integration",
+    "with-debug": "cross-env DEBUG_TEST=true",
+    "debug:tui": "node --inspect-brk dist/cli.js --tui",
+    "debug:cli": "node --inspect-brk dist/cli.js",
+    "layout-test": "node dist/cli.js layout-test",
+    "lint": "xo",
+    "type-check": "tsc --noEmit",
+    "clean": "rimraf dist",
+    "prebuild": "npm run clean"
+  },
+  "xo": {
+    "extends": "xo-react",
+    "overrides": [
+      {
+        "files": [
+          "tests/**/*.ts",
+          "tests/**/*.tsx"
+        ],
+        "rules": {
+          "@typescript-eslint/no-unsafe-call": "off",
+          "@typescript-eslint/no-unsafe-assignment": "off"
+        }
+      },
+      {
+        "files": [
+          "src/cli.tsx"
+        ],
+        "rules": {
+          "@typescript-eslint/no-unsafe-call": "off"
+        }
+      }
+    ],
+    "prettier": true,
+    "rules": {
+      "unicorn/expiring-todo-comments": "off"
+    }
+  },
+  "prettier": {
+    "tabWidth": 2,
+    "bracketSpacing": true,
+    "useTabs": false
+  },
+  "dependencies": {
+    "@inkjs/ui": "^2.0.0",
+    "commander": "^14.0.0",
+    "conf": "^14.0.0",
+    "ink": "^4.1.0",
+    "meow": "^11.0.0",
+    "react": "^18.2.0",
+    "vite-tsconfig-paths": "^5.1.4",
+    "wn-ts": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "@vitejs/plugin-react": "^4.6.0",
+    "chalk": "^5.2.0",
+    "cross-env": "^7.0.3",
+    "eslint-config-xo-react": "^0.27.0",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "ink-testing-library": "^4.0.0",
+    "prettier": "^2.8.7",
+    "typescript": "~5.8.3",
+    "vite": "^7.0.2",
+    "vitest": "catalog:",
+    "xo": "^0.53.1"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "keywords": [
+    "wordnet",
+    "cli",
+    "tui",
+    "nlp",
+    "lexicon",
+    "semantic",
+    "interactive"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-repo/wn-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-repo/wn-cli/issues"
+  },
+  "homepage": "https://github.com/your-repo/wn-cli#readme"
+}

@@ -1,0 +1,1 @@
+https://rip.hibariya.org/post/playing-with-word-net-as-an-english-learner/

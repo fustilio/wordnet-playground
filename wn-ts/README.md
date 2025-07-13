@@ -119,20 +119,47 @@ for (const sense of senses) {
 
 ### Core Functions
 
+#### `getDownloadableLexicons(): string[]`
+Returns a list of lexicons that are available for download from the online index. These are lexicons that can be downloaded but may not be currently installed locally.
+
+**Returns:** Array of lexicon IDs (e.g., `['oewn', 'omw', 'odenet']`)
+
+**Example:**
 ```typescript
-// Word lookup
-const words = await wn.words('run', 'v');
+import { getDownloadableLexicons } from 'wn-ts';
 
-// Synset lookup
-const synsets = await wn.synsets('run', 'v');
+const downloadable = getDownloadableLexicons();
+console.log(downloadable); // ['oewn', 'omw', 'odenet', ...]
+```
 
-// Sense lookup
-const senses = await wn.senses('run', 'v');
+#### `getAllAvailableLexicons(): Promise<string[]>`
+Returns a comprehensive list of all available lexicons, including both downloadable (online) and installed (offline) lexicons. This provides a complete view of what's available to the user.
 
-// Individual objects
-const word = await wn.word('word-id');
-const synset = await wn.synset('synset-id');
-const sense = await wn.sense('sense-id');
+**Returns:** Promise resolving to array of lexicon IDs
+
+**Example:**
+```typescript
+import { getAllAvailableLexicons } from 'wn-ts';
+
+const allLexicons = await getAllAvailableLexicons();
+console.log(allLexicons); // ['oewn', 'omw', 'odenet', 'installed-lexicon', ...]
+```
+
+#### `getInstalledLexicons(): Promise<LexiconInfo[]>`
+Returns detailed information about lexicons currently installed in the local database.
+
+**Returns:** Promise resolving to array of lexicon information objects
+
+**Example:**
+```typescript
+import { getInstalledLexicons } from 'wn-ts';
+
+const installed = await getInstalledLexicons();
+console.log(installed);
+// [
+//   { id: 'oewn', label: 'Open English WordNet', language: 'en', license: 'MIT' },
+//   { id: 'omw', label: 'Open Multilingual WordNet', language: 'mul', license: 'CC BY 3.0' }
+// ]
 ```
 
 ### Data Management
@@ -232,7 +259,22 @@ Object.entries(posDist).forEach(([pos, count]) => {
 });
 ```
 
-## 🔧 Configuration
+### Lexicon Listing
+
+```typescript
+import { LexiconHelper } from 'wn-cli/src/utils/lexicon-helpers';
+
+// List all lexicons available for download (online)
+const downloadableLexicons = LexiconHelper.getDownloadableLexicons();
+console.log(downloadableLexicons);
+
+// List installed lexicons (offline)
+import { lexicons } from 'wn-ts';
+const installedLexicons = await lexicons();
+console.log(installedLexicons);
+```
+
+## 🎯 Configuration
 
 ```typescript
 import { config } from 'wn-ts';

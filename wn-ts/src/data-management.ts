@@ -268,18 +268,52 @@ export async function remove(lexiconId: string): Promise<void> {
     
     await db.run('BEGIN TRANSACTION');
     try {
-      // Get synset IDs to clean up relations table, which doesn't use cascades from synsets
+      const BATCH_SIZE = 500; // A safe limit for SQLite
+
+      // Get IDs to be deleted
+      const words = await db.all('SELECT id FROM words WHERE lexicon = ?', [lexiconId]);
+      const wordIds = (words as { id: string }[]).map(w => w.id);
+      
       const synsets = await db.all('SELECT id FROM synsets WHERE lexicon = ?', [lexiconId]);
       const synsetIds = (synsets as { id: string }[]).map(s => s.id);
 
-      if (synsetIds.length > 0) {
-        const placeholders = synsetIds.map(() => '?').join(',');
-        // Delete relations where source or target is in this lexicon
-        await db.run(`DELETE FROM relations WHERE source_id IN (${placeholders})`, synsetIds);
-        await db.run(`DELETE FROM relations WHERE target_id IN (${placeholders})`, synsetIds);
+      // Batch delete from child tables first to avoid cascade issues
+      for (let i = 0; i < wordIds.length; i += BATCH_SIZE) {
+        const batch = wordIds.slice(i, i + BATCH_SIZE);
+        if (batch.length === 0) continue;
+        const placeholders = batch.map(() => '?').join(',');
+        await db.run(`DELETE FROM senses WHERE word_id IN (${placeholders})`, batch);
+        await db.run(`DELETE FROM forms WHERE word_id IN (${placeholders})`, batch);
       }
       
-      // With ON DELETE CASCADE on other tables, we only need to delete from lexicons
+      for (let i = 0; i < synsetIds.length; i += BATCH_SIZE) {
+        const batch = synsetIds.slice(i, i + BATCH_SIZE);
+        if (batch.length === 0) continue;
+        const placeholders = batch.map(() => '?').join(',');
+        await db.run(`DELETE FROM relations WHERE source_id IN (${placeholders})`, batch);
+        await db.run(`DELETE FROM relations WHERE target_id IN (${placeholders})`, batch);
+        await db.run(`DELETE FROM definitions WHERE synset_id IN (${placeholders})`, batch);
+        await db.run(`DELETE FROM examples WHERE synset_id IN (${placeholders})`, batch);
+      }
+      
+      // Now delete from parent tables, which should now be safe.
+      // We delete by ID in batches to avoid triggering a massive cascade from
+      // a single 'DELETE ... WHERE lexicon = ?' statement.
+      for (let i = 0; i < wordIds.length; i += BATCH_SIZE) {
+        const batch = wordIds.slice(i, i + BATCH_SIZE);
+        if (batch.length === 0) continue;
+        const placeholders = batch.map(() => '?').join(',');
+        await db.run(`DELETE FROM words WHERE id IN (${placeholders})`, batch);
+      }
+      
+      for (let i = 0; i < synsetIds.length; i += BATCH_SIZE) {
+        const batch = synsetIds.slice(i, i + BATCH_SIZE);
+        if (batch.length === 0) continue;
+        const placeholders = batch.map(() => '?').join(',');
+        await db.run(`DELETE FROM synsets WHERE id IN (${placeholders})`, batch);
+      }
+      
+      // Finally, delete the lexicon itself.
       await db.run('DELETE FROM lexicons WHERE id = ?', [lexiconId]);
       
       await db.run('COMMIT');

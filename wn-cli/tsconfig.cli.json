@@ -1,0 +1,26 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "module": "ESNext",
+    "target": "ES2022",
+    "declaration": false,
+    "emitDecoratorMetadata": false,
+    "esModuleInterop": true,
+    "allowJs": false,
+    "noEmit": false,
+    "allowImportingTsExtensions": false,
+    "jsx": "react-jsx",
+    "noUnusedLocals": false
+  },
+  "include": [
+    "src/cli.tsx",
+    "src/app.tsx",
+    "src/components/**/*.ts",
+    "src/components/**/*.tsx",
+    "src/commands/**/*.ts",
+    "src/commands/**/*.tsx",
+    "src/utils/**/*.ts",
+    "src/utils/**/*.tsx"
+  ]
+}

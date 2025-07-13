@@ -18,11 +18,10 @@ This repository contains the development of **wn-ts**, a TypeScript port of the 
 ### 📁 `/wn-ts` - TypeScript WordNet Port (Main Project) 📦 **NPM PUBLISHED**
 The primary TypeScript implementation providing full API parity with the Python wn library.
 
-**Status**: ✅ **95% Complete** - Core functionality implemented, unified CLI completed.
+**Status**: ✅ **95% Complete** - Core functionality implemented.
 **NPM**: `npm install wn-ts`
 
 **Key Features:**
-- ✅ **Unified CLI**: Command-line interface with database management
 - ✅ **Core API Parity**: Full parity with Python wn library
 - ✅ **Examples System**: Complete examples support for synsets and senses
 - ✅ **Project Management**: TOML-based project index
@@ -30,6 +29,8 @@ The primary TypeScript implementation providing full API parity with the Python 
 - ✅ **Export Formats**: JSON, XML, and CSV export
 - ✅ **Clean API**: No direct database access - all functionality through Wordnet instance methods
 - ✅ **Statistics & Analysis**: Built-in database statistics and quality metrics
+
+> **Note:** The CLI is now maintained in the separate [`wn-cli`](./wn-cli/) package. For all command-line functionality, please use `wn-cli`.
 
 **📖 [Read wn-ts Documentation →](./wn-ts/README.md)**
 
@@ -75,23 +76,23 @@ import { Wordnet, download, add } from 'wn-ts';
 ### Command-Line Interface
 ```bash
 # Install globally for CLI access
-npm install -g wn-ts
+npm install -g wn-cli
 
 # Download and add WordNet data
-wn-ts download oewn:2024
-wn-ts add oewn-2024-english-wordnet-2024.xml.gz
+wn-cli data download oewn:2024
+wn-cli data add oewn-2024-english-wordnet-2024.xml.gz
 
 # Query the database
-wn-ts query run v
+wn-cli query word run v
 
 # Show database status
-wn-ts db status
+wn-cli db status
 
 # Unlock locked databases
-wn-ts db unlock
+wn-cli db unlock
 
 # Export data
-wn-ts export --format json --output export.json
+wn-cli export --format json --output export.json
 ```
 
 ### Development Setup
