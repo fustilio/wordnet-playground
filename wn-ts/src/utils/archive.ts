@@ -1,3 +1,4 @@
+/// <reference path="../../types/lzma-native.d.ts" />
 import { join, dirname, extname } from 'path';
 import { existsSync, mkdirSync, readdirSync, statSync, createReadStream, createWriteStream } from 'fs';
 import { exec } from 'child_process';

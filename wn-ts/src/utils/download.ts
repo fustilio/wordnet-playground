@@ -72,7 +72,8 @@ export async function downloadFile(
       read() {}
     });
 
-    const readerStream = Readable.fromWeb(reader as ReadableStream<Uint8Array>);
+    // Patch: cast as any to resolve type error
+    const readerStream = Readable.fromWeb(reader as any);
 
     readerStream.on('data', (chunk) => {
       downloaded += chunk.length;

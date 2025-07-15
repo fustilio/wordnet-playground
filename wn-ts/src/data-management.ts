@@ -7,7 +7,12 @@ import { loadLMF, isLMF } from './lmf.js';
 import { getProjectVersionUrls, getProjectVersionError } from './project.js';
 import type { DownloadOptions, AddOptions, ExportOptions } from './types.js';
 import { ProjectError, DatabaseError } from './types.js';
-import { extractTarArchive, findLMFiles, decompressXz, decompressGz } from './utils/archive.js';
+import {
+  extractTarArchive,
+  findLMFiles,
+  decompressXz,
+  decompressGz,
+} from './utils/archive.js';
 import { isILI, loadILI } from './ili.js';
 import { logger } from './utils/logger.js';
 
@@ -30,8 +35,10 @@ async function batchInsert(
   for (let i = 0; i < data.length; i += batchSize) {
     const batch = data.slice(i, i + batchSize);
     if (batch.length === 0) continue;
-    
-    const placeholders = batch.map(() => `(${columns.map(() => '?').join(', ')})`).join(', ');
+
+    const placeholders = batch
+      .map(() => `(${columns.map(() => '?').join(', ')})`)
+      .join(', ');
     const params = batch.flat();
     const sql = `INSERT OR REPLACE INTO ${tableName} (${colNames}) VALUES ${placeholders}`;
     await db.run(sql, params);
@@ -47,25 +54,27 @@ export async function download(
 ): Promise<string> {
   const { force = false, progress } = options;
   logger.download(`Downloading project: ${projectId}`);
-  
+
   // Parse project ID to get version
   const [projectIdClean, version] = projectId.split(':');
   if (!version) {
-    throw new ProjectError(`Project ID must include version (e.g., 'oewn:2024'): ${projectId}`);
+    throw new ProjectError(
+      `Project ID must include version (e.g., 'oewn:2024'): ${projectId}`
+    );
   }
-  
+
   // Check for version errors
   const versionError = getProjectVersionError(projectIdClean || '', version || '');
   if (versionError) {
     throw new ProjectError(`Project version error: ${versionError}`);
   }
-  
+
   // Get download URL from project index
   const urls = getProjectVersionUrls(projectIdClean || '', version || '');
   if (!urls || urls.length === 0) {
     throw new ProjectError(`No download URL found for project ${projectId}`);
   }
-  
+
   let lastError: Error | null = null;
   for (const url of urls) {
     try {
@@ -74,14 +83,18 @@ export async function download(
       const urlFileName = urlParts[urlParts.length - 1];
       const fileName = `${projectIdClean}-${version}-${urlFileName}`;
       const destination = join(config.downloadDirectory, fileName);
-      
+
       if (existsSync(destination) && !force) {
         logger.info(`File already exists: ${destination}. Use --force to re-download.`);
         return destination;
       }
 
       logger.download(`Downloading from ${url}...`);
-      await downloadFile(url, destination, progress ? { onProgress: progress } : undefined);
+      await downloadFile(
+        url,
+        destination,
+        progress ? { onProgress: progress } : undefined
+      );
       logger.success(`Successfully downloaded to ${destination}`);
       return destination;
     } catch (error) {
@@ -90,16 +103,15 @@ export async function download(
     }
   }
 
-  throw new ProjectError(`Failed to download project ${projectId} from all sources: ${lastError?.message}`);
+  throw new ProjectError(
+    `Failed to download project ${projectId} from all sources: ${lastError?.message}`
+  );
 }
 
 /**
  * Add a lexical resource to the database
  */
-export async function add(
-  path: string,
-  options: AddOptions = {}
-): Promise<void> {
+export async function add(path: string, options: AddOptions = {}): Promise<void> {
   const { progress } = options;
   if (progress) progress(0.1); // Initialize progress
 
@@ -132,7 +144,7 @@ export async function add(
     }
 
     const isLmfFile = await isLMF(processedPath);
-    const isIliFile = !isLmfFile && await isILI(processedPath);
+    const isIliFile = !isLmfFile && (await isILI(processedPath));
 
     if (isLmfFile) {
       await _addLmf(processedPath, options);
@@ -145,7 +157,9 @@ export async function add(
     if (error instanceof ProjectError) {
       throw error;
     }
-    throw new DatabaseError(`Failed to add lexical resource: ${error instanceof Error ? error.message : String(error)}`);
+    throw new DatabaseError(
+      `Failed to add lexical resource: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 }
 
@@ -166,16 +180,24 @@ async function _addIli(path: string, options: AddOptions): Promise<void> {
   ]);
 
   await db.initialize();
-  await db.run('BEGIN TRANSACTION');
   try {
-    logger.insert('Inserting ILI records...');
-    await batchInsert('ilis', ['id', 'definition', 'status', 'superseded_by', 'note', 'meta'], records);
-    await db.run('COMMIT');
-    if (progress) progress(1.0);
-    logger.success('ILI data added successfully.');
-  } catch (error) {
-    await db.run('ROLLBACK');
-    throw error;
+    await db.run('BEGIN TRANSACTION');
+    try {
+      logger.insert('Inserting ILI records...');
+      await batchInsert(
+        'ilis',
+        ['id', 'definition', 'status', 'superseded_by', 'note', 'meta'],
+        records
+      );
+      await db.run('COMMIT');
+      if (progress) progress(1.0);
+      logger.success('ILI data added successfully.');
+    } catch (error) {
+      await db.run('ROLLBACK');
+      throw error;
+    }
+  } finally {
+    await db.close();
   }
 }
 
@@ -183,12 +205,13 @@ async function _addLmf(path: string, options: AddOptions): Promise<void> {
   const { force = false, progress } = options;
 
   await db.initialize();
+  try {
     logger.info(`Loading LMF file: ${path}...`);
     const lmfOptions: any = { debug: false };
     if (progress) lmfOptions.progress = progress;
     const lmfData = await loadLMF(path, lmfOptions);
     logger.success(`LMF file loaded. Found ${lmfData.lexicons.length} lexicons.`);
-    
+
     // Pre-check lexicons before transaction
     if (!force) {
       for (const lexicon of lmfData.lexicons || []) {
@@ -197,7 +220,9 @@ async function _addLmf(path: string, options: AddOptions): Promise<void> {
           [lexicon.id, lexicon.version]
         );
         if (existing) {
-          throw new ProjectError(`Lexicon ${lexicon.id}:${lexicon.version} already exists. Use force=true to overwrite.`);
+          throw new ProjectError(
+            `Lexicon ${lexicon.id}:${lexicon.version} already exists. Use force=true to overwrite.`
+          );
         }
       }
     }
@@ -207,42 +232,162 @@ async function _addLmf(path: string, options: AddOptions): Promise<void> {
     try {
       logger.insert('Inserting lexicons...');
       const lexiconData = (lmfData.lexicons || []).map(lexicon => [
-        lexicon.id, lexicon.label, lexicon.language, lexicon.version,
-        lexicon.email, lexicon.license, lexicon.url, lexicon.citation, lexicon.logo
+        lexicon.id,
+        lexicon.label,
+        lexicon.language,
+        lexicon.version,
+        lexicon.email,
+        lexicon.license,
+        lexicon.url,
+        lexicon.citation,
+        lexicon.logo,
       ]);
-      await batchInsert('lexicons', ['id', 'label', 'language', 'version', 'email', 'license', 'url', 'citation', 'logo'], lexiconData);
-      
+      await batchInsert(
+        'lexicons',
+        [
+          'id',
+          'label',
+          'language',
+          'version',
+          'email',
+          'license',
+          'url',
+          'citation',
+          'logo',
+        ],
+        lexiconData
+      );
+
       logger.insert('Inserting words...');
-      const wordData = (lmfData.words || []).map(word => [word.id, word.lemma, word.partOfSpeech, word.language, word.lexicon]);
-      await batchInsert('words', ['id', 'lemma', 'part_of_speech', 'language', 'lexicon'], wordData);
-      
+      const wordData = (lmfData.words || []).map(word => [
+        word.id,
+        word.lemma,
+        word.partOfSpeech,
+        word.language,
+        word.lexicon,
+      ]);
+      await batchInsert(
+        'words',
+        ['id', 'lemma', 'part_of_speech', 'language', 'lexicon'],
+        wordData
+      );
+
       logger.insert('Inserting forms...');
-      const formData = (lmfData.words || []).flatMap(word => (word.forms || []).map((form: any) => [form.id, word.id, form.writtenForm, form.script, form.tag]));
-      await batchInsert('forms', ['id', 'word_id', 'written_form', 'script', 'tag'], formData);
-      
+      const formData = (lmfData.words || []).flatMap(word =>
+        (word.forms || []).map((form: any) => [
+          form.id,
+          word.id,
+          form.writtenForm,
+          form.script,
+          form.tag,
+        ])
+      );
+      await batchInsert(
+        'forms',
+        ['id', 'word_id', 'written_form', 'script', 'tag'],
+        formData
+      );
+
       logger.insert('Inserting synsets...');
-      const synsetData = (lmfData.synsets || []).map(synset => [synset.id, (synset as any).ili, synset.partOfSpeech, synset.language, synset.lexicon]);
-      await batchInsert('synsets', ['id', 'ili', 'part_of_speech', 'language', 'lexicon'], synsetData);
-      
+      const synsetData = (lmfData.synsets || []).map(synset => [
+        synset.id,
+        (synset as any).ili,
+        synset.partOfSpeech,
+        synset.language,
+        synset.lexicon,
+      ]);
+      await batchInsert(
+        'synsets',
+        ['id', 'ili', 'part_of_speech', 'language', 'lexicon'],
+        synsetData
+      );
+
       logger.insert('Inserting definitions...');
-      const definitionData = (lmfData.synsets || []).flatMap(synset => (synset.definitions || []).map((def: any) => [def.id, synset.id, def.language, def.text, def.source]));
-      await batchInsert('definitions', ['id', 'synset_id', 'language', 'text', 'source'], definitionData);
-      
+      const definitionData = (lmfData.synsets || []).flatMap(synset =>
+        (synset.definitions || []).map((def: any) => [
+          def.id,
+          synset.id,
+          def.language,
+          def.text,
+          def.source,
+        ])
+      );
+      await batchInsert(
+        'definitions',
+        ['id', 'synset_id', 'language', 'text', 'source'],
+        definitionData
+      );
+
       logger.insert('Inserting relations...');
-      const relationData = (lmfData.synsets || []).flatMap(synset => (synset.relations || []).map((rel: any) => [rel.id, synset.id, rel.target, rel.type, rel.source]));
-      await batchInsert('relations', ['id', 'source_id', 'target_id', 'type', 'source'], relationData);
-      
+      const relationData = (lmfData.synsets || []).flatMap(synset =>
+        (synset.relations || []).map((rel: any) => [
+          rel.id,
+          synset.id,
+          rel.target,
+          rel.type,
+          rel.source,
+        ])
+      );
+      await batchInsert(
+        'relations',
+        ['id', 'source_id', 'target_id', 'type', 'source'],
+        relationData
+      );
+
       logger.insert('Inserting senses...');
       const senseData = (lmfData.senses || []).map(sense => [
-        sense.id, sense.word, sense.synset, (sense as any).source, (sense as any).sensekey,
-        (sense as any).adjposition, (sense as any).subcategory, (sense as any).domain, (sense as any).register
+        sense.id,
+        sense.word,
+        sense.synset,
+        (sense as any).source,
+        (sense as any).sensekey,
+        (sense as any).adjposition,
+        (sense as any).subcategory,
+        (sense as any).domain,
+        (sense as any).register,
       ]);
-      await batchInsert('senses', ['id', 'word_id', 'synset_id', 'source', 'sensekey', 'adjposition', 'subcategory', 'domain', 'register'], senseData);
-      
+      await batchInsert(
+        'senses',
+        [
+          'id',
+          'word_id',
+          'synset_id',
+          'source',
+          'sensekey',
+          'adjposition',
+          'subcategory',
+          'domain',
+          'register',
+        ],
+        senseData
+      );
+
       logger.insert('Inserting examples...');
-      const synsetExampleData = (lmfData.synsets || []).flatMap(synset => (synset.examples || []).map((ex: any) => [ex.id, synset.id, null, ex.language, ex.text, ex.source]));
-      const senseExampleData = (lmfData.senses || []).flatMap(sense => (sense.examples || []).map((ex: any) => [ex.id, null, sense.id, ex.language, ex.text, ex.source]));
-      await batchInsert('examples', ['id', 'synset_id', 'sense_id', 'language', 'text', 'source'], [...synsetExampleData, ...senseExampleData]);
+      const synsetExampleData = (lmfData.synsets || []).flatMap(synset =>
+        (synset.examples || []).map((ex: any) => [
+          ex.id,
+          synset.id,
+          null,
+          ex.language,
+          ex.text,
+          ex.source,
+        ])
+      );
+      const senseExampleData = (lmfData.senses || []).flatMap(sense =>
+        (sense.examples || []).map((ex: any) => [
+          ex.id,
+          null,
+          sense.id,
+          ex.language,
+          ex.text,
+          ex.source,
+        ])
+      );
+      await batchInsert(
+        'examples',
+        ['id', 'synset_id', 'sense_id', 'language', 'text', 'source'],
+        [...synsetExampleData, ...senseExampleData]
+      );
 
       logger.insert('Committing transaction...');
       await db.run('COMMIT');
@@ -252,6 +397,9 @@ async function _addLmf(path: string, options: AddOptions): Promise<void> {
       await db.run('ROLLBACK');
       throw error;
     }
+  } finally {
+    await db.close();
+  }
 }
 
 /**
@@ -259,13 +407,12 @@ async function _addLmf(path: string, options: AddOptions): Promise<void> {
  */
 export async function remove(lexiconId: string): Promise<void> {
   await db.initialize();
-  
   try {
     const existing = await db.get('SELECT id FROM lexicons WHERE id = ?', [lexiconId]);
     if (!existing) {
       throw new ProjectError(`Lexicon ${lexiconId} not found.`);
     }
-    
+
     await db.run('BEGIN TRANSACTION');
     try {
       const BATCH_SIZE = 500; // A safe limit for SQLite
@@ -273,8 +420,10 @@ export async function remove(lexiconId: string): Promise<void> {
       // Get IDs to be deleted
       const words = await db.all('SELECT id FROM words WHERE lexicon = ?', [lexiconId]);
       const wordIds = (words as { id: string }[]).map(w => w.id);
-      
-      const synsets = await db.all('SELECT id FROM synsets WHERE lexicon = ?', [lexiconId]);
+
+      const synsets = await db.all('SELECT id FROM synsets WHERE lexicon = ?', [
+        lexiconId,
+      ]);
       const synsetIds = (synsets as { id: string }[]).map(s => s.id);
 
       // Batch delete from child tables first to avoid cascade issues
@@ -285,17 +434,29 @@ export async function remove(lexiconId: string): Promise<void> {
         await db.run(`DELETE FROM senses WHERE word_id IN (${placeholders})`, batch);
         await db.run(`DELETE FROM forms WHERE word_id IN (${placeholders})`, batch);
       }
-      
+
       for (let i = 0; i < synsetIds.length; i += BATCH_SIZE) {
         const batch = synsetIds.slice(i, i + BATCH_SIZE);
         if (batch.length === 0) continue;
         const placeholders = batch.map(() => '?').join(',');
-        await db.run(`DELETE FROM relations WHERE source_id IN (${placeholders})`, batch);
-        await db.run(`DELETE FROM relations WHERE target_id IN (${placeholders})`, batch);
-        await db.run(`DELETE FROM definitions WHERE synset_id IN (${placeholders})`, batch);
-        await db.run(`DELETE FROM examples WHERE synset_id IN (${placeholders})`, batch);
+        await db.run(
+          `DELETE FROM relations WHERE source_id IN (${placeholders})`,
+          batch
+        );
+        await db.run(
+          `DELETE FROM relations WHERE target_id IN (${placeholders})`,
+          batch
+        );
+        await db.run(
+          `DELETE FROM definitions WHERE synset_id IN (${placeholders})`,
+          batch
+        );
+        await db.run(
+          `DELETE FROM examples WHERE synset_id IN (${placeholders})`,
+          batch
+        );
       }
-      
+
       // Now delete from parent tables, which should now be safe.
       // We delete by ID in batches to avoid triggering a massive cascade from
       // a single 'DELETE ... WHERE lexicon = ?' statement.
@@ -305,17 +466,17 @@ export async function remove(lexiconId: string): Promise<void> {
         const placeholders = batch.map(() => '?').join(',');
         await db.run(`DELETE FROM words WHERE id IN (${placeholders})`, batch);
       }
-      
+
       for (let i = 0; i < synsetIds.length; i += BATCH_SIZE) {
         const batch = synsetIds.slice(i, i + BATCH_SIZE);
         if (batch.length === 0) continue;
         const placeholders = batch.map(() => '?').join(',');
         await db.run(`DELETE FROM synsets WHERE id IN (${placeholders})`, batch);
       }
-      
+
       // Finally, delete the lexicon itself.
       await db.run('DELETE FROM lexicons WHERE id = ?', [lexiconId]);
-      
+
       await db.run('COMMIT');
     } catch (error) {
       await db.run('ROLLBACK');
@@ -325,7 +486,11 @@ export async function remove(lexiconId: string): Promise<void> {
     if (error instanceof ProjectError) {
       throw error;
     }
-    throw new DatabaseError(`Failed to remove lexicon: ${error instanceof Error ? error.message : String(error)}`);
+    throw new DatabaseError(
+      `Failed to remove lexicon: ${error instanceof Error ? error.message : String(error)}`
+    );
+  } finally {
+    await db.close();
   }
 }
 
@@ -334,28 +499,31 @@ export async function remove(lexiconId: string): Promise<void> {
  */
 export async function exportData(options: ExportOptions): Promise<void> {
   const { format, output, include, exclude } = options;
-  
+
   if (!['json', 'xml', 'csv'].includes(format)) {
     throw new ProjectError(`Unsupported export format: ${format}`);
   }
-  
+
   await db.initialize();
-  
   try {
     // Get all lexicons
     const lexicons = await db.all('SELECT * FROM lexicons');
-    
+
     // Filter lexicons based on include/exclude
     let filteredLexicons = lexicons;
     if (include && include.length > 0) {
-      filteredLexicons = (lexicons as { id: string }[]).filter(l => include.includes(l.id));
+      filteredLexicons = (lexicons as { id: string }[]).filter(l =>
+        include.includes(l.id)
+      );
     }
     if (exclude && exclude.length > 0) {
-      filteredLexicons = (filteredLexicons as { id: string }[]).filter(l => !exclude.includes(l.id));
+      filteredLexicons = (filteredLexicons as { id: string }[]).filter(
+        l => !exclude.includes(l.id)
+      );
     }
-    
+
     let outputContent: string;
-    
+
     switch (format) {
       case 'json':
         outputContent = await exportToJSON(filteredLexicons);
@@ -369,19 +537,22 @@ export async function exportData(options: ExportOptions): Promise<void> {
       default:
         throw new ProjectError(`Unsupported export format: ${format}`);
     }
-    
+
     if (output) {
       const fs = await import('fs/promises');
       await fs.writeFile(output, outputContent);
     } else {
       logger.info(outputContent);
     }
-    
   } catch (error) {
     if (error instanceof ProjectError) {
       throw error;
     }
-    throw new DatabaseError(`Failed to export data: ${error instanceof Error ? error.message : String(error)}`);
+    throw new DatabaseError(
+      `Failed to export data: ${error instanceof Error ? error.message : String(error)}`
+    );
+  } finally {
+    await db.close();
   }
 }
 
@@ -394,7 +565,7 @@ async function exportToJSON(lexicons: unknown[]): Promise<string> {
     exportDate: new Date().toISOString(),
     format: 'json',
   };
-  
+
   return JSON.stringify(exportData, null, 2);
 }
 
@@ -404,53 +575,60 @@ async function exportToJSON(lexicons: unknown[]): Promise<string> {
 async function exportToXML(lexicons: unknown[]): Promise<string> {
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
   xml += '<lexical-resources>\n';
-  
+
   for (const lexicon of lexicons as Record<string, any>[]) {
     xml += `  <lexicon id="${lexicon.id}" label="${lexicon.label}" language="${lexicon.language}">\n`;
-    
+
     // Get words for this lexicon
     const words = await db.all('SELECT * FROM words WHERE lexicon = ?', [lexicon.id]);
     for (const word of words as any[]) {
       xml += `    <word id="${word.id}" lemma="${word.lemma}" pos="${word.part_of_speech}">\n`;
-      
+
       // Get forms for this word
       const forms = await db.all('SELECT * FROM forms WHERE word_id = ?', [word.id]);
       for (const form of forms as any[]) {
         xml += `      <form written="${form.written_form}" script="${form.script || ''}" tag="${form.tag || ''}"/>\n`;
       }
-      
+
       // Get senses for this word
       const senses = await db.all('SELECT * FROM senses WHERE word_id = ?', [word.id]);
       for (const sense of senses as any[]) {
         xml += `      <sense id="${sense.id}" synset="${sense.synset_id}"/>\n`;
       }
-      
+
       xml += '    </word>\n';
     }
-    
+
     // Get synsets for this lexicon
-    const synsets = await db.all('SELECT * FROM synsets WHERE lexicon = ?', [lexicon.id]);
+    const synsets = await db.all('SELECT * FROM synsets WHERE lexicon = ?', [
+      lexicon.id,
+    ]);
     for (const synset of synsets as any[]) {
       xml += `    <synset id="${synset.id}" pos="${synset.part_of_speech}">\n`;
-      
+
       // Get definitions for this synset
-      const definitions = await db.all('SELECT * FROM definitions WHERE synset_id = ?', [synset.id]);
+      const definitions = await db.all(
+        'SELECT * FROM definitions WHERE synset_id = ?',
+        [synset.id]
+      );
       for (const def of definitions as any[]) {
         xml += `      <definition language="${def.language}">${def.text}</definition>\n`;
       }
-      
+
       // Get examples for this synset
-      const examples = await db.all('SELECT * FROM examples WHERE synset_id = ?', [synset.id]);
+      const examples = await db.all('SELECT * FROM examples WHERE synset_id = ?', [
+        synset.id,
+      ]);
       for (const example of examples as any[]) {
         xml += `      <example language="${example.language}">${example.text}</example>\n`;
       }
-      
+
       xml += '    </synset>\n';
     }
-    
+
     xml += '  </lexicon>\n';
   }
-  
+
   xml += '</lexical-resources>';
   return xml;
 }
@@ -460,10 +638,10 @@ async function exportToXML(lexicons: unknown[]): Promise<string> {
  */
 async function exportToCSV(lexicons: unknown[]): Promise<string> {
   const csvLines: string[] = [];
-  
+
   // Header
   csvLines.push('Type,ID,Lemma,PartOfSpeech,Language,Lexicon,Definition,Example');
-  
+
   for (const lexicon of lexicons as Record<string, any>[]) {
     // Get words for this lexicon
     const words = await db.all('SELECT * FROM words WHERE lexicon = ?', [lexicon.id]);
@@ -471,20 +649,43 @@ async function exportToCSV(lexicons: unknown[]): Promise<string> {
       // Get definitions and examples for this word's synsets
       const senses = await db.all('SELECT * FROM senses WHERE word_id = ?', [word.id]);
       for (const sense of senses as any[]) {
-        const synset = await db.get('SELECT * FROM synsets WHERE id = ?', [sense.synset_id]) as { id: string } | undefined;
+        const synset = (await db.get('SELECT * FROM synsets WHERE id = ?', [
+          sense.synset_id,
+        ])) as { id: string } | undefined;
         if (synset) {
-          const definitions = await db.all('SELECT * FROM definitions WHERE synset_id = ?', [synset.id]);
-          const examples = await db.all('SELECT * FROM examples WHERE synset_id = ?', [synset.id]);
-          
-          const def = Array.isArray(definitions) && definitions.length > 0 && typeof definitions[0] === 'object' && definitions[0] && 'text' in definitions[0] ? (definitions[0] as any).text : '';
-          const ex = Array.isArray(examples) && examples.length > 0 && typeof examples[0] === 'object' && examples[0] && 'text' in examples[0] ? (examples[0] as any).text : '';
-          
-          csvLines.push(`word,${word.id},"${word.lemma}",${word.part_of_speech},${word.language},${word.lexicon},"${def}","${ex}"`);
+          const definitions = await db.all(
+            'SELECT * FROM definitions WHERE synset_id = ?',
+            [synset.id]
+          );
+          const examples = await db.all('SELECT * FROM examples WHERE synset_id = ?', [
+            synset.id,
+          ]);
+
+          const def =
+            Array.isArray(definitions) &&
+            definitions.length > 0 &&
+            typeof definitions[0] === 'object' &&
+            definitions[0] &&
+            'text' in definitions[0]
+              ? (definitions[0] as any).text
+              : '';
+          const ex =
+            Array.isArray(examples) &&
+            examples.length > 0 &&
+            typeof examples[0] === 'object' &&
+            examples[0] &&
+            'text' in examples[0]
+              ? (examples[0] as any).text
+              : '';
+
+          csvLines.push(
+            `word,${word.id},"${word.lemma}",${word.part_of_speech},${word.language},${word.lexicon},"${def}","${ex}"`
+          );
         }
       }
     }
   }
-  
+
   return csvLines.join('\n');
 }
 

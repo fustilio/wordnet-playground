@@ -52,9 +52,11 @@ describe('Data Management', () => {
       writeFileSync(downloadPath, 'test content');
 
       await expect(download('test-project')).rejects.toThrow(ProjectError);
-      
+
       // Should work with force=true
-      await expect(download('test-project', { force: true })).rejects.toThrow(ProjectError);
+      await expect(download('test-project', { force: true })).rejects.toThrow(
+        ProjectError
+      );
     });
   });
 
@@ -70,11 +72,20 @@ describe('Data Management', () => {
 
       await add(xmlPath, { force: true });
 
+      await db.initialize();
       // Verify lexicons were added to database
-      const lexicons = await db.all('SELECT * FROM lexicons WHERE id IN (?, ?)', ['test-en', 'test-es']) as { id: string; label: string; language: string; version: string }[];
+      const lexicons = (await db.all('SELECT * FROM lexicons WHERE id IN (?, ?)', [
+        'test-en',
+        'test-es',
+      ])) as { id: string; label: string; language: string; version: string }[];
       expect(lexicons).toHaveLength(2);
-      expect(lexicons.find(l => l.id === 'test-en')?.label).toBe('Testing English WordNet');
-      expect(lexicons.find(l => l.id === 'test-es')?.label).toBe('Testing Spanish WordNet');
+      expect(lexicons.find(l => l.id === 'test-en')?.label).toBe(
+        'Testing English WordNet'
+      );
+      expect(lexicons.find(l => l.id === 'test-es')?.label).toBe(
+        'Testing Spanish WordNet'
+      );
+      await db.close();
     });
 
     it('should handle force option', async () => {
@@ -82,15 +93,21 @@ describe('Data Management', () => {
       const xmlPath = join(testUtils.getActualTestDataDir(), 'mini-lmf-1.0.xml');
       expect(existsSync(xmlPath)).toBe(true);
 
+
       // Add first time
       await add(xmlPath, { force: true });
 
       // Should succeed with force again
       await add(xmlPath, { force: true });
 
+      await db.initialize();
       // Verify lexicons are still there
-      const lexicons = await db.all('SELECT * FROM lexicons WHERE id IN (?, ?)', ['test-en', 'test-es']) as { id: string; label: string; language: string; version: string }[];
+      const lexicons = (await db.all('SELECT * FROM lexicons WHERE id IN (?, ?)', [
+        'test-en',
+        'test-es',
+      ])) as { id: string; label: string; language: string; version: string }[];
       expect(lexicons).toHaveLength(2);
+      await db.close();
     });
 
     it('should call progress callback', async () => {
@@ -111,9 +128,14 @@ describe('Data Management', () => {
 
       await addLexicalResource(xmlPath, { force: true });
 
+      await db.initialize();
       // Verify lexicons were added
-      const lexicons = await db.all('SELECT * FROM lexicons WHERE id IN (?, ?)', ['test-en', 'test-es']) as { id: string; label: string; language: string; version: string }[];
+      const lexicons = (await db.all('SELECT * FROM lexicons WHERE id IN (?, ?)', [
+        'test-en',
+        'test-es',
+      ])) as { id: string; label: string; language: string; version: string }[];
       expect(lexicons).toHaveLength(2);
+      await db.close();
     });
   });
 
@@ -128,26 +150,46 @@ describe('Data Management', () => {
       expect(existsSync(xmlPath)).toBe(true);
       await add(xmlPath, { force: true });
 
+      await db.initialize();
       // Verify it exists
-      let lexicons = await db.all('SELECT * FROM lexicons WHERE id = ?', ['test-en']) as { id: string; label: string; language: string; version: string }[];
+      let lexicons = (await db.all('SELECT * FROM lexicons WHERE id = ?', [
+        'test-en',
+      ])) as { id: string; label: string; language: string; version: string }[];
+
+      await db.close();
+
       expect(lexicons).toHaveLength(1);
 
       // Remove it
       await remove('test-en');
 
+      await db.initialize();
       // Verify it's gone
-      lexicons = await db.all('SELECT * FROM lexicons WHERE id = ?', ['test-en']) as { id: string; label: string; language: string; version: string }[];
+      lexicons = (await db.all('SELECT * FROM lexicons WHERE id = ?', ['test-en'])) as {
+        id: string;
+        label: string;
+        language: string;
+        version: string;
+      }[];
       expect(lexicons).toHaveLength(0);
 
       // Verify the other lexicon is still there
-      lexicons = await db.all('SELECT * FROM lexicons WHERE id = ?', ['test-es']) as { id: string; label: string; language: string; version: string }[];
+      lexicons = (await db.all('SELECT * FROM lexicons WHERE id = ?', ['test-es'])) as {
+        id: string;
+        label: string;
+        language: string;
+        version: string;
+      }[];
       expect(lexicons).toHaveLength(1);
+      await db.close();
     });
   });
 
   describe('exportData', () => {
     it('should throw ProjectError for unsupported format', async () => {
-      await expect(exportData({ format: 'unsupported' as any })).rejects.toThrow(ProjectError);
+      await expect(exportData({ format: 'unsupported' as any })).rejects.toThrow(
+        ProjectError
+      );
     });
 
     it('should export JSON format', async () => {
@@ -164,7 +206,7 @@ describe('Data Management', () => {
       expect(loggerSpy).toHaveBeenCalled();
       const output = loggerSpy.mock.calls[0][0];
       const data = JSON.parse(output);
-      
+
       expect(data).toHaveProperty('lexicons');
       expect(data).toHaveProperty('exportDate');
       expect(data).toHaveProperty('format', 'json');
@@ -181,9 +223,9 @@ describe('Data Management', () => {
 
       const loggerSpy = vi.spyOn(logger, 'info').mockImplementation(() => {});
 
-      await exportData({ 
+      await exportData({
         format: 'json',
-        include: ['test-en']
+        include: ['test-en'],
       });
 
       const output = loggerSpy.mock.calls[0][0];
@@ -202,9 +244,9 @@ describe('Data Management', () => {
 
       const loggerSpy = vi.spyOn(logger, 'info').mockImplementation(() => {});
 
-      await exportData({ 
+      await exportData({
         format: 'json',
-        exclude: ['test-en']
+        exclude: ['test-en'],
       });
 
       const output = loggerSpy.mock.calls[0][0];
@@ -227,7 +269,7 @@ describe('Data Management', () => {
 
       expect(loggerSpy).toHaveBeenCalled();
       const output = loggerSpy.mock.calls[0][0];
-      
+
       expect(output).toContain('<?xml version="1.0" encoding="UTF-8"?>');
       expect(output).toContain('<lexical-resources>');
       expect(output).toContain('</lexical-resources>');
@@ -247,11 +289,13 @@ describe('Data Management', () => {
 
       expect(loggerSpy).toHaveBeenCalled();
       const output = loggerSpy.mock.calls[0][0];
-      
-      expect(output).toContain('Type,ID,Lemma,PartOfSpeech,Language,Lexicon,Definition,Example');
+
+      expect(output).toContain(
+        'Type,ID,Lemma,PartOfSpeech,Language,Lexicon,Definition,Example'
+      );
       expect(output).toContain('word,');
 
       loggerSpy.mockRestore();
     });
   });
-}); 
+});

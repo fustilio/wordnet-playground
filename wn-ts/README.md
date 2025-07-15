@@ -1,5 +1,20 @@
 # WordNet TypeScript Port
 
+## 🌐 Browser Support & Node-to-Browser Strategy
+
+A major goal for `wn-ts` is seamless support for both Node.js and browser environments, following the proven strategy of `wordpos` and `wordpos-web`. The plan includes:
+
+- **Data Conversion Script:** Convert WordNet data to browser-optimized modules (see Implementation Plan in [wn-ts-web/README.md](../wn-ts-web/README.md)).
+- **Dynamic Data Loader:** Load data modules on demand in the browser, minimizing memory and bandwidth usage.
+- **API Parity:** Expose the same API in both environments, with any browser-specific differences clearly documented.
+- **Documentation & Checklist:** Track all progress and rationale in this README and in `wn-ts-web/README.md`.
+
+> **Note:** Tool-specific tests for browser tooling (such as the data conversion script) are colocated in `wn-ts/tools/tests/` rather than the main `tests/` directory. This keeps the core test suite focused on the library itself and clarifies the external/plugin nature of these tools.
+
+**See the Implementation Plan & Checklist in [wn-ts-web/README.md](../wn-ts-web/README.md) for detailed progress and technical steps.**
+
+---
+
 A modern TypeScript implementation of the [wn library](https://github.com/goodmami/wn) for accessing WordNet data. This port provides full API parity with the Python `wn` library while leveraging TypeScript's type safety and modern JavaScript features.
 
 ## 🎯 Status: 95% Complete
@@ -405,3 +420,32 @@ MIT License - see [LICENSE](./LICENSE) file for details.
 - ✅ Unified CLI with database management commands
 - ✅ Comprehensive CLI documentation
 - ✅ Removed standalone scripts in favor of unified CLI
+
+## 🌐 Node-to-Browser Strategy: Enabling Full Browser Support
+
+A major goal for `wn-ts` is to provide seamless support for both Node.js and browser environments, following the proven strategy of `wordpos` and `wordpos-web`. Here’s how this will be achieved:
+
+### Lessons from wordpos/wordpos-web
+- **Dual Environment Support:** `wordpos` uses a single codebase with separate entry points for Node.js and browser, exposing the same API in both environments.
+- **Browser Data Preparation:** For browser use, WordNet data is preprocessed into JSON/JS modules, which are loaded dynamically in the browser, avoiding filesystem access.
+- **Consistent API:** Both builds offer the same API, so code and tests are portable across environments.
+- **Web Demo:** `wordpos-web` provides a static demo and distribution, bundling the browser build and data files for easy deployment.
+
+### Planned Approach for wn-ts and wn-ts-web
+- **Unified TypeScript Codebase:** `wn-ts` will maintain a single codebase with environment-specific entry points (using the `browser` field in `package.json`).
+- **Browser Data Bundling:** A build process will convert WordNet data into browser-usable formats (JSON or JS modules), loaded dynamically or statically in the browser.
+- **API Parity:** The same API will be exposed in both Node.js and browser builds.
+- **Web Demo & Distribution:** `wn-ts-web` will serve as a static demo and distribution, bundling the browser build and data files, and providing example usage.
+- **Comprehensive Testing:** Tests will ensure feature parity and correctness across both environments.
+
+### Benefits
+- **Universal Access:** Enables WordNet-powered apps to run in browsers, Node.js, and serverless platforms.
+- **Performance:** Preprocessing and bundling data for the browser enables fast, interactive web experiences.
+- **Modern Standards:** Leverages ES modules, bundlers, and static hosting for compatibility and performance.
+
+**Next Steps:**
+- Implement the browser build and data pipeline for `wn-ts`.
+- Develop the `wn-ts-web` demo and static distribution.
+- Ensure all APIs are available and tested in both environments.
+
+For more, see the [wordpos README](../wordpos/README.md) and [wordpos-web](../wordpos-web/README.md) for a working example of this strategy.
