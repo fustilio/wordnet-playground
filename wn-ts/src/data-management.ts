@@ -1,7 +1,7 @@
 import { join } from 'path';
 import { existsSync } from 'fs';
 import { config } from './config.js';
-import { db } from './database.js';
+import { db } from './db/database.js';
 import { downloadFile } from './utils/download.js';
 import { loadLMF, isLMF } from './lmf.js';
 import { getProjectVersionUrls, getProjectVersionError } from './project.js';
@@ -15,35 +15,10 @@ import {
 } from './utils/archive.js';
 import { isILI, loadILI } from './ili.js';
 import { logger } from './utils/logger.js';
+import {
 
-/**
- * Helper to batch insert data into SQLite to avoid performance issues.
- */
-async function batchInsert(
-  tableName: string,
-  columns: string[],
-  data: any[][]
-): Promise<void> {
-  if (data.length === 0) return;
-
-  // SQLite has a default limit of 999 variables per statement.
-  // We'll use a slightly lower number to be safe.
-  const MAX_VARS = 900;
-  const batchSize = Math.floor(MAX_VARS / columns.length);
-  const colNames = columns.join(', ');
-
-  for (let i = 0; i < data.length; i += batchSize) {
-    const batch = data.slice(i, i + batchSize);
-    if (batch.length === 0) continue;
-
-    const placeholders = batch
-      .map(() => `(${columns.map(() => '?').join(', ')})`)
-      .join(', ');
-    const params = batch.flat();
-    const sql = `INSERT OR REPLACE INTO ${tableName} (${colNames}) VALUES ${placeholders}`;
-    await db.run(sql, params);
-  }
-}
+  batchInsert,
+} from './db/batch-insert.js';
 
 /**
  * Download a project from the web
@@ -179,32 +154,28 @@ async function _addIli(path: string, options: AddOptions): Promise<void> {
     null, // meta
   ]);
 
-  await db.initialize();
+  db.initialize();
   try {
-    await db.run('BEGIN TRANSACTION');
-    try {
+    db.transaction(() => {
       logger.insert('Inserting ILI records...');
-      await batchInsert(
+      batchInsert(
         'ilis',
         ['id', 'definition', 'status', 'superseded_by', 'note', 'meta'],
-        records
+        records,
+        progress ? p => progress(0.5 + p * 0.5) : undefined
       );
-      await db.run('COMMIT');
-      if (progress) progress(1.0);
-      logger.success('ILI data added successfully.');
-    } catch (error) {
-      await db.run('ROLLBACK');
-      throw error;
-    }
+    });
+    if (progress) progress(1.0);
+    logger.success('ILI data added successfully.');
   } finally {
-    await db.close();
+    db.close();
   }
 }
 
 async function _addLmf(path: string, options: AddOptions): Promise<void> {
   const { force = false, progress } = options;
 
-  await db.initialize();
+  db.initialize();
   try {
     logger.info(`Loading LMF file: ${path}...`);
     const lmfOptions: any = { debug: false };
@@ -215,7 +186,7 @@ async function _addLmf(path: string, options: AddOptions): Promise<void> {
     // Pre-check lexicons before transaction
     if (!force) {
       for (const lexicon of lmfData.lexicons || []) {
-        const existing = await db.get(
+        const existing = db.get(
           'SELECT id FROM lexicons WHERE id = ? AND version = ?',
           [lexicon.id, lexicon.version]
         );
@@ -227,9 +198,7 @@ async function _addLmf(path: string, options: AddOptions): Promise<void> {
       }
     }
 
-    await db.run('BEGIN TRANSACTION');
-
-    try {
+    db.transaction(() => {
       logger.insert('Inserting lexicons...');
       const lexiconData = (lmfData.lexicons || []).map(lexicon => [
         lexicon.id,
@@ -242,7 +211,7 @@ async function _addLmf(path: string, options: AddOptions): Promise<void> {
         lexicon.citation,
         lexicon.logo,
       ]);
-      await batchInsert(
+      batchInsert(
         'lexicons',
         [
           'id',
@@ -255,7 +224,12 @@ async function _addLmf(path: string, options: AddOptions): Promise<void> {
           'citation',
           'logo',
         ],
-        lexiconData
+        lexiconData,
+        p => {
+          progress?.(0.01 + p * 0.09); // 0.01-0.1
+
+          logger.insert('lexicon progress', p);
+        }
       );
 
       logger.insert('Inserting words...');
@@ -266,10 +240,15 @@ async function _addLmf(path: string, options: AddOptions): Promise<void> {
         word.language,
         word.lexicon,
       ]);
-      await batchInsert(
+      batchInsert(
         'words',
         ['id', 'lemma', 'part_of_speech', 'language', 'lexicon'],
-        wordData
+        wordData,
+        p => {
+          progress?.(0.1 + p * 0.2); // 0.1-0.3
+
+          logger.insert('word progress', p);
+        }
       );
 
       logger.insert('Inserting forms...');
@@ -282,10 +261,15 @@ async function _addLmf(path: string, options: AddOptions): Promise<void> {
           form.tag,
         ])
       );
-      await batchInsert(
+      batchInsert(
         'forms',
         ['id', 'word_id', 'written_form', 'script', 'tag'],
-        formData
+        formData,
+        p => {
+          progress?.(0.3 + p * 0.1); // 0.3-0.4
+
+          logger.insert('form progress', p);
+        }
       );
 
       logger.insert('Inserting synsets...');
@@ -296,10 +280,15 @@ async function _addLmf(path: string, options: AddOptions): Promise<void> {
         synset.language,
         synset.lexicon,
       ]);
-      await batchInsert(
+      batchInsert(
         'synsets',
         ['id', 'ili', 'part_of_speech', 'language', 'lexicon'],
-        synsetData
+        synsetData,
+        p => {
+          progress?.(0.4 + p * 0.1); // 0.4-0.5
+
+          logger.insert('synset progress', p);
+        }
       );
 
       logger.insert('Inserting definitions...');
@@ -312,10 +301,15 @@ async function _addLmf(path: string, options: AddOptions): Promise<void> {
           def.source,
         ])
       );
-      await batchInsert(
+      batchInsert(
         'definitions',
         ['id', 'synset_id', 'language', 'text', 'source'],
-        definitionData
+        definitionData,
+        p => {
+          progress?.(0.5 + p * 0.1); // 0.5-0.6
+
+          logger.insert('definition progress', p);
+        }
       );
 
       logger.insert('Inserting relations...');
@@ -328,10 +322,15 @@ async function _addLmf(path: string, options: AddOptions): Promise<void> {
           rel.source,
         ])
       );
-      await batchInsert(
+      batchInsert(
         'relations',
         ['id', 'source_id', 'target_id', 'type', 'source'],
-        relationData
+        relationData,
+        p => {
+          progress?.(0.6 + p * 0.1); // 0.6-0.7
+
+          logger.insert('relation progress', p);
+        }
       );
 
       logger.insert('Inserting senses...');
@@ -346,7 +345,7 @@ async function _addLmf(path: string, options: AddOptions): Promise<void> {
         (sense as any).domain,
         (sense as any).register,
       ]);
-      await batchInsert(
+      batchInsert(
         'senses',
         [
           'id',
@@ -359,7 +358,12 @@ async function _addLmf(path: string, options: AddOptions): Promise<void> {
           'domain',
           'register',
         ],
-        senseData
+        senseData,
+        p => {
+          progress?.(0.7 + p * 0.1); // 0.7-0.8
+
+          logger.insert('sense progress', p);
+        }
       );
 
       logger.insert('Inserting examples...');
@@ -383,22 +387,23 @@ async function _addLmf(path: string, options: AddOptions): Promise<void> {
           ex.source,
         ])
       );
-      await batchInsert(
+      batchInsert(
         'examples',
         ['id', 'synset_id', 'sense_id', 'language', 'text', 'source'],
-        [...synsetExampleData, ...senseExampleData]
+        [...synsetExampleData, ...senseExampleData],
+        p => {
+          progress?.(0.8 + p * 0.19); // 0.8-0.99
+
+          logger.insert('example progress', p);
+        }
       );
 
       logger.insert('Committing transaction...');
-      await db.run('COMMIT');
-      if (progress) progress(1.0);
-      logger.success('Data added successfully.');
-    } catch (error) {
-      await db.run('ROLLBACK');
-      throw error;
-    }
+    });
+    if (progress) progress(1.0);
+    logger.success('Data added successfully.');
   } finally {
-    await db.close();
+    db.close();
   }
 }
 
@@ -406,24 +411,21 @@ async function _addLmf(path: string, options: AddOptions): Promise<void> {
  * Remove a lexicon from the database
  */
 export async function remove(lexiconId: string): Promise<void> {
-  await db.initialize();
+  db.initialize();
   try {
-    const existing = await db.get('SELECT id FROM lexicons WHERE id = ?', [lexiconId]);
+    const existing = db.get('SELECT id FROM lexicons WHERE id = ?', [lexiconId]);
     if (!existing) {
       throw new ProjectError(`Lexicon ${lexiconId} not found.`);
     }
 
-    await db.run('BEGIN TRANSACTION');
-    try {
+    db.transaction(() => {
       const BATCH_SIZE = 500; // A safe limit for SQLite
 
       // Get IDs to be deleted
-      const words = await db.all('SELECT id FROM words WHERE lexicon = ?', [lexiconId]);
+      const words = db.all('SELECT id FROM words WHERE lexicon = ?', [lexiconId]);
       const wordIds = (words as { id: string }[]).map(w => w.id);
 
-      const synsets = await db.all('SELECT id FROM synsets WHERE lexicon = ?', [
-        lexiconId,
-      ]);
+      const synsets = db.all('SELECT id FROM synsets WHERE lexicon = ?', [lexiconId]);
       const synsetIds = (synsets as { id: string }[]).map(s => s.id);
 
       // Batch delete from child tables first to avoid cascade issues
@@ -431,30 +433,18 @@ export async function remove(lexiconId: string): Promise<void> {
         const batch = wordIds.slice(i, i + BATCH_SIZE);
         if (batch.length === 0) continue;
         const placeholders = batch.map(() => '?').join(',');
-        await db.run(`DELETE FROM senses WHERE word_id IN (${placeholders})`, batch);
-        await db.run(`DELETE FROM forms WHERE word_id IN (${placeholders})`, batch);
+        db.run(`DELETE FROM senses WHERE word_id IN (${placeholders})`, batch);
+        db.run(`DELETE FROM forms WHERE word_id IN (${placeholders})`, batch);
       }
 
       for (let i = 0; i < synsetIds.length; i += BATCH_SIZE) {
         const batch = synsetIds.slice(i, i + BATCH_SIZE);
         if (batch.length === 0) continue;
         const placeholders = batch.map(() => '?').join(',');
-        await db.run(
-          `DELETE FROM relations WHERE source_id IN (${placeholders})`,
-          batch
-        );
-        await db.run(
-          `DELETE FROM relations WHERE target_id IN (${placeholders})`,
-          batch
-        );
-        await db.run(
-          `DELETE FROM definitions WHERE synset_id IN (${placeholders})`,
-          batch
-        );
-        await db.run(
-          `DELETE FROM examples WHERE synset_id IN (${placeholders})`,
-          batch
-        );
+        db.run(`DELETE FROM relations WHERE source_id IN (${placeholders})`, batch);
+        db.run(`DELETE FROM relations WHERE target_id IN (${placeholders})`, batch);
+        db.run(`DELETE FROM definitions WHERE synset_id IN (${placeholders})`, batch);
+        db.run(`DELETE FROM examples WHERE synset_id IN (${placeholders})`, batch);
       }
 
       // Now delete from parent tables, which should now be safe.
@@ -464,24 +454,19 @@ export async function remove(lexiconId: string): Promise<void> {
         const batch = wordIds.slice(i, i + BATCH_SIZE);
         if (batch.length === 0) continue;
         const placeholders = batch.map(() => '?').join(',');
-        await db.run(`DELETE FROM words WHERE id IN (${placeholders})`, batch);
+        db.run(`DELETE FROM words WHERE id IN (${placeholders})`, batch);
       }
 
       for (let i = 0; i < synsetIds.length; i += BATCH_SIZE) {
         const batch = synsetIds.slice(i, i + BATCH_SIZE);
         if (batch.length === 0) continue;
         const placeholders = batch.map(() => '?').join(',');
-        await db.run(`DELETE FROM synsets WHERE id IN (${placeholders})`, batch);
+        db.run(`DELETE FROM synsets WHERE id IN (${placeholders})`, batch);
       }
 
       // Finally, delete the lexicon itself.
-      await db.run('DELETE FROM lexicons WHERE id = ?', [lexiconId]);
-
-      await db.run('COMMIT');
-    } catch (error) {
-      await db.run('ROLLBACK');
-      throw error;
-    }
+      db.run('DELETE FROM lexicons WHERE id = ?', [lexiconId]);
+    });
   } catch (error) {
     if (error instanceof ProjectError) {
       throw error;
@@ -490,7 +475,7 @@ export async function remove(lexiconId: string): Promise<void> {
       `Failed to remove lexicon: ${error instanceof Error ? error.message : String(error)}`
     );
   } finally {
-    await db.close();
+    db.close();
   }
 }
 
@@ -504,10 +489,10 @@ export async function exportData(options: ExportOptions): Promise<void> {
     throw new ProjectError(`Unsupported export format: ${format}`);
   }
 
-  await db.initialize();
+  db.initialize();
   try {
     // Get all lexicons
-    const lexicons = await db.all('SELECT * FROM lexicons');
+    const lexicons = db.all('SELECT * FROM lexicons');
 
     // Filter lexicons based on include/exclude
     let filteredLexicons = lexicons;
@@ -552,7 +537,7 @@ export async function exportData(options: ExportOptions): Promise<void> {
       `Failed to export data: ${error instanceof Error ? error.message : String(error)}`
     );
   } finally {
-    await db.close();
+    db.close();
   }
 }
 
@@ -580,18 +565,18 @@ async function exportToXML(lexicons: unknown[]): Promise<string> {
     xml += `  <lexicon id="${lexicon.id}" label="${lexicon.label}" language="${lexicon.language}">\n`;
 
     // Get words for this lexicon
-    const words = await db.all('SELECT * FROM words WHERE lexicon = ?', [lexicon.id]);
+    const words = db.all('SELECT * FROM words WHERE lexicon = ?', [lexicon.id]);
     for (const word of words as any[]) {
       xml += `    <word id="${word.id}" lemma="${word.lemma}" pos="${word.part_of_speech}">\n`;
 
       // Get forms for this word
-      const forms = await db.all('SELECT * FROM forms WHERE word_id = ?', [word.id]);
+      const forms = db.all('SELECT * FROM forms WHERE word_id = ?', [word.id]);
       for (const form of forms as any[]) {
         xml += `      <form written="${form.written_form}" script="${form.script || ''}" tag="${form.tag || ''}"/>\n`;
       }
 
       // Get senses for this word
-      const senses = await db.all('SELECT * FROM senses WHERE word_id = ?', [word.id]);
+      const senses = db.all('SELECT * FROM senses WHERE word_id = ?', [word.id]);
       for (const sense of senses as any[]) {
         xml += `      <sense id="${sense.id}" synset="${sense.synset_id}"/>\n`;
       }
@@ -600,23 +585,20 @@ async function exportToXML(lexicons: unknown[]): Promise<string> {
     }
 
     // Get synsets for this lexicon
-    const synsets = await db.all('SELECT * FROM synsets WHERE lexicon = ?', [
-      lexicon.id,
-    ]);
+    const synsets = db.all('SELECT * FROM synsets WHERE lexicon = ?', [lexicon.id]);
     for (const synset of synsets as any[]) {
       xml += `    <synset id="${synset.id}" pos="${synset.part_of_speech}">\n`;
 
       // Get definitions for this synset
-      const definitions = await db.all(
-        'SELECT * FROM definitions WHERE synset_id = ?',
-        [synset.id]
-      );
+      const definitions = db.all('SELECT * FROM definitions WHERE synset_id = ?', [
+        synset.id,
+      ]);
       for (const def of definitions as any[]) {
         xml += `      <definition language="${def.language}">${def.text}</definition>\n`;
       }
 
       // Get examples for this synset
-      const examples = await db.all('SELECT * FROM examples WHERE synset_id = ?', [
+      const examples = db.all('SELECT * FROM examples WHERE synset_id = ?', [
         synset.id,
       ]);
       for (const example of examples as any[]) {
@@ -644,20 +626,19 @@ async function exportToCSV(lexicons: unknown[]): Promise<string> {
 
   for (const lexicon of lexicons as Record<string, any>[]) {
     // Get words for this lexicon
-    const words = await db.all('SELECT * FROM words WHERE lexicon = ?', [lexicon.id]);
+    const words = db.all('SELECT * FROM words WHERE lexicon = ?', [lexicon.id]);
     for (const word of words as Record<string, any>[]) {
       // Get definitions and examples for this word's synsets
-      const senses = await db.all('SELECT * FROM senses WHERE word_id = ?', [word.id]);
+      const senses = db.all('SELECT * FROM senses WHERE word_id = ?', [word.id]);
       for (const sense of senses as any[]) {
-        const synset = (await db.get('SELECT * FROM synsets WHERE id = ?', [
+        const synset = db.get('SELECT * FROM synsets WHERE id = ?', [
           sense.synset_id,
-        ])) as { id: string } | undefined;
+        ]) as { id: string } | undefined;
         if (synset) {
-          const definitions = await db.all(
-            'SELECT * FROM definitions WHERE synset_id = ?',
-            [synset.id]
-          );
-          const examples = await db.all('SELECT * FROM examples WHERE synset_id = ?', [
+          const definitions = db.all('SELECT * FROM definitions WHERE synset_id = ?', [
+            synset.id,
+          ]);
+          const examples = db.all('SELECT * FROM examples WHERE synset_id = ?', [
             synset.id,
           ]);
 

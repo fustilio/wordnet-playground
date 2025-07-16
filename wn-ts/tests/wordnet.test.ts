@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Wordnet } from '../src/wordnet';
 import { config } from '../src/config';
-import { db } from '../src/database';
+import { db } from '../src/db/database';
 import { testUtils } from './setup';
 
 describe('Wordnet', () => {
@@ -9,6 +9,7 @@ describe('Wordnet', () => {
     // Reset database for each test
     await db.close();
     config.dataDirectory = testUtils.getTestDataDir();
+    db.initialize();
   });
 
   describe('lexicons', () => {

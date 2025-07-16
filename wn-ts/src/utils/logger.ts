@@ -119,17 +119,18 @@ class Logger {
 // Global logger instance
 export const logger = new Logger();
 
-// Environment-based configuration
-if (process.env.WN_TS_LOG_LEVEL) {
-  const level = parseInt(process.env.WN_TS_LOG_LEVEL);
-  if (!isNaN(level) && level >= 0 && level <= 5) {
-    logger.setLevel(level);
-  }
-}
-
 // Test environment: be more quiet by default
 if (process.env.NODE_ENV === 'test') {
   logger.setLevel(LogLevel.ERROR);
 }
 
-export { Logger }; 
+// Environment-based configuration
+if (process.env.WN_TS_LOG_LEVEL) {
+  const level = parseInt(process.env.WN_TS_LOG_LEVEL);
+
+  if (!isNaN(level) && level >= 0 && level <= 5) {
+    logger.setLevel(level);
+  }
+}
+
+export { Logger };

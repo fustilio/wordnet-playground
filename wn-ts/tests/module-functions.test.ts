@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, beforeAll } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
   projects,
   lexicons,
@@ -12,12 +12,9 @@ import {
   ilis,
 } from '../src/module-functions';
 import { add } from '../src/data-management';
-import { db } from '../src/database';
-import { config } from '../src/config';
 import { testUtils } from './setup';
 import { join } from 'path';
 import { existsSync } from 'fs';
-import { Wordnet } from '../src/wordnet';
 
 describe('Module Functions', () => {
   beforeEach(async () => {

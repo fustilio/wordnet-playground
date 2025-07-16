@@ -1,8 +1,10 @@
-import Database from 'sqlite3';
+import Database from 'better-sqlite3';
 import { join } from 'path';
 import { existsSync } from 'fs';
-import { config } from './config.js';
-import { DatabaseError } from './types.js';
+import { config } from '../config.js';
+import { DatabaseError } from '../types.js';
+
+export type Database = Database.Database;
 
 export class DatabaseManager {
   private db: Database.Database | null = null;
@@ -11,42 +13,18 @@ export class DatabaseManager {
     return join(config.dataDirectory, 'wn.db');
   }
 
-  async initialize(): Promise<void> {
-    if (this.db) {
-      return;
+  initialize(): void {
+    if (this.db) return;
+    const dbExists = existsSync(this.dbPath);
+    this.db = new Database(this.dbPath);
+    this.db.pragma('foreign_keys = ON');
+    if (!dbExists) {
+      this.createTables();
     }
-
-    return new Promise((resolve, reject) => {
-      const dbExists = existsSync(this.dbPath);
-      
-      this.db = new Database.Database(this.dbPath, (err) => {
-        if (err) {
-          reject(new DatabaseError(`Failed to open database: ${err.message}`));
-          return;
-        }
-
-        this.db!.run('PRAGMA foreign_keys = ON', (err) => {
-          if (err) {
-            reject(new DatabaseError(`Failed to enable foreign keys: ${err.message}`));
-            return;
-          }
-          if (!dbExists) {
-            this.createTables()
-              .then(() => resolve())
-              .catch(reject);
-          } else {
-            resolve();
-          }
-        });
-      });
-    });
   }
 
-  private async createTables(): Promise<void> {
-    if (!this.db) {
-      throw new DatabaseError('Database not initialized');
-    }
-
+  private createTables(): void {
+    if (!this.db) throw new DatabaseError('Database not initialized');
     const schema = `
       CREATE TABLE IF NOT EXISTS lexicons (
         id TEXT PRIMARY KEY,
@@ -149,88 +127,42 @@ export class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_examples_synset_id ON examples (synset_id);
       CREATE INDEX IF NOT EXISTS idx_examples_sense_id ON examples (sense_id);
     `;
-
-    return new Promise((resolve, reject) => {
-      this.db!.exec(schema, (err) => {
-        if (err) {
-          reject(new DatabaseError(`Failed to create tables: ${err.message}`));
-        } else {
-          resolve();
-        }
-      });
-    });
+    this.db.exec(schema);
   }
 
-  async close(): Promise<void> {
+  close(): void {
     if (this.db) {
-      return new Promise((resolve, reject) => {
-        this.db!.close((err) => {
-          if (err) {
-            reject(new DatabaseError(`Failed to close database: ${err.message}`));
-          } else {
-            this.db = null;
-            resolve();
-          }
-        });
-      });
+      this.db.close();
+      this.db = null;
     }
   }
 
-  async run(sql: string, params: unknown[] = []): Promise<Database.RunResult> {
-    if (!this.db) {
-      throw new DatabaseError('Database not initialized');
-    }
-
-    return new Promise((resolve, reject) => {
-      this.db!.run(sql, params, function(err) {
-        if (err) {
-          reject(new DatabaseError(`Database operation failed: ${err.message}`));
-        } else {
-          resolve(this);
-        }
-      });
-    });
+  run(sql: string, params: unknown[] = []): Database.RunResult {
+    if (!this.db) throw new DatabaseError('Database not initialized');
+    return this.db.prepare(sql).run(...params);
   }
 
-  async get<T = unknown>(sql: string, params: unknown[] = []): Promise<T | undefined> {
-    if (!this.db) {
-      throw new DatabaseError('Database not initialized');
-    }
-
-    return new Promise((resolve, reject) => {
-      this.db!.get(sql, params, (err, row) => {
-        if (err) {
-          reject(new DatabaseError(`Database query failed: ${err.message}`));
-        } else {
-          resolve(row as T);
-        }
-      });
-    });
+  get<T = unknown>(sql: string, params: unknown[] = []): T | undefined {
+    if (!this.db) throw new DatabaseError('Database not initialized');
+    return this.db.prepare(sql).get(...params) as T;
   }
 
-  async all<T = unknown>(sql: string, params: unknown[] = []): Promise<T[]> {
-    if (!this.db) {
-      throw new DatabaseError('Database not initialized');
-    }
+  all<T = unknown>(sql: string, params: unknown[] = []): T[] {
+    if (!this.db) throw new DatabaseError('Database not initialized');
+    return this.db.prepare(sql).all(...params) as T[];
+  }
 
-    return new Promise((resolve, reject) => {
-      this.db!.all(sql, params, (err, rows) => {
-        if (err) {
-          reject(new DatabaseError(`Database query failed: ${err.message}`));
-        } else {
-          resolve(rows as T[]);
-        }
-      });
-    });
+  transaction(fn: () => void): void {
+    if (!this.db) throw new DatabaseError('Database not initialized');
+    this.db.transaction(fn)();
   }
 
   clearConnections(): void {
-    // This is a placeholder for compatibility with the Python version
-    // In Node.js, we don't need to explicitly clear connections
+    // No-op for better-sqlite3
   }
 
-  async reset(): Promise<void> {
-    await this.close();
+  reset(): void {
+    this.close();
     this.db = null;
   }
 }
@@ -238,9 +170,9 @@ export class DatabaseManager {
 export const db = new DatabaseManager();
 
 // Gracefully close the database on process exit or unhandled errors
-const gracefulShutdown = async () => {
+const gracefulShutdown = () => {
   try {
-    await db.close();
+    db.close();
   } catch (err) {
     // Ignore errors if already closed
   }
@@ -250,4 +182,4 @@ process.on('exit', gracefulShutdown);
 process.on('SIGINT', gracefulShutdown);
 process.on('SIGTERM', gracefulShutdown);
 process.on('uncaughtException', gracefulShutdown);
-process.on('unhandledRejection', gracefulShutdown); 
+process.on('unhandledRejection', gracefulShutdown);

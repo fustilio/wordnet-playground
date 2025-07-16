@@ -3,7 +3,7 @@ import { join, dirname } from 'path';
 import { mkdtempSync, rmSync, existsSync } from 'fs';
 import { tmpdir } from 'os';
 import { config } from '../src/config';
-import { db } from '../src/database';
+import { db } from '../src/db/database';
 import { fileURLToPath } from 'url';
 
 let testDataDir: string;

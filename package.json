@@ -1,8 +1,8 @@
 {
   "name": "wordnet-workspace",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "private": true,
-  "description": "WordNet TypeScript port with demo and benchmarks",
+  "description": "WordNet TypeScript implementation with demo and benchmarks",
   "repository": {
     "type": "git",
     "url": "https://github.com/fustilio/wordnet-playground.git"
@@ -11,12 +11,12 @@
   "author": "fustilio",
   "type": "module",
   "scripts": {
-    "autotest": "pnpm --filter wn-demo test",
+    "autotest": "pnpm --filter wn-ts test",
     "benchmark": "pnpm --filter wordnet-benchmark test:bench",
     "benchmark:cross": "pnpm --filter wordnet-benchmark test:bench:cross",
     "benchmark:func": "pnpm --filter wordnet-benchmark test:func",
     "benchmark:lmf": "pnpm --filter wordnet-benchmark test:bench:lmf",
-    "benchmark:operations": "pnpm --filter wordnet-benchmark test:bench:operations",
+  "benchmark:operations": "pnpm --filter wordnet-benchmark test:bench:operations",
     "benchmark:parity": "pnpm --filter wordnet-benchmark test:parity",
     "benchmark:perf": "pnpm --filter wordnet-benchmark test:perf",
     "build": "pnpm --filter wn-ts build",
@@ -33,7 +33,8 @@
     "test": "pnpm --filter wn-ts test",
     "test:bench": "pnpm --filter wn-ts test:bench",
     "test:coverage": "pnpm --filter wn-ts test:coverage",
-    "test:e2e": "pnpm --filter wn-ts test:e2e"
+    "test:e2e": "pnpm --filter wn-ts test:e2e",
+    "dev": "pnpm --filter wn-cli... dev"
   },
   "devDependencies": {},
   "engines": {

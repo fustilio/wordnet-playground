@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import {
   download,
   add,
@@ -6,7 +6,7 @@ import {
   remove,
   exportData,
 } from '../src/data-management';
-import { db } from '../src/database';
+import { db } from '../src/db/database';
 import { config } from '../src/config';
 import { testUtils } from './setup';
 import { ProjectError, DatabaseError } from '../src/types';
@@ -34,11 +34,14 @@ function uniqueLexiconFile(testDataDir: string) {
 
 describe('Data Management', () => {
   beforeEach(async () => {
-    // Reset database for each test
-    await db.close();
     config.dataDirectory = testUtils.getTestDataDir();
     // Initialize database for tests
     await db.initialize();
+  });
+
+  afterEach(async () => {
+    // Close database connection after each test
+    await db.close();
   });
 
   describe('download', () => {

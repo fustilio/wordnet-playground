@@ -1,6 +1,6 @@
 {
   "name": "wn-ts",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "Wordnet interface library - TypeScript port",
   "keywords": [
     "wordnet",
@@ -69,16 +69,17 @@
   ],
   "dependencies": {
     "@types/sax": "^1.2.7",
+    "better-sqlite3": "^12.2.0",
     "commander": "^14.0.0",
     "fast-xml-parser": "^5.2.5",
     "lzma-native": "^8.0.6",
     "pythonia": "catalog:",
     "sax": "^1.4.1",
-    "smol-toml": "^1.4.1",
-    "sqlite3": "^5.1.6"
+    "smol-toml": "^1.4.1"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.7",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "catalog:",
     "@typescript-eslint/eslint-plugin": "catalog:",
     "@typescript-eslint/parser": "catalog:",
