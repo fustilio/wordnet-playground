@@ -49,6 +49,10 @@ export {
 } from './project.js';
 export type { ProjectIndex, ProjectVersion } from './project.js';
 
+// Browser data generation tool
+export { makeBrowserData } from './browser-data.js';
+export type { MakeBrowserDataOptions } from './browser-data.js';
+
 // Types and interfaces
 export type {
   Word,
