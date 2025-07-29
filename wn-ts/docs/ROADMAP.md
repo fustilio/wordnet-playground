@@ -2,6 +2,8 @@
 
 Go beyond simple lookups and unlock the full potential of WordNet with these "superpower" operations. These examples show how to combine different `wn-ts` functions to perform complex semantic analysis.
 
+> **For detailed code examples and API usage, see [USAGE.md](./USAGE.md#advancedsuperpower-use-cases)**
+
 ### 1. Conceptual Difference Analysis
 
 **Problem**: You know "king" and "president" are both leaders, but what's the fundamental difference between them?

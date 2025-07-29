@@ -176,6 +176,42 @@ const oewnVersions = getProjectVersions('oewn');
   await exportData({ format: 'json', output: 'wn-export.json', include: ['oewn'] });
   ```
 
+### Dry Run and Upsert Support
+
+#### Dry Run Mode
+
+You can perform a dry run of data management operations (download, add) to preview what would happen without making any changes. Use the `dryRun` option in the API or the `--dry-run` flag in the CLI.
+
+**API Example:**
+```typescript
+await download('oewn:2024', { dryRun: true });
+await add('oewn-2024-english-wordnet-2024.xml.gz', { dryRun: true });
+```
+
+**CLI Example:**
+```bash
+wn-cli data download oewn:2024 --dry-run
+wn-cli data add oewn-2024-english-wordnet-2024.xml.gz --dry-run
+```
+
+#### Upsert (Update or Insert) Behavior
+
+When adding a lexicon, the operation is an upsert by default:
+- If the lexicon does not exist, it is inserted.
+- If the lexicon exists, it is updated (replaced) with the new data. Use the `force` option/flag to force a full replacement.
+
+**API Example:**
+```typescript
+await add('oewn-2024-english-wordnet-2024.xml.gz'); // Upsert by default
+await add('oewn-2024-english-wordnet-2024.xml.gz', { force: true }); // Force replace
+```
+
+**CLI Example:**
+```bash
+wn-cli data add oewn-2024-english-wordnet-2024.xml.gz
+wn-cli data add oewn-2024-english-wordnet-2024.xml.gz --force
+```
+
 ### Statistics & Analysis
 
 The library provides built-in methods for database statistics and data quality analysis:
@@ -470,6 +506,123 @@ try {
   await download('invalid-project:1.0');
 } catch (error) {
   console.error('Download failed:', error.message);
+}
+```
+
+---
+
+## Advanced/Superpower Use Cases
+
+The following advanced scenarios go beyond basic lookups and show how to combine `wn-ts` features for powerful semantic analysis. For more, see [ROADMAP.md](./ROADMAP.md).
+
+### Conceptual Difference Analysis
+
+Find the fundamental difference between two concepts by locating their common hypernym and comparing their definitions.
+
+```typescript
+import { Wordnet } from 'wn-ts';
+import { commonHypernyms } from 'wn-ts/taxonomy';
+
+async function conceptualDifference(word1: string, word2: string, wn: Wordnet) {
+  const synsets1 = await wn.synsets(word1, 'n');
+  const synsets2 = await wn.synsets(word2, 'n');
+  if (!synsets1.length || !synsets2.length) return;
+  const common = await commonHypernyms(synsets1[0], synsets2[0], wn);
+  const commonConcept = common[0];
+  console.log(`Both a "${word1}" and a "${word2}" are types of "${commonConcept.members[0]}".`);
+  console.log(`- ${word1}: ${synsets1[0].definitions[0]?.text}`);
+  console.log(`- ${word2}: ${synsets2[0].definitions[0]?.text}`);
+}
+```
+
+### Semantic Field Expansion
+
+Recursively traverse relations (e.g., hyponyms, meronyms) to generate a comprehensive list of related concepts.
+
+```typescript
+import { Wordnet } from 'wn-ts';
+async function expandSemanticField(seed: string, wn: Wordnet) {
+  const field = new Set<string>();
+  const queue = [...await wn.synsets(seed, 'n')];
+  const explored = new Set<string>();
+  while (queue.length) {
+    const current = queue.shift();
+    if (!current || explored.has(current.id)) continue;
+    explored.add(current.id);
+    current.members.forEach(m => field.add(m));
+    for (const rel of current.relations) {
+      if (["hyponym", "mero_part"].includes(rel.type)) {
+        const related = await wn.synset(rel.target);
+        if (related) queue.push(related);
+      }
+    }
+  }
+  console.log(Array.from(field));
+}
+```
+
+### Analogy Solving
+
+Solve analogies like "A is to B as C is to ?" by matching synset relations.
+
+```typescript
+import { Wordnet } from 'wn-ts';
+async function solveAnalogy(a: string, b: string, c: string, wn: Wordnet) {
+  const [sa] = await wn.synsets(a, 'n');
+  const [sb] = await wn.synsets(b, 'n');
+  const [sc] = await wn.synsets(c, 'n');
+  if (!sa || !sb || !sc) return;
+  const rel = sa.relations.find(r => r.target === sb.id);
+  if (!rel) return;
+  const dRel = sc.relations.find(r => r.type === rel.type);
+  if (!dRel) return;
+  const sd = await wn.synset(dRel.target);
+  if (sd) console.log(`${a} is to ${b} as ${c} is to ${sd.members[0]}`);
+}
+```
+
+### Batch/Scripted Workflows
+
+You can script batch queries, exports, and analyses using the API:
+
+```typescript
+import { Wordnet, exportData } from 'wn-ts';
+const wn = new Wordnet('oewn');
+const words = ['run', 'bank', 'music'];
+for (const word of words) {
+  const synsets = await wn.synsets(word);
+  console.log(`${word}: ${synsets.length} synsets`);
+}
+// Export all data for selected lexicons
+await exportData({ format: 'json', output: 'export.json', include: ['oewn', 'omw-fr'] });
+```
+
+### Advanced Export/Import
+
+Export or import data with filters (by lexicon, POS, etc.):
+
+```typescript
+import { exportData } from 'wn-ts';
+await exportData({ format: 'csv', output: 'wn.csv', include: ['oewn'], exclude: ['test'] });
+```
+
+### Composability
+
+All core objects (Wordnet, synset, word, etc.) are composable for advanced workflows. You can chain queries, combine filters, and integrate with external data.
+
+### Browser Support
+
+`wn-ts` is designed for browser compatibility, but some features (e.g., file system access, SQLite) may require polyfills or alternative storage. See the [Browser Usage](#browser-usage) section for details.
+
+### Error Handling in Advanced Workflows
+
+All API methods throw descriptive errors (e.g., `ProjectError`, `DatabaseError`). Use try/catch to handle errors in batch or advanced scripts.
+
+```typescript
+try {
+  await add('invalid-file.xml');
+} catch (e) {
+  console.error('Add failed:', e.message);
 }
 ```
 

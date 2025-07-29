@@ -33,7 +33,6 @@ This table covers the most frequent use cases for researchers, developers, and w
 | Explore synsets & relations    | `query synset <word> [pos]`                           | `wn-cli query synset "computer" n --verbose`                |
 |                                |                                                       |                                                             |
 | **Advanced Queries**           |                                                       |                                                             |
-| Get machine-readable output    | `[command] --json`                                    | `wn-cli query word "happy" --json`                          |
 | Word sense disambiguation      | `disambiguation <word> [pos]`                         | `wn-cli disambiguation "bank" n --include-examples`         |
 | Cross-language search          | `multilingual <word> [pos]`                           | `wn-cli multilingual "computer" --target fr`                |
 |                                |                                                       |                                                             |
@@ -45,6 +44,10 @@ This table covers the most frequent use cases for researchers, developers, and w
 | Export data                    | `data export --format <fmt>`                          | `wn-cli data export --format csv --output data.csv`         |
 | Remove an installed lexicon    | `data remove <id> --force`                            | `wn-cli data remove oewn --force`                           |
 | View or change config          | `config`                                              | `wn-cli config --set enableUsageLogging=true`               |
+| Force reset config             | `config force-reset`                                  | `wn-cli config force-reset`                                 |
+| Prepare browser data for web   | `browser prep --lexicon <id> [--outDir <dir>]`        | `wn-cli browser prep --lexicon oewn --outDir ../wn-ts-web/data` |
+| Show database statistics       | `stats`                                               | `wn-cli stats --lexicon oewn --json`                        |
+| Test layout system             | `layout-test`                                         | `wn-cli layout-test --snapshot`                             |
 
 ## TUI Automation (`--chain`)
 

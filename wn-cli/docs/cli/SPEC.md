@@ -29,6 +29,7 @@ Following modern CLI design principles, our approach emphasizes:
 - [x] **Database Management**: Status, cleanup, maintenance, and log viewing
 - [x] **Configuration**: User preferences and settings, including opt-in usage logging
 - [x] **Project Management**: List and manage available projects (via `data list`)
+- [x] **Browser/Web Build Tools**: Prepare browser-optimized data for web apps
 
 ### TUI Integration
 - [x] **Interactive Mode**: Launch TUI with `--tui` flag
@@ -112,6 +113,17 @@ program
   .action(async (options) => {
     // Command implementation
   });
+
+// Example browser command registration
+program
+  .command('browser')
+  .description('Browser/web build tools for wn-ts-web')
+  .command('prep')
+  .description('Prepare browser-optimized WordNet data modules for wn-ts-web (multilingual aware)')
+  .option('--lexicon <id>', 'Lexicon ID to export (default: oewn)', 'oewn')
+  .option('--outDir <dir>', 'Output directory for browser data', '../../wn-ts-web/data')
+  .option('--dry-run', 'Show what would be done without writing files')
+  .action(/* ... */);
 ```
 
 ### Global Options
@@ -232,6 +244,21 @@ wn-cli --tui --chain "down enter hello enter q"
 # Snapshot mode for testing
 wn-cli --tui --snapshot
 ```
+
+### Browser Commands
+```bash
+# Prepare browser-optimized data for a specific lexicon
+wn-cli browser prep --lexicon oewn
+
+# Specify a custom output directory
+wn-cli browser prep --lexicon wn31 --outDir ../my-web-app/data
+
+# Dry run
+wn-cli browser prep --lexicon oewn --dry-run
+```
+- Converts index/data files for the specified lexicon into JSON modules for browser use.
+- Supports multilingual output by specifying the lexicon.
+- Intended for use in build pipelines for browser-based WordNet apps.
 
 ## Testing Strategy
 
