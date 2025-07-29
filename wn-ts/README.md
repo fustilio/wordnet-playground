@@ -449,3 +449,55 @@ A major goal for `wn-ts` is to provide seamless support for both Node.js and bro
 - Ensure all APIs are available and tested in both environments.
 
 For more, see the [wordpos README](../wordpos/README.md) and [wordpos-web](../wordpos-web/README.md) for a working example of this strategy.
+
+## Dry Run and Upsert Support
+
+### Dry Run Mode
+
+The library supports a **dry run** mode for data management operations (download, add) via the `dryRun` option in the API and the `--dry-run` flag in the CLI. In dry run mode, the system reports what actions would be performed (such as which files would be downloaded or which lexicons would be added/updated), but **no changes are made to the database**. This is useful for previewing the impact of an operation before making changes.
+
+**API Example:**
+```typescript
+await download('oewn:2024', { dryRun: true });
+await add('oewn-2024-english-wordnet-2024.xml.gz', { dryRun: true });
+```
+
+**CLI Example:**
+```bash
+wn-cli data download oewn:2024 --dry-run
+wn-cli data add oewn-2024-english-wordnet-2024.xml.gz --dry-run
+```
+
+### Upsert (Update or Insert) Behavior
+
+When adding a lexicon, the library performs an **upsert** by default:
+- If the lexicon does not exist, it is inserted.
+- If the lexicon already exists, it is updated (replaced) with the new data. If the `force` option/flag is used, the existing data is removed and replaced.
+
+This ensures that repeated add operations are safe and idempotent.
+
+**API Example:**
+```typescript
+await add('oewn-2024-english-wordnet-2024.xml.gz'); // Upsert by default
+await add('oewn-2024-english-wordnet-2024.xml.gz', { force: true }); // Force replace
+```
+
+**CLI Example:**
+```bash
+wn-cli data add oewn-2024-english-wordnet-2024.xml.gz
+wn-cli data add oewn-2024-english-wordnet-2024.xml.gz --force
+```
+
+## Database Lock Handling and Robust Shutdown
+
+wn-ts is designed to minimize persistent SQLite database lock issues, especially on Windows:
+
+- The library closes all DB connections on process exit, SIGINT, SIGTERM, uncaught exceptions, and unhandled rejections.
+- On Windows, a short delay is added after closing the DB to help the OS release file handles.
+- If you encounter a 'database is locked' error:
+  - Wait a few seconds and try again.
+  - Ensure no other CLI, GUI, or test is using the database.
+  - On Windows, if the problem persists, try restarting your computer.
+- You can programmatically check for a lock using the exported `isDatabaseLocked()` function.
+
+This makes wn-ts robust even if a command is cancelled or interrupted halfway.

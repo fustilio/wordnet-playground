@@ -1,10 +1,28 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { runCommand } from "./test-helper.js";
 import { add, config } from "wn-ts";
 import { writeFileSync } from "fs";
 import { join } from "path";
 
+// Minimal oewn lexicon with 'bank' entry and synset
+const minimalOewn = `
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE LexicalResource SYSTEM "http://globalwordnet.github.io/schemas/pwn_lmf.dtd">
+<LexicalResource>
+  <Lexicon id="oewn" label="Test OEWN" language="en" version="2024">
+    <LexicalEntry id="w_bank"><Lemma writtenForm="bank" partOfSpeech="n"/><Sense id="s_bank" synset="ss_bank"/></LexicalEntry>
+    <Synset id="ss_bank" partOfSpeech="n"><Definition>a financial institution</Definition></Synset>
+  </Lexicon>
+</LexicalResource>`;
+
 describe("disambiguation command tests", () => {
+  beforeEach(async () => {
+    // Add minimal oewn lexicon for tests that expect it
+    const oewnFile = join(config.dataDirectory, "oewn.xml");
+    writeFileSync(oewnFile, minimalOewn);
+    await add(oewnFile, { force: true });
+  });
+
   it("disambiguation command without word shows error", async () => {
     const { stdout, stderr } = await runCommand(["disambiguation"]);
     expect(stdout).toContain("Error: No word specified.");
@@ -13,15 +31,18 @@ describe("disambiguation command tests", () => {
 
   it("disambiguation command with a word runs successfully", async () => {
     const { stdout, stderr } = await runCommand(["disambiguation", "bank"]);
-    // Should either not find lexicons, or not find the word in the test lexicon.
-    expect(stdout).toMatch(/(Cannot find any senses for "bank"|No synsets found for "bank")/);
+    // Should find the sense for 'bank' in oewn
+    expect(stdout).toMatch(/Found 1 senses:/);
+    expect(stdout).toContain("Sense 1: bank (n)");
+    expect(stdout).toContain("Definition: a financial institution");
     expect(stderr).toBe('');
   });
 
   it("disambiguation command with pos as argument runs successfully", async () => {
     const { stdout, stderr } = await runCommand(["disambiguation", "bank", "n"]);
-    // Should either not find lexicons, or not find the word in the test lexicon.
-    expect(stdout).toMatch(/(Cannot find any senses for "bank"|No synsets found for "bank")/);
+    expect(stdout).toMatch(/Found 1 senses:/);
+    expect(stdout).toContain("Sense 1: bank (n)");
+    expect(stdout).toContain("Definition: a financial institution");
     expect(stderr).toBe('');
   });
 

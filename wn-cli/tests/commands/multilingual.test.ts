@@ -1,10 +1,28 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { runCommand } from "./test-helper.js";
 import { add, config } from "wn-ts";
 import { writeFileSync } from "fs";
 import { join } from "path";
 
+// Minimal oewn lexicon for multilingual tests
+const minimalOewn = `
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE LexicalResource SYSTEM "http://globalwordnet.github.io/schemas/pwn_lmf.dtd">
+<LexicalResource>
+  <Lexicon id="oewn" label="Test OEWN" language="en" version="2024">
+    <LexicalEntry id="w_test"><Lemma writtenForm="test" partOfSpeech="n"/><Sense id="s_test" synset="ss_test"/></LexicalEntry>
+    <Synset id="ss_test" partOfSpeech="n"><Definition>a test definition</Definition></Synset>
+  </Lexicon>
+</LexicalResource>`;
+
 describe("multilingual command tests", () => {
+  beforeEach(async () => {
+    // Add minimal oewn lexicon for tests that expect it
+    const oewnFile = join(config.dataDirectory, "oewn.xml");
+    writeFileSync(oewnFile, minimalOewn);
+    await add(oewnFile, { force: true });
+  });
+
   it("multilingual command without word shows error", async () => {
     const { stdout, stderr } = await runCommand(["multilingual"]);
     expect(stdout).toContain("Error: No word specified.");

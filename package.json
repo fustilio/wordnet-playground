@@ -1,6 +1,6 @@
 {
   "name": "wordnet-workspace",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "description": "WordNet TypeScript implementation with demo and benchmarks",
   "repository": {
@@ -11,15 +11,15 @@
   "author": "fustilio",
   "type": "module",
   "scripts": {
-    "autotest": "pnpm --filter wn-ts test",
+    "autotest": "pnpm --filter wn-cli manual",
     "benchmark": "pnpm --filter wordnet-benchmark test:bench",
     "benchmark:cross": "pnpm --filter wordnet-benchmark test:bench:cross",
     "benchmark:func": "pnpm --filter wordnet-benchmark test:func",
     "benchmark:lmf": "pnpm --filter wordnet-benchmark test:bench:lmf",
-  "benchmark:operations": "pnpm --filter wordnet-benchmark test:bench:operations",
+    "benchmark:operations": "pnpm --filter wordnet-benchmark test:bench:operations",
     "benchmark:parity": "pnpm --filter wordnet-benchmark test:parity",
     "benchmark:perf": "pnpm --filter wordnet-benchmark test:perf",
-    "build": "pnpm --filter wn-ts build",
+    "build": "pnpm --filter wn-ts build && pnpm --filter wn-cli build",
     "build:demo": "pnpm build && pnpm demo",
     "ci:benchmark": "echo '📊 Running benchmark functional tests...' && pnpm benchmark:func && echo '📊 Running benchmark parity tests...' && pnpm benchmark:parity && echo '📊 Running benchmark performance tests...' && pnpm benchmark:perf",
     "ci:build": "echo '🔨 Building wn-ts library...' && pnpm build",
@@ -30,11 +30,12 @@
     "demo": "pnpm --filter wn-demo test",
     "demo:all-use-cases": "pnpm --filter wn-demo all-use-cases",
     "demo:kitchen-sink": "pnpm --filter wn-demo kitchen-sink",
-    "test": "pnpm --filter wn-ts test",
+    "test": "pnpm --filter wn-ts test && pnpm --filter wn-cli test",
     "test:bench": "pnpm --filter wn-ts test:bench",
     "test:coverage": "pnpm --filter wn-ts test:coverage",
     "test:e2e": "pnpm --filter wn-ts test:e2e",
-    "dev": "pnpm --filter wn-cli... dev"
+    "dev": "pnpm --filter wn-cli... dev",
+    "suite": "pnpm build && pnpm test"
   },
   "devDependencies": {},
   "engines": {

@@ -36,8 +36,8 @@ function registerDisambiguationCommands(program: Command) {
             console.log(colors.yellow(`⚠️  Could not find lexicon '${options.lexicon}'. Using '${bestGuess}' instead.`));
             options.lexicon = bestGuess;
           } else {
-            console.log(colors.yellow(`Cannot find any senses for "${word}".`));
-            console.log(colors.yellow(`\n💡 Tip: No lexicons are installed. Use 'wn-cli data download <project>' to get started.`));
+            console.log(colors.yellow(`Cannot find lexicon '${options.lexicon}'.`));
+            console.log(colors.yellow(`\n💡 Tip: No lexicons seem to be installed. Use 'wn-cli data download <project>' to get started.`));
             if (options.time) {
               console.log(colors.gray(`Query completed in ${Date.now() - startTime}ms`));
             }
@@ -85,7 +85,7 @@ function registerDisambiguationCommands(program: Command) {
           
           for (let i = 0; i < synsets.length; i++) {
             const synset = synsets[i];
-            const members = synset.members?.length ? synset.members.map((m: string) => m.replace(/^oewn-/, '').replace(/-[a-z]$/, '')).join(', ') : word;
+            const members = synset.members?.length ? synset.members.map((m: string) => m.replace(new RegExp(`^${synset.lexicon}-`), '').replace(/^w_/, '').replace(/-[a-z]$/, '')).join(', ') : word;
             const pos = synset.partOfSpeech || options.pos || "?";
             
             console.log(`\n${colors.cyan(`Sense ${i + 1}:`)} ${colors.bold(members)} (${pos})`);

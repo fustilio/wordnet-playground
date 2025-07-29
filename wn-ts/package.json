@@ -1,6 +1,6 @@
 {
   "name": "wn-ts",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Wordnet interface library - TypeScript port",
   "keywords": [
     "wordnet",
@@ -61,8 +61,9 @@
     "test:run": "vitest run --reporter=verbose --exclude \"**/e2e*.test.ts\"",
     "test:ui": "vitest --ui --exclude \"**/e2e*.test.ts\"",
     "test:verbose": "node scripts/test-verbose.js",
-    "vitest": "vitest run",
-    "build:browser-data": "ts-node tools/makeBrowserData.ts"
+    "vitest": "pnpm with-debug-logs vitest run",
+    "build:browser-data": "ts-node tools/makeBrowserData.ts",
+    "with-debug-logs": "cross-env WN_TS_LOG_LEVEL=5"
   },
   "files": [
     "tools/"
@@ -85,6 +86,7 @@
     "@typescript-eslint/parser": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "@vitest/ui": "^3.2.4",
+    "cross-env": "^7.0.3",
     "eslint": "catalog:",
     "prettier": "catalog:",
     "rimraf": "catalog:",

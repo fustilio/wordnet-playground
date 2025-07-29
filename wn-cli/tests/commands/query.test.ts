@@ -1,6 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { runCommand } from './test-helper.js';
-import { add, config } from "wn-ts";
 import { writeFileSync } from "fs";
 import { join } from "path";
 
@@ -15,19 +14,147 @@ const testLexicon = `
     <LexicalEntry id="w_happy"><Lemma writtenForm="happy" partOfSpeech="a"/><Sense id="s_happy" synset="ss_happy"/></LexicalEntry>
     <LexicalEntry id="w_glad"><Lemma writtenForm="glad" partOfSpeech="a"/><Sense id="s_glad" synset="ss_happy"/></LexicalEntry>
     <Synset id="ss_car" partOfSpeech="n">
-      <Definition>a road vehicle, typically with four wheels</Definition>
+      <Definition language="en">a road vehicle, typically with four wheels</Definition>
     </Synset>
     <Synset id="ss_happy" partOfSpeech="a">
-      <Definition>feeling or showing pleasure or contentment.</Definition>
+      <Definition language="en">feeling or showing pleasure or contentment.</Definition>
     </Synset>
   </Lexicon>
 </LexicalResource>`;
 
 describe('query command tests', () => {
+  let config: any;
+  let add: any;
   beforeEach(async () => {
+    // Dynamically import wn-ts after config.dataDirectory is set by test-helper
+    ({ config, add } = await import("wn-ts"));
+    // Ensure the temp data directory exists
+    const fs = await import('fs');
+    if (!fs.existsSync(config.dataDirectory)) {
+      fs.mkdirSync(config.dataDirectory, { recursive: true });
+    }
+    // Debug: print config.dataDirectory and CLI config path
+    // eslint-disable-next-line no-console
+    console.log('[DEBUG] config.dataDirectory:', config.dataDirectory);
+    // eslint-disable-next-line no-console
+    console.log('[DEBUG] CLI config path:', process.env.WN_CLI_CONFIG_PATH || 'not set');
+    const dbPath = join(config.dataDirectory, "wn.db");
+    // eslint-disable-next-line no-console
+    console.log('[DEBUG] DB exists after setup:', fs.existsSync(dbPath));
     const testFile = join(config.dataDirectory, "query.xml");
+    // eslint-disable-next-line no-console
+    console.log('DEBUG testFile:', testFile);
     writeFileSync(testFile, testLexicon);
-    await add(testFile, { force: true });
+    // Check file existence and readability
+    try {
+      const { statSync, readFileSync } = await import('fs');
+      const stat = statSync(testFile);
+      // eslint-disable-next-line no-console
+      console.log('DEBUG testFile exists:', true, 'size:', stat.size);
+      const content = readFileSync(testFile, 'utf8');
+      // eslint-disable-next-line no-console
+      console.log('DEBUG testFile first 100 chars:', content.slice(0, 100));
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('DEBUG testFile exists:', false, e);
+    }
+    // Check isLMF and loadLMF
+    try {
+      const { isLMF, loadLMF } = await import('wn-ts');
+      const isLmf = await isLMF(testFile);
+      // eslint-disable-next-line no-console
+      console.log('DEBUG isLMF result:', isLmf);
+      if (isLmf) {
+        try {
+          const lmfData = await loadLMF(testFile);
+          // eslint-disable-next-line no-console
+          console.log('DEBUG loadLMF lexicons:', lmfData.lexicons?.length);
+          console.log('DEBUG loadLMF synsets:', lmfData.synsets?.length);
+          
+          // Debug: check what definitions are being parsed
+          if (lmfData.synsets) {
+            for (const synset of lmfData.synsets) {
+              // eslint-disable-next-line no-console
+              console.log(`DEBUG synset ${synset.id} definitions:`, synset.definitions);
+            }
+          }
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.error('DEBUG loadLMF error:', e);
+        }
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('DEBUG isLMF/loadLMF error:', e);
+    }
+    let addResult;
+    try {
+      addResult = await add(testFile, { force: true });
+      // eslint-disable-next-line no-console
+      console.log('DEBUG add() result:', addResult);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('DEBUG add() error:', e);
+    }
+    // Debug: print DB file existence and size
+    const dbPathAfterSetup = join(config.dataDirectory, 'wn.db');
+    if (fs.existsSync(dbPathAfterSetup)) {
+      const stat = fs.statSync(dbPathAfterSetup);
+      // eslint-disable-next-line no-console
+      console.log('DEBUG wn.db exists:', true, 'size:', stat.size);
+    }
+    // Debug: print all definitions for ss_car using wn-ts API
+    const { synset } = await import("wn-ts");
+    let ssCar;
+    try {
+      ssCar = await synset("ss_car", { lexicon: "test-query" });
+      // eslint-disable-next-line no-console
+      console.log("DEBUG ss_car definitions:", ssCar?.definitions);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log("DEBUG synset() error:", e);
+    }
+    
+    // Debug: check what's actually in the database
+    try {
+      const { db } = await import("wn-ts");
+      db.initialize();
+      const synsets = db.all('SELECT * FROM synsets WHERE lexicon = ?', ['test-query']);
+      // eslint-disable-next-line no-console
+      console.log("DEBUG synsets in DB:", synsets);
+      const words = db.all('SELECT * FROM words WHERE lexicon = ?', ['test-query']);
+      // eslint-disable-next-line no-console
+      console.log("DEBUG words in DB:", words);
+      const senses = db.all('SELECT * FROM senses WHERE word_id IN (SELECT id FROM words WHERE lexicon = ?)', ['test-query']);
+      // eslint-disable-next-line no-console
+      console.log("DEBUG senses in DB:", senses);
+      
+      // Check if definitions are in the database
+      const definitions = db.all('SELECT * FROM definitions WHERE synset_id IN (SELECT id FROM synsets WHERE lexicon = ?)', ['test-query']);
+      // eslint-disable-next-line no-console
+      console.log("DEBUG definitions in DB:", definitions);
+      
+      db.close();
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error("DEBUG DB query error:", e);
+    }
+  });
+
+  afterEach(async () => {
+    const fs = await import('fs');
+    const dbPath = join(config.dataDirectory, 'wn.db');
+    // eslint-disable-next-line no-console
+    console.log('[DEBUG] DB exists after test:', fs.existsSync(dbPath));
+    // Print contents of temp dir
+    try {
+      const files = fs.readdirSync(config.dataDirectory);
+      // eslint-disable-next-line no-console
+      console.log('[DEBUG] Temp dir contents:', files);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log('[DEBUG] Could not read temp dir:', e);
+    }
   });
 
   it('query command without arguments shows help', async () => {
@@ -44,12 +171,13 @@ describe('query command tests', () => {
 
   it('query word command with a word runs successfully', async () => {
     const { stdout, stderr } = await runCommand(['query', 'word', 'car', '--lexicon', 'test-query']);
+    // Debug output for investigation
+    console.log('DEBUG STDOUT:', stdout);
     expect(stderr).toBe('');
     expect(stdout).toContain('Querying "car" in test-query...');
     expect(stdout).toContain('Found 1 words:');
-    // The definition is not being correctly retrieved in the test environment,
-    // so we are just checking that the command runs without error and shows the expected message.
-    expect(stdout).toContain('Definition: No definition available in this lexicon.');
+    // The definition should be correctly retrieved.
+    expect(stdout).toContain('Definition: a road vehicle, typically with four wheels');
   });
 
   it('query explain command without a word shows an error', async () => {
@@ -63,7 +191,7 @@ describe('query command tests', () => {
     expect(stderr).toBe('');
     expect(stdout).toContain('Learning about "car" in test-query...');
     // The output format has changed, so we check for the new format.
-    expect(stdout).toContain('Meaning 1: w_car, w_automobile (n)');
+    expect(stdout).toContain('Meaning 1: car, automobile (n)');
   });
 
   it('query synset command without a word shows an error', async () => {

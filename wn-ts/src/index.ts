@@ -82,6 +82,8 @@ export {
 
 // LMF Parsers module
 export * from './parsers/index.js';
+export * from './db/database.js';
+export { isDatabaseLocked } from './db/database.js';
 
 // Version
 export const __version__ = '0.1.1';

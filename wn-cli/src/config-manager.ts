@@ -28,11 +28,6 @@ const conf = new Conf({
   schema,
 });
 
-// In test environments, the config path is passed via an env var to ensure isolation.
-if (process.env.WN_CLI_TEST_CONFIG_PATH) {
-  conf.set('dataDirectory', process.env.WN_CLI_TEST_CONFIG_PATH);
-}
-
 // Function to apply the stored config to the wn-ts config object
 export function applyStoredConfig() {
   // During tests, config.dataDirectory is managed by the test-helper.

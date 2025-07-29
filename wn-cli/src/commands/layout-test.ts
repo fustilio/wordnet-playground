@@ -13,8 +13,9 @@ export default function registerLayoutTestCommand(program: Command) {
         render(
           React.createElement(LayoutTestTool, {
             onExit: () => {
-              // The render function in ink will keep the process alive, so we don't need to exit here.
-              // It will exit when the component unmounts.
+              // This onExit callback is a prop for the component. The component itself
+              // is responsible for calling it, which will then allow the process to exit naturally
+              // as Ink relinquishes control of stdout.
             }
           })
         );

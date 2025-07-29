@@ -1,8 +1,25 @@
 {
   "name": "wn-cli",
-  "version": "0.3.1",
+  "version": "0.4.1",
   "private": true,
   "description": "A powerful command-line interface for WordNet data exploration with interactive TUI",
+  "keywords": [
+    "wordnet",
+    "cli",
+    "tui",
+    "nlp",
+    "lexicon",
+    "semantic",
+    "interactive"
+  ],
+  "homepage": "https://github.com/fustilio/wordnet-playground/tree/main/wn-cli",
+  "bugs": {
+    "url": "https://github.com/fustilio/wordnet-playground/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fustilio/wordnet-playground.git"
+  },
   "license": "MIT",
   "type": "module",
   "bin": "dist/cli.js",
@@ -10,28 +27,33 @@
     "dist"
   ],
   "scripts": {
+    "prebuild": "rimraf dist && pnpm --filter wn-ts build",
     "build": "tsc -p tsconfig.cli.json",
+    "clean": "rimraf dist",
     "cli": "node dist/cli.js",
+    "debug:cli": "node --inspect-brk dist/cli.js",
+    "debug:tui": "node --inspect-brk dist/cli.js --tui",
     "dev": "tsc -p tsconfig.cli.json --watch",
     "format": "prettier --write .",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:ui": "vitest --ui",
-    "test:coverage": "vitest run --coverage",
-    "test:tui": "vitest run --exclude **/commands/**",
-    "test:cli": "pnpm test:cli:func && pnpm test:cli:e2e",
-    "test:cli:func": "vitest run tests/commands --exclude \"**/e2e*.test.ts\"",
-    "test:cli:debug": "pnpm with-debug && pnpm test:cli",
-    "test:cli:e2e": "vitest run --no-file-parallelism tests/e2e/commands",
-    "test:layout": "vitest run layout-test-tool.test.tsx layout-system.integration",
-    "with-debug": "cross-env DEBUG_TEST=true",
-    "debug:tui": "node --inspect-brk dist/cli.js --tui",
-    "debug:cli": "node --inspect-brk dist/cli.js",
     "layout-test": "node dist/cli.js layout-test",
     "lint": "xo",
+    "manual": "pnpm with-debug-logs pnpm cli data download oewn:2024 --progress",
+    "manual:dry": "pnpm with-debug-logs pnpm cli data download oewn:2024 --dry-run",
+    "manual:script": "node ./scripts/manual.cjs",
+    "test": "pnpm test:cli",
+    "test:cli": "pnpm test:cli:func && pnpm test:cli:e2e",
+    "test:cli:debug": "pnpm with-debug && pnpm test:cli",
+    "test:cli:e2e": "vitest run --no-file-parallelism tests/e2e/commands",
+    "test:cli:func": "vitest run tests/commands --exclude \"**/e2e*.test.ts\"",
+    "test:coverage": "vitest run --coverage",
+    "test:layout": "vitest run layout-test-tool.test.tsx layout-system.integration",
+    "test:tui": "vitest run --exclude **/commands/**",
+    "test:ui": "vitest --ui",
+    "test:watch": "vitest",
     "type-check": "tsc --noEmit",
-    "clean": "rimraf dist",
-    "prebuild": "npm run clean"
+    "vitest": "vitest run",
+    "with-debug": "cross-env DEBUG_TEST=true",
+    "with-debug-logs": "cross-env WN_TS_LOG_LEVEL=5"
   },
   "xo": {
     "extends": "xo-react",
@@ -61,8 +83,8 @@
     }
   },
   "prettier": {
-    "tabWidth": 2,
     "bracketSpacing": true,
+    "tabWidth": 2,
     "useTabs": false
   },
   "dependencies": {
@@ -70,7 +92,6 @@
     "commander": "^14.0.0",
     "conf": "^14.0.0",
     "ink": "^4.1.0",
-    "meow": "^11.0.0",
     "react": "^18.2.0",
     "vite-tsconfig-paths": "^5.1.4",
     "wn-ts": "workspace:*"
@@ -92,22 +113,5 @@
   },
   "engines": {
     "node": ">=16"
-  },
-  "keywords": [
-    "wordnet",
-    "cli",
-    "tui",
-    "nlp",
-    "lexicon",
-    "semantic",
-    "interactive"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/your-repo/wn-cli.git"
-  },
-  "bugs": {
-    "url": "https://github.com/your-repo/wn-cli/issues"
-  },
-  "homepage": "https://github.com/your-repo/wn-cli#readme"
+  }
 }

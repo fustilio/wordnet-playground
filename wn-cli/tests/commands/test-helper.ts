@@ -29,9 +29,11 @@ beforeEach(() => {
   // Set config for the test runner process
   config.dataDirectory = currentTestDir;
 
-  // Set config for the CLI process that will be spawned by runCommand
-  // This ensures the CLI reads from the same isolated directory
-  conf.path = join(currentTestDir, "config.json");
+  // Set config for the CLI process that will be spawned by runCommand.
+  // This ensures the CLI reads from the same isolated directory.
+  // We cast to `any` to bypass the `readonly` property check, which is a
+  // necessary backdoor for isolated testing.
+  (conf as any).path = join(currentTestDir, "config.json");
   conf.clear();
   conf.set("dataDirectory", currentTestDir);
 });
@@ -49,7 +51,9 @@ afterEach(async () => {
     try {
       rmSync(currentTestDir, { recursive: true, force: true });
     } catch (error) {
-      // Ignore errors during cleanup to avoid crashing the test suite
+      // On Windows, file locks can sometimes prevent cleanup.
+      // We'll log the error but not fail the test suite for it.
+      console.warn(`Could not clean up test directory: ${currentTestDir}`, error);
     }
   }
 });
@@ -64,12 +68,10 @@ export async function runCommand(
   process.env.COLUMNS = "200";
   // Disable colors for testing to get clean output
   process.env.NO_COLOR = "1";
-  // Pass the isolated config path to the spawned process
-  process.env.WN_CLI_TEST_CONFIG_PATH = conf.path;
 
-  // Mock process.argv
+  // Mock process.argv and pass the isolated config path to the spawned process
   const originalArgv = process.argv;
-  process.argv = ["node", "cli.js", ...argv];
+  process.argv = ["node", "cli.js", "--config", conf.path, ...argv];
 
   // Mock process.exit to prevent tests from exiting and to capture exit code
   const mockExit = vi
@@ -130,7 +132,6 @@ export async function runCommand(
   process.argv = originalArgv;
   delete process.env.COLUMNS;
   delete process.env.NO_COLOR;
-  delete process.env.WN_CLI_TEST_CONFIG_PATH;
   
   const stdoutStr = stdout.join("");
   const stderrStr = stderr.join("");

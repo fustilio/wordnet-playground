@@ -10,13 +10,9 @@ import {
   readFileSync,
 } from "fs";
 import { colors } from "./utils/colors.js";
-import { ProgressIndicator } from "./utils/progress.js";
-import {
-  getWordnetInstance,
-  closeWordnetInstance,
-} from "../wordnet-singleton.js";
 import conf from "../config-manager.js";
 import { getLogPath } from "../utils/user-logger.js";
+import { isDatabaseLocked } from "wn-ts";
 
 class DatabaseCLI {
   private cacheDir = join(homedir(), ".wn_ts_data");
@@ -257,10 +253,19 @@ function registerDbCommands(program: Command) {
       `\nExamples:\n  $ wn-cli db status\n  $ wn-cli db cache\n  $ wn-cli db clean --dry-run`
     );
   db.command("status")
-    .description("Show database status and cache information")
-    .option("-v, --verbose", "Show detailed statistics")
+    .description("Show database status, including lock state, cache, and installed lexicons.")
+    .option("--verbose", "Show detailed status information")
     .action(async (options) => {
       await cli.status(options);
+      // Add lock status check here
+      const isLocked = isDatabaseLocked();
+      if (isLocked) {
+        console.log("  • Locked: Yes (another process may be using the database)");
+        console.log("    - Tip: Close other CLI/TUI windows or wait a few seconds.");
+        console.log("    - On Windows, file handles may take longer to release.");
+      } else {
+        console.log("  • Locked: No");
+      }
     });
   db.command("cache")
     .description("Show cache contents and file sizes")

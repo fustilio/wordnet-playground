@@ -3,7 +3,7 @@ import { ili } from "wn-ts";
 import { colors } from "./utils/colors.js";
 import { resolveLexicon } from "../utils/lexicon-helpers.js";
 import { getBestDefinition } from "../utils/wordnet-helpers.js";
-import { getWordnetInstance, closeWordnetInstance } from "../wordnet-singleton.js";
+import { getWordnetInstance } from "../wordnet-singleton.js";
 
 function registerQueryCommands(program: Command) {
   const query = program
@@ -15,13 +15,13 @@ function registerQueryCommands(program: Command) {
     .addHelpText(
       "after",
       `\nExamples:
-  $ wn-cli query word "happy" a
+  $ wn-cli query word "happy" --pos a
   $ wn-cli query word "happy" --json
-  $ wn-cli query synset "computer" n
+  $ wn-cli query synset "computer" --pos n
   $ wn-cli query word "happy,joy,glad" --batch
-  $ wn-cli query synonyms "happy" a
-  $ wn-cli query explain "happy" a
-  $ wn-cli query explore "car" n`
+  $ wn-cli query synonyms "happy" --pos a
+  $ wn-cli query explain "happy" --pos a
+  $ wn-cli query explore "car" --pos n`
     );
 
   // Word query
@@ -266,7 +266,7 @@ function registerQueryCommands(program: Command) {
           
           for (let i = 0; i < synsets.length; i++) {
             const synset = synsets[i];
-            const members = synset.members?.length ? synset.members.map((m: string) => m.replace(/^oewn-/, '').replace(/-[a-z]$/, '')).join(', ') : word;
+            const members = synset.members?.length ? synset.members.map((m: string) => m.replace(new RegExp(`^${synset.lexicon}-`), '').replace(/^w_/, '').replace(/-[a-z]$/, '')).join(', ') : word;
             const definition = await getBestDefinition(synset);
             const pos = synset.partOfSpeech || options.pos || "?";
             
@@ -466,7 +466,7 @@ function registerQueryCommands(program: Command) {
 
         for (const synset of synsets) {
           const members = synset.members
-            .map((m: string) => m.replace(/^oewn-/, '').replace(/-[a-z]$/, '').replace(/^w_/, ''))
+            .map((m: string) => m.replace(new RegExp(`^${synset.lexicon}-`), '').replace(/^w_/, '').replace(/-[a-z]$/, ''))
             .filter(m => m.toLowerCase() !== word.toLowerCase());
           
           if (members.length > 0) {

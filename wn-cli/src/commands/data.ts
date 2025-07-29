@@ -6,13 +6,32 @@ import {
   export as exportData,
   getProjects,
   lexicons as getInstalledLexicons,
+  isDatabaseLocked,
 } from "wn-ts";
 import { colors } from "./utils/colors.js";
-import { ProgressIndicator } from "./utils/progress.js";
 import {
   getWordnetInstance,
   closeWordnetInstance,
 } from "../wordnet-singleton.js";
+import { ProgressIndicator } from "./utils/progress.js";
+
+function registerDbUnlockCommand(program: Command) {
+  program
+    .command('db:unlock')
+    .description('Check if the database is locked and suggest remedies if so')
+    .action(() => {
+      if (isDatabaseLocked()) {
+        console.error(colors.red('❌ Database is locked.'));
+        console.log(colors.yellow('• Wait a few seconds and try again.'));
+        console.log(colors.yellow('• Ensure no other CLI, GUI, or test is using the database.'));
+        if (process.platform === 'win32') {
+          console.log(colors.yellow('• If the problem persists, try restarting your computer (Windows file locks can be sticky).'));
+        }
+      } else {
+        console.log(colors.green('✅ Database is not locked.'));
+      }
+    });
+}
 
 function registerDataCommands(program: Command) {
   const data = program
@@ -25,7 +44,6 @@ function registerDataCommands(program: Command) {
       "after",
       `\nExamples:
   $ wn-cli data download oewn:2024 --progress
-  $ wn-cli data add my-lexicon.xml
   $ wn-cli data list
   $ wn-cli data export --format json --output data.json`
     );
@@ -205,6 +223,7 @@ function registerDataCommands(program: Command) {
     .option("-f, --force", "Force re-download even if already exists")
     .option("-p, --progress", "Show detailed progress information")
     .option("-q, --quiet", "Suppress output except errors")
+    .option("--dry-run", "Show what would be done without modifying the database")
     .action(async (project, options) => {
       if (!project) {
         console.log(colors.red("Error: No project specified."));
@@ -217,19 +236,12 @@ function registerDataCommands(program: Command) {
         if (!options.quiet) {
           console.log(colors.bold(`📥 Downloading ${project}...`));
         }
+        // NOTE: The progress bar for downloads is disabled as it contributes to
+        // shutdown instability on Windows with native addons.
         const downloadOptions: any = { force: options.force };
-        const progress = new ProgressIndicator();
-        if (options.progress) {
-          downloadOptions.progress = (p: number) => {
-            if (!options.quiet) {
-              progress.start(`Downloading ${project}: ${Math.round(p * 100)}%`);
-            }
-          };
-        }
         const downloadedPath = await download(project, downloadOptions);
-        if (options.progress) {
-          progress.stop(`Successfully downloaded ${project}`);
-        } else if (!options.quiet) {
+
+        if (!options.quiet) {
           console.log(colors.green(`✅ Successfully downloaded ${project}`));
         }
 
@@ -237,27 +249,79 @@ function registerDataCommands(program: Command) {
           if (!options.quiet) {
             console.log(colors.bold(`\n➕ Adding project to database...`));
           }
-          const addProgress = new ProgressIndicator();
-          const addOptions: any = { force: true };
 
-          if (options.progress) {
-            addOptions.progress = (p: number) => {
+          await closeWordnetInstance();
+
+          if (options.force) {
+            const [projectIdClean] = project.split(":");
+            if (options.dryRun) {
               if (!options.quiet) {
-                addProgress.start(
-                  `Adding to database: ${Math.round(p * 100)}%`
+                console.log(
+                  colors.yellow(
+                    `\n[DRY RUN] Would remove existing data for ${projectIdClean} due to --force flag.`
+                  )
                 );
               }
-            };
+            } else {
+              try {
+                if (!options.quiet) {
+                  console.log(
+                    colors.yellow(
+                      `\n♻️  Removing existing data for ${projectIdClean} due to --force flag...`
+                    )
+                  );
+                }
+                await remove(projectIdClean);
+              } catch (error: any) {
+                if (error.message.includes("not found")) {
+                  // It's ok if it doesn't exist, we are adding it.
+                } else {
+                  console.error(
+                    colors.red(
+                      `❌ Could not remove lexicon ${projectIdClean}: ${error.message}`
+                    )
+                  );
+                  throw error;
+                }
+              }
+            }
           }
 
-          await add(downloadedPath, addOptions);
+          // --- DB LOCK CHECK ---
+          if (!options.dryRun && isDatabaseLocked()) {
+            console.error(colors.red('❌ Database is locked. Please close any other process using the database and try again.'));
+            console.log(colors.yellow('• Wait a few seconds and try again.'));
+            console.log(colors.yellow('• Ensure no other CLI, GUI, or test is using the database.'));
+            if (process.platform === 'win32') {
+              console.log(colors.yellow('• If the problem persists, try restarting your computer (Windows file locks can be sticky).'));
+            }
+            process.exit(1);
+          }
+          // --- END DB LOCK CHECK ---
 
-          if (options.progress) {
-            addProgress.stop(`Successfully added ${project} to database.`);
-          } else if (!options.quiet) {
+          const addOptions: any = {
+            force: options.force,
+            dryRun: options.dryRun,
+          };
+          const wasUpdate = await add(downloadedPath, addOptions);
+
+          if (options.dryRun) {
             console.log(
-              colors.green(`✅ Successfully added ${project} to database.`)
+              colors.bold("\n✅ Dry run complete. No changes were made.")
             );
+            return;
+          }
+
+          if (!options.quiet) {
+            if (wasUpdate) {
+              console.log(
+                colors.green(`✅ Successfully updated ${project} in database.`)
+              );
+            } else {
+              console.log(
+                colors.green(`✅ Successfully added ${project} to database.`)
+              );
+            }
           }
           console.log(
             colors.bold(
@@ -267,6 +331,100 @@ function registerDataCommands(program: Command) {
         }
       } catch (error) {
         console.error(colors.red(`❌ Failed to download ${project}:`), error);
+        throw error;
+      }
+    });
+
+  // Add
+  data
+    .command("add")
+    .description("Add a lexicon from a file to the database")
+    .argument("<file>", "Path to the lexicon file (XML/LMF format)")
+    .option("-f, --force", "Force re-add even if already exists")
+    .option("--dry-run", "Show what would be done without modifying the database")
+    .action(async (file, options) => {
+      try {
+        if (!options.quiet) {
+          console.log(colors.bold(`➕ Adding lexicon from ${file}...`));
+        }
+
+        await closeWordnetInstance();
+
+        if (options.force) {
+          if (options.dryRun) {
+            if (!options.quiet) {
+              console.log(
+                colors.yellow(
+                  `\n[DRY RUN] Would remove existing data due to --force flag.`
+                )
+              );
+            }
+          } else {
+            try {
+              if (!options.quiet) {
+                console.log(
+                  colors.yellow(
+                    `\n♻️  Removing existing data due to --force flag...`
+                  )
+                );
+              }
+              // Extract lexicon ID from file path or content
+              const path = require('path');
+              const lexiconId = path.basename(file, path.extname(file));
+              await remove(lexiconId);
+            } catch (error: any) {
+              if (error.message.includes("not found")) {
+                // It's ok if it doesn't exist, we are adding it.
+              } else {
+                console.error(
+                  colors.red(
+                    `❌ Could not remove existing lexicon: ${error.message}`
+                  )
+                );
+                throw error;
+              }
+            }
+          }
+        }
+
+        // --- DB LOCK CHECK ---
+        if (!options.dryRun && isDatabaseLocked()) {
+          console.error(colors.red('❌ Database is locked. Please close any other process using the database and try again.'));
+          console.log(colors.yellow('• Wait a few seconds and try again.'));
+          console.log(colors.yellow('• Ensure no other CLI, GUI, or test is using the database.'));
+          if (process.platform === 'win32') {
+            console.log(colors.yellow('• If the problem persists, try restarting your computer (Windows file locks can be sticky).'));
+          }
+          process.exit(1);
+        }
+        // --- END DB LOCK CHECK ---
+
+        const addOptions: any = {
+          force: options.force,
+          dryRun: options.dryRun,
+        };
+        const wasUpdate = await add(file, addOptions);
+
+        if (options.dryRun) {
+          console.log(
+            colors.bold("\n✅ Dry run complete. No changes were made.")
+          );
+          return;
+        }
+
+        if (!options.quiet) {
+          if (wasUpdate) {
+            console.log(
+              colors.green(`✅ Successfully updated lexicon in database.`)
+            );
+          } else {
+            console.log(
+              colors.green(`✅ Successfully added lexicon to database.`)
+            );
+          }
+        }
+      } catch (error) {
+        console.error(colors.red(`❌ Failed to add lexicon from ${file}:`), error);
         throw error;
       }
     });
@@ -296,8 +454,7 @@ function registerDataCommands(program: Command) {
           : undefined;
 
         // Check if there's anything to export
-        const { lexicons: installedLexicons } = await import("wn-ts");
-        const installed = await installedLexicons();
+        const installed = await getInstalledLexicons();
         if (installed.length === 0) {
           console.log(colors.yellow("No lexicons installed. Nothing to export."));
           console.log(colors.yellow("Tip: Use `wn-cli data download <project>` to install data first."));
@@ -348,7 +505,8 @@ function registerDataCommands(program: Command) {
           return;
         }
 
-        // Must close the database connection before removing files
+        // This is a destructive operation. We must close the DB connection before
+        // deleting files.
         await closeWordnetInstance();
 
         await remove(lexiconId);
@@ -361,6 +519,7 @@ function registerDataCommands(program: Command) {
         throw error;
       }
     });
+  registerDbUnlockCommand(program);
 }
 
 export default registerDataCommands;

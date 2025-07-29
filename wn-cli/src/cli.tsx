@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import React from "react";
 import { render } from "ink";
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import { colors } from "./commands/utils/colors.js";
 import App from "./app.js";
 import registerDataCommands from "./commands/data.js";
@@ -13,18 +13,36 @@ import registerDbCommands from "./commands/db.js";
 import registerConfigCommand from "./commands/config.js";
 import registerLayoutTestCommand from "./commands/layout-test.js";
 import registerLexiconsCommand from "./commands/lexicons.js";
-import { getWordnetInstance, closeWordnetInstance } from "./wordnet-singleton.js";
+import registerBrowserCommands from "./commands/browser.js";
 import { applyStoredConfig } from "./config-manager.js";
 import {
   logUserInteraction,
   logInitializationMessage,
 } from "./utils/user-logger.js";
 import conf from "./config-manager.js";
+import { readFileSync } from "fs";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+// Read version from package.json
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageJsonPath = join(__dirname, "..", "package.json");
+const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
 
 export let capturedCommandPath = "";
 export let capturedArgs: string[] = [];
 
 export function buildProgram() {
+  // Allow tests to override the config path via a hidden CLI flag.
+  // This must be processed before any other config logic.
+  const configIndex = process.argv.indexOf("--config");
+  if (configIndex > -1 && process.argv[configIndex + 1]) {
+    // This is a test-only backdoor to point the CLI to a temporary config file.
+    // We cast to `any` to bypass the `readonly` property check.
+    (conf as any).path = process.argv[configIndex + 1];
+  }
+
   // Apply stored configuration on startup
   applyStoredConfig();
 
@@ -49,36 +67,33 @@ export function buildProgram() {
 
   // Add global hooks for CLI mode only
   if (!hasTuiFlag) {
-    program
-      .hook("preAction", (_thisCommand, actionCommand) => {
-        // Reset captured variables for each action
-        capturedCommandPath = "";
-        capturedArgs = [];
+    program.hook("preAction", (_thisCommand, actionCommand) => {
+      // Reset captured variables for each action
+      capturedCommandPath = "";
+      capturedArgs = [];
 
-        // Build the command path
-        const commandPath: string[] = [];
-        let current: Command | null = actionCommand;
-        while (current && current.parent) {
-          commandPath.unshift(current.name());
-          current = current.parent;
-        }
+      // Build the command path
+      const commandPath: string[] = [];
+      let current: Command | null = actionCommand;
+      while (current && current.parent) {
+        commandPath.unshift(current.name());
+        current = current.parent;
+      }
 
-        // Don't log the top-level command itself if no subcommand is given
-        if (commandPath.length > 0) {
-          capturedCommandPath = commandPath.join(" ");
-          capturedArgs = actionCommand.args;
-        }
-      })
-      .hook("postAction", async () => {
-        await closeWordnetInstance();
-      });
+      // Don't log the top-level command itself if no subcommand is given
+      if (commandPath.length > 0) {
+        capturedCommandPath = commandPath.join(" ");
+        capturedArgs = actionCommand.args;
+      }
+    });
   }
 
   // Configure program with best practices from commander guide
   program
     .name("wn-cli")
     .description("WordNet CLI - Interactive TUI and scriptable commands for WordNet data exploration")
-    .version("0.1.0")
+    .version(packageJson.version)
+    .addOption(new Option("--config <path>", "Specify a custom config file path").hideHelp())
     .option("--tui", "Launch the interactive Text User Interface")
     .option(
       "--chain <commands...>",
@@ -99,12 +114,10 @@ Examples:
   $ wn-cli query word "happy"       # Search for a word
   $ wn-cli query word "happy" --json # Machine-readable output
   $ wn-cli query synset "computer" n # Search for synsets
-  $ wn-cli query explore "car" n     # Explore relationships (alias for synset)
   $ wn-cli disambiguation "bank" n   # Word sense disambiguation
-  $ wn-cli multilingual "computer"  # Cross-language analysis
+  $ wn-cli multilingual "computer" --target fr # Cross-language analysis
   $ wn-cli stats --quality          # Database statistics
-  $ wn-cli data download oewn:2024  # Download WordNet data
-  $ wn-cli data add <path-to-file>  # Add a downloaded resource to the database
+  $ wn-cli data download oewn:2024  # Download and add WordNet data
   $ wn-cli data export --format csv # Export data for analysis
   $ wn-cli db status                # Check database status
   $ wn-cli data list                # List available projects
@@ -113,22 +126,20 @@ Examples:
 Common Workflows:
   # For researchers: Download and export data
   $ wn-cli data download oewn:2024 --progress
-  $ wn-cli data add oewn-2024-english-wordnet-2024.xml.gz
   $ wn-cli data export --format json --output research-data.json
-  $ wn-cli stats --quality --pos-distribution
+  $ wn-cli stats --quality
 
   # For developers: Get machine-readable output
   $ wn-cli query word "happy" --json | jq '.[0].synsets'
   $ wn-cli disambiguation "bank" --json
 
   # For content writers: Find synonyms and alternatives
-  $ wn-cli query synset "happy" a
-  $ wn-cli disambiguation "light" --include-examples
+  $ wn-cli query synonyms "happy" --pos a
 
   # For language learners: Cross-language analysis
   $ wn-cli multilingual "computer" --target fr
 
-  # For system admins: Check and maintain
+  # For system administrators: Check and maintain
   $ wn-cli db status --verbose
   $ wn-cli db clean --dry-run
 
@@ -165,6 +176,7 @@ For more information, visit: https://github.com/your-repo/wn-cli
   registerConfigCommand(program);
   registerLayoutTestCommand(program);
   registerLexiconsCommand(program);
+  registerBrowserCommands(program);
 
 
   return { program, hasTuiFlag, chain, snapshotEnabled };
@@ -204,13 +216,9 @@ if (process.env.NODE_ENV !== "test") {
 
     let executionError: Error | null = null;
     try {
-      // Otherwise, parse arguments normally
+      // Otherwise, parse arguments normally. Commander will show help by default
+      // if no arguments are provided.
       await program.parseAsync(process.argv);
-
-      // If no arguments provided, show help
-      if (process.argv.length === 2) {
-        program.help();
-      }
     } catch (error) {
       if (error instanceof Error) {
         // Don't treat "help displayed" as an error that needs logging
@@ -225,7 +233,7 @@ if (process.env.NODE_ENV !== "test") {
         process.stdout.write = originalStdoutWrite;
         process.stderr.write = originalStderrWrite;
         if (capturedCommandPath) {
-          logUserInteraction(
+          await logUserInteraction(
             capturedCommandPath,
             capturedArgs,
             outputBuffer.join("")
@@ -242,8 +250,10 @@ if (process.env.NODE_ENV !== "test") {
       process.exit(1);
     }
 
-    if (process.argv.length === 2) {
-      process.exit(0);
-    }
+    // On successful execution, allow the process to exit naturally.
+    // This gives any asynchronous operations (like writing logs) and native
+    // modules (like the database driver) a chance to clean up gracefully.
+    // An explicit process.exit() can be too abrupt on some platforms (e.g., Windows),
+    // causing fatal errors if resources are not released properly.
   })();
 }

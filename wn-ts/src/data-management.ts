@@ -15,10 +15,7 @@ import {
 } from './utils/archive.js';
 import { isILI, loadILI } from './ili.js';
 import { logger } from './utils/logger.js';
-import {
-
-  batchInsert,
-} from './db/batch-insert.js';
+import { batchInsert } from './db/batch-insert.js';
 
 /**
  * Download a project from the web
@@ -86,8 +83,11 @@ export async function download(
 /**
  * Add a lexical resource to the database
  */
-export async function add(path: string, options: AddOptions = {}): Promise<void> {
-  const { progress } = options;
+export async function add(
+  path: string,
+  options: AddOptions & { dryRun?: boolean, parser?: string } = {}
+): Promise<boolean> {
+  const { progress, parser = "" } = options;
   if (progress) progress(0.1); // Initialize progress
 
   if (!existsSync(path)) {
@@ -122,9 +122,9 @@ export async function add(path: string, options: AddOptions = {}): Promise<void>
     const isIliFile = !isLmfFile && (await isILI(processedPath));
 
     if (isLmfFile) {
-      await _addLmf(processedPath, options);
+      return await _addLmf(processedPath, { ...options, parser });
     } else if (isIliFile) {
-      await _addIli(processedPath, options);
+      return await _addIli(processedPath, options);
     } else {
       throw new ProjectError(`File is not a valid LMF or ILI file: ${processedPath}`);
     }
@@ -138,12 +138,21 @@ export async function add(path: string, options: AddOptions = {}): Promise<void>
   }
 }
 
-async function _addIli(path: string, options: AddOptions): Promise<void> {
-  const { progress } = options;
+async function _addIli(
+  path: string,
+  options: AddOptions & { dryRun?: boolean }
+): Promise<boolean> {
+  const { progress, dryRun = false } = options;
   logger.info(`Loading ILI file: ${path}...`);
   const iliData = await loadILI(path);
   logger.success(`ILI file loaded. Found ${iliData.length} records.`);
   if (progress) progress(0.5);
+
+  if (dryRun) {
+    logger.info('[DRY RUN] This is a dry run. No data will be written.');
+    logger.info(`[DRY RUN] Would add ${iliData.length} ILI records.`);
+    return false;
+  }
 
   const records = iliData.map(record => [
     record.ili,
@@ -170,35 +179,186 @@ async function _addIli(path: string, options: AddOptions): Promise<void> {
   } finally {
     db.close();
   }
+  return false;
 }
 
-async function _addLmf(path: string, options: AddOptions): Promise<void> {
-  const { force = false, progress } = options;
+async function _addLmf(
+  path: string,
+  options: AddOptions & { dryRun?: boolean, parser?: string }
+): Promise<boolean> {
+  const { force = false, progress, dryRun = false, parser = "" } = options;
 
+  
+  
   db.initialize();
+  
   try {
     logger.info(`Loading LMF file: ${path}...`);
     const lmfOptions: any = { debug: false };
+    if (parser) lmfOptions.parser = parser;
     if (progress) lmfOptions.progress = progress;
     const lmfData = await loadLMF(path, lmfOptions);
     logger.success(`LMF file loaded. Found ${lmfData.lexicons.length} lexicons.`);
 
+    let lexiconExists = false;
+    let existingLexiconId = '';
+    let existingLexiconVersion = '';
+
     // Pre-check lexicons before transaction
     if (!force) {
       for (const lexicon of lmfData.lexicons || []) {
-        const existing = db.get(
-          'SELECT id FROM lexicons WHERE id = ? AND version = ?',
-          [lexicon.id, lexicon.version]
-        );
-        if (existing) {
-          throw new ProjectError(
-            `Lexicon ${lexicon.id}:${lexicon.version} already exists. Use force=true to overwrite.`
+        let existing;
+        try {
+          existing = db.get(
+            'SELECT id FROM lexicons WHERE id = ? AND version = ?',
+            [lexicon.id, lexicon.version]
           );
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.error('[DEBUG _addLmf] Error during lexicon existence check:', e);
+        }
+            
+        if (existing) {
+          lexiconExists = true;
+          existingLexiconId = lexicon.id;
+          existingLexiconVersion = lexicon.version || '';
+          break;
         }
       }
     }
 
+    if (dryRun) {
+      logger.info(
+        '\n[DRY RUN] This is a dry run. No data will be written to the database.'
+      );
+      if (lexiconExists) {
+        logger.warn(
+          `[DRY RUN] Lexicon ${existingLexiconId}:${existingLexiconVersion} already exists. Existing data will be updated/repaired.`
+        );
+      } else {
+        const lexIds = (lmfData.lexicons || [])
+          .map((l: any) => `${l.id}:${l.version}`)
+          .join(', ');
+        logger.info(`[DRY RUN] Would add new lexicon(s): ${lexIds}`);
+      }
+
+      const checkExisting = (table: string, ids: string[]): Set<string> => {
+        const existingIds = new Set<string>();
+        const BATCH_SIZE = 500;
+        for (let i = 0; i < ids.length; i += BATCH_SIZE) {
+          const batch = ids.slice(i, i + BATCH_SIZE);
+          if (batch.length === 0) continue;
+          const placeholders = batch.map(() => '?').join(',');
+          const rows = db.all<{ id: string }>(
+            `SELECT id FROM ${table} WHERE id IN (${placeholders})`,
+            batch
+          );
+          for (const row of rows) {
+            existingIds.add(row.id);
+          }
+        }
+        return existingIds;
+      };
+
+      const totalWords = lmfData.words?.length || 0;
+      if (totalWords > 0) {
+        const wordIds = (lmfData.words || []).map(w => w.id);
+        const existingWordIds = checkExisting('words', wordIds);
+        const wordsToUpdate = existingWordIds.size;
+        const wordsToInsert = totalWords - wordsToUpdate;
+        logger.info(
+          `[DRY RUN] Words to process: ${totalWords} (insert: ${wordsToInsert}, update: ${wordsToUpdate})`
+        );
+      } else {
+        logger.info('[DRY RUN] Words to add/update: 0');
+      }
+
+      const totalSynsets = lmfData.synsets?.length || 0;
+      if (totalSynsets > 0) {
+        const synsetIds = (lmfData.synsets || []).map(s => s.id);
+        const existingSynsetIds = checkExisting('synsets', synsetIds);
+        const synsetsToUpdate = existingSynsetIds.size;
+        const synsetsToInsert = totalSynsets - synsetsToUpdate;
+        logger.info(
+          `[DRY RUN] Synsets to process: ${totalSynsets} (insert: ${synsetsToInsert}, update: ${synsetsToUpdate})`
+        );
+      } else {
+        logger.info('[DRY RUN] Synsets to add/update: 0');
+      }
+
+      return lexiconExists; // Stop execution for dry run
+    }
+
+    if (lexiconExists) {
+      logger.warn(
+        `Lexicon ${existingLexiconId}:${existingLexiconVersion} already exists. A full update (remove and replace) will be performed.`
+      );
+    }
+
+
     db.transaction(() => {
+      
+      
+      if (lexiconExists) {
+        
+        const BATCH_SIZE = 500;
+
+        const words = db.all('SELECT id FROM words WHERE lexicon = ?', [
+          existingLexiconId,
+        ]);
+        const wordIds = (words as { id: string }[]).map(w => w.id);
+
+        const synsets = db.all('SELECT id FROM synsets WHERE lexicon = ?', [
+          existingLexiconId,
+        ]);
+        const synsetIds = (synsets as { id: string }[]).map(s => s.id);
+
+        for (let i = 0; i < wordIds.length; i += BATCH_SIZE) {
+          const batch = wordIds.slice(i, i + BATCH_SIZE);
+          if (batch.length === 0) continue;
+          const placeholders = batch.map(() => '?').join(',');
+          db.run(`DELETE FROM senses WHERE word_id IN (${placeholders})`, batch);
+          db.run(`DELETE FROM forms WHERE word_id IN (${placeholders})`, batch);
+        }
+
+        for (let i = 0; i < synsetIds.length; i += BATCH_SIZE) {
+          const batch = synsetIds.slice(i, i + BATCH_SIZE);
+          if (batch.length === 0) continue;
+          const placeholders = batch.map(() => '?').join(',');
+          db.run(
+            `DELETE FROM relations WHERE source_id IN (${placeholders})`,
+            batch
+          );
+          db.run(
+            `DELETE FROM relations WHERE target_id IN (${placeholders})`,
+            batch
+          );
+          db.run(
+            `DELETE FROM definitions WHERE synset_id IN (${placeholders})`,
+            batch
+          );
+          db.run(
+            `DELETE FROM examples WHERE synset_id IN (${placeholders})`,
+            batch
+          );
+        }
+
+        for (let i = 0; i < wordIds.length; i += BATCH_SIZE) {
+          const batch = wordIds.slice(i, i + BATCH_SIZE);
+          if (batch.length === 0) continue;
+          const placeholders = batch.map(() => '?').join(',');
+          db.run(`DELETE FROM words WHERE id IN (${placeholders})`, batch);
+        }
+
+        for (let i = 0; i < synsetIds.length; i += BATCH_SIZE) {
+          const batch = synsetIds.slice(i, i + BATCH_SIZE);
+          if (batch.length === 0) continue;
+          const placeholders = batch.map(() => '?').join(',');
+          db.run(`DELETE FROM synsets WHERE id IN (${placeholders})`, batch);
+        }
+
+        db.run('DELETE FROM lexicons WHERE id = ?', [existingLexiconId]);
+      }
       logger.insert('Inserting lexicons...');
       const lexiconData = (lmfData.lexicons || []).map(lexicon => [
         lexicon.id,
@@ -292,25 +452,37 @@ async function _addLmf(path: string, options: AddOptions): Promise<void> {
       );
 
       logger.insert('Inserting definitions...');
+      
+      
       const definitionData = (lmfData.synsets || []).flatMap(synset =>
-        (synset.definitions || []).map((def: any) => [
-          def.id,
+        (synset.definitions || []).map((def: any, index: number) => [
+          def.id || `def_${synset.id}_${index}`, // Generate unique ID if empty
           synset.id,
           def.language,
           def.text,
           def.source,
         ])
       );
-      batchInsert(
-        'definitions',
-        ['id', 'synset_id', 'language', 'text', 'source'],
-        definitionData,
-        p => {
-          progress?.(0.5 + p * 0.1); // 0.5-0.6
-
-          logger.insert('definition progress', p);
-        }
-      );
+      
+      
+      // Before batchInsert
+      
+      try {
+        batchInsert(
+          'definitions',
+          ['id', 'synset_id', 'language', 'text', 'source'],
+          definitionData,
+          p => {
+            progress?.(0.5 + p * 0.1); // 0.5-0.6
+            logger.insert('definition progress', p);
+          }
+        );
+        
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('[DEBUG _addLmf] Error in batchInsert for definitions:', error);
+        throw error;
+      }
 
       logger.insert('Inserting relations...');
       const relationData = (lmfData.synsets || []).flatMap(synset =>
@@ -402,6 +574,11 @@ async function _addLmf(path: string, options: AddOptions): Promise<void> {
     });
     if (progress) progress(1.0);
     logger.success('Data added successfully.');
+    return lexiconExists;
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error('[DEBUG _addLmf] Error during DB transaction:', e);
+    throw e;
   } finally {
     db.close();
   }
@@ -545,11 +722,78 @@ export async function exportData(options: ExportOptions): Promise<void> {
  * Export data to JSON format
  */
 async function exportToJSON(lexicons: unknown[]): Promise<string> {
-  const exportData = {
-    lexicons,
+  const exportData: any = {
+    lexicons: [],
     exportDate: new Date().toISOString(),
     format: 'json',
   };
+
+  for (const lexicon of lexicons as Record<string, any>[]) {
+    const lexiconData: any = {
+      ...lexicon,
+      entries: [],
+      synsets: [],
+    };
+
+    // Get words (entries) for this lexicon
+    const words = db.all('SELECT * FROM words WHERE lexicon = ?', [lexicon.id]);
+    for (const word of words as any[]) {
+      const entry: any = {
+        id: word.id,
+        lemma: {
+          writtenForm: word.lemma,
+          partOfSpeech: word.part_of_speech,
+        },
+        senses: [],
+      };
+
+      // Get senses for this word
+      const senses = db.all('SELECT * FROM senses WHERE word_id = ?', [word.id]);
+      for (const sense of senses as any[]) {
+        entry.senses.push({
+          id: sense.id,
+          synset: sense.synset_id,
+        });
+      }
+
+      lexiconData.entries.push(entry);
+    }
+
+    // Get synsets for this lexicon
+    const synsets = db.all('SELECT * FROM synsets WHERE lexicon = ?', [lexicon.id]);
+    for (const synset of synsets as any[]) {
+      const synsetData: any = {
+        id: synset.id,
+        partOfSpeech: synset.part_of_speech,
+        ili: synset.ili,
+        definition: '',
+        examples: [],
+      };
+
+      // Get definitions for this synset
+      const definitions = db.all('SELECT * FROM definitions WHERE synset_id = ?', [
+        synset.id,
+      ]);
+      if (definitions.length > 0) {
+        synsetData.definition = (definitions[0] as any).text;
+      }
+
+      // Get examples for this synset
+      const examples = db.all('SELECT * FROM examples WHERE synset_id = ?', [
+        synset.id,
+      ]);
+      for (const example of examples as any[]) {
+        synsetData.examples.push({
+          text: example.text,
+          language: example.language,
+        });
+      }
+
+      lexiconData.synsets.push(synsetData);
+    }
+
+    exportData.lexicons.push(lexiconData);
+  }
 
   return JSON.stringify(exportData, null, 2);
 }
@@ -675,7 +919,7 @@ async function exportToCSV(lexicons: unknown[]): Promise<string> {
  */
 export async function addLexicalResource(
   path: string,
-  options: AddOptions = {}
-): Promise<void> {
+  options: AddOptions & { dryRun?: boolean } = {}
+): Promise<boolean> {
   return add(path, options);
 }

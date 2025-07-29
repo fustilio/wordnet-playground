@@ -124,3 +124,23 @@ When adding new features or fixing bugs, please include corresponding tests.
   - Invalid inputs (e.g., incorrect IDs, wrong data types, `null`, `undefined`).
   - Error conditions (network failures, file not found, database errors).
   - Race conditions or concurrent operations where applicable.
+
+## 8. Comparison with wn-cli Test Strategies
+
+For a detailed comparison with CLI testing, see [wn-cli/tests/SPEC.md](../../wn-cli/tests/SPEC.md).
+
+### Key Similarities
+- Both wn-ts and wn-cli use temp directories and per-test/per-suite isolation for all tests.
+- Both set config.dataDirectory to a temp dir for each test.
+- Both use real data for E2E tests and mock data for unit/integration tests.
+
+### Key Differences
+- wn-ts tests run in a single process, so in-memory config changes are always respected.
+- wn-cli tests (especially E2E) may spawn subprocesses or simulate CLI invocations, so config must be written to disk and read by the CLI process.
+- If the CLI process does not read the correct config or data directory, it will not see the test data, leading to failures like "No lexicons are installed."
+
+### Root Cause of CLI/Library Test Divergence
+- Library tests pass because all state is in-memory and controlled.
+- CLI tests can fail if the CLI process does not use the same temp data directory as the test runner, due to process isolation.
+
+See the wn-cli SPEC.md for more details and recommendations.

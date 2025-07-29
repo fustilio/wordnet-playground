@@ -146,6 +146,11 @@ export interface DownloadOptions {
 export interface AddOptions {
   force?: boolean;
   progress?: (progress: number) => void;
+  /**
+   * (Advanced/testing) Specify the LMF parser to use (e.g., 'legacy', 'full-streaming').
+   * If not set, uses the default parser.
+   */
+  parser?: string;
 }
 
 export interface ExportOptions {

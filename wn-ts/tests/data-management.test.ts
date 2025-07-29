@@ -302,3 +302,16 @@ describe('Data Management', () => {
     });
   });
 });
+
+describe.skip('SLOW: Real download and add of OEWN:2024 (network dependent)', () => {
+  it('should download and add OEWN:2024 to the database (slow, real data)', async () => {
+    const testDataDir = testUtils.getTestDataDir();
+    config.dataDirectory = testDataDir;
+    const filePath = await download('oewn:2024', { force: true });
+    await add(filePath, { force: true });
+    await db.initialize();
+    const lexicons = (await db.all('SELECT * FROM lexicons WHERE id LIKE ?', ['oewn%'])) as { id: string }[];
+    expect(lexicons.length).toBeGreaterThan(0);
+    await db.close();
+  }, 300000); // 5 min timeout
+});

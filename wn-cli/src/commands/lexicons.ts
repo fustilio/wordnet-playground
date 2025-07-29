@@ -32,6 +32,19 @@ function registerLexiconsCommand(program: Command) {
         const installedIds = new Set(installedLexicons.map(l => l.id));
         const installedData = Object.fromEntries(installedLexicons.map(l => [l.id, l]));
         
+        const isActuallyInstalled = (id: string) => {
+          if (installedIds.has(id)) return true;
+          // Also check if any installed lexicon is a sub-lexicon of a project.
+          // e.g., if 'omw-fr' is installed, the project 'omw' is considered installed.
+          const projectPrefix = id + '-';
+          for (const installedId of installedIds) {
+            if (installedId.startsWith(projectPrefix)) {
+              return true;
+            }
+          }
+          return false;
+        };
+
         // Create a unified list of all lexicon IDs
         const allLexiconIds = [...new Set([...availableLexicons, ...installedIds])];
         
@@ -62,18 +75,18 @@ function registerLexiconsCommand(program: Command) {
         }
         
         if (options.installed) {
-          filteredLexicons = filteredLexicons.filter(id => installedIds.has(id));
+          filteredLexicons = filteredLexicons.filter(id => isActuallyInstalled(id));
         }
         
         if (options.available) {
-          filteredLexicons = filteredLexicons.filter(id => !installedIds.has(id));
+          filteredLexicons = filteredLexicons.filter(id => !isActuallyInstalled(id));
         }
         
         // Prepare data for output
         const lexiconList = filteredLexicons.map(id => {
           const indexInfo = lexiconData[id];
           const dbInfo = installedData[id];
-          const isInstalled = installedIds.has(id);
+          const isInstalled = isActuallyInstalled(id);
           
           return {
             id,

@@ -48,15 +48,15 @@ function registerMultilingualCommands(program: Command) {
         }
         const wn = getWordnetInstance(options.lexicon);
         
-        let targetWn: any = null;
         let targetLexiconId: string | null = null;
         if (options.target) {
-            const allInstalledLexicons = await getInstalledLexicons();
-            const targetLexicon = allInstalledLexicons.find(l => l.language === options.target);
-            if (targetLexicon) {
-                targetWn = getWordnetInstance(targetLexicon.id);
-                targetLexiconId = targetLexicon.id;
-            }
+          const allInstalledLexicons = await getInstalledLexicons();
+          const targetLexicon = allInstalledLexicons.find(
+            (l) => l.language === options.target,
+          );
+          if (targetLexicon) {
+            targetLexiconId = targetLexicon.id;
+          }
         }
         
         if (!options.json) {
@@ -98,29 +98,47 @@ function registerMultilingualCommands(program: Command) {
           
           for (let i = 0; i < synsets.length; i++) {
             const synset = synsets[i];
-            const members = synset.members?.length ? synset.members.map((m: string) => m.replace(new RegExp(`^${synset.lexicon}-`), '').replace(/-[a-z]$/, '')).join(', ') : word;
+            const members = synset.members?.length ? synset.members.map((m: string) => m.replace(new RegExp(`^${synset.lexicon}-`), '').replace(/^w_/, '').replace(/-[a-z]$/, '')).join(', ') : word;
             const pos = synset.partOfSpeech || options.pos || "?";
             
             let displayMembers = members;
-            if (targetWn && synset.ili) {
-                const globalWn = getWordnetInstance('*');
-                const iliResults = await globalWn.ili(synset.ili);
-                const iliSynsets = Array.isArray(iliResults) ? iliResults : (iliResults ? [iliResults] : []);
+            if (options.target && targetLexiconId && synset.ili) {
+              const iliResults = await wn.ili(synset.ili);
+              const iliSynsets = Array.isArray(iliResults)
+                ? iliResults
+                : iliResults
+                ? [iliResults]
+                : [];
 
-                const targetSynsets = iliSynsets.filter((s: any) => s && s.lexicon && targetLexiconId && s.lexicon.startsWith(targetLexiconId.split(':')[0]));
+              const targetSynsets = iliSynsets.filter(
+                (s: any) =>
+                  s &&
+                  s.lexicon &&
+                  s.lexicon.startsWith(targetLexiconId!.split(":")[0]),
+              );
 
-                if (targetSynsets && targetSynsets.length > 0) {
-                    const lemmas = new Set<string>();
-                    for (const ts of targetSynsets) {
-                        const fullTargetSynset = await targetWn.synset(ts.id);
-                        if (fullTargetSynset && fullTargetSynset.members) {
-                            fullTargetSynset.members.forEach((m: string) => lemmas.add(m.replace(new RegExp(`^${fullTargetSynset.lexicon}-`), '').replace(/-[a-z]$/, '')));
-                        }
-                    }
-                    if (lemmas.size > 0) {
-                        displayMembers = Array.from(lemmas).join(', ');
-                    }
+              if (targetSynsets.length > 0) {
+                const lemmas = new Set<string>();
+                for (const ts of targetSynsets) {
+                  const fullTargetSynset = await wn.synset(ts.id);
+                  if (fullTargetSynset && fullTargetSynset.members) {
+                    fullTargetSynset.members.forEach((m: string) =>
+                      lemmas.add(
+                        m
+                          .replace(
+                            new RegExp(`^${fullTargetSynset.lexicon}-`),
+                            "",
+                          )
+                          .replace(/^w_/, "")
+                          .replace(/-[a-z]$/, ""),
+                      ),
+                    );
+                  }
                 }
+                if (lemmas.size > 0) {
+                  displayMembers = Array.from(lemmas).join(", ");
+                }
+              }
             }
 
             console.log(`\n${colors.cyan(`Synset ${i + 1}:`)} ${colors.bold(displayMembers)} (${pos})`);

@@ -14,12 +14,23 @@ export class DatabaseManager {
   }
 
   initialize(): void {
+
     if (this.db) return;
     const dbExists = existsSync(this.dbPath);
-    this.db = new Database(this.dbPath);
-    this.db.pragma('foreign_keys = ON');
-    if (!dbExists) {
-      this.createTables();
+
+    try {
+      this.db = new Database(this.dbPath);
+      this.db.pragma('foreign_keys = ON');
+      if (!dbExists) {
+            
+        this.createTables();
+            
+      }
+          
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('[DEBUG db.initialize] Error during DB creation:', e);
+      throw e;
     }
   }
 
@@ -169,17 +180,40 @@ export class DatabaseManager {
 
 export const db = new DatabaseManager();
 
+export function isDatabaseLocked(): boolean {
+  const dbPath = join(config.dataDirectory, 'wn.db');
+  if (!existsSync(dbPath)) return false;
+  try {
+    const db = new Database(dbPath, { fileMustExist: true, timeout: 100 });
+    db.prepare('BEGIN EXCLUSIVE').run();
+    db.prepare('ROLLBACK').run();
+    db.close();
+    return false;
+  } catch (e: any) {
+    if (e && e.message && e.message.includes('database is locked')) {
+      return true;
+    }
+    throw e;
+  }
+}
+
 // Gracefully close the database on process exit or unhandled errors
 const gracefulShutdown = () => {
   try {
     db.close();
+    // On Windows, add a short delay to help release file handles
+    if (process.platform === 'win32') {
+      const waitUntil = Date.now() + 200;
+      while (Date.now() < waitUntil) {}
+    }
   } catch (err) {
     // Ignore errors if already closed
   }
 };
 
+// These handlers help avoid persistent DB locks if the process is interrupted or crashes.
 process.on('exit', gracefulShutdown);
-process.on('SIGINT', gracefulShutdown);
-process.on('SIGTERM', gracefulShutdown);
-process.on('uncaughtException', gracefulShutdown);
-process.on('unhandledRejection', gracefulShutdown);
+process.on('SIGINT', () => { gracefulShutdown(); process.exit(0); });
+process.on('SIGTERM', () => { gracefulShutdown(); process.exit(0); });
+process.on('uncaughtException', (err) => { gracefulShutdown(); throw err; });
+process.on('unhandledRejection', (reason) => { gracefulShutdown(); throw reason; });

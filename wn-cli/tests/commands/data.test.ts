@@ -1,8 +1,38 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { runCommand } from "./test-helper.js";
 import { writeFileSync, readFileSync } from "fs";
 import { join } from "path";
 import { add, config } from "wn-ts";
+
+beforeEach(async () => {
+  const { config } = await import("wn-ts");
+  const fs = await import('fs');
+  // Debug: print config.dataDirectory and CLI config path
+  // eslint-disable-next-line no-console
+  console.log('[DEBUG] config.dataDirectory:', config.dataDirectory);
+  // eslint-disable-next-line no-console
+  console.log('[DEBUG] CLI config path:', process.env.WN_CLI_CONFIG_PATH || 'not set');
+  const dbPath = require('path').join(config.dataDirectory, 'wn.db');
+  // eslint-disable-next-line no-console
+  console.log('[DEBUG] DB exists after setup:', fs.existsSync(dbPath));
+});
+
+afterEach(async () => {
+  const { config } = await import("wn-ts");
+  const fs = await import('fs');
+  const dbPath = require('path').join(config.dataDirectory, 'wn.db');
+  // eslint-disable-next-line no-console
+  console.log('[DEBUG] DB exists after test:', fs.existsSync(dbPath));
+  // Print contents of temp dir
+  try {
+    const files = fs.readdirSync(config.dataDirectory);
+    // eslint-disable-next-line no-console
+    console.log('[DEBUG] Temp dir contents:', files);
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.log('[DEBUG] Could not read temp dir:', e);
+  }
+});
 
 describe("data command tests", () => {
   it("data command without subcommand shows help", async () => {
@@ -110,23 +140,22 @@ describe("data command tests", () => {
       outputFile,
     ]);
     expect(stderr).toBe("");
-    // The success message no longer includes the file path, so we just check for the base message.
     expect(stdout).toContain(`✅ Successfully exported data`);
 
     // Check that the output file contains the exported data
     const exportedJson = readFileSync(outputFile, "utf-8");
     const exportedData = JSON.parse(exportedJson);
     expect(exportedData.lexicons[0].id).toBe("test-export");
-    // The export functionality appears to only export lexicon metadata,
-    // not the full word/synset data. The test is updated to reflect this.
+    // The export should contain the full data, including entries and synsets.
     const exportedLexicon = exportedData.lexicons[0];
     expect(exportedLexicon.label).toBe("Test Export Lexicon");
     expect(exportedLexicon.language).toBe("en");
     expect(exportedLexicon.version).toBe("1.0");
 
-    // Verify that entries and synsets are NOT in the export, as this
-    // seems to be the new behavior.
-    expect(exportedLexicon.entries).toBeUndefined();
-    expect(exportedLexicon.synsets).toBeUndefined();
+    // Verify that entries and synsets ARE in the export.
+    expect(exportedLexicon.entries).toHaveLength(2);
+    expect(exportedLexicon.synsets).toHaveLength(1);
+    expect(exportedLexicon.entries[0].lemma.writtenForm).toBe("export");
+    expect(exportedLexicon.synsets[0].definition).toBe("a test definition");
   });
 });

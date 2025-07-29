@@ -3,12 +3,13 @@ import { config as wnTsConfig } from "wn-ts";
 import conf, { resetConfig } from "../config-manager.js";
 import { colors } from "./utils/colors.js";
 import { join, dirname } from "path";
+import fs from "fs";
 
 const allowedKeys = ["dataDirectory", "allowMultithreading", "enableUsageLogging"] as const;
 type ConfigKey = (typeof allowedKeys)[number];
 
 function registerConfigCommand(program: Command) {
-  program
+  const configCommand = program
     .command("config")
     .description("Show or modify configuration")
     .option("-s, --set <key=value>", "Set configuration value")
@@ -80,6 +81,27 @@ function registerConfigCommand(program: Command) {
         );
         console.log(colors.yellow(`Allowed keys: ${allowedKeys.join(", ")}`));
       }
+    });
+
+  configCommand
+    .command("force-reset")
+    .description("Forcibly deletes the config file to reset all settings. Use if your configuration is broken.")
+    .action(() => {
+        try {
+            const configFilePath = conf.path;
+            if (fs.existsSync(configFilePath)) {
+                fs.unlinkSync(configFilePath);
+                console.log(colors.green(`✅ Configuration file deleted: ${configFilePath}`));
+                console.log(colors.yellow("Defaults will be used on the next run."));
+            } else {
+                console.log(colors.yellow(`Configuration file not found, nothing to do.`));
+            }
+        } catch (e) {
+            const error = e as Error;
+            console.error(colors.red("❌ Failed to delete configuration file."));
+            console.error(colors.red(`   Please delete it manually: ${conf.path}`));
+            console.error(colors.red(`   Error: ${error.message}`));
+        }
     });
 }
 

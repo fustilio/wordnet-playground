@@ -18,9 +18,10 @@ describe("db command tests", () => {
     // Use regex to be resilient to whitespace differences from color codes
     // Check for either ✅ or ❌ since the cache directory might not exist in all test environments
     expect(stdout).toMatch(/Exists:\s*[✅❌]/);
-    // Check for either "No locked database files found" or "Locked Database Files:" 
-    // since there might be locked files in the test environment
-    expect(stdout).toMatch(/(No locked database files found|Locked Database Files:)/);
+    expect(stdout).toContain("Main Cache Directory");
+    expect(stdout).toContain("Demo Directories");
+    // Explicitly check for lock status line
+    expect(stdout).toMatch(/\s+• Locked: (Yes|No)/);
     expect(stderr).toBe("");
   });
 

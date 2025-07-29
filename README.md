@@ -47,10 +47,10 @@ A comprehensive benchmarking subproject that measures and compares performance a
 
 **📖 [Read Benchmark Documentation →](./benchmark/README.md)**
 
-### 📁 `/demo` - Live Demo Application 🔧 **DEVELOPMENT TOOL**
-A Node.js demo application showcasing the `wn-ts` library in action with real WordNet data.
+### 📁 `/demo` - Executable Use Cases 🔧 **DEVELOPMENT TOOL**
+A collection of executable use cases that demonstrate `wn-ts` features, validate its functionality, and guide its development.
 
-**📖 [Read Demo Documentation →](./demo/README.md)**
+**📖 [Read Use Case Documentation →](./demo/README.md)**
 
 ### 📁 `/wn-test-data` - Shared Test Data Directory 🔧 **DEVELOPMENT TOOL**
 Shared test data files used by both `wn-ts` and `wn-pybridge` projects to ensure consistency and comprehensive testing.
@@ -92,7 +92,7 @@ wn-cli db status
 wn-cli db unlock
 
 # Export data
-wn-cli export --format json --output export.json
+wn-cli data export --format json --output export.json
 ```
 
 ### Development Setup
@@ -218,7 +218,7 @@ Based on comprehensive benchmarking:
 - **Python Bridge**: [wn-pybridge README](./wn-pybridge/README.md)
 - **Benchmark Results**: [Benchmark README](./benchmark/README.md)
 - **Demo Application**: [Demo README](./demo/README.md)
-- **CLI Documentation**: [wn-ts CLI Guide](./wn-ts/docs/USAGE-CLI.md)
+- **CLI Documentation**: [wn-cli README](./wn-cli/README.md)
 - **Python Reference**: [wn.readthedocs.io](https://wn.readthedocs.io/)
 
 ## 🎯 Roadmap
@@ -266,4 +266,33 @@ MIT License - see [LICENSE](./LICENSE) file for details.
 ---
 
 **This repository focuses on developing a TypeScript port of the Python wn library, with comprehensive benchmarking to ensure optimal performance across different use cases and data sizes. The long-term goal is to create a fully browser-based implementation that mirrors the Python wn library in JavaScript/TypeScript. Only `wn-ts` is published to npm; other components are development and testing infrastructure.**
+
+## 🌐 Node-to-Browser Strategy: Lessons from wordpos/wordpos-web and the Path for wn-ts
+
+A key long-term goal of this repository is to enable **full browser-based WordNet access** with the same API and feature set as the Node.js implementation. To achieve this, we are drawing on the successful dual-environment strategy pioneered by the `wordpos` and `wordpos-web` projects. Here’s how this approach works and how it will inform the future of `wn-ts` and `wn-ts-web`:
+
+### How wordpos Achieves Node & Browser Support
+- **Single Codebase, Dual Entry Points:** The `wordpos` library maintains a single codebase with separate entry points for Node.js and browser environments. The main module (`src/wordpos.js`) conditionally loads either the Node or browser implementation based on the environment.
+- **Browser Data Preparation:** For the browser, WordNet index and data files are preprocessed into JSON/JS modules using a build script. These are then loaded dynamically in the browser using ES6 dynamic imports, avoiding direct filesystem access.
+- **API Parity:** Both environments expose the same API, so code written for Node.js can run in the browser with minimal changes.
+- **Distribution:** The `wordpos-web` project provides a static web demo and distribution, bundling the browser build and the required data files for easy deployment.
+
+### Planned Strategy for wn-ts and wn-ts-web
+- **Unified TypeScript Codebase:** `wn-ts` will maintain a single codebase, with environment-specific entry points for Node.js and browser (e.g., using the `browser` field in `package.json`).
+- **Browser Data Bundling:** We will develop a build process to convert WordNet data into browser-usable formats (e.g., JSON or JS modules), similar to `wordpos`. These will be loaded dynamically or via static imports in the browser.
+- **API Consistency:** The browser and Node.js builds will expose the same API, ensuring seamless portability of code and tests.
+- **Web Demo & Distribution:** The `wn-ts-web` project will serve as a static web demo and distribution, bundling the browser build and data files, and providing example HTML/JS usage.
+- **Testing & Parity:** We will maintain a comprehensive test suite to ensure feature parity and correctness across both environments.
+
+### Why This Matters
+- **Broader Reach:** Enables WordNet-powered applications to run anywhere JavaScript runs, including browsers, Node.js, and serverless platforms.
+- **Performance & Usability:** By pre-processing data and optimizing for browser delivery, we can achieve fast, interactive WordNet experiences on the web.
+- **Modern Web Standards:** This approach leverages ES modules, modern bundlers, and static hosting for maximum compatibility and performance.
+
+**Next Steps:**
+- Implement the browser build pipeline for `wn-ts`.
+- Develop the `wn-ts-web` demo and static distribution.
+- Ensure all core APIs are available and tested in both environments.
+
+For more details, see the [wordpos README](./wordpos/README.md) and [wordpos-web](./wordpos-web/README.md) for a working example of this strategy.
 
