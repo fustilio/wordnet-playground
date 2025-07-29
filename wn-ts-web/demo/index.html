@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>wn-ts-web Demo</title>
+</head>
+<body>
+  <h1>wn-ts-web Browser Demo</h1>
+  <div id="output">Loading...</div>
+  <script type="module">
+    import { getIndex, getData } from '../dist/wn-ts.min.js';
+    // Example: Load the noun index and display the number of lemmas
+    getIndex('noun').then(index => {
+      document.getElementById('output').innerText =
+        `Loaded noun index with ${Object.keys(index).length} lemmas.`;
+    }).catch(err => {
+      document.getElementById('output').innerText = 'Error: ' + err;
+    });
+  </script>
+</body>
+</html> 

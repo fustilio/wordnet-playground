@@ -1,0 +1,6 @@
+# Ignore compiled JS and map files in src
+src/*.js
+src/*.js.map
+
+# Ignore all files in dist
+/dist/ 

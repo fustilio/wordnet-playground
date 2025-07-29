@@ -1,0 +1,62 @@
+{
+  "name": "wn-ts-web",
+  "version": "0.3.1",
+  "description": "Browser/web distribution and interactive demo for wn-ts. Implements the node-to-browser strategy for WordNet access in the browser, following the approach of wordpos/wordpos-web.",
+  "keywords": [
+    "wordnet",
+    "interlingual",
+    "linguistics",
+    "language",
+    "typescript",
+    "browser",
+    "web",
+    "demo",
+    "wn-ts"
+  ],
+  "homepage": "https://github.com/fustilio/wordnet-playground/tree/main/wn-ts-web",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fustilio/wordnet-playground.git",
+    "directory": "wn-ts"
+  },
+  "license": "MIT",
+  "author": "fustilio",
+  "type": "module",
+  "browser": "dist/wn-ts.min.js",
+  "files": [
+    "dist/",
+    "demo/",
+    "data/",
+    "README.md"
+  ],
+  "scripts": {
+    "cli": "wn-cli",
+    "cli:reset": "wn-cli config force-reset",
+    "build:data": "wn-cli browser prep --lexicon oewn:2024 --outDir ./data",
+    "build": "pnpm run build:data",
+    "clean": "rimraf dist",
+    "demo": "vite --open demo/",
+    "dev": "vite",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "wn-ts": "workspace:*"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.27.7",
+    "@types/node": "catalog:",
+    "@typescript-eslint/eslint-plugin": "catalog:",
+    "@typescript-eslint/parser": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/ui": "^3.2.4",
+    "eslint": "catalog:",
+    "prettier": "catalog:",
+    "rimraf": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "wn-cli": "workspace:*"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
