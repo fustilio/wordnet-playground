@@ -148,7 +148,9 @@ function convertLMFToBrowserFormat(
     const chunks = {
       totalWordChunks: wordChunks.length,
       totalSynsetChunks: synsetChunks.length,
-      chunkSize
+      chunkSize,
+      words: wordChunks.map((_, index) => `words${index}.json`),
+      synsets: synsetChunks.map((_, index) => `synsets${index}.json`)
     };
 
     if (debug) {

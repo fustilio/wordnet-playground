@@ -34,7 +34,9 @@ describe('E2E Command Suite', () => {
 
     result = await runCommand(["query", "word", "happy", "a"]);
     expect(result.stderr).toBe("");
-    expect(result.stdout).toContain("💡 Tip: Install 'cili' for more definitions.");
+    // Since oewn:2024 already includes definitions, the CILI tip should NOT show
+    expect(result.stdout).toContain("Definition: enjoying or showing or marked by joy or pleasure");
+    expect(result.stdout).not.toContain("💡 Tip: Install 'cili' for more definitions.");
 
     // STEP 2: Download CILI and verify definition now appears
     result = await runCommand(["data", "download", "cili:1.0"]);

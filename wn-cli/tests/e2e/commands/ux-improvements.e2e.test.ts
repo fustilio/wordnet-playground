@@ -37,7 +37,9 @@ describe("E2E UX Improvements", () => {
 
       result = await runCommand(["query", "word", "happy", "a"]);
       expect(result.stderr).toBe("");
-      expect(result.stdout).toContain(
+      // Since oewn:2024 already includes definitions, the CILI tip should NOT show
+      expect(result.stdout).toContain("Definition: enjoying or showing or marked by joy or pleasure");
+      expect(result.stdout).not.toContain(
         "💡 Tip: Install 'cili' for more definitions. Run: wn-cli data download cili:1.0"
       );
 
@@ -54,11 +56,11 @@ describe("E2E UX Improvements", () => {
 
       result = await runCommand(["query", "word", "happy", "a"]);
       expect(result.stderr).toBe("");
-      // The actual definition should now be present
+      // The definition should still be present (it was already available in oewn:2024)
       expect(result.stdout).toContain(
         "Definition: enjoying or showing or marked by joy or pleasure"
       );
-      // The tip should NOT be present
+      // The tip should NOT be present since definitions are already available
       expect(result.stdout).not.toContain(
         "💡 Tip: Install 'cili' for more definitions."
       );

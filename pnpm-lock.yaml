@@ -291,6 +291,9 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 5.8.3
+      vite:
+        specifier: ^7.0.2
+        version: 7.0.2(@types/node@20.19.4)(terser@5.43.1)
       vitest:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@20.19.4)(@vitest/ui@3.2.4)(terser@5.43.1)
