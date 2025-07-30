@@ -13,9 +13,10 @@ catalog:
   vitest: ^3.2.4
   zod: ^3.25.71
 packages:
-  - wn-ts
+  - wn-ts-core
+  - wn-ts-node
+  - wn-ts-web
   - demo
   - benchmark
   - wn-pybridge
   - wn-cli
-  - wn-ts-web

@@ -1,6 +1,6 @@
 {
   "name": "wn-pybridge",
-  "version": "0.3.1",
+  "version": "0.5.0",
   "private": true,
   "description": "TypeScript interface to Python wn library via pythonia bridge",
   "keywords": [

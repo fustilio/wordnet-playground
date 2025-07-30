@@ -60,7 +60,7 @@ importers:
         version: link:../wn-pybridge
       wn-ts:
         specifier: workspace:*
-        version: link:../wn-ts
+        version: link:../wn-ts-node
       wndb-with-exceptions:
         specifier: ^3.0.2
         version: 3.0.2
@@ -112,7 +112,7 @@ importers:
         version: 5.1.4(typescript@5.8.3)(vite@7.0.2(@types/node@24.0.13)(terser@5.43.1))
       wn-ts:
         specifier: workspace:*
-        version: link:../wn-ts
+        version: link:../wn-ts-node
     devDependencies:
       '@types/react':
         specifier: ^18.2.0
@@ -188,7 +188,68 @@ importers:
         specifier: 'catalog:'
         version: 3.2.4(@types/node@20.19.4)(@vitest/ui@3.2.4)(terser@5.43.1)
 
-  wn-ts:
+  wn-ts-core:
+    dependencies:
+      '@types/sax':
+        specifier: ^1.2.7
+        version: 1.2.7
+      commander:
+        specifier: ^14.0.0
+        version: 14.0.0
+      fast-xml-parser:
+        specifier: ^5.2.5
+        version: 5.2.5
+      lzma-native:
+        specifier: ^8.0.6
+        version: 8.0.6
+      sax:
+        specifier: ^1.4.1
+        version: 1.4.1
+      smol-toml:
+        specifier: ^1.4.1
+        version: 1.4.1
+    devDependencies:
+      '@changesets/cli':
+        specifier: ^2.27.7
+        version: 2.29.5
+      '@types/node':
+        specifier: 'catalog:'
+        version: 20.19.4
+      '@typescript-eslint/eslint-plugin':
+        specifier: 'catalog:'
+        version: 8.35.1(@typescript-eslint/parser@8.35.1(eslint@9.30.1)(typescript@5.8.3))(eslint@9.30.1)(typescript@5.8.3)
+      '@typescript-eslint/parser':
+        specifier: 'catalog:'
+        version: 8.35.1(eslint@9.30.1)(typescript@5.8.3)
+      '@vitest/coverage-v8':
+        specifier: 'catalog:'
+        version: 3.2.4(vitest@3.2.4)
+      '@vitest/ui':
+        specifier: ^3.2.4
+        version: 3.2.4(vitest@3.2.4)
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
+      eslint:
+        specifier: 'catalog:'
+        version: 9.30.1
+      prettier:
+        specifier: 'catalog:'
+        version: 3.6.2
+      pythonia:
+        specifier: 'catalog:'
+        version: 1.2.2(ws@8.18.3)
+      rimraf:
+        specifier: 'catalog:'
+        version: 5.0.10
+      typescript:
+        specifier: 'catalog:'
+        version: 5.8.3
+      vitest:
+        specifier: 'catalog:'
+        version: 3.2.4(@types/node@20.19.4)(@vitest/ui@3.2.4)(terser@5.43.1)
+
+  wn-ts-node:
     dependencies:
       '@types/sax':
         specifier: ^1.2.7
@@ -214,6 +275,9 @@ importers:
       smol-toml:
         specifier: ^1.4.1
         version: 1.4.1
+      wn-ts-core:
+        specifier: workspace:*
+        version: link:../wn-ts-core
     devDependencies:
       '@changesets/cli':
         specifier: ^2.27.7
@@ -257,9 +321,12 @@ importers:
 
   wn-ts-web:
     dependencies:
-      wn-ts:
+      sql.js:
+        specifier: ^1.10.2
+        version: 1.13.0
+      wn-ts-core:
         specifier: workspace:*
-        version: link:../wn-ts
+        version: link:../wn-ts-core
     devDependencies:
       '@changesets/cli':
         specifier: ^2.27.7
@@ -3702,6 +3769,9 @@ packages:
   sprintf-js@1.1.3:
     resolution: {integrity: sha512-Oo+0REFV59/rz3gfJNKQiBlwfHaSESl1pcGyABQsnnIfWOFt6JNj5gCog2U6MLZ//IGYD+nA8nI+mTShREReaA==}
 
+  sql.js@1.13.0:
+    resolution: {integrity: sha512-RJbVP1HRDlUUXahJ7VMTcu9Rm1Nzw+EBpoPr94vnbD4LwR715F3CcxE2G2k45PewcaZ57pjetYa+LoSJLAASgA==}
+
   sqlite3@5.1.7:
     resolution: {integrity: sha512-GGIyOiFaG+TUra3JIfkI/zGP8yZYLPQ0pl1bH+ODjiX57sPhrLU5sQJn1y9bDKZUFYkX1crlrPfSYt0BKKdkog==}
 
@@ -5027,7 +5097,7 @@ snapshots:
 
   '@types/sax@1.2.7':
     dependencies:
-      '@types/node': 20.19.4
+      '@types/node': 24.0.13
 
   '@types/webidl-conversions@7.0.3': {}
 
@@ -5156,7 +5226,7 @@ snapshots:
       std-env: 3.9.0
       test-exclude: 7.0.1
       tinyrainbow: 2.0.0
-      vitest: 3.2.4(@types/node@20.19.4)(@vitest/ui@3.2.4)(terser@5.43.1)
+      vitest: 3.2.4(@types/node@24.0.13)(@vitest/ui@3.2.4)(terser@5.43.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -5213,7 +5283,7 @@ snapshots:
       sirv: 3.0.1
       tinyglobby: 0.2.14
       tinyrainbow: 2.0.0
-      vitest: 3.2.4(@types/node@20.19.4)(@vitest/ui@3.2.4)(terser@5.43.1)
+      vitest: 3.2.4(@types/node@24.0.13)(@vitest/ui@3.2.4)(terser@5.43.1)
 
   '@vitest/utils@3.2.4':
     dependencies:
@@ -6053,7 +6123,7 @@ snapshots:
     dependencies:
       debug: 3.2.7
       enhanced-resolve: 0.9.1
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-webpack@0.13.10)(eslint@8.57.1)
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-webpack@0.13.10(eslint-plugin-import@2.32.0(eslint@8.57.1))(webpack@5.99.9))(eslint@8.57.1)
       find-root: 1.1.0
       hasown: 2.0.2
       interpret: 1.4.0
@@ -6100,7 +6170,7 @@ snapshots:
       eslint: 8.57.1
       ignore: 5.3.2
 
-  eslint-plugin-import@2.32.0(eslint-import-resolver-webpack@0.13.10)(eslint@8.57.1):
+  eslint-plugin-import@2.32.0(eslint-import-resolver-webpack@0.13.10(eslint-plugin-import@2.32.0(eslint@8.57.1))(webpack@5.99.9))(eslint@8.57.1):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.1.9
@@ -8187,6 +8257,8 @@ snapshots:
   sprintf-js@1.1.3:
     optional: true
 
+  sql.js@1.13.0: {}
+
   sqlite3@5.1.7:
     dependencies:
       bindings: 1.5.0
@@ -8894,7 +8966,7 @@ snapshots:
       eslint-import-resolver-webpack: 0.13.10(eslint-plugin-import@2.32.0(eslint@8.57.1))(webpack@5.99.9)
       eslint-plugin-ava: 13.2.0(eslint@8.57.1)
       eslint-plugin-eslint-comments: 3.2.0(eslint@8.57.1)
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-webpack@0.13.10)(eslint@8.57.1)
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-webpack@0.13.10(eslint-plugin-import@2.32.0(eslint@8.57.1))(webpack@5.99.9))(eslint@8.57.1)
       eslint-plugin-n: 15.7.0(eslint@8.57.1)
       eslint-plugin-no-use-extend-native: 0.5.0
       eslint-plugin-prettier: 4.2.1(eslint-config-prettier@8.10.0(eslint@8.57.1))(eslint@8.57.1)(prettier@2.8.8)

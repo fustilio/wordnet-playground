@@ -1,0 +1,99 @@
+{
+  "name": "wn-ts",
+  "version": "0.5.0",
+  "description": "Wordnet interface library - TypeScript port",
+  "keywords": [
+    "wordnet",
+    "interlingual",
+    "linguistics",
+    "language",
+    "library",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fustilio/wordnet-playground.git",
+    "directory": "wn-ts"
+  },
+  "license": "MIT",
+  "author": "fustilio",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./similarity": {
+      "types": "./dist/similarity.d.ts",
+      "default": "./dist/similarity.js"
+    },
+    "./taxonomy": {
+      "types": "./dist/taxonomy.d.ts",
+      "default": "./dist/taxonomy.js"
+    },
+    "./morphy": {
+      "types": "./dist/morphy.d.ts",
+      "default": "./dist/morphy.js"
+    },
+    "./ic": {
+      "types": "./dist/ic.d.ts",
+      "default": "./dist/ic.js"
+          }
+    },
+  "bin": {
+    "wn-ts": "./bin/cli-stub.js"
+  },
+  "scripts": {
+    "prebuild": "pnpm run clean",
+    "build": "tsc && pnpm run copy-assets",
+    "clean": "rimraf dist",
+    "copy-assets": "copy ..\\wn-ts-core\\src\\index.toml dist\\",
+    "dev": "pnpm run copy-assets && tsc --watch",
+    "format": "prettier --write src/**/*.ts",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "publish-package": "pnpm run build && changeset version && changeset publish",
+    "test": "pnpm run test:func && pnpm run test:e2e",
+    "test:func": "vitest run --reporter=verbose --exclude \"**/*e2e.test.ts\"",
+    "test:bench": "vitest bench --run",
+    "test:coverage": "vitest run --coverage --reporter=verbose --exclude \"**/*e2e.test.ts\"",
+    "test:e2e": "pnpm with-debug-logs vitest run --no-file-parallelism tests/e2e",
+    "test:ui": "vitest --ui --exclude \"**/*e2e.test.ts\"",
+    "test:verbose": "node scripts/test-verbose.js",
+    "vitest": "pnpm with-debug-logs vitest run",
+    "build:browser-data": "ts-node tools/makeBrowserData.ts",
+    "with-debug-logs": "cross-env WN_TS_LOG_LEVEL=5"
+  },
+  "files": [
+    "tools/"
+  ],
+  "dependencies": {
+    "@types/sax": "^1.2.7",
+    "better-sqlite3": "^12.2.0",
+    "commander": "^14.0.0",
+    "fast-xml-parser": "^5.2.5",
+    "lzma-native": "^8.0.6",
+    "pythonia": "catalog:",
+    "sax": "^1.4.1",
+    "smol-toml": "^1.4.1",
+    "wn-ts-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.27.7",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "catalog:",
+    "@typescript-eslint/eslint-plugin": "catalog:",
+    "@typescript-eslint/parser": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "@vitest/ui": "^3.2.4",
+    "cross-env": "^7.0.3",
+    "eslint": "catalog:",
+    "prettier": "catalog:",
+    "rimraf": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

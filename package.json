@@ -1,6 +1,6 @@
 {
   "name": "wordnet-workspace",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "private": true,
   "description": "WordNet TypeScript implementation with demo and benchmarks",
   "repository": {
@@ -30,7 +30,7 @@
     "demo": "pnpm --filter wn-demo test",
     "demo:all-use-cases": "pnpm --filter wn-demo all-use-cases",
     "demo:kitchen-sink": "pnpm --filter wn-demo kitchen-sink",
-    "test": "pnpm --filter wn-ts test && pnpm --filter wn-cli test",
+    "test": "pnpm --filter wn-ts-core test && pnpm --filter wn-ts test",
     "test:bench": "pnpm --filter wn-ts test:bench",
     "test:coverage": "pnpm --filter wn-ts test:coverage",
     "test:e2e": "pnpm --filter wn-ts test:e2e",
