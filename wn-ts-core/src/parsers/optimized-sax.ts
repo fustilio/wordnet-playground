@@ -5,8 +5,45 @@
  * to achieve the best possible performance while still providing full parsing.
  */
 
-import { readFile } from 'fs/promises';
-import sax from 'sax';
+// Browser environment check
+const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
+
+// Browser-compatible stubs
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const browserReadFile = async (path: string, encoding?: string) => {
+  throw new Error('File system operations not available in browser environment');
+};
+
+const browserSax = {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  parser: (strict: boolean, options?: any) => {
+    return {
+      onopentag: () => {},
+      onend: () => {},
+      onerror: (error: any) => {},
+      write: (content: string) => ({ close: () => {} })
+    };
+  }
+};
+
+// Use browser stubs by default, will be overridden in Node.js
+let readFile = browserReadFile;
+let sax = browserSax;
+
+// Initialize Node.js functions if available
+if (isNode) {
+  try {
+    const fsPromises = require('fs/promises');
+    const saxModule = require('sax');
+    
+    readFile = fsPromises.readFile;
+    sax = saxModule;
+  } catch (e) {
+    // Fall back to browser stubs if Node.js modules fail to load
+    console.warn('Failed to load Node.js modules, using browser stubs');
+  }
+}
+
 import type { LMFParser } from './base.js';
 import type { LMFDocument, LMFLoadOptions } from '../lmf.js';
 // import type { Synset, Word, Sense, Lexicon, PartOfSpeech } from '../types.js';

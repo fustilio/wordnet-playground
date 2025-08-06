@@ -11,7 +11,8 @@ import type {
   Relation,
   Form,
   ILI,
-  Example
+  Example,
+  Project
 } from 'wn-ts-core';
 import { BaseWordnet } from 'wn-ts-core'
 
@@ -582,16 +583,27 @@ export class Wordnet extends BaseWordnet {
       FROM ilis
     `;
     
-    const params: unknown[] = [];
+    const params: any[] = [];
+    const conditions: string[] = [];
     
     if (status) {
-      sql += ' WHERE status = ?';
+      conditions.push('status = ?');
       params.push(status);
+    }
+    
+    if (conditions.length > 0) {
+      sql += ' WHERE ' + conditions.join(' AND ');
     }
     
     sql += ' ORDER BY id';
     
     return await db.all<ILI>(sql, params);
+  }
+
+  async getProjects(): Promise<Project[]> {
+    // Use the Node.js config to load projects
+    const { getProjects } = await import('./project.js');
+    return getProjects();
   }
 
   // Statistics methods for use cases

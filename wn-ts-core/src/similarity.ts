@@ -10,7 +10,7 @@ import { WnError } from './types.js';
 import { information_content } from './ic.js';
 import type { Freq } from './ic.js';
 import { shortestPath, maxDepth, lowestCommonHypernyms } from './synset-utils.js';
-import { Wordnet } from './wordnet.js';
+import { BaseWordnet } from './wordnet.js';
 
 /**
  * Return the Path similarity of two synsets.
@@ -23,7 +23,7 @@ import { Wordnet } from './wordnet.js';
 export async function path(
   synset1: Synset,
   synset2: Synset,
-  wordnet: Wordnet
+  wordnet: BaseWordnet
 ): Promise<number> {
   _checkIfPosCompatible(synset1.partOfSpeech, synset2.partOfSpeech);
   if (synset1.id === synset2.id) return 1.0;
@@ -49,7 +49,7 @@ export async function path(
 export async function wup(
   synset1: Synset,
   synset2: Synset,
-  wordnet: Wordnet
+  wordnet: BaseWordnet
 ): Promise<number> {
   _checkIfPosCompatible(synset1.partOfSpeech, synset2.partOfSpeech);
   if (synset1.id === synset2.id) return 1.0;
@@ -81,7 +81,7 @@ export async function lch(
   synset1: Synset,
   synset2: Synset,
   maxTaxonomyDepth: number,
-  wordnet: Wordnet
+  wordnet: BaseWordnet
 ): Promise<number> {
   _checkIfPosCompatible(synset1.partOfSpeech, synset2.partOfSpeech);
   
@@ -102,7 +102,7 @@ export async function lch(
  * @param wordnet - The Wordnet instance
  * @returns A similarity score
  */
-export async function res(synset1: Synset, synset2: Synset, ic: Freq, wordnet: Wordnet): Promise<number> {
+export async function res(synset1: Synset, synset2: Synset, ic: Freq, wordnet: BaseWordnet): Promise<number> {
   _checkIfPosCompatible(synset1.partOfSpeech, synset2.partOfSpeech);
   
   const lcs = await _mostInformativeLcs(synset1, synset2, ic, wordnet);
@@ -122,7 +122,7 @@ export async function jcn(
   synset1: Synset,
   synset2: Synset,
   ic: Freq,
-  wordnet: Wordnet
+  wordnet: BaseWordnet
 ): Promise<number> {
   _checkIfPosCompatible(synset1.partOfSpeech, synset2.partOfSpeech);
   if (synset1.id === synset2.id) return 1.0;
@@ -158,7 +158,7 @@ export async function lin(
   synset1: Synset,
   synset2: Synset,
   ic: Freq,
-  wordnet: Wordnet
+  wordnet: BaseWordnet
 ): Promise<number> {
   _checkIfPosCompatible(synset1.partOfSpeech, synset2.partOfSpeech);
   if (synset1.id === synset2.id) return 1.0;
@@ -187,7 +187,7 @@ async function _mostInformativeLcs(
   synset1: Synset,
   synset2: Synset,
   ic: Freq,
-  wordnet: Wordnet
+  wordnet: BaseWordnet
 ): Promise<Synset> {
   const lcsList = await lowestCommonHypernyms(synset1, synset2, wordnet);
   if (lcsList.length === 0) {

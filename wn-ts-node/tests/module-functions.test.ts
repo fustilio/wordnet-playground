@@ -15,6 +15,7 @@ import { add } from '../src/data-management';
 import { testUtils } from './setup';
 import { join } from 'path';
 import { existsSync } from 'fs';
+import { Wordnet } from '../src/wordnet';
 
 describe('Module Functions', () => {
   beforeEach(async () => {
@@ -28,7 +29,8 @@ describe('Module Functions', () => {
 
   describe('projects', () => {
     it('should return list of known projects', async () => {
-      const result = await projects();
+      const wordnet = new Wordnet('test-en');
+      const result = await projects(wordnet);
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBeGreaterThan(0);
     });

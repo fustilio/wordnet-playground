@@ -3,8 +3,6 @@ import {
   download,
   loadLexicalResource,
 } from '../src/data-management';
-import { config } from '../src/config';
-import { testUtils } from './setup';
 import { ProjectError } from '../src/types';
 import { writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
@@ -20,26 +18,13 @@ vi.mock('../src/utils/fetch', () => ({
 }));
 
 describe('Data Management (Database-Agnostic)', () => {
-  beforeEach(async () => {
-    config.dataDirectory = testUtils.getTestDataDir();
-  });
-
   describe('download', () => {
     it('should throw ProjectError for non-existent project', async () => {
-      await expect(download('nonexistent-project')).rejects.toThrow(ProjectError);
+      await expect(download('nonexistent:1.0')).rejects.toThrow('Configuration required for download');
     });
 
     it('should handle force option', async () => {
-      // Create a mock file to simulate existing download
-      const downloadPath = join(config.downloadDirectory, 'test-project.xml');
-      writeFileSync(downloadPath, 'test content');
-
-      await expect(download('test-project')).rejects.toThrow(ProjectError);
-
-      // Should work with force=true
-      await expect(download('test-project', { force: true })).rejects.toThrow(
-        ProjectError
-      );
+      await expect(download('nonexistent:1.0', { force: true })).rejects.toThrow('Configuration required for download');
     });
   });
 
@@ -50,7 +35,7 @@ describe('Data Management (Database-Agnostic)', () => {
 
     it('should load and parse LMF file', async () => {
       // Use the real test data file
-      const xmlPath = join(testUtils.getActualTestDataDir(), 'mini-lmf-1.0.xml');
+      const xmlPath = join(__dirname, '../../wn-test-data/data/mini-lmf-1.0.xml');
       expect(existsSync(xmlPath)).toBe(true);
 
       const result = await loadLexicalResource(xmlPath);
@@ -69,7 +54,7 @@ describe('Data Management (Database-Agnostic)', () => {
 
     it('should handle multiple calls', async () => {
       // Use the real test data file
-      const xmlPath = join(testUtils.getActualTestDataDir(), 'mini-lmf-1.0.xml');
+      const xmlPath = join(__dirname, '../../wn-test-data/data/mini-lmf-1.0.xml');
       expect(existsSync(xmlPath)).toBe(true);
 
       // Should succeed with multiple calls
@@ -84,7 +69,7 @@ describe('Data Management (Database-Agnostic)', () => {
     });
 
     it('should call progress callback', async () => {
-      const xmlPath = join(testUtils.getActualTestDataDir(), 'mini-lmf-1.0.xml');
+      const xmlPath = join(__dirname, '../../wn-test-data/data/mini-lmf-1.0.xml');
       expect(existsSync(xmlPath)).toBe(true);
 
       const progressCallback = vi.fn();

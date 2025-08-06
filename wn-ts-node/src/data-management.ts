@@ -4,7 +4,7 @@ import { config } from './config.js';
 import { db } from './db/database.js';
 import { downloadFile } from 'wn-ts-core';
 import { loadLMF, isLMF } from 'wn-ts-core';
-import { getProjectVersionUrls, getProjectVersionError } from 'wn-ts-core';
+import { getProjectVersionUrls, getProjectVersionError } from './project.js';
 import type { DownloadOptions, AddOptions, ExportOptions } from 'wn-ts-core';
 import { ProjectError, DatabaseError } from 'wn-ts-core';
 import {

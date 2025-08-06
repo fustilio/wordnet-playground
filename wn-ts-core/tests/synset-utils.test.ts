@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Wordnet } from '../src/wordnet';
+import { BaseWordnet } from '../src/wordnet';
 import { hypernyms, shortestPath, maxDepth, lowestCommonHypernyms } from '../src/synset-utils';
 import type { Synset } from '../src/types';
 

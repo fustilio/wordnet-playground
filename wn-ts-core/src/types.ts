@@ -131,6 +131,8 @@ export interface WordnetConfig {
 }
 
 export interface WordnetOptions {
+  lexicon?: string;
+  version?: string;
   expand?: string | string[];
   normalizer?: (form: string) => string;
   lemmatizer?: (form: string, pos?: PartOfSpeech) => Record<PartOfSpeech, Set<string>>;

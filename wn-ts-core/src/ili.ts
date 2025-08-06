@@ -1,4 +1,27 @@
-import { readFile } from 'fs/promises';
+// Browser environment check
+const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
+
+// Browser-compatible stubs
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const browserReadFile = async (path: string, encoding?: string) => {
+  throw new Error('File system operations not available in browser environment');
+};
+
+// Use browser stubs by default, will be overridden in Node.js
+let readFile = browserReadFile;
+
+// Initialize Node.js functions if available
+if (isNode) {
+  try {
+    const fsPromises = require('fs/promises');
+    readFile = fsPromises.readFile;
+  } catch (e) {
+    // Fall back to browser stubs if Node.js modules fail to load
+    console.warn('Failed to load Node.js modules, using browser stubs');
+  }
+}
+
+import type { ILI } from './types.js';
 
 export interface IliRecord {
   ili: string;

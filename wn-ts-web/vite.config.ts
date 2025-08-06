@@ -1,21 +1,28 @@
 import { defineConfig } from 'vite';
-import path from 'node:path'; // Use node:path for ESM compatibility
-// Note: For type safety, ensure @types/node and vite are installed
+import path from 'node:path';
 
 export default defineConfig({
   build: {
     lib: {
-      entry: path.resolve(process.cwd(), 'src/index.ts'), // Use process.cwd() for cross-platform
-      name: 'wn-ts-web',
-      fileName: 'wn-ts-web.min',
-      formats: ['es'],
+      entry: path.resolve(process.cwd(), 'src/index.ts'),
+      name: 'WnTsWeb',
+      fileName: (format) => `wn-ts-web.${format === 'es' ? 'mjs' : 'umd.cjs'}`,
+      formats: ['es', 'umd'],
     },
     outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
-      external: ['wn-ts'], // Externalize wn-ts for monorepo compatibility
-     
+      external: ['wn-ts-core', '@sqlite.org/sqlite-wasm'],
+      output: {
+                  globals: {
+            'wn-ts-core': 'WnTsCore',
+            '@sqlite.org/sqlite-wasm': 'SqliteWasm'
+          }
+      }
     },
     minify: true,
   },
+  resolve: {
+    extensions: ['.ts', '.js', '.tsx', '.jsx']
+  }
 }); 

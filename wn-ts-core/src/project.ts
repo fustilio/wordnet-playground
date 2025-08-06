@@ -1,11 +1,46 @@
-import { readFileSync, existsSync, copyFileSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+// Browser environment check
+const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
+
+// Browser-compatible stubs with proper signatures
+const browserReadFileSync = (path: string, encoding?: string) => '';
+const browserExistsSync = (path: string) => false;
+const browserCopyFileSync = (src: string, dest: string) => {};
+const browserJoin = (...paths: string[]) => paths.join('/');
+const browserDirname = (path: string) => path.split('/').slice(0, -1).join('/') || '.';
+const browserFileURLToPath = (url: string) => url;
+
+// Use browser stubs by default, will be overridden in Node.js
+let readFileSync = browserReadFileSync;
+let existsSync = browserExistsSync;
+let copyFileSync = browserCopyFileSync;
+let join = browserJoin;
+let dirname = browserDirname;
+let fileURLToPath = browserFileURLToPath;
+
+// Initialize Node.js functions if available
+if (isNode) {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    const url = require('url');
+    
+    readFileSync = fs.readFileSync;
+    existsSync = fs.existsSync;
+    copyFileSync = fs.copyFileSync;
+    join = path.join;
+    dirname = path.dirname;
+    fileURLToPath = url.fileURLToPath;
+  } catch (e) {
+    // Fall back to browser stubs if Node.js modules fail to load
+    console.warn('Failed to load Node.js modules, using browser stubs');
+  }
+}
+
 import { parse } from 'smol-toml';
 import { config } from './config.js';
 
-// ESM-compatible __dirname
-const __dirname = dirname(fileURLToPath(import.meta.url));
+// ESM-compatible __dirname (only in Node.js)
+const __dirname = isNode ? dirname(fileURLToPath(import.meta.url)) : '.';
 import type { Project } from './types.js';
 import { ProjectError } from './types.js';
 

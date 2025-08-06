@@ -1,10 +1,95 @@
 /// <reference path="../../types/lzma-native.d.ts" />
-import { join, dirname, extname } from 'path';
-import { existsSync, mkdirSync, readdirSync, statSync, createReadStream, createWriteStream } from 'fs';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import lzma from 'lzma-native';
-import { createGunzip } from 'zlib';
+
+// Browser environment check
+const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
+
+// Browser-compatible stubs
+const browserJoin = (...paths: string[]) => paths.join('/');
+const browserDirname = (path: string) => path.split('/').slice(0, -1).join('/') || '.';
+const browserExtname = (path: string) => {
+  const parts = path.split('.');
+  return parts.length > 1 ? '.' + parts[parts.length - 1] : '';
+};
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const browserExistsSync = (path: string) => false;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const browserMkdirSync = (path: string, options?: any) => {};
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const browserReaddirSync = (path: string) => [];
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const browserStatSync = (path: string) => ({ isDirectory: () => false, isFile: () => false });
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const browserCreateReadStream = (path: string) => {
+  throw new Error('File system operations not available in browser environment');
+};
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const browserCreateWriteStream = (path: string) => {
+  throw new Error('File system operations not available in browser environment');
+};
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const browserExec = async (command: string) => {
+  throw new Error('Child process operations not available in browser environment');
+};
+
+const browserPromisify = (fn: any) => fn;
+
+const browserLzma = {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  createDecompressor: () => {
+    throw new Error('LZMA operations not available in browser environment');
+  }
+};
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const browserCreateGunzip = () => {
+  throw new Error('Zlib operations not available in browser environment');
+};
+
+// Use browser stubs by default, will be overridden in Node.js
+let join = browserJoin;
+let dirname = browserDirname;
+let extname = browserExtname;
+let existsSync = browserExistsSync;
+let mkdirSync = browserMkdirSync;
+let readdirSync = browserReaddirSync;
+let statSync = browserStatSync;
+let createReadStream = browserCreateReadStream;
+let createWriteStream = browserCreateWriteStream;
+let exec = browserExec;
+let promisify = browserPromisify;
+let lzma = browserLzma;
+let createGunzip = browserCreateGunzip;
+
+// Initialize Node.js functions if available
+if (isNode) {
+  try {
+    const path = require('path');
+    const fs = require('fs');
+    const childProcess = require('child_process');
+    const util = require('util');
+    const lzmaNative = require('lzma-native');
+    const zlib = require('zlib');
+    
+    join = path.join;
+    dirname = path.dirname;
+    extname = path.extname;
+    existsSync = fs.existsSync;
+    mkdirSync = fs.mkdirSync;
+    readdirSync = fs.readdirSync;
+    statSync = fs.statSync;
+    createReadStream = fs.createReadStream;
+    createWriteStream = fs.createWriteStream;
+    exec = childProcess.exec;
+    promisify = util.promisify;
+    lzma = lzmaNative;
+    createGunzip = zlib.createGunzip;
+  } catch (e) {
+    // Fall back to browser stubs if Node.js modules fail to load
+    console.warn('Failed to load Node.js modules, using browser stubs');
+  }
+}
 
 const execAsync = promisify(exec);
 

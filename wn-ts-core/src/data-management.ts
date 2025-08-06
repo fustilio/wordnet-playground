@@ -3,8 +3,32 @@
  * Database-specific functions are moved to environment-specific packages
  */
 
-import { join } from 'path';
-import { existsSync } from 'fs';
+// Browser environment check
+const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
+
+// Browser-compatible stubs
+const browserJoin = (...paths: string[]) => paths.join('/');
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const browserExistsSync = (path: string) => false;
+
+// Use browser stubs by default, will be overridden in Node.js
+let join = browserJoin;
+let existsSync = browserExistsSync;
+
+// Initialize Node.js functions if available
+if (isNode) {
+  try {
+    const path = require('path');
+    const fs = require('fs');
+    
+    join = path.join;
+    existsSync = fs.existsSync;
+  } catch (e) {
+    // Fall back to browser stubs if Node.js modules fail to load
+    console.warn('Failed to load Node.js modules, using browser stubs');
+  }
+}
+
 import { config } from './config.js';
 import { downloadFile } from './utils/download.js';
 import { loadLMF, isLMF } from './lmf.js';
@@ -21,17 +45,20 @@ import { isILI, loadILI } from './ili.js';
 import { logger } from './utils/logger.js';
 
 /**
- * Download a project from the web
- * This function is environment-agnostic and can be used in any environment
+ * Download a project from the project index
+ * This function is environment-agnostic and requires a config parameter
  */
 export async function download(
   projectId: string,
-  options: DownloadOptions = {}
+  options: DownloadOptions = {},
+  config?: { downloadDirectory: string }
 ): Promise<string> {
   const { force = false, progress } = options;
-  logger.download(`Downloading project: ${projectId}`);
 
-  // Parse project ID to get version
+  if (!config) {
+    throw new ProjectError('Configuration required for download. Use environment-specific implementation.');
+  }
+
   const [projectIdClean, version] = projectId.split(':');
   if (!version) {
     throw new ProjectError(

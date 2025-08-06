@@ -7,7 +7,7 @@
 
 import type { Synset, PartOfSpeech } from './types.js';
 import { WnError } from './types.js';
-import { Wordnet } from './wordnet.js';
+import { BaseWordnet } from './wordnet.js';
 import { hypernyms } from './synset-utils.js';
 
 // Just use a subset of all available parts of speech
@@ -64,7 +64,7 @@ export function synset_probability(synset: Synset, freq: Freq): number {
  * @param smoothing - The smoothing value
  * @returns The initialized frequency mapping
  */
-async function _initialize(wordnet: Wordnet, smoothing: number): Promise<Freq> {
+async function _initialize(wordnet: BaseWordnet, smoothing: number): Promise<Freq> {
   const freq: Freq = {};
   
   for (const pos of IC_PARTS_OF_SPEECH) {
@@ -100,7 +100,7 @@ async function _initialize(wordnet: Wordnet, smoothing: number): Promise<Freq> {
  */
 export async function compute(
   corpus: string[],
-  wordnet: Wordnet,
+  wordnet: BaseWordnet,
   distributeWeight = true,
   smoothing = 1.0
 ): Promise<Freq> {
@@ -180,7 +180,7 @@ export async function compute(
  */
 export async function load(
   _source: string,
-  wordnet: Wordnet,
+  wordnet: BaseWordnet,
   getSynsetId?: (offset: number, pos: string) => string
 ): Promise<Freq> {
   const lexicons = await wordnet.lexicons();

@@ -2,20 +2,22 @@
  * Wordnet Interface - TypeScript Port
  * 
  * A modern TypeScript implementation of the wn library for accessing WordNet data.
+ * This package is environment-agnostic and provides interfaces and abstract classes.
+ * Concrete implementations are provided by environment-specific packages.
  */
 
-// Core classes
-export { Wordnet, BaseWordnet } from './wordnet.js';
+// Core abstract classes only
+export { BaseWordnet } from './wordnet.js';
 export { config, ConfigManager } from './config.js';
 
-// Download utilities
+// Download utilities (environment-agnostic)
 export { downloadFile, DownloadError } from './utils/download.js';
 export type { DownloadOptions } from './types.js';
 
-// Logger utility
+// Logger utility (environment-agnostic)
 export { logger, Logger, LogLevel } from './utils/logger.js';
 
-// Archive utilities
+// Archive utilities (environment-agnostic)
 export { extractTarArchive, decompressXz, decompressGz, findLMFiles } from './utils/archive.js';
 
 // Data management functions - environment-agnostic
@@ -24,10 +26,10 @@ export {
   loadLexicalResource,
 } from './data-management.js';
 
-// ILI functions
+// ILI functions (environment-agnostic)
 export { isILI, loadILI } from './ili.js';
 
-// Module functions - matching Python wn API exactly
+// Module functions - environment-agnostic stubs
 export {
   projects,
   lexicons,
@@ -41,7 +43,7 @@ export {
   ilis,
 } from './module-functions.js';
 
-// Project management functions
+// Project management functions (environment-agnostic)
 export {
   getProjects,
   getProject,
@@ -53,9 +55,7 @@ export {
 } from './project.js';
 export type { ProjectIndex, ProjectVersion } from './project.js';
 
-// Browser data generation tool - moved to environment-specific packages
-
-// Types and interfaces
+// Types and interfaces (environment-agnostic)
 export type {
   Word,
   Sense,
@@ -77,7 +77,7 @@ export type {
   ExportOptions,
 } from './types.js';
 
-// Error classes - matching Python wn API exactly
+// Error classes (environment-agnostic)
 export {
   WnError as Error,
   DatabaseError,
@@ -86,7 +86,7 @@ export {
   WnWarning,
 } from './types.js';
 
-// LMF Parsers module
+// LMF Parsers module (environment-agnostic)
 export * from './parsers/index.js';
 export { parseLMFXML } from './lmf.js';
 
@@ -94,7 +94,11 @@ export { parseLMFXML } from './lmf.js';
 export * from './db/interface.js';
 export * from './db/database.js';
 
-// Additional exports
+// Abstract database interfaces and query builders (environment-agnostic)
+export * from './types/database.js';
+export * from './queries/abstract-word-queries.js';
+
+// Utility functions (environment-agnostic)
 export { Morphy, createMorphy } from './morphy.js';
 export { path, wup, lch, res, jcn, lin } from './similarity.js';
 export { hypernyms, shortestPath, maxDepth, lowestCommonHypernyms } from './synset-utils.js';

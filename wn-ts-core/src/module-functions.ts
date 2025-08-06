@@ -13,18 +13,32 @@ import { DatabaseError } from './types.js';
 /**
  * Get all available projects - matching Python wn.projects()
  */
-import { getProjects } from './project.js';
-
-export async function projects(): Promise<Project[]> {
-  return getProjects();
+export async function projects(client?: BaseWordnet): Promise<Project[]> {
+  // If no client provided, return empty array (environment-agnostic)
+  if (!client) {
+    return [];
+  }
+  
+  try {
+    // Use the client's config to get projects
+    // This allows environment-specific implementations to provide their own config
+    return await client.getProjects?.() || [];
+  } catch (error) {
+    // If client doesn't support getProjects or fails, return empty array
+    return [];
+  }
 }
 
 /**
  * Get lexicons matching language or lexicon specifier - matching Python wn.lexicons()
  */
 export async function lexicons(
-  client: BaseWordnet
+  client: BaseWordnet | null | undefined
 ): Promise<Lexicon[]> {
+  if (!client) {
+    return [];
+  }
+  
   try {
     return await client.lexicons();
   } catch (error) {
@@ -163,12 +177,12 @@ export async function ili(
   try {
     const result = await client.ili(id);
     if (!result) {
-      throw new Error(`no such ILI: ${id}`);
+      throw new Error(`no such ili: ${id}`);
     }
     return result;
   } catch (error) {
     if (error instanceof DatabaseError) {
-      throw new Error(`no such ILI: ${id}`);
+      throw new Error(`no such ili: ${id}`);
     }
     throw error;
   }

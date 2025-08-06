@@ -3,7 +3,6 @@
  * This package is environment-agnostic and defines the interface for concrete implementations
  */
 
-import { config } from './config.js';
 import type {
   Word,
   Sense,
@@ -11,35 +10,45 @@ import type {
   Lexicon,
   PartOfSpeech,
   WordnetOptions,
-  ILI
+  ILI,
+  Project
 } from './types.js';
-import { DatabaseError } from './types.js';
-
-// Import clean module functions for delegation
-import {
-  word,
-  words,
-  sense,
-  senses,
-  synset,
-  synsets,
-  ili,
-  ilis,
-  lexicons
-} from './module-functions.js';
 
 export abstract class BaseWordnet {
   protected lexiconId: string;
   protected lexiconVersion?: string;
   protected expand: string[];
   protected normalizer?: ((form: string) => string) | undefined;
+  protected lemmatizer?: ((form: string, pos?: PartOfSpeech) => Record<PartOfSpeech, Set<string>>) | undefined;
+  protected searchAllForms: boolean;
+  protected lang?: string;
   protected lexicon?: Lexicon;
 
   constructor(options: WordnetOptions = {}) {
-    this.lexiconId = options.lexicon || config.defaultLexicon;
-    this.lexiconVersion = options.version;
-    this.expand = options.expand || [];
-    this.normalizer = options.normalizer;
+    // Parse lexicon specifier if provided as first argument
+    let lexiconSpecifier = options.lexicon || 'oewn'; // Default to oewn if no lexicon specified
+    let version: string | undefined;
+    
+    // Parse lexicon:version format
+    if (lexiconSpecifier.includes(':')) {
+      const [lexicon, ver] = lexiconSpecifier.split(':');
+      lexiconSpecifier = lexicon;
+      version = ver;
+    }
+    
+    this.lexiconId = lexiconSpecifier;
+    this.lexiconVersion = version || options.version;
+    this.expand = Array.isArray(options.expand) ? options.expand : options.expand ? [options.expand] : [];
+    if (options.normalizer) {
+      this.normalizer = options.normalizer;
+    }
+    if (options.lemmatizer) {
+      this.lemmatizer = options.lemmatizer;
+    }
+    this.searchAllForms = options.searchAllForms !== false; // Default to true
+    if (options.lang) {
+      this.lang = options.lang;
+    }
   }
 
   // Abstract methods that must be implemented by concrete classes
@@ -53,6 +62,7 @@ export abstract class BaseWordnet {
   abstract sense(senseId: string): Promise<Sense | undefined>;
   abstract ili(iliId: string): Promise<ILI | undefined>;
   abstract ilis(status?: string): Promise<ILI[]>;
+  abstract getProjects(): Promise<Project[]>;
   abstract getStatistics(): Promise<{
     totalWords: number;
     totalSynsets: number;
@@ -83,142 +93,4 @@ export abstract class BaseWordnet {
     sizeDistribution: Record<number, number>;
   }>;
   abstract close(): Promise<void>;
-
-  // Convenience methods that delegate to module functions
-  async word(id: string): Promise<Word> {
-    return word(this, id);
-  }
-
-  async words(form?: string, pos?: PartOfSpeech): Promise<Word[]> {
-    return words(this, form, pos);
-  }
-
-  async sense(id: string): Promise<Sense> {
-    return sense(this, id);
-  }
-
-  async senses(form?: string, pos?: PartOfSpeech): Promise<Sense[]> {
-    return senses(this, form, pos);
-  }
-
-  async synset(id: string): Promise<Synset> {
-    return synset(this, id);
-  }
-
-  async synsets(form?: string, pos?: PartOfSpeech): Promise<Synset[]> {
-    return synsets(this, form, pos);
-  }
-
-  async ili(id: string): Promise<ILI> {
-    return ili(this, id);
-  }
-
-  async ilis(status?: string): Promise<ILI[]> {
-    return ilis(this, status);
-  }
-
-  async lexicons(): Promise<Lexicon[]> {
-    return lexicons(this);
-  }
-}
-
-/**
- * Placeholder implementation for wn-ts-core
- * This throws DatabaseError to indicate that concrete database implementation is required
- */
-export class Wordnet extends BaseWordnet {
-  async lexicons(): Promise<Lexicon[]> {
-    throw new DatabaseError('Database not available in wn-ts-core. Use wn-ts-node for Node.js database support.');
-  }
-
-  async expandedLexicons(): Promise<Lexicon[]> {
-    throw new DatabaseError('Database not available in wn-ts-core. Use wn-ts-node for Node.js database support.');
-  }
-
-  async words(
-    _form: string,
-    _pos?: PartOfSpeech
-  ): Promise<Word[]> {
-    throw new DatabaseError('Database not available in wn-ts-core. Use wn-ts-node for Node.js database support.');
-  }
-
-  async synsets(
-    _form: string,
-    _pos?: PartOfSpeech,
-    _ili?: string | ILI
-  ): Promise<Synset[]> {
-    throw new DatabaseError('Database not available in wn-ts-core. Use wn-ts-node for Node.js database support.');
-  }
-
-  async synset(_synsetId: string): Promise<Synset | undefined> {
-    throw new DatabaseError('Database not available in wn-ts-core. Use wn-ts-node for Node.js database support.');
-  }
-
-  async senses(_wordIdOrForm: string, _pos?: PartOfSpeech): Promise<Sense[]> {
-    throw new DatabaseError('Database not available in wn-ts-core. Use wn-ts-node for Node.js database support.');
-  }
-
-  async word(_wordId: string): Promise<Word | undefined> {
-    throw new DatabaseError('Database not available in wn-ts-core. Use wn-ts-node for Node.js database support.');
-  }
-
-  async sense(_senseId: string): Promise<Sense | undefined> {
-    throw new DatabaseError('Database not available in wn-ts-core. Use wn-ts-node for Node.js database support.');
-  }
-
-  async ili(_iliId: string): Promise<ILI | undefined> {
-    throw new DatabaseError('Database not available in wn-ts-core. Use wn-ts-node for Node.js database support.');
-  }
-
-  async ilis(_status?: string): Promise<ILI[]> {
-    throw new DatabaseError('Database not available in wn-ts-core. Use wn-ts-node for Node.js database support.');
-  }
-
-  async getStatistics(): Promise<{
-    totalWords: number;
-    totalSynsets: number;
-    totalSenses: number;
-    totalILIs: number;
-    totalLexicons: number;
-  }> {
-    throw new DatabaseError('Database not available in wn-ts-core. Use wn-ts-node for Node.js database support.');
-  }
-
-  async getLexiconStatistics(_lexiconId?: string): Promise<{
-    lexiconId: string;
-    label: string;
-    language: string;
-    version: string;
-    wordCount: number;
-    synsetCount: number;
-  }[]> {
-    throw new DatabaseError('Database not available in wn-ts-core. Use wn-ts-node for Node.js database support.');
-  }
-
-  async getDataQualityMetrics(): Promise<{
-    synsetsWithILI: number;
-    synsetsWithoutILI: number;
-    iliCoveragePercentage: number;
-    emptySynsets: number;
-    synsetsWithDefinitions: number;
-  }> {
-    throw new DatabaseError('Database not available in wn-ts-core. Use wn-ts-node for Node.js database support.');
-  }
-
-  async getPartOfSpeechDistribution(): Promise<Record<string, number>> {
-    throw new DatabaseError('Database not available in wn-ts-core. Use wn-ts-node for Node.js database support.');
-  }
-
-  async getSynsetSizeAnalysis(): Promise<{
-    averageSize: number;
-    maxSize: number;
-    minSize: number;
-    sizeDistribution: Record<number, number>;
-  }> {
-    throw new DatabaseError('Database not available in wn-ts-core. Use wn-ts-node for Node.js database support.');
-  }
-
-  async close(): Promise<void> {
-    // No-op for placeholder
-  }
 } 

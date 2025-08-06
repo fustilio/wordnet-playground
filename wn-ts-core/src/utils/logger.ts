@@ -119,13 +119,18 @@ class Logger {
 // Global logger instance
 export const logger = new Logger();
 
+// Browser environment check
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const isBrowser = typeof window !== 'undefined';
+const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
+
 // Test environment: be more quiet by default
-if (process.env.NODE_ENV === 'test') {
+if (isNode && process.env.NODE_ENV === 'test') {
   logger.setLevel(LogLevel.ERROR);
 }
 
 // Environment-based configuration
-if (process.env.WN_TS_LOG_LEVEL) {
+if (isNode && process.env.WN_TS_LOG_LEVEL) {
   const level = parseInt(process.env.WN_TS_LOG_LEVEL);
 
   if (!isNaN(level) && level >= 0 && level <= 5) {

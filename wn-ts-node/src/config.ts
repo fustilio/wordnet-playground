@@ -2,7 +2,7 @@ import { join, dirname } from 'path';
 import { homedir } from 'os';
 import { existsSync, mkdirSync, readFileSync } from 'fs';
 import toml from 'smol-toml';
-import { ConfigurationError, ProjectError } from 'wn-ts-core';
+import { ConfigurationError, ProjectError, ConfigManager as BaseConfigManager } from 'wn-ts-core';
 import { fileURLToPath } from 'url';
 import { statSync } from 'fs';
 import { logger } from 'wn-ts-core';
@@ -43,12 +43,17 @@ export interface Config {
   allowMultithreading: boolean;
 }
 
-class ConfigManager {
+/**
+ * Concrete Node.js implementation of ConfigManager
+ * Extends the abstract ConfigManager from wn-ts-core
+ */
+export class ConfigManager extends BaseConfigManager {
   private _dataDirectory: string;
   private _projects: Record<string, any>;
   private _allowMultithreading: boolean;
 
   constructor() {
+    super();
     const homeDir = homedir();
     this._dataDirectory = join(homeDir, '.wn_ts_data');
     this._projects = {};
@@ -276,4 +281,3 @@ class ConfigManager {
 }
 
 export const config = new ConfigManager();
-export { ConfigManager };

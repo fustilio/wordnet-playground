@@ -1,12 +1,42 @@
 /**
  * Streaming SAX parser using file streams for memory efficiency
  * 
- * This parser uses file streams to parse large XML files without loading
- * the entire file into memory. It's the recommended parser for production use.
+ * This parser uses file streams to parse large LMF files without loading
+ * the entire file into memory.
  */
 
-import { createReadStream } from 'fs';
-import sax from 'sax';
+// Browser environment check
+const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
+
+// Browser-compatible stubs
+const browserCreateReadStream = (path: string, options?: any) => {
+  throw new Error('File system operations not available in browser environment');
+};
+
+const browserSax = {
+  createStream: (strict: boolean, options?: any) => {
+    throw new Error('SAX parser not available in browser environment');
+  }
+};
+
+// Use browser stubs by default, will be overridden in Node.js
+let createReadStream = browserCreateReadStream;
+let sax = browserSax;
+
+// Initialize Node.js functions if available
+if (isNode) {
+  try {
+    const fs = require('fs');
+    const saxModule = require('sax');
+    
+    createReadStream = fs.createReadStream;
+    sax = saxModule;
+  } catch (e) {
+    // Fall back to browser stubs if Node.js modules fail to load
+    console.warn('Failed to load Node.js modules, using browser stubs');
+  }
+}
+
 import type { LMFParser } from './base.js';
 import type { LMFDocument, LMFLoadOptions } from '../lmf.js';
 import { loadLMF } from '../lmf.js';

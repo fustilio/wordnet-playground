@@ -1,10 +1,10 @@
 import type { Synset } from './types.js';
-import { Wordnet } from './wordnet.js';
+import { BaseWordnet } from './wordnet.js';
 
 /**
  * Get the direct hypernyms of a synset.
  */
-export async function hypernyms(synset: Synset, wordnet: Wordnet): Promise<Synset[]> {
+export async function hypernyms(synset: Synset, wordnet: BaseWordnet): Promise<Synset[]> {
   const hypernymRelations = synset.relations.filter((r: any) => r.type === 'hypernym');
   const results: Synset[] = [];
   for (const rel of hypernymRelations) {
@@ -21,7 +21,7 @@ export async function hypernyms(synset: Synset, wordnet: Wordnet): Promise<Synse
 export async function shortestPath(
   synsetA: Synset,
   synsetB: Synset,
-  wordnet: Wordnet
+  wordnet: BaseWordnet
 ): Promise<Synset[]> {
   if (synsetA.id === synsetB.id) return [];
 
@@ -61,7 +61,7 @@ export async function shortestPath(
  */
 export async function maxDepth(
   synset: Synset,
-  wordnet: Wordnet
+  wordnet: BaseWordnet
 ): Promise<number> {
   // DFS to find the longest path to a root (no hypernyms)
   const stack: { node: Synset; depth: number }[] = [{ node: synset, depth: 0 }];
@@ -90,7 +90,7 @@ export async function maxDepth(
 export async function lowestCommonHypernyms(
   synsetA: Synset,
   synsetB: Synset,
-  wordnet: Wordnet
+  wordnet: BaseWordnet
 ): Promise<Synset[]> {
   const pathsA = await allHypernymPaths(synsetA, wordnet);
   const pathsB = await allHypernymPaths(synsetB, wordnet);
@@ -115,7 +115,7 @@ export async function lowestCommonHypernyms(
 /**
  * Helper: Get all hypernym paths from a synset to a root.
  */
-async function allHypernymPaths(synset: Synset, wordnet: Wordnet): Promise<Synset[][]> {
+async function allHypernymPaths(synset: Synset, wordnet: BaseWordnet): Promise<Synset[][]> {
   const paths: Synset[][] = [];
   async function dfs(node: Synset, path: Synset[]) {
     const hypers = await hypernyms(node, wordnet);

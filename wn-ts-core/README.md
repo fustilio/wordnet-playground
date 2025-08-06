@@ -9,6 +9,7 @@
 - **Platform-Independent**: Pure TypeScript with no Node.js or browser APIs
 - **Reusable**: Core logic used by `wn-ts-node` and future `wn-ts-web`
 - **Testable**: Comprehensive unit tests for all core functionality
+- **Explicit Client Passing**: All module functions explicitly receive `BaseWordnet` instances
 
 ## 🌐 Browser Support & Node-to-Browser Strategy
 
@@ -47,6 +48,8 @@ A modern TypeScript implementation of the [wn library](https://github.com/goodma
 - ✅ **Clean API**: No direct database access - all functionality through Wordnet instance methods
 - ✅ **Statistics & Analysis**: Built-in methods for database statistics and data quality analysis
 - ✅ **Test Organization**: Clear separation between core and platform-specific tests
+- ✅ **Explicit Client Passing**: All module functions explicitly receive `BaseWordnet` instances
+- ✅ **Decoupled Architecture**: No internal client instantiation in module functions
 
 ## 🟢 Parity with Python wn
 
@@ -59,6 +62,7 @@ This TypeScript port has undergone a thorough parity review against the Python `
 - **Data Management**: Download and add functions are properly exported for external use.
 - **Clean API Design**: All database access is now handled through the Wordnet instance, providing a clean and maintainable API.
 - **Unified CLI**: Comprehensive command-line interface with database management capabilities.
+- **Explicit Client Passing**: Module functions now explicitly receive clients, eliminating internal instantiation.
 
 All core logic, algorithms, and API signatures are now at full parity with the Python version. Remaining differences are limited to advanced features (see Roadmap below).
 
@@ -76,11 +80,13 @@ pnpm add wn-ts-core
 
 ```typescript
 import { words, synsets, lexicons } from 'wn-ts-core';
+import { BaseWordnet } from 'wn-ts-core';
 
-// Core functions work with any database implementation
-const wordResults = await words('run', 'v');
-const synsetResults = await synsets('run', 'v');
-const lexiconResults = await lexicons();
+// Core functions require explicit client passing
+const wordnetClient = new BaseWordnet(); // From platform-specific package
+const wordResults = await words(wordnetClient, 'run', 'v');
+const synsetResults = await synsets(wordnetClient, 'run', 'v');
+const lexiconResults = await lexicons(wordnetClient);
 
 // Note: These functions require a database implementation to be provided
 // by the platform-specific package (wn-ts-node, wn-ts-web, etc.)
@@ -88,49 +94,201 @@ const lexiconResults = await lexicons();
 
 ## 📚 API Reference
 
-### Core Functions
+### Core Module Functions
 
-#### `getDownloadableLexicons(): string[]`
-Returns a list of lexicons that are available for download from the online index. These are lexicons that can be downloaded but may not be currently installed locally.
+All module functions explicitly receive a `BaseWordnet` instance as their first parameter:
 
-**Returns:** Array of lexicon IDs (e.g., `['oewn', 'omw', 'odenet']`)
+#### `projects(): Promise<Project[]>`
+Returns a list of all available projects from the project index.
+
+**Returns:** Promise resolving to array of project objects
 
 **Example:**
 ```typescript
-import { getDownloadableLexicons } from 'wn-ts-core';
+import { projects } from 'wn-ts-core';
 
-const downloadable = getDownloadableLexicons();
-console.log(downloadable); // ['oewn', 'omw', 'odenet', ...]
+const allProjects = await projects();
+console.log(allProjects); // [{ id: 'oewn', versions: ['2024', '2023'] }, ...]
 ```
 
-#### `getAllAvailableLexicons(): Promise<string[]>`
-Returns a comprehensive list of all available lexicons, including both downloadable (online) and installed (offline) lexicons. This provides a complete view of what's available to the user.
+#### `lexicons(client: BaseWordnet): Promise<Lexicon[]>`
+Returns lexicons available in the database.
 
-**Returns:** Promise resolving to array of lexicon IDs
+**Parameters:**
+- `client`: BaseWordnet instance to query
+
+**Returns:** Promise resolving to array of lexicon objects
 
 **Example:**
 ```typescript
-import { getAllAvailableLexicons } from 'wn-ts-core';
+import { lexicons } from 'wn-ts-core';
 
-const allLexicons = await getAllAvailableLexicons();
-console.log(allLexicons); // ['oewn', 'omw', 'odenet', 'installed-lexicon', ...]
+const wordnetClient = new Wordnet('oewn:2024'); // From wn-ts-node
+const availableLexicons = await lexicons(wordnetClient);
+console.log(availableLexicons); // [{ id: 'oewn', label: 'Open English WordNet' }, ...]
 ```
 
-#### `getInstalledLexicons(): Promise<LexiconInfo[]>`
-Returns detailed information about lexicons currently installed in the local database.
+#### `words(client: BaseWordnet, form?: string, pos?: PartOfSpeech): Promise<Word[]>`
+Get words matching form and part of speech.
 
-**Returns:** Promise resolving to array of lexicon information objects
+**Parameters:**
+- `client`: BaseWordnet instance to query
+- `form`: Word form to search for (optional)
+- `pos`: Part of speech to filter by (optional)
+
+**Returns:** Promise resolving to array of word objects
 
 **Example:**
 ```typescript
-import { getInstalledLexicons } from 'wn-ts-core';
+import { words } from 'wn-ts-core';
 
-const installed = await getInstalledLexicons();
-console.log(installed);
-// [
-//   { id: 'oewn', label: 'Open English WordNet', language: 'en', license: 'MIT' },
-//   { id: 'omw', label: 'Open Multilingual WordNet', language: 'mul', license: 'CC BY 3.0' }
-// ]
+const wordnetClient = new Wordnet('oewn:2024');
+const runWords = await words(wordnetClient, 'run', 'v');
+console.log(runWords); // [{ id: 'oewn-2024-run-v', forms: ['run'], ... }, ...]
+```
+
+#### `synsets(client: BaseWordnet, form?: string, pos?: PartOfSpeech): Promise<Synset[]>`
+Get synsets matching form and part of speech.
+
+**Parameters:**
+- `client`: BaseWordnet instance to query
+- `form`: Word form to search for (optional)
+- `pos`: Part of speech to filter by (optional)
+
+**Returns:** Promise resolving to array of synset objects
+
+**Example:**
+```typescript
+import { synsets } from 'wn-ts-core';
+
+const wordnetClient = new Wordnet('oewn:2024');
+const runSynsets = await synsets(wordnetClient, 'run', 'v');
+console.log(runSynsets); // [{ id: 'ss_2024_00000001-v', members: ['run'], ... }, ...]
+```
+
+#### `senses(client: BaseWordnet, form?: string, pos?: PartOfSpeech): Promise<Sense[]>`
+Get senses matching form and part of speech.
+
+**Parameters:**
+- `client`: BaseWordnet instance to query
+- `form`: Word form to search for (optional)
+- `pos`: Part of speech to filter by (optional)
+
+**Returns:** Promise resolving to array of sense objects
+
+**Example:**
+```typescript
+import { senses } from 'wn-ts-core';
+
+const wordnetClient = new Wordnet('oewn:2024');
+const runSenses = await senses(wordnetClient, 'run', 'v');
+console.log(runSenses); // [{ id: 'oewn-2024-run-v-1', synset: 'ss_2024_00000001-v', ... }, ...]
+```
+
+#### `word(client: BaseWordnet, id: string): Promise<Word>`
+Get a specific word by ID.
+
+**Parameters:**
+- `client`: BaseWordnet instance to query
+- `id`: Word ID
+
+**Returns:** Promise resolving to word object
+
+**Example:**
+```typescript
+import { word } from 'wn-ts-core';
+
+const wordnetClient = new Wordnet('oewn:2024');
+const runWord = await word(wordnetClient, 'oewn-2024-run-v');
+console.log(runWord); // { id: 'oewn-2024-run-v', forms: ['run'], ... }
+```
+
+#### `synset(client: BaseWordnet, id: string): Promise<Synset>`
+Get a specific synset by ID.
+
+**Parameters:**
+- `client`: BaseWordnet instance to query
+- `id`: Synset ID
+
+**Returns:** Promise resolving to synset object
+
+**Example:**
+```typescript
+import { synset } from 'wn-ts-core';
+
+const wordnetClient = new Wordnet('oewn:2024');
+const runSynset = await synset(wordnetClient, 'ss_2024_00000001-v');
+console.log(runSynset); // { id: 'ss_2024_00000001-v', members: ['run'], ... }
+```
+
+#### `sense(client: BaseWordnet, id: string): Promise<Sense>`
+Get a specific sense by ID.
+
+**Parameters:**
+- `client`: BaseWordnet instance to query
+- `id`: Sense ID
+
+**Returns:** Promise resolving to sense object
+
+**Example:**
+```typescript
+import { sense } from 'wn-ts-core';
+
+const wordnetClient = new Wordnet('oewn:2024');
+const runSense = await sense(wordnetClient, 'oewn-2024-run-v-1');
+console.log(runSense); // { id: 'oewn-2024-run-v-1', synset: 'ss_2024_00000001-v', ... }
+```
+
+#### `ili(client: BaseWordnet, id: string): Promise<ILI>`
+Get a specific ILI by ID.
+
+**Parameters:**
+- `client`: BaseWordnet instance to query
+- `id`: ILI ID
+
+**Returns:** Promise resolving to ILI object
+
+**Example:**
+```typescript
+import { ili } from 'wn-ts-core';
+
+const wordnetClient = new Wordnet('oewn:2024');
+const iliEntry = await ili(wordnetClient, 'i12345');
+console.log(iliEntry); // { id: 'i12345', definition: '...', ... }
+```
+
+#### `ilis(client: BaseWordnet, status?: string): Promise<ILI[]>`
+Get ILIs with optional status filtering.
+
+**Parameters:**
+- `client`: BaseWordnet instance to query
+- `status`: Status to filter by (optional)
+
+**Returns:** Promise resolving to array of ILI objects
+
+**Example:**
+```typescript
+import { ilis } from 'wn-ts-core';
+
+const wordnetClient = new Wordnet('oewn:2024');
+const allIlis = await ilis(wordnetClient);
+console.log(allIlis); // [{ id: 'i12345', status: 'standard', ... }, ...]
+```
+
+### BaseWordnet Class
+
+The `BaseWordnet` abstract class provides convenience methods that delegate to module functions:
+
+```typescript
+import { BaseWordnet } from 'wn-ts-core';
+
+// Convenience methods (recommended for most use cases)
+const wn = new Wordnet('oewn:2024'); // From wn-ts-node
+const synsets = await wn.synsets('run', 'v');
+const words = await wn.words('run', 'v');
+const lexicons = await wn.lexicons();
+
+// These internally call the module functions with 'this' as the client
 ```
 
 ### Data Management
@@ -241,7 +399,8 @@ console.log(downloadableLexicons);
 
 // List installed lexicons (offline)
 import { lexicons } from 'wn-ts-core';
-const installedLexicons = await lexicons();
+const wordnetClient = new Wordnet('oewn:2024');
+const installedLexicons = await lexicons(wordnetClient);
 console.log(installedLexicons);
 ```
 
@@ -292,6 +451,7 @@ pnpm test:e2e
 - **Unit Tests**: Focus on pure functions and logic
 - **Type Safety**: Comprehensive TypeScript testing
 - **No Platform Dependencies**: Tests run in any environment
+- **Explicit Client Testing**: Tests verify explicit client passing pattern
 
 ### Test Files
 
@@ -320,10 +480,10 @@ pnpm ci:benchmark # Run all benchmark tests
 
 ## 🎯 Clean API Design
 
-**Important**: The library provides a clean API without direct database access. All functionality is available through:
+**Important**: The library provides a clean API with explicit client passing. All functionality is available through:
 
-1. **Wordnet Instance Methods**: Use `new Wordnet()` for all data access
-2. **Module Functions**: Top-level functions like `words()`, `synsets()`, etc.
+1. **Module Functions**: Explicit client-passing functions like `words(client, form, pos)`, `synsets(client, form, pos)`, etc.
+2. **BaseWordnet Convenience Methods**: Use `new Wordnet()` for convenience methods that delegate to module functions
 3. **Submodule Exports**: Advanced features via `wn-ts-core/similarity`, `wn-ts-core/taxonomy`, etc.
 
 **Do not use direct database access** - the `db` export is for internal debugging only.
@@ -348,6 +508,8 @@ pnpm ci:benchmark # Run all benchmark tests
 - ✅ **CI Integration**: Complete CI pipeline integration
 - ✅ **Unified CLI**: Command-line interface with database management
 - ✅ **Test Organization**: Clear separation between core and platform-specific tests
+- ✅ **Explicit Client Passing**: All module functions explicitly receive `BaseWordnet` instances
+- ✅ **Decoupled Architecture**: No internal client instantiation in module functions
 
 ### In Progress 🔄
 - 🔄 **Performance Optimization**: Further optimize database queries and memory usage
@@ -366,7 +528,7 @@ We welcome contributions! Please see our contributing guidelines and development
 1. **Development Setup**: Use `pnpm install` and `pnpm build` to set up the development environment
 2. **Testing**: Run `pnpm test` to ensure all tests pass
 3. **CI Integration**: The library is fully integrated with the workspace CI pipeline
-4. **Clean API**: Maintain the clean API design without direct database access
+4. **Clean API**: Maintain the clean API design with explicit client passing
 
 ## 📄 License
 
@@ -400,6 +562,8 @@ MIT License - see [LICENSE](./LICENSE) file for details.
 - ✅ Comprehensive CLI documentation
 - ✅ Removed standalone scripts in favor of unified CLI
 - ✅ **Test Reorganization**: Clear separation between core and platform-specific tests
+- ✅ **Explicit Client Passing**: All module functions now explicitly receive `BaseWordnet` instances
+- ✅ **Decoupled Architecture**: Eliminated internal client instantiation in module functions
 
 ## 🌐 Node-to-Browser Strategy: Enabling Full Browser Support
 

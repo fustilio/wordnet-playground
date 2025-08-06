@@ -1,11 +1,32 @@
 /**
- * Native XML parser using regex-based counting for maximum speed
+ * Native XML parser using fast-xml-parser
  * 
- * This parser is optimized for scenarios where you only need to count elements
- * or perform very basic XML operations. It's the fastest but least feature-rich.
+ * This parser uses the fast-xml-parser library for parsing LMF XML files.
+ * It's a simpler implementation but may be slower than SAX parsers.
  */
 
-import { readFile } from 'fs/promises';
+// Browser environment check
+const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
+
+// Browser-compatible stubs
+const browserReadFile = async (path: string, encoding?: string) => {
+  throw new Error('File system operations not available in browser environment');
+};
+
+// Use browser stubs by default, will be overridden in Node.js
+let readFile = browserReadFile;
+
+// Initialize Node.js functions if available
+if (isNode) {
+  try {
+    const fsPromises = require('fs/promises');
+    readFile = fsPromises.readFile;
+  } catch (e) {
+    // Fall back to browser stubs if Node.js modules fail to load
+    console.warn('Failed to load Node.js modules, using browser stubs');
+  }
+}
+
 import type { LMFParser } from './base.js';
 import type { LMFDocument, LMFLoadOptions } from '../lmf.js';
 

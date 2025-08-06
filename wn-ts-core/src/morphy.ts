@@ -5,7 +5,7 @@
  * finding base forms of words, matching the Python wn.morphy implementation.
  */
 
-import type { Wordnet } from './wordnet.js';
+import type { BaseWordnet } from './wordnet.js';
 import type { PartOfSpeech } from './types.js';
 
 export type MorphyResult = Partial<Record<PartOfSpeech | 'null', Set<string>>>;

@@ -7,10 +7,76 @@
  * For different parser implementations, see the parsers module.
  */
 
-import { readFile, stat } from 'fs/promises';
-import { createReadStream } from 'fs';
+// Browser environment check
+const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
+
+// Browser-compatible stubs
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const browserReadFile = async (path: string, encoding?: string) => {
+  throw new Error('File system operations not available in browser environment');
+};
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const browserStat = async (path: string) => {
+  return { size: 0 };
+};
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const browserCreateReadStream = (path: string, options?: any) => {
+  return {
+    on: (event: string, callback: any) => {
+      if (event === 'data') callback('');
+      if (event === 'end') callback();
+      if (event === 'error') callback(new Error('Browser stream not available'));
+      return this;
+    },
+    pipe: (parser: any) => {
+      // Mock pipe implementation
+      return parser;
+    }
+  };
+};
+
+const browserSax = {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  createStream: (strict: boolean, options?: any) => {
+    return {
+      on: (event: string, callback: any) => {
+        // Mock event handler
+        return this;
+      },
+      pipe: (stream: any) => {
+        // Mock pipe implementation
+        return stream;
+      }
+    };
+  }
+};
+
+// Use browser stubs by default, will be overridden in Node.js
+let readFile = browserReadFile;
+let stat = browserStat;
+let createReadStream = browserCreateReadStream;
+let sax = browserSax;
+
+// Initialize Node.js functions if available
+if (isNode) {
+  try {
+    const fs = require('fs');
+    const fsPromises = require('fs/promises');
+    const saxModule = require('sax');
+    
+    readFile = fsPromises.readFile;
+    stat = fsPromises.stat;
+    createReadStream = fs.createReadStream;
+    sax = saxModule;
+  } catch (e) {
+    // Fall back to browser stubs if Node.js modules fail to load
+    console.warn('Failed to load Node.js modules, using browser stubs');
+  }
+}
+
 import { XMLParser } from 'fast-xml-parser';
-import sax from 'sax';
 import type { Synset, Word, Sense, Lexicon, PartOfSpeech } from './types.js';
 
 export interface LMFDocument {
@@ -454,6 +520,14 @@ export function parseLMFXML(
     parseAttributeValue: false, // Don't parse attribute values to preserve version strings
     parseTagValue: false,
     trimValues: true,
+    // Add options to handle large files better
+    processEntities: false,
+    processNamespaces: false,
+    allowBooleanAttributes: true,
+    stopNodes: ['LexicalEntry', 'Synset'], // Stop processing at these nodes to reduce memory
+    maxTagLength: 1000, // Limit tag length
+    maxAttributeLength: 1000, // Limit attribute length
+    maxTextLength: 10000, // Limit text length
   });
 
   if (debug) console.log(`[DEBUG] Parsing XML with fast-xml-parser...`);

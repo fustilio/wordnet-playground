@@ -3,18 +3,11 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import { existsSync, rmSync, mkdtempSync } from 'fs';
 import { 
-
-  // config, 
-  download, 
   words, 
   synsets, 
   projects 
-
 } from 'wn-ts-core';
-import { add, Wordnet, config,
-  //  download,  
-  //  projects 
-} from '../../src/index.js';
+import { add, Wordnet, config, download } from '../../src/index.js';
 import { logger } from 'wn-ts-core/utils';
 
 class ProgressLogger {
@@ -108,7 +101,7 @@ describe('End-to-End Integration Tests', () => {
     it('should load project index and list available projects', async () => {
       // This test now runs against the data set up in beforeAll
       logger.info('📋 Loading project index...');
-      const availableProjects = await projects();
+      const availableProjects = await projects(wordnetClient);
       logger.success(`Found ${availableProjects.length} projects`);
 
       expect(availableProjects).toBeInstanceOf(Array);
