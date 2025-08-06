@@ -1,223 +1,232 @@
-# WordNet TypeScript
+# WordNet TypeScript Ecosystem
 
-A TypeScript port of the Python [wn library](https://github.com/goodmami/wn) for accessing WordNet data. This project provides a modern, type-safe way to work with WordNet in JavaScript/TypeScript environments with clear separation between core functionality and platform-specific implementations.
+A comprehensive TypeScript implementation of WordNet with multiple deployment targets, real data integration, and modern tooling.
 
-## What is WordNet?
+## 🌟 **Project Overview**
 
-WordNet is a large lexical database of English. Nouns, verbs, adjectives and adverbs are grouped into sets of cognitive synonyms (synsets), each expressing a distinct concept. WordNet is widely used in natural language processing and computational linguistics.
+This monorepo contains a complete WordNet implementation with multiple deployment strategies:
 
-## What does this project provide?
+- **`wn-ts-core`**: Core WordNet types, interfaces, and data structures
+- **`wn-ts-node`**: Node.js implementation using better-sqlite3
+- **`wn-ts-web`**: Browser implementation using @sqlite.org/sqlite-wasm
+- **`wn-ts-web-demo`**: Interactive web demo with real data loading
+- **`wn-cli`**: Command-line interface with TUI
+- **`wn-pybridge`**: Python bridge for interoperability
 
-### 📦 `wn-ts-core` - Core Library
-The core TypeScript library providing database-agnostic functionality, algorithms, parsers, and utilities. This package contains all the core logic that can be shared across different platforms.
+## 🏗️ **Architecture**
 
+### **Core Principles**
+- **Type Safety**: Full TypeScript implementation with strict typing
+- **Modular Design**: Each package has a specific responsibility
+- **Modern Tooling**: Vite, Vitest, ESLint, and modern development practices
+- **Cross-Platform**: Works in Node.js, browsers, and CLI environments
+- **Real Data Support**: Full integration with actual WordNet data sources
+- **Explicit Client Passing**: Clean dependency injection pattern
+
+### **Package Responsibilities**
+
+| Package | Responsibility | Technology | Status |
+|---------|---------------|------------|--------|
+| `wn-ts-core` | Core types, interfaces, data structures | TypeScript | ✅ Complete |
+| `wn-ts-node` | Node.js implementation | better-sqlite3 | ✅ Complete |
+| `wn-ts-web` | Browser implementation | @sqlite.org/sqlite-wasm | ✅ Complete |
+| `wn-ts-web-demo` | Interactive web demo | React + Vite | ✅ Complete |
+| `wn-cli` | Command-line interface | React Ink | ✅ Complete |
+| `wn-pybridge` | Python interoperability | Pythonia | ✅ Complete |
+
+### **Architecture Benefits**
+1. **Platform Optimization**: Each package is optimized for its target environment
+2. **Bundle Size**: Browser users only get the code they need
+3. **Type Safety**: Shared interfaces ensure consistency across implementations
+4. **Maintainability**: Clear separation of concerns
+5. **Future-Proof**: Easy to add new implementations (e.g., Deno, Bun)
+6. **Testability**: Explicit client passing makes testing easier
+7. **Decoupling**: No internal client instantiation in module functions
+8. **Real Data Integration**: Full support for actual WordNet repositories
+
+## 🚀 **Quick Start**
+
+### **Installation**
 ```bash
-npm install wn-ts-core
+git clone <repository>
+cd wordnet
+pnpm install
 ```
+
+### **Development**
+```bash
+# Build all packages
+pnpm build
+
+# Run tests
+pnpm test
+
+# Start development servers
+pnpm dev
+```
+
+### **Web Demo**
+```bash
+cd wn-ts-web-demo
+pnpm dev
+```
+
+Visit `http://localhost:5173` to see the interactive WordNet demo.
+
+## 📦 **Package Details**
+
+### **wn-ts-core**
+Core WordNet types and interfaces used by all other packages.
 
 ```typescript
-import { words, synsets, lexicons } from 'wn-ts-core';
-import { BaseWordnet } from 'wn-ts-core';
+import type { Word, Synset, Sense } from 'wn-ts-core';
+import { words, synsets } from 'wn-ts-core';
 
-// Core functions require explicit client passing
-const wordnetClient = new BaseWordnet(); // From platform-specific package
-const wordResults = await words(wordnetClient, 'run', 'v');
-const synsetResults = await synsets(wordnetClient, 'run', 'v');
-const lexiconResults = await lexicons(wordnetClient);
+// Explicit client passing pattern
+const wordnetClient = new Wordnet('oewn:2024');
+const results = await words(wordnetClient, 'run', 'v');
 ```
 
-### 🖥️ `wn-ts-node` - Node.js Implementation
-The Node.js-specific implementation that provides database integration using SQLite (`better-sqlite3`). This package re-exports core functionality and adds Node.js-specific features like file system access and database operations.
-
-```bash
-npm install wn-ts-node
-```
+### **wn-ts-node**
+Node.js implementation with better-sqlite3 for high performance.
 
 ```typescript
-import { Wordnet, download, add } from 'wn-ts-node';
+import { Wordnet } from 'wn-ts-node';
 
-// Download WordNet data
-await download('oewn:2024');
+const wordnet = new Wordnet('oewn:2024');
+const words = await wordnet.words('computer');
+```
 
-// Create WordNet instance with database integration
+### **wn-ts-web**
+Browser implementation using @sqlite.org/sqlite-wasm for modern web optimization.
+
+```typescript
+import { createWordNetInstance } from 'wn-ts-web';
+
+const { wordnet, dataLoader } = await createWordNetInstance();
+await dataLoader.downloadAndLoad('oewn:2024');
+```
+
+### **wn-ts-web-demo**
+Interactive web demo showcasing real WordNet data loading and querying.
+
+Features:
+- Real data download from WordNet repositories
+- Interactive search and exploration
+- OPFS (Origin Private File System) for persistent storage
+- Progress tracking and cache management
+- Advanced visualizations (WordRelationshipGraph, SynsetHierarchyTree)
+- Developer tools (DebugConsole, Performance Monitoring)
+
+## 🔄 **Migration Path**
+
+### For Existing `wn-ts` Users
+
+The current `wn-ts` package will continue to work as-is, but users are encouraged to migrate:
+
+```typescript
+// Old way (still works)
+import { Wordnet } from 'wn-ts';
+
+// New way (recommended)
+import { Wordnet } from 'wn-ts-node'; // For Node.js
+import { createWordNetInstance } from 'wn-ts-web'; // For browsers
+
+// Use convenience methods (recommended)
 const wn = new Wordnet('oewn:2024');
-
-// Use convenience methods (delegate to module functions)
 const synsets = await wn.synsets('run', 'v');
-console.log(synsets[0]?.definitions[0]?.text);
-// Output: "move fast by using one's feet, with one foot off the ground at any given time"
 
-// Or use module functions with explicit client passing
+// Or use explicit client passing (advanced)
 import { synsets } from 'wn-ts-core';
 const synsetResults = await synsets(wn, 'run', 'v');
 ```
 
-### 🌐 `wn-ts-web` - Browser Distribution (Coming Soon)
-Browser-optimized WordNet with SQL.js support for full API compatibility in web applications.
+### For New Projects
 
-```bash
-npm install wn-ts-web
-```
+Choose the appropriate package based on your target environment:
 
 ```typescript
-// Browser usage (implementation in progress)
-import { BrowserWordNet, createBrowserWordNet } from 'wn-ts-web';
+// Node.js applications
+import { Wordnet } from 'wn-ts-node';
 
-const wordnet = createBrowserWordNet();
-await wordnet.initialize();
+// Browser applications
+import { createWordNetInstance } from 'wn-ts-web';
 
-// Same API as Node.js version
-const synsets = await wordnet.synsets('run', 'v');
+// Shared types and interfaces
+import type { Word, Synset, DatabaseInterface } from 'wn-ts-core';
+
+// Module functions with explicit client passing
+import { words, synsets } from 'wn-ts-core';
+const wordnetClient = new Wordnet('oewn:2024');
+const results = await words(wordnetClient, 'run', 'v');
 ```
 
-### 🖥️ `wn-cli` - Command Line Interface
-A comprehensive CLI for WordNet data management and exploration.
+## 🧪 **Testing & Quality**
 
-```bash
-npm install -g wn-cli
+### **Test Infrastructure**
+- **Unit Tests**: 190+ tests across all packages
+- **E2E Tests**: Real data integration testing
+- **Performance Benchmarks**: Comprehensive library comparisons
+- **Browser Tests**: Full browser environment testing
+- **Cross-Project Integration**: API consistency across all packages
 
-# Download WordNet data
-wn-cli data download oewn:2024
+### **Real Data Testing**
+The project includes comprehensive E2E testing with real WordNet data:
+- Open English WordNet (OEWN) integration
+- CILI (Collaborative Interlingual Index) support
+- Multi-language data handling
+- Database schema validation
+- Performance monitoring
 
-# Query words
-wn-cli query word run v
+### **Test Categories**
+- **Cross-Project Integration Tests**: API consistency across packages
+- **Advanced Multilingual Tests**: Multi-language scenarios with CILI
+- **Performance Benchmark Tests**: Node.js vs browser performance
+- **Sanity Check Tests**: System health monitoring
+- **Real Data Tests**: Actual WordNet data integration
 
-# Explore synsets
-wn-cli query synset ss_2024_00000001-n
+## 📊 **Performance**
 
-# Export data
-wn-cli data export --format json --output export.json
-```
+### **Benchmark Results**
+Comprehensive comparison of WordNet libraries:
 
-## Quick Start
+| Library | Performance | Features | Best For |
+|---------|-------------|----------|----------|
+| **WordsWordNet** | 5.28ms avg | Basic | Speed-critical applications |
+| **node-wordnet** | 158ms avg | Standard | Production applications |
+| **natural** | 309ms avg | NLP-focused | Natural language processing |
+| **wn-ts** | 581ms avg | Full feature set | Feature-rich applications |
+| **wn-pybridge** | ~500ms avg | Python parity | Python compatibility |
+| **wordpos** | 1077ms avg | POS-focused | POS tagging workflows |
 
-### For Developers
-```bash
-# Clone the repository
-git clone https://github.com/fustilio/wordnet-playground.git
-cd wordnet-playground
+## 🔧 **Development**
 
-# Install dependencies
-pnpm install
+### **Key Features**
+- **Real Data Integration**: Works with actual WordNet repositories
+- **Multi-Language Support**: English, Spanish, and more
+- **Database Optimization**: Proper indexing and schema design
+- **Error Handling**: Robust fallback mechanisms
+- **Data Management**: Export/import capabilities
+- **Advanced Visualizations**: Interactive graphs and hierarchies
+- **Developer Tools**: Debug console and performance monitoring
 
-# Build all packages
-pnpm build
+## 📚 **Documentation**
 
-# Run tests (organized by package)
-pnpm test
-```
+- **[CHANGELOG.md](./CHANGELOG.md)**: Version history and changes
 
-### For Users
-```bash
-# Install the core library
-npm install wn-ts-core
+## 🤝 **Contributing**
 
-# Install the Node.js implementation
-npm install wn-ts-node
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Submit a pull request
 
-# Install the CLI (optional)
-npm install -g wn-cli
-```
+## 📄 **License**
 
-## Key Features
-
-### 🎯 **Clear Package Separation**
-- **`wn-ts-core`**: Database-agnostic core functionality, algorithms, parsers, utilities
-- **`wn-ts-node`**: Node.js-specific database integration, file system operations, E2E tests
-- **`wn-ts-web`**: Browser-optimized implementation with SQL.js (coming soon)
-- **`wn-cli`**: Command-line interface for data management and querying
-
-### 🔍 **Rich Query Capabilities**
-- Word lookup and sense disambiguation
-- Synset exploration and relationship traversal
-- Synonym, antonym, and hypernym discovery
-- Information content calculations
-
-### 📊 **Data Management**
-- Download and manage multiple WordNet versions
-- Export data in JSON, XML, and CSV formats
-- Built-in statistics and quality metrics
-- Browser-optimized data generation (planned)
-
-### 🛡️ **Type Safety**
-- Full TypeScript support with comprehensive types
-- IntelliSense and autocomplete in your IDE
-- Compile-time error checking
-
-### ⚡ **Performance**
-- Optimized for speed and memory efficiency
-- Batch operations for large datasets
-- Efficient database queries and caching
-
-### 🔧 **Clean Architecture**
-- **Explicit Client Passing**: Module functions explicitly receive `BaseWordnet` instances
-- **Dependency Injection**: No internal instantiation of clients within module functions
-- **Decoupled Components**: Clear separation between core logic and platform-specific implementations
-- **Testable Design**: Easy to mock and test individual components
-
-## Project Structure
-
-```
-wordnet/
-├── wn-ts-core/        # Core TypeScript library (database-agnostic)
-├── wn-ts-node/        # Node.js implementation (database integration)
-├── wn-ts-web/         # Browser distribution with SQL.js (coming soon)
-├── wn-cli/            # Command line interface
-├── wn-pybridge/       # Python bridge (development tool)
-├── benchmark/         # Performance benchmarking
-├── demo/              # Example use cases
-└── wn-test-data/      # Shared test data
-```
-
-## Testing Strategy
-
-### `wn-ts-core` Tests
-- **Core functionality**: Algorithms, parsers, utilities
-- **Database-agnostic**: No database dependencies
-- **Unit tests**: Focus on pure functions and logic
-- **Type safety**: Comprehensive TypeScript testing
-
-### `wn-ts-node` Tests
-- **Database integration**: SQLite operations and persistence
-- **Node.js specifics**: File system operations, configuration
-- **E2E tests**: Real-world usage scenarios
-- **Performance**: Database query optimization
-
-### Test Organization
-- **No duplicates**: Each package tests its specific responsibilities
-- **Clear separation**: Core logic in `wn-ts-core`, platform specifics in `wn-ts-node`
-- **Comprehensive coverage**: All functionality thoroughly tested
-
-## Documentation
-
-- **[wn-ts-core Documentation](./wn-ts-core/README.md)** - Core library documentation
-- **[wn-ts-node Documentation](./wn-ts-node/README.md)** - Node.js implementation documentation
-- **[wn-ts-web Documentation](./wn-ts-web/README.md)** - Browser implementation documentation (coming soon)
-- **[wn-cli Documentation](./wn-cli/README.md)** - CLI usage and commands
-- **[Benchmark Results](./benchmark/README.md)** - Performance comparisons
-- **[Python Reference](https://wn.readthedocs.io/)** - Original Python library docs
-
-## Contributing
-
-We welcome contributions! Here are some ways you can help:
-
-- **Bug Reports**: Help us identify and fix issues
-- **Feature Requests**: Suggest new capabilities
-- **Documentation**: Improve examples and tutorials
-- **Performance**: Help optimize speed and memory usage
-- **Testing**: Enhance test coverage and edge case handling
-
-## License
-
-MIT License - see [LICENSE](./LICENSE) file for details.
-
-## Acknowledgments
-
-- **Original wn Library**: Created by Michael Wayne Goodman
-- **WordNet Community**: For the rich linguistic resources
-- **Contributors**: To the TypeScript port and benchmarking tools
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-**This project aims to bring the power of WordNet to the JavaScript/TypeScript ecosystem with the same ease of use and feature completeness as the original Python library, while providing clear separation between core functionality and platform-specific implementations.**
+**Built with modern TypeScript, featuring real WordNet data integration, comprehensive testing, and advanced visualizations.**
 

@@ -659,4 +659,45 @@ export class KyselyQueryService {
       note: record.note,
     };
   }
+
+  // Additional methods for export functionality
+  async getWordsByLexicon(lexiconId: string): Promise<Database['words'][]> {
+    return this.db
+      .selectFrom('words')
+      .selectAll()
+      .where('lexicon', '=', lexiconId)
+      .execute();
+  }
+
+  async getSensesByWordId(wordId: string): Promise<Database['senses'][]> {
+    return this.db
+      .selectFrom('senses')
+      .selectAll()
+      .where('word_id', '=', wordId)
+      .execute();
+  }
+
+  async getSynsetsByLexicon(lexiconId: string): Promise<Database['synsets'][]> {
+    return this.db
+      .selectFrom('synsets')
+      .selectAll()
+      .where('lexicon', '=', lexiconId)
+      .execute();
+  }
+
+  async getExamplesBySynsetId(synsetId: string): Promise<Database['examples'][]> {
+    return this.db
+      .selectFrom('examples')
+      .selectAll()
+      .where('synset_id', '=', synsetId)
+      .execute();
+  }
+
+  async getRelationsBySynsetId(synsetId: string): Promise<Database['relations'][]> {
+    return this.db
+      .selectFrom('relations')
+      .selectAll()
+      .where('source_id', '=', synsetId)
+      .execute();
+  }
 } 

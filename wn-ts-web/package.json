@@ -22,15 +22,18 @@
   "license": "MIT",
   "author": "fustilio",
   "type": "module",
+  "main": "./dist/wn-ts-web.mjs",
+  "types": "./dist/wn-ts-web.d.ts",
   "exports": {
     ".": {
-      "default": "./dist/wn-ts-web.mjs",
-      "types": "./dist/wn-ts-web.mjs"
+      "types": "./dist/wn-ts-web.d.ts",
+      "import": "./dist/wn-ts-web.mjs",
+      "default": "./dist/wn-ts-web.mjs"
     }
   },
   "scripts": {
     "prebuild": "pnpm run build:index",
-    "build": "vite build",
+    "build": "tsc",
     "build:index": "node scripts/build-index.js",
     "build:watch": "vite build --watch",
     "clean": "rimraf dist",

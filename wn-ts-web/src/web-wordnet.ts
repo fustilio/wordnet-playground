@@ -309,4 +309,101 @@ export class WebWordnet extends BaseWordnet {
 
     return this.queryService.searchWords(searchTerm, options);
   }
+
+  /**
+   * Export data from the database
+   */
+  async exportData(): Promise<any> {
+    if (!this.initialized || !this.queryService) throw new Error('WebWordnet not initialized');
+
+    const exportData: any = {
+      lexicons: [],
+      exportDate: new Date().toISOString(),
+      format: 'json',
+    };
+
+    // Get all lexicons
+    const lexicons = await this.queryService.getLexicons();
+    
+    for (const lexicon of lexicons) {
+      const lexiconData: any = {
+        ...lexicon,
+        entries: [],
+        synsets: [],
+      };
+
+      // Get words (entries) for this lexicon
+      const words = await this.queryService.getWordsByLexicon(lexicon.id);
+      for (const word of words) {
+        const entry: any = {
+          id: word.id,
+          lemma: {
+            writtenForm: word.lemma,
+            partOfSpeech: word.part_of_speech,
+          },
+          senses: [],
+        };
+
+        // Get senses for this word
+        const senses = await this.queryService.getSensesByWordId(word.id);
+        for (const sense of senses) {
+          entry.senses.push({
+            id: sense.id,
+            synset: sense.synset_id,
+          });
+        }
+
+        lexiconData.entries.push(entry);
+      }
+
+      // Get synsets for this lexicon
+      const synsets = await this.queryService.getSynsetsByLexicon(lexicon.id);
+      for (const synset of synsets) {
+        const synsetData: any = {
+          id: synset.id,
+          ili: synset.ili,
+          partOfSpeech: synset.part_of_speech,
+          definitions: [],
+          examples: [],
+          relations: [],
+        };
+
+        // Get definitions for this synset
+        const definitions = await this.queryService.getDefinitionsBySynsetId(synset.id);
+        for (const def of definitions) {
+          synsetData.definitions.push({
+            id: def.id,
+            definition: def.text,
+            language: def.language,
+          });
+        }
+
+        // Get examples for this synset
+        const examples = await this.queryService.getExamplesBySynsetId(synset.id);
+        for (const ex of examples) {
+          synsetData.examples.push({
+            id: ex.id,
+            example: ex.text,
+            language: ex.language,
+          });
+        }
+
+        // Get relations for this synset
+        const relations = await this.queryService.getRelationsBySynsetId(synset.id);
+        for (const rel of relations) {
+          synsetData.relations.push({
+            id: rel.id,
+            target: rel.target_id,
+            relation: rel.type,
+          });
+        }
+
+        lexiconData.synsets.push(synsetData);
+      }
+
+      exportData.lexicons.push(lexiconData);
+    }
+
+    return exportData;
+  }
 } 
