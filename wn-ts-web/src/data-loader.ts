@@ -6,14 +6,14 @@ export interface ProgressCallback {
   (progress: number): void;
 }
 
-export interface DataLoaderOptions {
+export interface DataLoadOptions {
   force?: boolean;
   progress?: ProgressCallback;
 }
 /**
  * Browser-compatible streaming XML parser for large files
  */
-class BrowserXMLParser {
+export class BrowserXMLParser {
   private xmlText: string;
   private position: number = 0;
   private progress?: ProgressCallback;
@@ -160,11 +160,11 @@ class BrowserXMLParser {
           this.position++;
         }
 
-        // Trim whitespace and assign to current element
+        // Trim whitespace and add as a text node
         textContent = textContent.trim();
         if (textContent && elementStack.length > 0) {
           const currentElement = elementStack[elementStack.length - 1];
-          currentElement.text = textContent;
+          currentElement.children.push({ name: '#text', text: textContent });
         }
       }
     }
@@ -174,7 +174,7 @@ class BrowserXMLParser {
         `[DEBUG] BrowserXMLParser completed. Found ${elementCount} elements.`
       );
       console.log(`[DEBUG] Root elements:`, Object.keys(result));
-      console.log(`[DEBUG] Result structure:`, JSON.stringify(result, null, 2));
+      // console.log(`[DEBUG] Result structure:`, JSON.stringify(result, null, 2));
     }
 
     return result;
@@ -204,6 +204,23 @@ export class DataLoader {
   constructor(database: WebDatabase, wordnet: WebWordnet) {
     this.database = database;
     this.wordnet = wordnet;
+  }
+
+  /**
+   * Recursively extract text from a parsed XML node
+   */
+  private extractTextFromNode(node: any): string {
+    if (!node) return "";
+    if (node.name === '#text') return node.text || '';
+    
+    let text = "";
+    if (node.children) {
+      for (const child of node.children) {
+        text += " " + this.extractTextFromNode(child);
+      }
+    }
+    
+    return text;
   }
 
   /**
@@ -281,7 +298,7 @@ export class DataLoader {
    */
   async downloadAndLoad(
     projectIdWithVersion: string,
-    options: DataLoaderOptions = {}
+    options: DataLoadOptions = {}
   ): Promise<void> {
     const { force = false, progress } = options;
 
@@ -403,64 +420,74 @@ export class DataLoader {
     projectIdWithVersion: string,
     progress?: ProgressCallback
   ): Promise<void> {
-    // Parse the downloaded LMF XML data
-    const xmlText = new TextDecoder().decode(data);
+    let xmlText: string;
+    const view = new Uint8Array(data);
+
+    // Check for gzip magic numbers: 0x1f 0x8b
+    if (view.length > 2 && view[0] === 0x1f && view[1] === 0x8b) {
+      try {
+        // Dynamically import pako for decompression
+        const pako = await import("pako");
+        const decompressed = pako.inflate(view);
+        xmlText = new TextDecoder().decode(decompressed);
+        console.log("📊 Decompressed gzipped data.");
+      } catch (err) {
+        console.error("❌ Failed to decompress gzipped data:", err);
+        throw err;
+      }
+    } else {
+      // Data is not gzipped
+      xmlText = new TextDecoder().decode(data);
+    }
 
     if (progress) progress(0.1);
 
-    // Insert lexicon information
-    await this.insertLexicon(projectIdWithVersion);
+    // Lexicon information will be inserted from the file data
 
     if (progress) progress(0.2);
 
-    try {
-      // Check if the XML is very large (over 1MB)
-      if (xmlText.length > 1000000) {
-        console.log(
-          `📊 Large XML file detected (${(xmlText.length / 1024 / 1024).toFixed(2)}MB), using browser-compatible parser...`
-        );
-
-        // Use browser-compatible parser for large files
-        const browserParser = new BrowserXMLParser(xmlText, {
-          debug: true,
-          progress: (p) => {
-            if (progress) {
-              // Map parser progress to our progress range (0.2-0.9)
-              progress(0.2 + p * 0.7);
-            }
-          },
-        });
-
-        const parsed = await browserParser.parse();
-
-        if (progress) progress(0.9);
-
-        // Convert browser parser output to LMF format and insert
-        await this.insertBrowserParsedData(parsed, projectIdWithVersion);
-
-        if (progress) progress(1.0);
-      } else {
-        // For smaller files, use the regular parser
-        console.log(
-          `📊 Small XML file detected (${(xmlText.length / 1024).toFixed(2)}KB), using regular parser...`
-        );
-        const { parseLMFXML } = await import("wn-ts-core");
-        const lmfDocument = parseLMFXML(xmlText, { debug: true });
-
-        if (progress) progress(0.5);
-
-        // Insert the parsed data into the database
-        await this.insertLMFData(lmfDocument, projectIdWithVersion);
-
-        if (progress) progress(1.0);
-      }
-    } catch (error) {
-      console.warn(
-        "Failed to parse LMF data, falling back to sample data:",
-        error
+    // Check if the XML is very large (over 1MB)
+    if (xmlText.length > 1000000) {
+      console.log(
+        `📊 Large XML file detected (${(xmlText.length / 1024 / 1024).toFixed(
+          2
+        )}MB), using browser-compatible parser...`
       );
-      // Fall back to sample data if parsing fails
-      await this.insertSampleData(projectIdWithVersion);
+
+      // Use browser-compatible parser for large files
+      const browserParser = new BrowserXMLParser(xmlText, {
+        debug: true,
+        progress: (p) => {
+          if (progress) {
+            // Map parser progress to our progress range (0.2-0.9)
+            progress(0.2 + p * 0.7);
+          }
+        },
+      });
+
+      const parsed = await browserParser.parse();
+
+      if (progress) progress(0.9);
+
+      // Convert browser parser output to LMF format and insert
+      await this.insertBrowserParsedData(parsed, projectIdWithVersion);
+
+      if (progress) progress(1.0);
+    } else {
+      // For smaller files, use the regular parser
+      console.log(
+        `📊 Small XML file detected (${(xmlText.length / 1024).toFixed(
+          2
+        )}KB), using regular parser...`
+      );
+      const { parseLMFXML } = await import("wn-ts-core");
+      const lmfDocument = parseLMFXML(xmlText, { debug: true });
+
+      if (progress) progress(0.5);
+
+      // Insert the parsed data into the database
+      await this.insertLMFData(lmfDocument, projectIdWithVersion);
+
       if (progress) progress(1.0);
     }
   }
@@ -524,6 +551,210 @@ export class DataLoader {
     }
   }
 
+  /**
+   * Insert parsed LMF data into the database
+   */
+  private async insertLMFData(
+    lmfDocument: any,
+    projectIdWithVersion: string
+  ): Promise<void> {
+    console.log(`📝 Inserting LMF data for ${projectIdWithVersion}...`);
+    const queryService = this.getQueryService();
+    if (!queryService) {
+      throw new Error("Query service not available for batch insert.");
+    }
+    try {
+      const lexicons = lmfDocument.lexicons || (lmfDocument.lexicon ? [lmfDocument.lexicon] : []);
+      const lexiconsToInsert = lexicons.map((lexicon: any) => ({
+        id: lexicon.id,
+        label: lexicon.label,
+        language: lexicon.language,
+        version: lexicon.version,
+        license: lexicon.license,
+      }));
+
+      const wordsToInsert = (lmfDocument.words || []).map((word: any) => ({
+        id: word.id,
+        lemma: word.lemma,
+        part_of_speech: word.partOfSpeech,
+        language: word.language || lexicons[0]?.language || 'en',
+        lexicon: word.lexicon || lexicons[0]?.id || projectIdWithVersion,
+      }));
+
+      const synsetsToInsert = (lmfDocument.synsets || []).map((synset: any) => ({
+        id: synset.id,
+        ili: synset.ili || null,
+        part_of_speech: synset.partOfSpeech,
+        language: synset.language || lexicons[0]?.language || 'en',
+        lexicon: synset.lexicon || lexicons[0]?.id || projectIdWithVersion,
+      }));
+
+      const sensesToInsert = (lmfDocument.senses || []).map((sense: any) => ({
+        id: sense.id,
+        word_id: sense.word,
+        synset_id: sense.synset,
+      }));
+
+      const definitionsToInsert = (lmfDocument.synsets || []).flatMap(
+        (synset: any) =>
+          (synset.definitions || []).map((def: any, i: number) => {
+            const gloss = def.gloss || "";
+            // The gloss can be a string with embedded markup. Strip it for plain text.
+            const text =
+              typeof gloss === "string"
+                ? gloss.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim()
+                : "";
+            return {
+              id: `${synset.id}.def.${def.language || "en"}.${i}`,
+              synset_id: synset.id,
+              language: def.language || "en",
+              text,
+            };
+          })
+      );
+
+      // Batch insert all data
+      if (lexiconsToInsert.length > 0) await queryService.batchInsert('lexicons', lexiconsToInsert);
+      if (wordsToInsert.length > 0) await queryService.batchInsert('words', wordsToInsert);
+      if (synsetsToInsert.length > 0) await queryService.batchInsert('synsets', synsetsToInsert);
+      if (sensesToInsert.length > 0) await queryService.batchInsert('senses', sensesToInsert);
+      if (definitionsToInsert.length > 0) await queryService.batchInsert('definitions', definitionsToInsert);
+      
+      console.log(`✅ LMF data inserted for ${projectIdWithVersion}`);
+    } catch (error) {
+      console.error(
+        `❌ Failed to insert LMF data for ${projectIdWithVersion}:`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Insert data parsed by the browser-compatible parser
+   */
+  private async insertBrowserParsedData(
+    parsed: any,
+    projectIdWithVersion: string
+  ): Promise<void> {
+    console.log(
+      `📝 Inserting browser-parsed data for ${projectIdWithVersion}...`
+    );
+
+    try {
+      const lexicalResource = parsed.LexicalResource;
+      if (!lexicalResource) {
+        throw new Error("No LexicalResource found in parsed XML");
+      }
+
+      const lexicons = Array.isArray(lexicalResource.children)
+        ? lexicalResource.children.filter(
+            (child: any) => child.name === "Lexicon"
+          )
+        : [lexicalResource.children].filter(
+            (child: any) => child.name === "Lexicon"
+          );
+
+      const lexiconsToInsert: any[] = [];
+      const wordsToInsert: any[] = [];
+      const sensesToInsert: any[] = [];
+      const synsetsToInsert: any[] = [];
+      const definitionsToInsert: any[] = [];
+
+      for (const lexiconElem of lexicons) {
+        const lexiconId = lexiconElem.attributes?.id || projectIdWithVersion;
+        const lexiconLang = lexiconElem.attributes?.language || 'en';
+
+        lexiconsToInsert.push({
+          id: lexiconId,
+          label: lexiconElem.attributes?.label || 'Unknown Lexicon',
+          language: lexiconLang,
+          version: lexiconElem.attributes?.version,
+          license: lexiconElem.attributes?.license,
+        });
+        
+        // Process lexical entries
+        const entries = lexiconElem.children?.filter((child: any) => child.name === "LexicalEntry") || [];
+        console.log(`📊 Processing ${entries.length} lexical entries for lexicon ${lexiconId}...`);
+
+        for (const entry of entries) {
+          const wordId = entry.attributes?.id || "unknown-word";
+          const lemmaElem = entry.children?.find((child: any) => child.name === "Lemma");
+          const lemma = lemmaElem?.attributes?.writtenForm || wordId;
+          const partOfSpeech = lemmaElem?.attributes?.partOfSpeech || "n";
+
+          wordsToInsert.push({
+            id: wordId,
+            lemma: lemma,
+            part_of_speech: partOfSpeech,
+            language: lexiconLang,
+            lexicon: lexiconId,
+          });
+
+          const senses = entry.children?.filter((child: any) => child.name === "Sense") || [];
+          for (const sense of senses) {
+            const senseId = sense.attributes?.id || `${wordId}.sense`;
+            const synsetId = sense.attributes?.synset || `${wordId}.synset`;
+            sensesToInsert.push({ id: senseId, word_id: wordId, synset_id: synsetId });
+          }
+        }
+        
+        // Process synsets
+        const synsetElems = lexiconElem.children?.filter((child: any) => child.name === "Synset") || [];
+        console.log(`📊 Processing ${synsetElems.length} synsets for lexicon ${lexiconId}...`);
+
+        for (const synset of synsetElems) {
+          const synsetId = synset.attributes?.id || "unknown-synset";
+          synsetsToInsert.push({
+            id: synsetId,
+            ili: synset.attributes?.ili || null,
+            part_of_speech: synset.attributes?.partOfSpeech || "n",
+            language: lexiconLang,
+            lexicon: lexiconId,
+          });
+
+          const definitions = synset.children?.filter((child: any) => child.name === "Definition") || [];
+          for (const [i, def] of definitions.entries()) {
+            const lang = def.attributes?.language || "en";
+            const glossElem = def.children?.find((c: any) => c.name === 'gloss');
+            
+            // Use the recursive text extractor
+            const textContent = glossElem ? this.extractTextFromNode(glossElem) : this.extractTextFromNode(def);
+            const cleanedText = textContent.replace(/\s+/g, ' ').trim();
+
+            definitionsToInsert.push({
+              id: `${synsetId}.def.${lang}.${i}`,
+              synset_id: synsetId,
+              language: lang,
+              text: cleanedText,
+            });
+          }
+        }
+      }
+
+      const queryService = this.getQueryService();
+      if (queryService) {
+        console.log(`📝 Inserting ${lexiconsToInsert.length} lexicons, ${wordsToInsert.length} words, ${sensesToInsert.length} senses, ${synsetsToInsert.length} synsets, and ${definitionsToInsert.length} definitions in batches...`);
+        if (lexiconsToInsert.length > 0) await queryService.batchInsert('lexicons', lexiconsToInsert);
+        if (wordsToInsert.length > 0) await queryService.batchInsert('words', wordsToInsert);
+        if (synsetsToInsert.length > 0) await queryService.batchInsert('synsets', synsetsToInsert);
+        if (sensesToInsert.length > 0) await queryService.batchInsert('senses', sensesToInsert);
+        if (definitionsToInsert.length > 0) await queryService.batchInsert('definitions', definitionsToInsert);
+      } else {
+        throw new Error("Query service not available for batch insert.");
+      }
+
+      console.log(
+        `✅ Browser-parsed data inserted for ${projectIdWithVersion}`
+      );
+    } catch (error) {
+      console.error(
+        `❌ Failed to insert browser-parsed data for ${projectIdWithVersion}:`,
+        error
+      );
+      throw error;
+    }
+  }
 
   /**
    * Check if any data exists in the database
@@ -549,5 +780,29 @@ export class DataLoader {
     } else {
       console.log("📊 Data already loaded");
     }
+  }
+
+  /**
+   * Clear all data from the database
+   */
+  async clearAllData(): Promise<void> {
+    await this.database.clearAllData();
+  }
+
+  /**
+   * Get database statistics
+   */
+  async getStatistics(): Promise<{
+    totalWords: number;
+    totalSynsets: number;
+    totalSenses: number;
+    totalILIs: number;
+    totalLexicons: number;
+  }> {
+    const queryService = this.getQueryService();
+    if (queryService) {
+      return queryService.getStatistics();
+    }
+    return this.database.getStatistics();
   }
 }

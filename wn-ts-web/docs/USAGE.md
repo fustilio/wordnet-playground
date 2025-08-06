@@ -47,7 +47,8 @@ async function main() {
     // This downloads the data and loads it into the browser's storage (OPFS or in-memory).
     await dataLoader.downloadAndLoad('oewn:2024', {
       onProgress: (progress) => {
-        console.log(`Loading: ${(progress.percentage * 100).toFixed(2)}%`);
+        // progress is a number from 0 to 1
+        console.log(`Loading: ${(progress * 100).toFixed(2)}%`);
       }
     });
     console.log('WordNet data loaded.');
@@ -106,12 +107,12 @@ The `DataLoader` instance is used to populate the browser database.
 Downloads a pre-packaged WordNet database from the official index and loads it.
 
 -   `projectId`: The ID of the project to download (e.g., `'oewn:2024'`).
--   `options.onProgress`: A callback function to track download progress.
+-   `options.onProgress`: A callback function that receives a number from 0 to 1.
 
 ```typescript
 await dataLoader.downloadAndLoad('oewn:2024', {
   onProgress: (progress) => {
-    console.log(`Downloaded ${progress.bytesDownloaded} of ${progress.totalBytes} bytes.`);
+    console.log(`Download progress: ${(progress * 100).toFixed(2)}%`);
   }
 });
 ```

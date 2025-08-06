@@ -14,16 +14,6 @@ export default defineConfig({
     ],
     testTimeout: 10000, // 10 second timeout
     hookTimeout: 10000, // 10 second timeout for hooks
-    // Memory optimization
-    isolate: false,
-    maxConcurrency: 1,
-    pool: 'forks',
-    poolOptions: {
-      forks: {
-        singleFork: true,
-        isolate: false
-      }
-    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

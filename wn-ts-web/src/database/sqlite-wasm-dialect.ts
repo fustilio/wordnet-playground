@@ -6,7 +6,12 @@
  * WordNet operations.
  */
 
-import { SqliteAdapter, SqliteIntrospector, SqliteQueryCompiler } from "kysely";
+import {
+  SqliteAdapter,
+  SqliteIntrospector,
+  SqliteQueryCompiler,
+  CompiledQuery,
+} from "kysely";
 import { SqliteWasmDriver } from "./kysely/SqliteWasmDriver.js";
 import type { SqliteWasmDatabase } from "./types/sqlite-wasm.js";
 
@@ -22,6 +27,12 @@ export const createSqliteWasmDialect = (database: SqliteWasmDatabase) => {
     createDriver: () =>
       new SqliteWasmDriver({
         database: database,
+        async onCreateConnection(connection) {
+          // Enable foreign key support
+          await connection.executeQuery(
+            CompiledQuery.raw("PRAGMA foreign_keys = ON")
+          );
+        },
       }),
     createIntrospector: (db: any) => new SqliteIntrospector(db),
     createQueryCompiler: () => new SqliteQueryCompiler(),

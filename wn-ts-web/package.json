@@ -24,7 +24,8 @@
   "type": "module",
   "exports": {
     ".": {
-      "default": "./dist/wn-ts-web.mjs"
+      "default": "./dist/wn-ts-web.mjs",
+      "types": "./dist/wn-ts-web.mjs"
     }
   },
   "scripts": {
@@ -34,13 +35,15 @@
     "build:watch": "vite build --watch",
     "clean": "rimraf dist",
     "dev": "vite build --watch",
-    "test": "pnpm test:node && pnpm test:browser",
+    "bench": "npx --node-options=--max-old-space-size=16384 vitest --config=vitest.e2e.config.ts bench --run",
+    "test": "pnpm test:node && pnpm test:browser && pnpm test:e2e",
     "test:browser": "npx --node-options=--max-old-space-size=16384 vitest --config=vitest.browser.config.ts --run",
     "test:browser:opfs": "npx --node-options=--max-old-space-size=8192 vitest --config=vitest.browser.config.ts --run test/browser/opfs-manager.test.ts",
     "test:browser:sqlite": "npx --node-options=--max-old-space-size=8192 vitest --config=vitest.browser.config.ts --run test/browser/sqlite-wasm-browser.test.ts",
     "test:browser:watch": "vitest --config=vitest.browser.config.ts",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "npx --node-options=--max-old-space-size=16384 vitest --config=vitest.browser.config.ts --run e2e",
+    "test:e2e": "npx --node-options=--max-old-space-size=16384 vitest --config=vitest.e2e.config.ts --run",
+    "test:e2e:batch-insert": "npx --node-options=--max-old-space-size=8192 vitest --config=vitest.e2e.config.ts --run batch-insert",
     "test:node": "npx --node-options=--max-old-space-size=16384 vitest run",
     "test:node:all": "npx --node-options=--max-old-space-size=16384 vitest run",
     "test:node:core": "npx --node-options=--max-old-space-size=8192 vitest run test/factory.test.ts test/kysely-integration.test.ts test/demo-utils.test.ts test/web-database-simple.test.ts",
@@ -54,6 +57,7 @@
     "kysely": "^0.28.3",
     "kysely-sqlite-builder": "^1.0.0",
     "kysely-wasm": "^1.2.1",
+    "pako": "^2.1.0",
     "smol-toml": "^1.4.1",
     "sqlite-wasm-kysely": "^0.3.0",
     "wn-ts-core": "workspace:*",
@@ -63,6 +67,7 @@
     "@changesets/cli": "^2.27.7",
     "@sqlite.org/sqlite-wasm": "catalog:",
     "@types/node": "catalog:",
+    "@types/pako": "^2.0.3",
     "@typescript-eslint/eslint-plugin": "catalog:",
     "@typescript-eslint/parser": "catalog:",
     "@vitest/browser": "catalog:",

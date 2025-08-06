@@ -1,50 +1,27 @@
 import { defineConfig } from "vitest/config";
 import path from "path";
 
+// This config is for end-to-end browser tests that require a live network.
+// It does NOT use the setup file with mocks.
 export default defineConfig({
   test: {
     browser: {
       enabled: true,
       provider: "playwright",
-      // https://vitest.dev/guide/browser/playwright
       instances: [{ browser: "chromium" }],
     },
     fileParallelism: false,
-    setupFiles: ["./test/browser/setup.ts"],
+    // NO setupFiles here to avoid mocking fetch
     globals: true,
-    // Only include browser-specific tests
-    include: ["test/browser/**/*.{test,spec}.{js,ts,jsx,tsx}"],
-    // Exclude Node.js and E2E tests
-    exclude: [
-      "test/browser/e2e/**/*",
-      "test/factory.test.ts",
-      "test/kysely-integration.test.ts",
-      "test/sqlite-wasm-api.test.ts",
-      "test/sqlite-wasm-dialect.test.ts",
-      "test/kysely-sqlite-wasm.test.ts",
-      "test/web-database.test.ts",
-      "test/web-wordnet.test.ts",
-      "test/kysely-integration-comprehensive.test.ts",
-    ],
+    include: ["test/browser/e2e/**/*.{test,spec}.{js,ts,jsx,tsx}"],
     pool: "forks",
     poolOptions: {
       forks: {
         singleFork: true,
       },
     },
-    // testTimeout: 30000, // 30 seconds for browser tests
-    // hookTimeout: 30000, // 30 seconds for browser hooks
-    coverage: {
-      provider: "v8",
-      reporter: ["text", "json", "html"],
-      exclude: [
-        "node_modules/",
-        "dist/",
-        "**/*.d.ts",
-        "**/*.config.*",
-        "test/browser/**/*", // Exclude browser tests from coverage
-      ],
-    },
+    testTimeout: 300000, // 60 seconds for E2E tests
+    hookTimeout: 300000, // 60 seconds for E2E hooks
     silent: true
   },
   server: {
@@ -79,6 +56,5 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ["@sqlite.org/sqlite-wasm"],
-    include: ["pako", "zod", "smol-toml", "fast-xml-parser"],
   },
 });

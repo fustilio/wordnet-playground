@@ -27,42 +27,39 @@ npm install wn-ts-web @sqlite.org/sqlite-wasm
 ```typescript
 import { createWordNetInstance } from 'wn-ts-web';
 
-// Initialize WordNet with SQLite WASM
-const { wordnet, dataLoader } = await createWordNetInstance('oewn:2024');
+async function main() {
+  try {
+    // Initialize WordNet with SQLite WASM
+    const { wordnet, dataLoader } = await createWordNetInstance('oewn:2024');
 
-// Load WordNet data from a source
-await dataLoader.downloadAndLoad('oewn:2024');
+    // Load WordNet data from a source with progress tracking
+    await dataLoader.downloadAndLoad('oewn:2024', {
+      onProgress: (progress) => {
+        // progress is a number from 0 to 1
+        console.log(`Loading: ${(progress * 100).toFixed(2)}%`);
+      }
+    });
 
-// Query words
-const words = await wordnet.words('happy', 'a');
-console.log('Words for "happy":', words);
+    // Query for synsets
+    const synsets = await wordnet.synsets('joy', 'n');
+    console.log('Synsets for "joy":', synsets);
 
-// Get synsets
-const synsets = await wordnet.synsets('joy', 'n');
-console.log('Synsets for "joy":', synsets);
+    // Get definitions
+    if (synsets.length > 0) {
+      const definitions = synsets[0].definitions.map(d => d.text);
+      console.log('Definitions:', definitions);
+    }
+  } catch (error) {
+    console.error('An error occurred:', error);
+  }
+}
+
+main();
 ```
 
 ## API Reference
 
-The primary entry point is `createWordNetInstance`, which sets up the WordNet instance, database, and data loader.
-
-```typescript
-import { createWordNetInstance } from 'wn-ts-web';
-
-// Create the WordNet instance
-const { wordnet, dataLoader } = await createWordNetInstance('oewn:2024');
-
-// Load data into the browser's database
-await dataLoader.downloadAndLoad('oewn:2024');
-
-// Query for a word
-const words = await wordnet.words('happy', 'a');
-console.log('Words for "happy":', words);
-
-// Get synsets
-const synsets = await wordnet.synsets('joy', 'n');
-console.log('Synsets for "joy":', synsets);
-```
+The primary entry point is `createWordNetInstance`, which sets up the WordNet instance, database, and data loader. For a complete API reference and advanced usage examples, please see the [Usage Guide](./docs/USAGE.md).
 
 ## Browser Requirements
 
@@ -85,7 +82,7 @@ This package is rigorously tested in both Node.js (via `jsdom`) and real browser
 
 ```bash
 # Run all tests (Node.js and browser)
-pnpm test
+pnpm autotest
 
 # Run only Node.js tests
 pnpm vitest run

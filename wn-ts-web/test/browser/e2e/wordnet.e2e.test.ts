@@ -19,7 +19,7 @@ describe.skipIf(isNode)("WordNet E2E Tests", () => {
 
     // Use the actual DataLoader to download and load the full OEWN database
     await dataLoader.downloadAndLoad("oewn:2024");
-  }, 60000); // Increase timeout for setup
+  }, 300000); // Increase timeout for setup to 5 minutes
 
   afterAll(async () => {
     if (wordnet) {
@@ -34,20 +34,43 @@ describe.skipIf(isNode)("WordNet E2E Tests", () => {
     expect(stats.totalSynsets).toBeGreaterThan(80000);
   });
 
-  it("should be able to search for a common word", async () => {
-    const words = await wordnet.words("happy", "a");
-    expect(words.length).toBeGreaterThanOrEqual(1);
-    const happyWord = words.find((w) => w.lemma === "happy");
-    expect(happyWord).toBeDefined();
-  });
+  describe("Querying with real data", () => {
+    it("should search for a common word and verify its properties", async () => {
+      const words = await wordnet.words("happy", "a");
+      expect(words.length).toBeGreaterThanOrEqual(1);
 
-  it("should be able to get a synset from the real data", async () => {
-    const synsets = await wordnet.synsets("joy", "n");
-    expect(synsets.length).toBeGreaterThanOrEqual(1);
-    const joySynset = synsets.find((s) =>
-      s.definitions.some((d) => d.text.includes("feeling of great pleasure"))
-    );
-    expect(joySynset).toBeDefined();
+      const happyWord = words.find((w) => w.lemma === "happy");
+      expect(happyWord).toBeDefined();
+      expect(happyWord?.lemma).toBe("happy");
+      expect(happyWord?.partOfSpeech).toBe("a");
+      expect(happyWord?.lexicon).toBe("oewn");
+    });
+
+    it("should get a synset and verify its properties", async () => {
+      const synsets = await wordnet.synsets("joy", "n");
+      expect(synsets.length).toBeGreaterThanOrEqual(1);
+
+      const joySynset = synsets.find((s) =>
+        s.definitions.some((d) => d.text.includes("happiness"))
+      );
+      expect(joySynset).toBeDefined();
+      expect(joySynset?.partOfSpeech).toBe("n");
+      expect(joySynset?.definitions.length).toBeGreaterThanOrEqual(1);
+      
+      const joyDefinition = joySynset?.definitions.find((d) => d.text.includes("happiness"));
+      expect(joyDefinition).toBeDefined();
+      expect(joyDefinition?.text.length).toBeGreaterThan(20);
+    });
+
+    it("should get senses for a word", async () => {
+      const senses = await wordnet.senses("run", "v");
+      expect(senses.length).toBeGreaterThanOrEqual(1);
+
+      const firstSense = senses[0];
+      expect(firstSense).toHaveProperty("id");
+      expect(firstSense).toHaveProperty("word");
+      expect(firstSense).toHaveProperty("synset");
+    });
   });
 
   it("should retrieve statistics about the real data", async () => {

@@ -5,7 +5,7 @@
  * They test the Origin Private File System functionality.
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { OPFSManager } from '../../src/opfs-manager.js';
 
 const isNode = typeof process !== 'undefined';
@@ -22,7 +22,7 @@ describe.skipIf(isNode)('OPFS Manager Browser Tests', () => {
   afterAll(async () => {
     // Clean up any test files
     try {
-      await opfsManager.cleanup({ types: ['test'] });
+      await opfsManager.cleanup({ types: ['database'] });
     } catch (error) {
       // Ignore cleanup errors
     }

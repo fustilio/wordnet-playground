@@ -1,4 +1,4 @@
-import { DataLoader, DataLoaderOptions } from "../src/data-loader.js";
+import { DataLoader, type DataLoadOptions } from "../src/data-loader.js";
 import { Project } from "../src/project.js";
 import type { WebDatabase } from "../src/web-database.js";
 import type { WebWordnet } from "../src/web-wordnet.js";
@@ -20,7 +20,7 @@ export class MockDataLoader extends DataLoader {
    */
   async downloadAndLoad(
     projectIdWithVersion: string,
-    options: DataLoaderOptions = {}
+    options: DataLoadOptions = {}
   ): Promise<void> {
     try {
       // First, attempt to use the real DataLoader's logic

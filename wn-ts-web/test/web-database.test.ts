@@ -19,15 +19,18 @@ describe('WebDatabase', () => {
     expect((database as any).sqlModule).toBe(mockSqliteWasm);
   });
 
-  it('should create database and tables', async () => {
+  it('should create a database connection', async () => {
     await database.initializeWithModule(mockSqliteWasm);
     await database.createDatabase();
     
     const dbInstance = database.getDatabase();
     expect(dbInstance).toBeDefined();
-    expect(dbInstance.exec).toHaveBeenCalledWith(expect.stringContaining('CREATE TABLE IF NOT EXISTS lexicons'));
-    expect(dbInstance.exec).toHaveBeenCalledWith(expect.stringContaining('CREATE TABLE IF NOT EXISTS words'));
-    expect(dbInstance.exec).toHaveBeenCalledWith(expect.stringContaining('CREATE TABLE IF NOT EXISTS synsets'));
+
+    // Table creation is now handled by KyselyQueryService.
+    // This test verifies that the database object is created and initialized.
+    // The PRAGMA calls are a sign of initialization.
+    expect(dbInstance.exec).toHaveBeenCalledWith('PRAGMA trace = 0');
+    expect(dbInstance.exec).toHaveBeenCalledWith('PRAGMA vdbe_trace = 0');
   });
 
   it('should close the database', async () => {

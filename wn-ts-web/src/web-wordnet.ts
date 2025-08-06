@@ -36,6 +36,7 @@ export class WebWordnet extends BaseWordnet {
   private _searchAllForms: boolean;
   private _lang?: string;
   private initialized = false;
+  private lexiconSpec: string;
 
   constructor(
     lexicon: string = '*',
@@ -48,6 +49,7 @@ export class WebWordnet extends BaseWordnet {
     };
     super(baseOptions);
 
+    this.lexiconSpec = lexicon;
     this.database = new WebDatabase();
     const [id, version] = lexicon.split(':');
     this._lexiconId = id;
@@ -71,6 +73,9 @@ export class WebWordnet extends BaseWordnet {
     this.kyselyDb = new Kysely<Database>({ dialect });
     this.queryService = new KyselyQueryService(this.kyselyDb);
     
+    // Create tables using Kysely
+    await this.queryService.createTables();
+
     console.log('🔍 WebWordnet.initialize() completed, queryService:', this.queryService ? 'available' : 'undefined');
     this.initialized = true;
   }

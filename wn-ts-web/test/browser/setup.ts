@@ -12,93 +12,148 @@ export const mockSqliteWasm = {
   oo1: {
     DB: class MockDB {
       public sqlite3: any;
+      private data: Record<string, any[]> = {};
+      private totalChangesCount = 0;
+      private lastOpChangesCount = 0;
 
       constructor(path: string, mode: string) {
         this.sqlite3 = {
           capi: {
-            sqlite3_last_insert_rowid: (db: any) => 1,
+            sqlite3_last_insert_rowid: (db: any) => this.totalChangesCount,
           },
         };
       }
-      
-      exec(sql: any): any[] {
-        const sqlString = typeof sql === 'string' ? sql : sql.sql;
-        // Mock exec for schema creation
-        if (sqlString && sqlString.includes('CREATE TABLE')) {
+
+      exec(sqlOptions: any): any[] {
+        this.lastOpChangesCount = 0;
+        const sqlString = typeof sqlOptions === 'string' ? sqlOptions : sqlOptions.sql;
+        const params = sqlOptions.bind || [];
+
+        if (sqlString && sqlString.toLowerCase().includes('create table')) {
+          const tableNameMatch = sqlString.match(/CREATE TABLE(?: IF NOT EXISTS)?\s+['"]?(\w+)['"]?/i);
+          if (tableNameMatch && tableNameMatch[1]) {
+            this.data[tableNameMatch[1]] = [];
+          }
           return [];
         }
 
-        const isLexiconQuery = sqlString.toLowerCase().includes('from "lexicons"');
-        const isWordsQuery = sqlString.toLowerCase().includes('from "words"');
-        const isSynsetsQuery = sqlString.toLowerCase().includes('from "synsets"');
+        if (sqlString && sqlString.toLowerCase().startsWith('delete from')) {
+          const tableNameMatch = sqlString.match(/DELETE FROM\s+['"]?(\w+)['"]?/i);
+          if (tableNameMatch && tableNameMatch[1]) {
+            const table = this.data[tableNameMatch[1]];
+            if (table) {
+              const changes = table.length;
+              this.totalChangesCount += changes;
+              this.lastOpChangesCount += changes;
+              this.data[tableNameMatch[1]] = [];
+            }
+          }
+          return [];
+        }
+
+        if (sqlString && sqlString.toLowerCase().startsWith('insert into')) {
+          const tableNameMatch = sqlString.match(/INSERT INTO\s+['"]?(\w+)['"]?/i);
+          const columnsMatch = sqlString.match(/\(([^)]+)\)/);
+          
+          if (tableNameMatch && tableNameMatch[1] && columnsMatch && columnsMatch[1]) {
+            const tableName = tableNameMatch[1];
+            const columns = columnsMatch[1].split(',').map(c => c.trim().replace(/['"`]/g, ''));
+            const table = this.data[tableName];
+
+            if (table && columns.length > 0) {
+              const numRows = params.length / columns.length;
+              for (let i = 0; i < numRows; i++) {
+                const row: Record<string, any> = {};
+                columns.forEach((col, j) => {
+                  row[col] = params[i * columns.length + j];
+                });
+
+                const existingIndex = table.findIndex(r => r.id === row.id);
+                
+                if (existingIndex === -1) {
+                  table.push(row);
+                  this.totalChangesCount++;
+                  this.lastOpChangesCount++;
+                } else if (!sqlString.toLowerCase().includes('do nothing')) {
+                   Object.assign(table[existingIndex], row);
+                   this.totalChangesCount++;
+                   this.lastOpChangesCount++;
+                }
+              }
+            }
+          }
+          return [];
+        }
+        
         const isCountQuery = sqlString.toLowerCase().includes('count(');
-        
-        const mockWord = { id: 'happy.a.01', lemma: 'happy', part_of_speech: 'a' };
-        const mockSynset = { id: 'happy.a.01', part_of_speech: 'a' };
-        const mockLexicon = { id: 'oewn:2024', label: 'Sample', language: 'en', version: '2024' };
-        
-        if (sqlString.toLowerCase().includes('select')) {
-          if (isCountQuery) return [{ count: 1 }];
-          if (isLexiconQuery) return [mockLexicon];
-          if (isWordsQuery) return [mockWord];
-          if (isSynsetsQuery) return [mockSynset];
+        if (isCountQuery) {
+          const tableNameMatch = sqlString.match(/FROM\s+['"]?(\w+)['"]?/i);
+          if (tableNameMatch && tableNameMatch[1]) {
+            const tableName = tableNameMatch[1];
+            return [{ count: this.data[tableName]?.length ?? 0 }];
+          }
+           return [{ count: 0 }];
+        }
+
+        const isSelectQuery = sqlString.toLowerCase().startsWith('select');
+        if (isSelectQuery) {
+          const tableNameMatch = sqlString.match(/FROM\s+['"]?(\w+)['"]?/i);
+          if (tableNameMatch && tableNameMatch[1]) {
+            const tableName = tableNameMatch[1];
+            let results = this.data[tableName] || [];
+
+            const whereMatch = sqlString.match(/WHERE\s+"id"\s*=\s*\?/i);
+            if (whereMatch && params.length > 0) {
+              results = results.filter(row => row.id === params[0]);
+            }
+            
+            return results;
+          }
         }
         
         return [];
       }
       
       close(): void {
-        // Mock close method
+        this.data = {};
+        this.totalChangesCount = 0;
+        this.lastOpChangesCount = 0;
       }
       
       export(): Uint8Array {
-        // Mock export method
         return new Uint8Array([1, 2, 3, 4]);
       }
       
       prepare(sql: string): any {
-        const isLexiconQuery = sql.toLowerCase().includes('from "lexicons"');
-        const isWordsQuery = sql.toLowerCase().includes('from "words"');
-        const isSynsetsQuery = sql.toLowerCase().includes('from "synsets"');
-        const isCountQuery = sql.toLowerCase().includes('count(');
+        const isSelect1 = sql.toLowerCase().includes('select 1 as test');
+        let stepCalled = false;
         
-        const mockWord = { id: 'happy.a.01', lemma: 'happy', part_of_speech: 'a' };
-        const mockSynset = { id: 'happy.a.01', part_of_speech: 'a' };
-        const mockLexicon = { id: 'oewn:2024', label: 'Sample', language: 'en', version: '2024' };
-
         return {
           run: vi.fn(),
           bind: vi.fn(),
-          step(): boolean {
-            return true;
+          step: () => {
+            if (isSelect1 && !stepCalled) {
+              stepCalled = true;
+              return true;
+            }
+            return false;
           },
-          get(): any {
-            if (isCountQuery) return { count: 1 };
-            if (isLexiconQuery) return mockLexicon;
-            if (isWordsQuery) return mockWord;
-            if (isSynsetsQuery) return mockSynset;
-            return {};
-          },
-          all(): any[] {
-            if (isCountQuery) return [{ count: 1 }];
-            if (isLexiconQuery) return [mockLexicon];
-            if (isWordsQuery) return [mockWord];
-            if (isSynsetsQuery) return [mockSynset];
-            return [];
-          },
-          getAsObject(): any {
-            if (isCountQuery) return { count: 1 };
-            if (isLexiconQuery) return mockLexicon;
-            if (isWordsQuery) return mockWord;
-            if (isSynsetsQuery) return mockSynset;
-            return {};
-          },
+          get: () => ({}),
+          all: () => [],
+          getAsObject: () => ({}),
           free: vi.fn()
         };
       }
       
-      changes(reset?: boolean): number {
-        return 1;
+      changes(isTotal: boolean = false, reset: boolean = false): number {
+        if (isTotal) {
+          return this.totalChangesCount;
+        }
+        const changes = this.lastOpChangesCount;
+        if (reset) {
+          this.lastOpChangesCount = 0;
+        }
+        return changes;
       }
     }
   },

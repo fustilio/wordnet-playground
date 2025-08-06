@@ -1,6 +1,7 @@
 import { Kysely, sql, type ExpressionBuilder } from 'kysely';
 import type { Database } from '../types/database.js';
 import type { PartOfSpeech, Lexicon, Word, Synset, Sense, Definition, ILI } from 'wn-ts-core';
+import { batchInsert as batchInsertWithKysely } from './batch-insert.js';
 
 export class KyselyQueryService {
   constructor(private db: Kysely<Database>) {}
@@ -56,12 +57,12 @@ export class KyselyQueryService {
           .leftJoin('forms', 'words.id', 'forms.word_id')
           .where((eb) =>
             eb.or([
-              eb(sql`lower(words.lemma)`, 'like', `%${options.form?.toLowerCase()}%`),
-              eb(sql`lower(forms.written_form)`, 'like', `%${options.form?.toLowerCase()}%`),
+              eb(sql`lower(words.lemma)`, '=', options.form?.toLowerCase()),
+              eb(sql`lower(forms.written_form)`, '=', options.form?.toLowerCase()),
             ]),
           );
       } else {
-        query = query.where(sql`lower(words.lemma)`, 'like', `%${options.form?.toLowerCase()}%`);
+        query = query.where(sql`lower(words.lemma)`, '=', options.form?.toLowerCase());
       }
     }
 
@@ -170,20 +171,20 @@ export class KyselyQueryService {
           .leftJoin('forms', 'words.id', 'forms.word_id')
           .where((eb: ExpressionBuilder<Database, 'synsets' | 'senses' | 'words' | 'forms'>) =>
             eb.or([
-              eb('words.lemma', 'like', `%${options.form}%`),
-              eb('forms.written_form', 'like', `%${options.form}%`),
+              eb(sql`lower(words.lemma)`, '=', options.form?.toLowerCase()),
+              eb(sql`lower(forms.written_form)`, '=', options.form?.toLowerCase()),
             ]),
           );
       } else {
-        query = query.where('words.lemma', 'like', `%${options.form}%`);
+        query = query.where(sql`lower(words.lemma)`, '=', options.form?.toLowerCase());
       }
     }
 
     if (options.pos) {
-      query = query.where('synsets.part_of_speech', '=', options.pos);
+      query = query.where('words.part_of_speech', '=', options.pos);
     }
     if (options.lexicon && options.lexicon !== '*') {
-      query = query.where('synsets.lexicon', '=', options.lexicon);
+      query = query.where('words.lexicon', '=', options.lexicon);
     }
     if (options.language) {
       query = query.where('synsets.language', '=', options.language);
@@ -219,7 +220,7 @@ export class KyselyQueryService {
       query = query.where('senses.word_id', '=', options.wordIdOrForm);
     } else {
       // Assume it's a form
-      query = query.where(sql`lower(words.lemma)`, 'like', `%${options.wordIdOrForm.toLowerCase()}%`);
+      query = query.where(sql`lower(words.lemma)`, '=', options.wordIdOrForm.toLowerCase());
     }
 
     if (options.pos) {
@@ -420,6 +421,105 @@ export class KyselyQueryService {
     };
   }
 
+  // Schema creation
+  async createTables(): Promise<void> {
+    const schema = this.db.schema;
+
+    await schema.createTable('lexicons').ifNotExists()
+      .addColumn('id', 'text', c => c.primaryKey())
+      .addColumn('label', 'text', c => c.notNull())
+      .addColumn('language', 'text', c => c.notNull())
+      .addColumn('email', 'text')
+      .addColumn('license', 'text')
+      .addColumn('version', 'text')
+      .addColumn('url', 'text')
+      .addColumn('citation', 'text')
+      .addColumn('logo', 'text')
+      .addColumn('metadata', 'text')
+      .execute();
+
+    await schema.createTable('words').ifNotExists()
+      .addColumn('id', 'text', c => c.primaryKey())
+      .addColumn('lemma', 'text', c => c.notNull())
+      .addColumn('part_of_speech', 'text', c => c.notNull())
+      .addColumn('language', 'text', c => c.notNull())
+      .addColumn('lexicon', 'text', c => c.notNull().references('lexicons.id').onDelete('cascade'))
+      .execute();
+
+    await schema.createTable('forms').ifNotExists()
+      .addColumn('id', 'text', c => c.primaryKey())
+      .addColumn('word_id', 'text', c => c.notNull().references('words.id').onDelete('cascade'))
+      .addColumn('written_form', 'text', c => c.notNull())
+      .addColumn('script', 'text')
+      .addColumn('tag', 'text')
+      .execute();
+
+    await schema.createTable('synsets').ifNotExists()
+      .addColumn('id', 'text', c => c.primaryKey())
+      .addColumn('ili', 'text')
+      .addColumn('part_of_speech', 'text', c => c.notNull())
+      .addColumn('language', 'text', c => c.notNull())
+      .addColumn('lexicon', 'text', c => c.notNull().references('lexicons.id').onDelete('cascade'))
+      .execute();
+
+    await schema.createTable('senses').ifNotExists()
+      .addColumn('id', 'text', c => c.primaryKey())
+      .addColumn('word_id', 'text', c => c.notNull().references('words.id').onDelete('cascade'))
+      .addColumn('synset_id', 'text', c => c.notNull().references('synsets.id').onDelete('cascade'))
+      .addColumn('source', 'text')
+      .addColumn('sensekey', 'text')
+      .addColumn('adjposition', 'text')
+      .addColumn('subcategory', 'text')
+      .addColumn('domain', 'text')
+      .addColumn('register', 'text')
+      .execute();
+
+    await schema.createTable('definitions').ifNotExists()
+      .addColumn('id', 'text', c => c.primaryKey())
+      .addColumn('synset_id', 'text', c => c.notNull().references('synsets.id').onDelete('cascade'))
+      .addColumn('language', 'text', c => c.notNull())
+      .addColumn('text', 'text', c => c.notNull())
+      .addColumn('source', 'text')
+      .execute();
+
+    await schema.createTable('relations').ifNotExists()
+      .addColumn('id', 'text', c => c.primaryKey())
+      .addColumn('source_id', 'text', c => c.notNull())
+      .addColumn('target_id', 'text', c => c.notNull())
+      .addColumn('type', 'text', c => c.notNull())
+      .addColumn('source', 'text')
+      .execute();
+
+    await schema.createTable('examples').ifNotExists()
+      .addColumn('id', 'text', c => c.primaryKey())
+      .addColumn('synset_id', 'text', c => c.references('synsets.id').onDelete('cascade'))
+      .addColumn('sense_id', 'text', c => c.references('senses.id').onDelete('cascade'))
+      .addColumn('language', 'text', c => c.notNull())
+      .addColumn('text', 'text', c => c.notNull())
+      .addColumn('source', 'text')
+      .execute();
+
+    await schema.createTable('ilis').ifNotExists()
+      .addColumn('id', 'text', c => c.primaryKey())
+      .addColumn('definition', 'text')
+      .addColumn('status', 'text', c => c.notNull())
+      .addColumn('superseded_by', 'text')
+      .addColumn('note', 'text')
+      .addColumn('meta', 'text')
+      .execute();
+      
+    // Create indexes
+    await schema.createIndex('idx_words_lemma').ifNotExists().on('words').column('lemma').execute();
+    await schema.createIndex('idx_words_language').ifNotExists().on('words').column('language').execute();
+    await schema.createIndex('idx_words_lexicon').ifNotExists().on('words').column('lexicon').execute();
+    await schema.createIndex('idx_synsets_language').ifNotExists().on('synsets').column('language').execute();
+    await schema.createIndex('idx_synsets_lexicon').ifNotExists().on('synsets').column('lexicon').execute();
+    await schema.createIndex('idx_senses_word_id').ifNotExists().on('senses').column('word_id').execute();
+    await schema.createIndex('idx_senses_synset_id').ifNotExists().on('senses').column('synset_id').execute();
+    await schema.createIndex('idx_examples_synset_id').ifNotExists().on('examples').column('synset_id').execute();
+    await schema.createIndex('idx_examples_sense_id').ifNotExists().on('examples').column('sense_id').execute();
+  }
+
   // Insert operations
   async insertLexicon(lexicon: Database['lexicons']): Promise<void> {
     await this.db.insertInto('lexicons').values(lexicon).execute();
@@ -445,10 +545,31 @@ export class KyselyQueryService {
     await this.db.insertInto('forms').values(form).execute();
   }
 
+  /**
+   * Batch insert data into a table.
+   * @param tableName The name of the table.
+   * @param data The data to insert.
+   */
+  async batchInsert<T extends keyof Database>(tableName: T, data: any[]): Promise<void> {
+    return batchInsertWithKysely(this.db, tableName, data);
+  }
+
   // Clear operations
   async clearAllData(): Promise<void> {
-    const tables: (keyof Database)[] = ['words', 'synsets', 'senses', 'definitions', 'relations', 'examples', 'ilis', 'lexicons', 'forms'];
-    
+    // We must delete in an order that respects foreign key constraints,
+    // as relying on `ON DELETE CASCADE` can be fragile in some environments.
+    const tables: (keyof Database)[] = [
+      "forms",
+      "definitions",
+      "relations",
+      "examples",
+      "senses",
+      "words",
+      "synsets",
+      "lexicons",
+      "ilis",
+    ];
+
     for (const table of tables) {
       try {
         await this.db.deleteFrom(table).execute();

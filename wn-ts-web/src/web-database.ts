@@ -3,9 +3,6 @@
  * Optimized for modern browsers with OPFS support
  */
 
-// Import the correct SQLite WASM types
-import type { SqliteWasmDatabase } from './database/types/sqlite-wasm.js';
-
 export class WebDatabase {
   private db: any = null;
   private sqlModule: any = null;
@@ -102,8 +99,6 @@ export class WebDatabase {
       }
     }
     
-    await this.createTables();
-    
     // Disable SQLite tracing to reduce console noise
     try {
       this.db.exec('PRAGMA trace = 0');
@@ -113,176 +108,26 @@ export class WebDatabase {
     }
   }
 
-  private async createTables(): Promise<void> {
-    if (!this.db) {
-      throw new Error('Database not initialized');
-    }
-
-    // Use the exact same schema as wn-ts-node
-    const schema = `
-      CREATE TABLE IF NOT EXISTS lexicons (
-        id TEXT PRIMARY KEY,
-        label TEXT NOT NULL,
-        language TEXT NOT NULL,
-        email TEXT,
-        license TEXT,
-        version TEXT,
-        url TEXT,
-        citation TEXT,
-        logo TEXT,
-        metadata TEXT
-      );
-
-      CREATE TABLE IF NOT EXISTS words (
-        id TEXT PRIMARY KEY,
-        lemma TEXT NOT NULL,
-        part_of_speech TEXT NOT NULL,
-        language TEXT NOT NULL,
-        lexicon TEXT NOT NULL,
-        FOREIGN KEY (lexicon) REFERENCES lexicons (id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE IF NOT EXISTS forms (
-        id TEXT PRIMARY KEY,
-        word_id TEXT NOT NULL,
-        written_form TEXT NOT NULL,
-        script TEXT,
-        tag TEXT,
-        FOREIGN KEY (word_id) REFERENCES words (id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE IF NOT EXISTS synsets (
-        id TEXT PRIMARY KEY,
-        ili TEXT,
-        part_of_speech TEXT NOT NULL,
-        language TEXT NOT NULL,
-        lexicon TEXT NOT NULL,
-        FOREIGN KEY (lexicon) REFERENCES lexicons (id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE IF NOT EXISTS senses (
-        id TEXT PRIMARY KEY,
-        word_id TEXT NOT NULL,
-        synset_id TEXT NOT NULL,
-        source TEXT,
-        sensekey TEXT,
-        adjposition TEXT,
-        subcategory TEXT,
-        domain TEXT,
-        register TEXT,
-        FOREIGN KEY (word_id) REFERENCES words (id) ON DELETE CASCADE,
-        FOREIGN KEY (synset_id) REFERENCES synsets (id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE IF NOT EXISTS definitions (
-        id TEXT PRIMARY KEY,
-        synset_id TEXT NOT NULL,
-        language TEXT NOT NULL,
-        text TEXT NOT NULL,
-        source TEXT,
-        FOREIGN KEY (synset_id) REFERENCES synsets (id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE IF NOT EXISTS relations (
-        id TEXT PRIMARY KEY,
-        source_id TEXT NOT NULL,
-        target_id TEXT NOT NULL,
-        type TEXT NOT NULL,
-        source TEXT
-      );
-
-      CREATE TABLE IF NOT EXISTS examples (
-        id TEXT PRIMARY KEY,
-        synset_id TEXT,
-        sense_id TEXT,
-        language TEXT NOT NULL,
-        text TEXT NOT NULL,
-        source TEXT,
-        FOREIGN KEY (synset_id) REFERENCES synsets (id) ON DELETE CASCADE,
-        FOREIGN KEY (sense_id) REFERENCES senses (id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE IF NOT EXISTS ilis (
-        id TEXT PRIMARY KEY,
-        definition TEXT,
-        status TEXT NOT NULL,
-        superseded_by TEXT,
-        note TEXT,
-        meta TEXT
-      );
-
-      CREATE INDEX IF NOT EXISTS idx_words_lemma ON words (lemma);
-      CREATE INDEX IF NOT EXISTS idx_words_language ON words (language);
-      CREATE INDEX IF NOT EXISTS idx_words_lexicon ON words (lexicon);
-      CREATE INDEX IF NOT EXISTS idx_synsets_language ON synsets (language);
-      CREATE INDEX IF NOT EXISTS idx_synsets_lexicon ON synsets (lexicon);
-      CREATE INDEX IF NOT EXISTS idx_senses_word_id ON senses (word_id);
-      CREATE INDEX IF NOT EXISTS idx_senses_synset_id ON senses (synset_id);
-      CREATE INDEX IF NOT EXISTS idx_examples_synset_id ON examples (synset_id);
-      CREATE INDEX IF NOT EXISTS idx_examples_sense_id ON examples (sense_id);
-    `;
-
-    // Try the new API first, fall back to oo1 if needed
-    try {
-      this.db.exec(schema);
-    } catch (error) {
-      // Fall back to oo1 API if exec doesn't work
-      if (this.db.exec) {
-        this.db.exec(schema);
-      } else {
-        throw new Error('No compatible exec method found in database');
-      }
-    }
-  }
-
   run(sql: string, params: any[] = []): void {
     if (!this.db) {
       throw new Error('Database not initialized');
     }
-    
-    // Debug logging
-    console.log(`🔍 SQL: ${sql}`);
-    console.log(`🔍 Params:`, params);
-    
-    // Try the new API first, fall back to oo1 if needed
+
     try {
-      // Try direct exec first with parameters
-      if (params.length > 0) {
-        // Replace placeholders with actual values
-        let finalSql = sql;
-        for (let i = 0; i < params.length; i++) {
-          const param = params[i];
-          const placeholder = '?';
-          const replacement = typeof param === 'string' ? `'${param.replace(/'/g, "''")}'` : param;
-          finalSql = finalSql.replace(placeholder, replacement);
-        }
-        console.log(`🔍 Final SQL: ${finalSql}`);
-        this.db.exec(finalSql);
-      } else {
-        this.db.exec(sql);
-      }
-    } catch (error) {
-      console.log(`🔍 Exec failed, trying prepare:`, error);
-      // Fall back to prepare/run if exec doesn't work
+      const stmt = this.db.prepare(sql);
       try {
-        const stmt = this.db.prepare(sql);
-        try {
-          if (params.length > 0) {
-            console.log(`🔍 Running with params:`, params);
-            stmt.run(...params);
-          } else {
-            stmt.run();
-          }
-        } finally {
-          if (stmt.free) {
-            stmt.free();
-          }
+        if (params.length > 0) {
+          stmt.bind(params);
         }
-      } catch (prepareError) {
-        console.log(`🔍 Prepare failed, trying exec without params:`, prepareError);
-        // Last resort: try without parameters
-        this.db.exec(sql);
+        stmt.step(); // Execute the statement
+      } finally {
+        if (stmt.free) {
+          stmt.free();
+        }
       }
+    } catch (e) {
+      console.error(`SQL execution failed: ${sql}`, params, e);
+      throw e;
     }
   }
 
@@ -324,6 +169,12 @@ export class WebDatabase {
     if (!this.db) {
       throw new Error('Database not initialized');
     }
+    
+    // The Kysely dialect expects the `sqlite3` module to be attached.
+    if (!this.db.sqlite3) {
+      this.db.sqlite3 = this.sqlModule;
+    }
+    
     return this.db;
   }
 }

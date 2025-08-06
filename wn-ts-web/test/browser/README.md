@@ -8,7 +8,6 @@ The test files in this directory cover functionality specific to the browser:
 
 -   `opfs-manager.test.ts`: Tests the Origin Private File System (OPFS) manager for persistent data storage.
 -   `sqlite-wasm-browser.test.ts`: Verifies the integration with `@sqlite.org/sqlite-wasm` in a browser context.
--   `browser-integration.test.ts`: General integration tests for various browser APIs like `localStorage` and `indexedDB`.
 
 ## Running Browser Tests
 

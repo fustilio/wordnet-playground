@@ -21,7 +21,6 @@ export async function createWebWordnet(options: CreateWebWordnetOptions = {}): P
   const { sqliteWasmModule, lexicon = '*', options: wordnetOptions = {} } = options;
 
   // Create database and wordnet instances
-  const database = new WebDatabase();
   const wordnet = new WebWordnet(lexicon, wordnetOptions);
 
   // Initialize with SQLite WASM module if provided

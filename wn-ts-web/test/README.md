@@ -7,9 +7,10 @@ This package is tested in two primary environments to ensure robust functionalit
 
 ## Test Structure
 
--   `test/`: Contains tests that can run in the Node.js (`jsdom`) environment.
+-   `test/`: Contains tests that can run in the Node.js (`jsdom`) environment. These include unit tests for core logic, functional tests for data processing (`data-loader.test.ts`), and integration tests for the query service.
 -   `test/browser/`: Contains tests that require a real browser environment.
--   `test/e2e/`: Contains end-to-end tests that run against a real, ephemeral database in a browser.
+    -   `e2e/`: Contains end-to-end tests that run against a real, ephemeral database in a browser, downloading and processing a full WordNet dataset.
+    -   Tests for browser-specific APIs like OPFS and SQLite WASM.
 
 ## Running Tests
 
