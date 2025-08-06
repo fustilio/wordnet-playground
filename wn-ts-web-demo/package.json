@@ -1,0 +1,49 @@
+{
+  "name": "wn-ts-web-demo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b && vite build",
+    "dev": "vite",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "test": "pnpm test:func && pnpm test:e2e",
+    "test:browser": "vitest --config=vitest.browser.config.ts --run",
+    "test:browser:watch": "vitest --config=vitest.browser.config.ts",
+    "test:e2e": "pnpm test:browser --no-file-parallelism vitest-example/e2e",
+    "test:func": "pnpm test:browser --exclude \"**/e2e/*.test.ts\"",
+    "test:quick": "vitest --config=vitest.browser.config.ts --no-file-parallelism --reporter=verbose vitest-example/e2e/SearchLookupSanityCheck.test.tsx --run",
+    "test:real-data": "vitest --config=vitest.browser.config.ts --no-file-parallelism --reporter=verbose vitest-example/e2e/RealDataE2E.test.tsx --run",
+    "test:focus": "vitest --config=vitest.browser.config.ts --no-file-parallelism --reporter=verbose vitest-example/e2e/RealDataE2E.test.tsx --run -t \"should load thousands of synsets from real WordNet data\"",
+    "test:parser": "vitest --config=vitest.browser.config.ts --no-file-parallelism --reporter=verbose vitest-example/e2e/RealDataE2E.test.tsx --run -t \"should validate browser-compatible parser handles large XML files\"",
+    "test:debug": "vitest --config=vitest.browser.config.ts --no-file-parallelism --reporter=verbose --timeout=300000 vitest-example/e2e/RealDataE2E.test.tsx --run"
+  },
+  "dependencies": {
+    "@sqlite.org/sqlite-wasm": "catalog:",
+    "@tailwindcss/vite": "^4.1.11",
+    "pako": "^2.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tailwindcss": "^4.1.11",
+    "wn-ts-web": "workspace:*"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.30.1",
+    "@types/pako": "^2.0.3",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.6.0",
+    "@vitest/browser": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.3.0",
+    "playwright": "^1.54.1",
+    "typescript": "catalog:",
+    "typescript-eslint": "^8.35.1",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "vitest-browser-react": "^1.0.1"
+  }
+}

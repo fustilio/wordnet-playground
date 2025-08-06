@@ -1,0 +1,17 @@
+import { describe, it, expect } from 'vitest';
+import { render } from 'vitest-browser-react';
+import React from 'react';
+import App from '../../src/App';
+
+describe('Simple Demo Data Test', () => {
+  it('should load demo data and display statistics', async () => {
+    const  {getByText}  = render(<App />);
+    
+    // Wait for the data to be loaded automatically by the useWordNet hook
+    const statsElement = await getByText(/Total Words/i);
+    await expect.element(statsElement).toBeInTheDocument();
+
+    const wordsCount = await getByText(/[1-9]\d{3,}/); // Look for a number > 1000
+    await expect.element(wordsCount).toBeInTheDocument();
+  }, 60000);
+});
