@@ -11,13 +11,13 @@
     "test": "pnpm test:func && pnpm test:e2e",
     "test:browser": "vitest --config=vitest.browser.config.ts --run",
     "test:browser:watch": "vitest --config=vitest.browser.config.ts",
-    "test:e2e": "pnpm test:browser --no-file-parallelism vitest-example/e2e",
+    "test:e2e": "pnpm test:browser --no-file-parallelism tests/e2e",
     "test:func": "pnpm test:browser --exclude \"**/e2e/*.test.ts\"",
-    "test:quick": "vitest --config=vitest.browser.config.ts --no-file-parallelism --reporter=verbose vitest-example/e2e/SearchLookupSanityCheck.test.tsx --run",
-    "test:real-data": "vitest --config=vitest.browser.config.ts --no-file-parallelism --reporter=verbose vitest-example/e2e/RealDataE2E.test.tsx --run",
-    "test:focus": "vitest --config=vitest.browser.config.ts --no-file-parallelism --reporter=verbose vitest-example/e2e/RealDataE2E.test.tsx --run -t \"should load thousands of synsets from real WordNet data\"",
-    "test:parser": "vitest --config=vitest.browser.config.ts --no-file-parallelism --reporter=verbose vitest-example/e2e/RealDataE2E.test.tsx --run -t \"should validate browser-compatible parser handles large XML files\"",
-    "test:debug": "vitest --config=vitest.browser.config.ts --no-file-parallelism --reporter=verbose --timeout=300000 vitest-example/e2e/RealDataE2E.test.tsx --run"
+    "test:quick": "vitest --config=vitest.browser.config.ts --no-file-parallelism --reporter=verbose tests/e2e/BasicAppLoad.test.tsx --run",
+    "test:real-data": "vitest --config=vitest.browser.config.ts --no-file-parallelism --reporter=verbose tests/e2e/RealDataE2E.test.tsx --run",
+    "test:focus": "vitest --config=vitest.browser.config.ts --no-file-parallelism --reporter=verbose tests/e2e/RealDataE2E.test.tsx --run -t \"should load thousands of synsets from real WordNet data\"",
+    "test:parser": "vitest --config=vitest.browser.config.ts --no-file-parallelism --reporter=verbose tests/e2e/RealDataE2E.test.tsx --run -t \"should validate browser-compatible parser handles large XML files\"",
+    "test:debug": "vitest --config=vitest.browser.config.ts --no-file-parallelism --reporter=verbose --timeout=300000 tests/e2e/RealDataE2E.test.tsx --run"
   },
   "dependencies": {
     "@sqlite.org/sqlite-wasm": "catalog:",
