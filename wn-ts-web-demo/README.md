@@ -1,229 +1,98 @@
-# wn-ts-web-demo
+# WordNet TypeScript Web Demo
 
-Interactive browser demo for the WordNet TypeScript ecosystem with full SQLite WASM integration.
+An interactive browser demo for the `wn-ts` ecosystem, showcasing `wn-ts-web` with SQLite WASM, persistent storage via OPFS, and real-time data exploration.
 
-## Status: ✅ FULLY FUNCTIONAL
+## 🌟 Status: ✅ Fully Functional
 
-This demo showcases the complete WordNet TypeScript ecosystem in the browser with:
-- ✅ **SQLite WASM Integration**: Fully working with local WASM files
-- ✅ **All Tests Passing**: Comprehensive test coverage
-- ✅ **Real Database Operations**: Full WordNet query capabilities
-- ✅ **Modern UI**: React-based interface with Tailwind CSS
-- ✅ **CORS Proxy**: Automatic proxy for downloading external WordNet data
+This demo is a comprehensive showcase of `wn-ts-web` capabilities, featuring:
 
-## Features
+- ✅ **SQLite WASM Integration**: High-performance database operations in the browser.
+- ✅ **Persistent Storage**: Utilizes the Origin Private File System (OPFS) for data persistence.
+- ✅ **Real-time Statistics**: Live updates on system status, database statistics, and storage.
+- ✅ **Structured Demo Pages**:
+    - **Basic**: Simple interface for word, synset, and sense lookups.
+    - **Advanced**: Tools for loading WordNet packages and managing database import/export.
+    - **Developer**: Utilities for inspecting cache and managing OPFS storage.
+- ✅ **Modern UI**: Built with React and styled with Tailwind CSS for a responsive experience.
+- ✅ **CORS Proxy**: Built-in proxy for downloading external WordNet data during local development.
 
-### 🎯 Core WordNet Functionality
-- **Word Lookup**: Search for words by form and part of speech
-- **Synset Explorer**: Explore synsets and their relationships
-- **Sense Browser**: Look up individual word senses
-- **Database Statistics**: View comprehensive WordNet statistics
+## 🚀 Quick Start
 
-### 🌍 Multi-Language & CILI Support
-- **Language Selection**: Choose from multiple WordNet languages
-- **CILI Integration**: Cross-language synonym discovery
-- **Language Status Indicators**: Visual feedback for loaded languages
+1.  **Install dependencies**:
+    ```bash
+    pnpm install
+    ```
+2.  **Start the development server**:
+    ```bash
+    pnpm dev
+    ```
+3.  Open your browser to `http://localhost:5173`.
 
-### 📊 Data Analysis & Statistics
-- **WordNet Statistics**: Comprehensive data analysis
-- **Data Integrity Checks**: Verify database consistency
-- **Performance Monitoring**: Real-time performance metrics
+## ✨ Features
 
-### 🍳 Kitchen Sink - Advanced Features
-- **Data Management**: Comprehensive data operations
-- **Export/Import**: Data export and import functionality
-- **Backup & Restore**: Database backup and restoration
+The demo is organized into three main tabs, each offering a different level of interaction with the WordNet API.
 
-### ⚡ Quality of Life Features
-- **Performance Monitoring**: Real-time performance tracking
-- **Project Download**: Download WordNet projects
-- **Demo Data Management**: Manage demo datasets
+### Basic Demo
+A straightforward interface for new users to start exploring WordNet.
+- **Search**: Look up words, synsets, or senses.
+- **View Results**: See raw JSON output from the API.
 
-### 🔧 Error Handling & Resilience
-- **Network Error Handling**: Graceful network failure handling
-- **Fallback Mechanisms**: Automatic fallback strategies
-- **Error Recovery**: Robust error recovery systems
+### Advanced Demo
+For users who want to manage WordNet data packages.
+- **Load Packages**: Dynamically load available WordNet projects (e.g., OEWN, CILI).
+- **Export Database**: Download the current SQLite database as a file.
+- **Import Database**: Load a previously exported `.db` file.
 
-### 🎨 User Experience & Interface
-- **Responsive Navigation**: Mobile-friendly navigation
-- **Clear Feature Organization**: Intuitive feature layout
+### Developer Demo
+Tools for developers to inspect the inner workings of `wn-ts-web`.
+- **Cache Inspection**: View details about browser storage (`localStorage`, `sessionStorage`, `IndexedDB`).
+- **Data Management**: Clear all data from the database or OPFS.
+- **OPFS Snapshot**: Save the current database state to a new file in OPFS for testing.
 
-### 🌐 CORS Proxy Support
-- **Automatic Proxy**: Bypasses CORS restrictions for external data
-- **Multiple Sources**: Supports en-word.net, GitHub releases, and more
-- **Development Only**: Proxy only active in development environment
-- **Status Monitoring**: Real-time proxy status and connectivity testing
+### Status Widgets
+On the side, you'll find real-time information about the system:
+- **System Status**: Tracks initialization, loading progress, and errors.
+- **Database Statistics**: Displays totals for words, synsets, and senses, plus part-of-speech distribution.
+- **OPFS Status**: Shows whether OPFS is supported and provides a breakdown of storage usage.
 
-## Quick Start
-
-```bash
-# Install dependencies
-pnpm install
-
-# Start development server
-pnpm dev
-
-# Run tests
-pnpm test
-```
-
-## CORS Proxy Setup
-
-The demo includes a comprehensive CORS proxy system to download WordNet data from external sources without browser restrictions:
-
-### How It Works
-- **Development Environment**: Automatically converts external URLs to proxy URLs
-- **Multiple Endpoints**: Supports en-word.net, GitHub releases, and generic HTTPS
-- **Automatic Detection**: Only active on localhost/127.0.0.1
-- **Status Monitoring**: Built-in connectivity testing and status display
-
-### Supported Data Sources
-- **Open English WordNet**: `https://en-word.net/static/` → `/api/en-word-net`
-- **Global WordNet Releases**: `https://github.com/globalwordnet/` → `/api/globalwordnet`
-- **GitHub API**: `https://github.com/` → `/api/github`
-- **Generic HTTPS**: Any HTTPS URL → `/api/external`
-
-### Usage
-1. Start the development server: `pnpm dev`
-2. Check the "CORS Proxy Status" section in the demo
-3. Use "Test Connectivity" to verify all endpoints are working
-4. Load WordNet data - the proxy handles URL conversion automatically
-
-For detailed configuration and troubleshooting, see [CORS_PROXY_SETUP.md](./CORS_PROXY_SETUP.md).
-
-## SQLite WASM Integration
-
-The demo uses [@sqlite.org/sqlite-wasm](https://uithub.com/sqlite/sqlite-wasm) for optimal browser performance:
-
-### Configuration
-- **Local WASM Files**: Uses local node_modules files
-- **OPFS Support**: Persistent storage when available
-- **In-Memory Fallback**: Automatic fallback for compatibility
-- **Error Handling**: Graceful degradation for network issues
-
-### Performance
-- **Initialization**: ~100-200ms (WASM loading)
-- **Query Performance**: Sub-millisecond for simple queries
-- **Memory Usage**: ~10-20MB for full WordNet data
-- **Storage**: Persistent with OPFS, in-memory fallback
-
-## Test Results
-
-Current test status: **All tests passing** ✅
-
-All tests are configured to pass in the development and CI environments.
-
-## Browser Requirements
-
-- **Modern Browser**: Chrome 88+, Firefox 85+, Safari 14+
-- **SharedArrayBuffer**: Required for optimal performance
-- **OPFS Support**: Optional for persistent storage
-
-## Development
+## 🔧 Development
 
 ### Scripts
-
-```bash
-# Development
-pnpm dev              # Start development server
-pnpm build            # Build for production
-pnpm preview          # Preview production build
-
-# Testing
-pnpm test             # Run browser tests
-pnpm test:watch       # Run tests in watch mode
-pnpm test:coverage    # Run tests with coverage
-
-# Linting
-pnpm lint             # Run ESLint
-```
+- `pnpm dev`: Start the development server.
+- `pnpm build`: Build the application for production.
+- `pnpm test`: Run the browser-based test suite.
 
 ### Project Structure
-
 ```
 wn-ts-web-demo/
-├── src/
-│   ├── components/           # React components
-│   │   ├── BasicWordNetDemo.tsx
-│   │   ├── FullWordNetDemo.tsx
-│   │   ├── WordRelationshipGraph.tsx
-│   │   ├── SynsetHierarchyTree.tsx
-│   │   └── DebugConsole.tsx
-│   ├── hooks/               # Custom React hooks
-│   │   └── useWordNet.ts
-│   ├── types/               # TypeScript type definitions
-│   └── main.tsx            # Application entry point
-├── vitest-example/          # Test examples
-├── tests/                   # Test files
-└── public/                  # Static assets
+└── src/
+    ├── App.tsx             # Main application component and layout
+    ├── main.tsx            # Application entry point
+    ├── components/
+    │   ├── demos/          # Components for each demo tab (Basic, Advanced, etc.)
+    │   ├── shared/         # Reusable components (Card, Tabs)
+    │   └── widgets/        # Components for the status sidebar
+    ├── hooks/              # Custom React hooks for state management
+    └── utils/              # Utility functions
 ```
 
-## API Usage
+## 🧪 Testing
+The demo includes a comprehensive test suite using `vitest-browser-react` to ensure all components and hooks function correctly in a real browser environment.
 
-### Basic Usage
-
-```typescript
-import { createWordNetInstance } from 'wn-ts-web';
-
-// Initialize WordNet
-const { wordnet, dataLoader } = await createWordNetInstance();
-
-// Query words
-const words = await wordnet.words('happy');
-console.log(words);
-
-// Load WordNet data
-await dataLoader.downloadAndLoad('oewn:2024');
+```bash
+# Run all browser tests
+pnpm test
 ```
+For more details, see [TESTING_METHODOLOGY.md](./TESTING_METHODOLOGY.md).
 
-### Advanced Usage
+## 🤝 Contributing
+Contributions are welcome! Please feel free to open an issue or submit a pull request.
 
-```typescript
-import { WebWordnet } from 'wn-ts-web';
+1.  Fork the repository.
+2.  Create your feature branch (`git checkout -b feature/AmazingFeature`).
+3.  Commit your changes (`git commit -m 'Add some AmazingFeature'`).
+4.  Push to the branch (`git push origin feature/AmazingFeature`).
+5.  Open a Pull Request.
 
-// Create custom instance
-const wordnet = new WebWordnet('oewn:2024', {
-  expand: ['ili'],
-  searchAllForms: true
-});
-
-// Initialize with SQLite WASM
-await wordnet.initialize(sqliteModule);
-
-// Query with options
-const synsets = await wordnet.synsets('run', 'v', {
-  expand: ['hypernym', 'hyponym']
-});
-```
-
-## Troubleshooting
-
-### WASM Loading Issues
-
-1. **Check Network**: Ensure local WASM files are accessible
-2. **CORS Headers**: Add appropriate headers for WASM files
-3. **OPFS Support**: Verify browser supports Origin Private File System
-
-### Performance Issues
-
-1. **Enable SharedArrayBuffer**: Add COOP/COEP headers
-2. **Use OPFS**: Enable persistent storage for better performance
-3. **Optimize Queries**: Use prepared statements for repeated queries
-
-### Test Issues
-
-1. **Network Fetch**: Tests may fail due to network restrictions in test environment
-2. **Browser Compatibility**: Ensure tests run in supported browsers
-3. **WASM Loading**: Verify WASM files are properly configured
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
-
-## License
-
-MIT License - see LICENSE file for details.
+## 📄 License
+This project is licensed under the MIT License.

@@ -196,7 +196,7 @@ export function useWordNet(): WordNetState & {
         loading: false,
         progress: 1,
         progressStage: 'Complete',
-        loadedPackages: [...prev.loadedPackages, packageId],
+        loadedPackages: [...new Set([...prev.loadedPackages, packageId])],
       }));
 
       // Update statistics
