@@ -135,35 +135,44 @@ export function useWordNet(): WordNetState & {
   // Automatically load demo data on initialization
   useEffect(() => {
     if (state.dataLoader && !state.isInitializing && state.loadedPackages.length === 0) {
+      console.log('🔄 Auto-load effect triggered');
       const loadInitialData = async () => {
         try {
+          console.log('📊 Checking initial statistics...');
           const stats = await state.dataLoader!.getStatistics();
-          if (stats.totalWords === 0) {
-            loadDemoData();
-          } else {
-            // If data already exists, update stats
-            const uiStatistics = {
-              totalWords: stats.totalWords,
-              totalSynsets: stats.totalSynsets,
-              totalSenses: stats.totalSenses,
-              totalRelations: 0,
-              totalDefinitions: 0,
-              languages: ['en'],
-              partsOfSpeech: ['n', 'v', 'a', 'r'],
-              dataSize: stats.totalWords * 100 + stats.totalSynsets * 200,
-              lastUpdated: new Date().toISOString(),
-              source: 'Database'
-            };
-            setState(prev => ({ 
-              ...prev, 
-              statistics: uiStatistics,
-              loadedPackages: ['oewn:2024'], // Assume demo data is what's loaded
-            }));
-          }
+          console.log('📊 Initial stats:', stats);
+          
+          // Always load demo data to ensure it works
+          console.log('📊 Loading demo data...');
+          await loadDemoData();
+          
+          // Update statistics after loading
+          const finalStats = await state.dataLoader!.getStatistics();
+          console.log('📊 Final stats after loading:', finalStats);
+          
+          const uiStatistics = {
+            totalWords: finalStats.totalWords,
+            totalSynsets: finalStats.totalSynsets,
+            totalSenses: finalStats.totalSenses,
+            totalRelations: 0,
+            totalDefinitions: 0,
+            languages: ['en'],
+            partsOfSpeech: ['n', 'v', 'a', 'r'],
+            dataSize: finalStats.totalWords * 100 + finalStats.totalSynsets * 200,
+            lastUpdated: new Date().toISOString(),
+            source: 'Database'
+          };
+          
+          setState(prev => ({ 
+            ...prev, 
+            statistics: uiStatistics,
+            loadedPackages: ['oewn:2024'],
+          }));
+          
         } catch (error) {
-          console.error("Error checking initial stats, attempting to load demo data.", error);
+          console.error("❌ Error checking initial stats, attempting to load demo data.", error);
           // If stats fails, it probably means the DB is empty. Load demo data.
-          loadDemoData();
+          await loadDemoData();
         }
       };
       loadInitialData();
@@ -245,6 +254,7 @@ export function useWordNet(): WordNetState & {
       throw new Error('DataLoader not initialized');
     }
 
+    console.log('🚀 Starting demo data load...');
     setState(prev => ({ 
       ...prev, 
       loading: true, 
@@ -253,14 +263,17 @@ export function useWordNet(): WordNetState & {
     }));
 
     try {
+      console.log('📦 Attempting to load oewn:2024...');
       // Load a sample package for demo
       await state.dataLoader.downloadAndLoad('oewn:2024', {
         progress: (p: number) => {
+          console.log(`📊 Progress: ${p * 100}%`);
           setState(prev => ({ ...prev, progress: p }));
           progress?.(p);
         }
       });
 
+      console.log('✅ Demo data loaded successfully');
       setState(prev => ({
         ...prev,
         loading: false,
@@ -270,7 +283,10 @@ export function useWordNet(): WordNetState & {
       }));
 
       // Update statistics
+      console.log('📊 Getting statistics...');
       const stats = await state.dataLoader.getStatistics();
+      console.log('📊 Statistics received:', stats);
+      
       const uiStatistics = {
         totalWords: stats.totalWords,
         totalSynsets: stats.totalSynsets,
@@ -284,6 +300,7 @@ export function useWordNet(): WordNetState & {
         source: 'Database'
       };
       
+      console.log('📊 UI Statistics:', uiStatistics);
       setState(prev => ({ 
         ...prev, 
         statistics: uiStatistics,
@@ -299,7 +316,7 @@ export function useWordNet(): WordNetState & {
         }
       }));
     } catch (error) {
-      console.error('Failed to load demo data:', error);
+      console.error('❌ Failed to load demo data:', error);
       setState(prev => ({
         ...prev,
         loading: false,

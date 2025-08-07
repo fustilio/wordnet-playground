@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export const useSearch = (wordnet: any) => {
   const [searchTerm, setSearchTerm] = useState('happy');
@@ -29,6 +29,13 @@ export const useSearch = (wordnet: any) => {
       setSearchResults({ error: error instanceof Error ? error.message : 'Search failed' });
     }
   };
+
+  // Perform initial search when wordnet is available
+  useEffect(() => {
+    if (wordnet && searchTerm.trim()) {
+      handleSearch();
+    }
+  }, [wordnet, searchTerm, activeTab]);
 
   return {
     searchTerm,
