@@ -576,7 +576,7 @@ export class DataLoader {
       const wordsToInsert = (lmfDocument.words || []).map((word: any) => ({
         id: word.id,
         lemma: word.lemma,
-        part_of_speech: word.partOfSpeech,
+        pos: word.partOfSpeech,
         language: word.language || lexicons[0]?.language || 'en',
         lexicon: word.lexicon || lexicons[0]?.id || projectIdWithVersion,
       }));
@@ -584,7 +584,7 @@ export class DataLoader {
       const synsetsToInsert = (lmfDocument.synsets || []).map((synset: any) => ({
         id: synset.id,
         ili: synset.ili || null,
-        part_of_speech: synset.partOfSpeech,
+        pos: synset.partOfSpeech,
         language: synset.language || lexicons[0]?.language || 'en',
         lexicon: synset.lexicon || lexicons[0]?.id || projectIdWithVersion,
       }));
@@ -686,7 +686,7 @@ export class DataLoader {
           wordsToInsert.push({
             id: wordId,
             lemma: lemma,
-            part_of_speech: partOfSpeech,
+            pos: partOfSpeech,
             language: lexiconLang,
             lexicon: lexiconId,
           });
@@ -708,7 +708,7 @@ export class DataLoader {
           synsetsToInsert.push({
             id: synsetId,
             ili: synset.attributes?.ili || null,
-            part_of_speech: synset.attributes?.partOfSpeech || "n",
+            pos: synset.attributes?.partOfSpeech || "n",
             language: lexiconLang,
             lexicon: lexiconId,
           });

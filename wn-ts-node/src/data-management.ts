@@ -401,7 +401,7 @@ async function _addLmf(
       ]);
       batchInsert(
         'words',
-        ['id', 'lemma', 'part_of_speech', 'language', 'lexicon'],
+        ['id', 'lemma', 'pos', 'language', 'lexicon'],
         wordData,
         p => {
           progress?.(0.1 + p * 0.2); // 0.1-0.3

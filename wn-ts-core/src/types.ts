@@ -56,7 +56,7 @@ export interface Relation {
 export interface Word {
   id:string;
   lemma: string;
-  part_of_speech: PartOfSpeech;
+  pos: PartOfSpeech;
   forms: Form[];
   pronunciations: Pronunciation[];
   tags: Tag[];
