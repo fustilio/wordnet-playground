@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { FullWordNetDemo } from './components/FullWordNetDemo';
 import { ProjectList } from './components/ProjectList';
 import './index.css';

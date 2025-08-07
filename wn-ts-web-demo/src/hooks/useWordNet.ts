@@ -136,24 +136,34 @@ export function useWordNet(): WordNetState & {
   useEffect(() => {
     if (state.dataLoader && !state.isInitializing && state.loadedPackages.length === 0) {
       const loadInitialData = async () => {
-        const stats = await state.dataLoader!.getStatistics();
-        if (stats.totalWords === 0) {
+        try {
+          const stats = await state.dataLoader!.getStatistics();
+          if (stats.totalWords === 0) {
+            loadDemoData();
+          } else {
+            // If data already exists, update stats
+            const uiStatistics = {
+              totalWords: stats.totalWords,
+              totalSynsets: stats.totalSynsets,
+              totalSenses: stats.totalSenses,
+              totalRelations: 0,
+              totalDefinitions: 0,
+              languages: ['en'],
+              partsOfSpeech: ['n', 'v', 'a', 'r'],
+              dataSize: stats.totalWords * 100 + stats.totalSynsets * 200,
+              lastUpdated: new Date().toISOString(),
+              source: 'Database'
+            };
+            setState(prev => ({ 
+              ...prev, 
+              statistics: uiStatistics,
+              loadedPackages: ['oewn:2024'], // Assume demo data is what's loaded
+            }));
+          }
+        } catch (error) {
+          console.error("Error checking initial stats, attempting to load demo data.", error);
+          // If stats fails, it probably means the DB is empty. Load demo data.
           loadDemoData();
-        } else {
-          // If data already exists, update stats
-          const uiStatistics = {
-            totalWords: stats.totalWords,
-            totalSynsets: stats.totalSynsets,
-            totalSenses: stats.totalSenses,
-            totalRelations: 0,
-            totalDefinitions: 0,
-            languages: ['en'],
-            partsOfSpeech: ['n', 'v', 'a', 'r'],
-            dataSize: stats.totalWords * 100 + stats.totalSynsets * 200,
-            lastUpdated: new Date().toISOString(),
-            source: 'Database'
-          };
-          setState(prev => ({ ...prev, statistics: uiStatistics }));
         }
       };
       loadInitialData();
@@ -175,7 +185,7 @@ export function useWordNet(): WordNetState & {
 
     try {
       await state.dataLoader.downloadAndLoad(packageId, {
-        onProgress: (p: number) => {
+        progress: (p: number) => {
           setState(prev => ({ ...prev, progress: p }));
           progress?.(p);
         }
@@ -245,7 +255,7 @@ export function useWordNet(): WordNetState & {
     try {
       // Load a sample package for demo
       await state.dataLoader.downloadAndLoad('oewn:2024', {
-        onProgress: (p: number) => {
+        progress: (p: number) => {
           setState(prev => ({ ...prev, progress: p }));
           progress?.(p);
         }

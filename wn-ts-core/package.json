@@ -48,7 +48,8 @@
   "dependencies": {
     "commander": "^14.0.0",
     "fast-xml-parser": "^5.2.5",
-    "smol-toml": "^1.4.1"
+    "smol-toml": "^1.4.1",
+    "sax": "^1.4.1"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.7",
