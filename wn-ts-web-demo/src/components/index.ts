@@ -1,8 +1,8 @@
-export { DataManagement } from './DataManagement';
-export { SearchSection } from './SearchSection';
-export { ResultsSection } from './ResultsSection';
-export { DemoDataSection } from './DemoDataSection';
-export { LoadingScreen } from './LoadingScreen';
-export { ErrorScreen } from './ErrorScreen';
-export { PerformanceMonitor } from './PerformanceMonitor';
-export { ProjectDownload } from './ProjectDownload'; 
+export * from './demos';
+export * from './developer-tools';
+export * from './features';
+export * from './screens';
+export * from './shared';
+export * from './ui';
+export * from './visualizations';
+export * from './widgets';

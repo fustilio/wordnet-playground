@@ -1,3 +1,3 @@
-export * from './BasicDemo';
-export * from './AdvancedDemo';
-export * from './DeveloperDemo';
+export { BasicDemo } from './BasicDemo';
+export { AdvancedDemo } from './AdvancedDemo';
+export { DeveloperDemo } from './DeveloperDemo';
