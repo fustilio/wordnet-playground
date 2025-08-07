@@ -41,7 +41,7 @@ describe('Morphy', () => {
         sizeDistribution: {}
       }),
       close: async () => {}
-    } as BaseWordnet;
+    } as unknown as BaseWordnet;
   });
 
   describe('uninitialized', () => {
@@ -101,14 +101,14 @@ describe('Morphy', () => {
         words: async (word: string, pos?: string) => {
           // When called with empty string (initialization), return all words for that POS
           if (word === '') {
-            if (pos === 'n') return [{ id: 'test-example-n' }, { id: 'test-datum-n' }];
-            if (pos === 'v') return [{ id: 'test-exemplify-v' }];
+            if (pos === 'n') return [{ id: 'test-example-n', pos: 'n' }, { id: 'test-datum-n', pos: 'n' }];
+            if (pos === 'v') return [{ id: 'test-exemplify-v', pos: 'v' }];
             return [];
           }
           // When called with specific word, return matching words
-          if (word === 'example' && pos === 'n') return [{ id: 'test-example-n' }];
-          if (word === 'exemplify' && pos === 'v') return [{ id: 'test-exemplify-v' }];
-          if (word === 'datum' && pos === 'n') return [{ id: 'test-datum-n' }];
+          if (word === 'example' && pos === 'n') return [{ id: 'test-example-n', pos: 'n' }];
+          if (word === 'exemplify' && pos === 'v') return [{ id: 'test-exemplify-v', pos: 'v' }];
+          if (word === 'datum' && pos === 'n') return [{ id: 'test-datum-n', pos: 'n' }];
           return [];
         },
         lexicons: async () => [],
@@ -143,7 +143,7 @@ describe('Morphy', () => {
           sizeDistribution: {}
         }),
         close: async () => {}
-      } as BaseWordnet;
+      } as unknown as BaseWordnet;
 
       const morphy = new Morphy(mockWordnet);
       
@@ -193,7 +193,7 @@ describe('Morphy', () => {
           sizeDistribution: {}
         }),
         close: async () => {}
-      } as BaseWordnet;
+      } as unknown as BaseWordnet;
 
       const morphy = new Morphy(mockWordnet);
       
