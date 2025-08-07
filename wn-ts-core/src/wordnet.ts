@@ -16,12 +16,12 @@ import type {
 
 export abstract class BaseWordnet {
   protected lexiconId: string;
-  protected lexiconVersion?: string;
+  protected lexiconVersion: string | undefined;
   protected expand: string[];
   protected normalizer?: ((form: string) => string) | undefined;
   protected lemmatizer?: ((form: string, pos?: PartOfSpeech) => Record<PartOfSpeech, Set<string>>) | undefined;
   protected searchAllForms: boolean;
-  protected lang?: string;
+  protected lang: string | undefined;
   protected lexicon?: Lexicon;
 
   constructor(options: WordnetOptions = {}) {
@@ -46,9 +46,7 @@ export abstract class BaseWordnet {
       this.lemmatizer = options.lemmatizer;
     }
     this.searchAllForms = options.searchAllForms !== false; // Default to true
-    if (options.lang) {
-      this.lang = options.lang;
-    }
+    this.lang = options.lang;
   }
 
   // Abstract methods that must be implemented by concrete classes

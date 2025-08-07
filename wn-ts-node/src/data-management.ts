@@ -5,7 +5,7 @@ import { db } from './db/database.js';
 import { downloadFile } from './utils/download.js';
 import { loadLMF, isLMF } from './lmf.js';
 import { getProjectVersionUrls, getProjectVersionError } from './project.js';
-import type { DownloadOptions, AddOptions, ExportOptions } from 'wn-ts-core';
+import type { DownloadOptions, AddOptions, ExportOptions, IliRecord } from 'wn-ts-core';
 import { ProjectError, DatabaseError, logger } from 'wn-ts-core';
 import {
   extractTarArchive,
@@ -143,7 +143,7 @@ async function _addIli(
 ): Promise<boolean> {
   const { progress, dryRun = false } = options;
   logger.info(`Loading ILI file: ${path}...`);
-  const iliData = await loadILI(path);
+  const iliData: IliRecord[] = await loadILI(path);
   logger.success(`ILI file loaded. Found ${iliData.length} records.`);
   if (progress) progress(0.5);
 
@@ -153,7 +153,7 @@ async function _addIli(
     return false;
   }
 
-  const records = iliData.map(record => [
+  const records = iliData.map((record: IliRecord) => [
     record.ili,
     record.definition || null,
     record.status,
