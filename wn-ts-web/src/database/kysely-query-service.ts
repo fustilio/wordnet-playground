@@ -67,7 +67,7 @@ export class KyselyQueryService {
     }
 
     if (options.pos) {
-      query = query.where('words.part_of_speech', '=', options.pos);
+      query = query.where('words.pos', '=', options.pos);
     }
     if (options.lexicon && options.lexicon !== '*') {
       query = query.where('words.lexicon', '=', options.lexicon);
@@ -78,7 +78,7 @@ export class KyselyQueryService {
 
     const results = await query
       .orderBy('words.lemma')
-      .orderBy('words.part_of_speech')
+      .orderBy('words.pos')
       .execute();
 
     return results.map(this.transformWordRecord.bind(this));
@@ -101,7 +101,7 @@ export class KyselyQueryService {
     lexicon?: string;
     limit?: number;
     offset?: number;
-    partOfSpeech?: PartOfSpeech;
+    pos?: PartOfSpeech;
     exact?: boolean;
     caseSensitive?: boolean;
   } = {}): Promise<any[]> {
@@ -110,7 +110,7 @@ export class KyselyQueryService {
       lexicon, 
       limit = 50, 
       offset = 0, 
-      partOfSpeech,
+      pos,
       exact = false,
       caseSensitive = false 
     } = options;
@@ -137,8 +137,8 @@ export class KyselyQueryService {
       query = query.where('lexicon', '=', lexicon);
     }
 
-    if (partOfSpeech) {
-      query = query.where('part_of_speech', '=', partOfSpeech);
+    if (pos) {
+      query = query.where('pos', '=', pos);
     }
 
     const results = await query
@@ -181,7 +181,7 @@ export class KyselyQueryService {
     }
 
     if (options.pos) {
-      query = query.where('words.part_of_speech', '=', options.pos);
+      query = query.where('words.pos', '=', options.pos);
     }
     if (options.lexicon && options.lexicon !== '*') {
       query = query.where('words.lexicon', '=', options.lexicon);
@@ -224,7 +224,7 @@ export class KyselyQueryService {
     }
 
     if (options.pos) {
-      query = query.where('words.part_of_speech', '=', options.pos);
+      query = query.where('words.pos', '=', options.pos);
     }
     if (options.lexicon && options.lexicon !== '*') {
       query = query.where('words.lexicon', '=', options.lexicon);
@@ -369,13 +369,13 @@ export class KyselyQueryService {
   async getPartOfSpeechDistribution(): Promise<Record<string, number>> {
     const results = await this.db
       .selectFrom('words')
-      .select(['part_of_speech', (eb) => eb.fn.countAll().as('count')])
-      .groupBy('part_of_speech')
+      .select(['pos', (eb) => eb.fn.countAll().as('count')])
+      .groupBy('pos')
       .execute();
 
     const distribution: Record<string, number> = {};
     results.forEach(row => {
-      distribution[row.part_of_speech] = Number(row.count);
+      distribution[row.pos] = Number(row.count);
     });
 
     return distribution;
@@ -441,7 +441,7 @@ export class KyselyQueryService {
     await schema.createTable('words').ifNotExists()
       .addColumn('id', 'text', c => c.primaryKey())
       .addColumn('lemma', 'text', c => c.notNull())
-      .addColumn('part_of_speech', 'text', c => c.notNull())
+      .addColumn('pos', 'text', c => c.notNull())
       .addColumn('language', 'text', c => c.notNull())
       .addColumn('lexicon', 'text', c => c.notNull().references('lexicons.id').onDelete('cascade'))
       .execute();
@@ -457,7 +457,7 @@ export class KyselyQueryService {
     await schema.createTable('synsets').ifNotExists()
       .addColumn('id', 'text', c => c.primaryKey())
       .addColumn('ili', 'text')
-      .addColumn('part_of_speech', 'text', c => c.notNull())
+      .addColumn('pos', 'text', c => c.notNull())
       .addColumn('language', 'text', c => c.notNull())
       .addColumn('lexicon', 'text', c => c.notNull().references('lexicons.id').onDelete('cascade'))
       .execute();
@@ -599,7 +599,7 @@ export class KyselyQueryService {
     return {
       id: record.id,
       lemma: record.lemma,
-      partOfSpeech: record.part_of_speech as PartOfSpeech,
+      pos: record.pos as PartOfSpeech,
       forms: [], // Will be populated separately if needed
       pronunciations: [],
       tags: [],
@@ -613,7 +613,7 @@ export class KyselyQueryService {
     return {
       id: record.id,
       ili: record.ili,
-      partOfSpeech: record.part_of_speech as PartOfSpeech,
+      pos: record.pos as PartOfSpeech,
       language: record.language,
       lexicon: record.lexicon,
       definitions: [], // Will be populated separately

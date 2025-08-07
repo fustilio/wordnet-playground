@@ -32,8 +32,13 @@ export abstract class BaseWordnet {
     // Parse lexicon:version format
     if (lexiconSpecifier.includes(':')) {
       const [lexicon, ver] = lexiconSpecifier.split(':');
-      lexiconSpecifier = lexicon;
-      version = ver;
+
+      if (lexicon) {
+        lexiconSpecifier = lexicon;
+      }
+      if (ver) {
+        version = ver;
+      }
     }
     
     this.lexiconId = lexiconSpecifier;

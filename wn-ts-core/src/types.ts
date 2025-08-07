@@ -29,7 +29,7 @@ export interface Count {
   id: string;
   value: number;
   writtenForm: string;
-  partOfSpeech: PartOfSpeech;
+  pos: PartOfSpeech;
 }
 
 export interface Example {
@@ -54,9 +54,9 @@ export interface Relation {
 }
 
 export interface Word {
-  id: string;
+  id:string;
   lemma: string;
-  partOfSpeech: PartOfSpeech;
+  pos: PartOfSpeech;
   forms: Form[];
   pronunciations: Pronunciation[];
   tags: Tag[];
@@ -83,7 +83,7 @@ export interface Sense {
 export interface Synset {
   id: string;
   ili?: string;
-  partOfSpeech: PartOfSpeech;
+  pos: PartOfSpeech;
   definitions: Definition[];
   examples: Example[];
   relations: Relation[];

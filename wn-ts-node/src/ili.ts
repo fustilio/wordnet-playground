@@ -17,7 +17,7 @@ export async function loadILI(filePath: string): Promise<IliRecord[]> {
 
   // CILI data file does not have a header.
   if (filePath.includes('cili')) {
-    header = ['ili', 'status', 'definition'];
+    header = ['id', 'status', 'definition'];
     dataLines = lines;
   } else {
     if (lines.length < 2) return [];

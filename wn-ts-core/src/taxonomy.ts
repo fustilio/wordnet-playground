@@ -124,7 +124,7 @@ export async function hypernymPaths(
   if (simulateRoot) {
     const fakeRoot: Synset = {
       id: '*ROOT*',
-      partOfSpeech: synset.partOfSpeech,
+      pos: synset.pos,
       definitions: [],
       examples: [],
       relations: [],

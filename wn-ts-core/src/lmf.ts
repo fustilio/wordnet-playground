@@ -137,7 +137,7 @@ export function parseLMFXML(
       const word: Word = {
         id: entry['@_id'] || 'unknown-word',
         lemma: entry.Lemma?.['@_writtenForm'] || entry['@_id'] || 'unknown',
-        partOfSpeech: (entry.Lemma?.['@_partOfSpeech'] || 'n') as any,
+        pos: (entry.Lemma?.['@_partOfSpeech'] || 'n') as any,
         language: lexicon.language,
         lexicon: lexicon.id,
         forms: [],
@@ -202,7 +202,7 @@ export function parseLMFXML(
 
         const synset: Synset = {
           id: synsetElem['@_id'] || 'unknown-synset',
-          partOfSpeech: (synsetElem['@_partOfSpeech'] || 'n') as any,
+          pos: (synsetElem['@_partOfSpeech'] || 'n') as any,
           definitions: [],
           examples: [],
           relations: [],
@@ -295,7 +295,7 @@ export function createMinimalLMF(): LMFDocument {
     synsets: [
       {
         id: 'test-en-0001-n',
-        partOfSpeech: 'n',
+        pos: 'n',
         definitions: [],
         examples: [],
         relations: [],
@@ -309,7 +309,7 @@ export function createMinimalLMF(): LMFDocument {
       {
         id: 'test-en-example-n',
         lemma: 'example',
-        partOfSpeech: 'n',
+        pos: 'n',
         language: 'en',
         lexicon: 'test-en',
         forms: [],

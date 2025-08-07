@@ -232,8 +232,8 @@ async function parseLMFStreaming(
         case 'lemma':
           if (currentEntry) {
             currentEntry.lemma = attributes.writtenform || attributes.writtenForm || 'unknown';
-            currentEntry.partOfSpeech = (attributes.partofspeech || attributes.partOfSpeech || 'n') as PartOfSpeech;
-            if (debug) console.log(`[DEBUG] Set lemma for word ${currentEntry.id}: ${currentEntry.lemma} (${currentEntry.partOfSpeech})`);
+            currentEntry.pos = (attributes.partofspeech || attributes.partOfSpeech || 'n') as PartOfSpeech;
+            if (debug) console.log(`[DEBUG] Set lemma for word ${currentEntry.id}: ${currentEntry.lemma} (${currentEntry.pos})`);
             const lemmaForm = currentEntry.lemma;
             if (!(currentEntry.forms as any[]).some((f: any) => f.writtenForm === lemmaForm)) {
               currentEntry.forms.push({
@@ -268,7 +268,7 @@ async function parseLMFStreaming(
         case 'synset':
           currentSynset = {
             id: attributes.id || 'unknown-synset',
-            partOfSpeech: (attributes.partofspeech || attributes.partOfSpeech || 'n') as PartOfSpeech,
+            pos: (attributes.partofspeech || attributes.partOfSpeech || 'n') as PartOfSpeech,
             definitions: [],
             examples: [],
             relations: [],

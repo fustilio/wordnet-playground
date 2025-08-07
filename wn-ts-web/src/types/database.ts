@@ -34,7 +34,7 @@ export interface LexiconTable {
 export interface WordTable {
   id: string;
   lemma: string;
-  part_of_speech: string;
+  pos: string;
   language: string;
   lexicon: string;
 }
@@ -42,7 +42,7 @@ export interface WordTable {
 export interface SynsetTable {
   id: string;
   ili?: string;
-  part_of_speech: string;
+  pos: string;
   language: string;
   lexicon: string;
 }

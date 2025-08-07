@@ -25,7 +25,7 @@ export async function path(
   synset2: Synset,
   wordnet: BaseWordnet
 ): Promise<number> {
-  _checkIfPosCompatible(synset1.partOfSpeech, synset2.partOfSpeech);
+  _checkIfPosCompatible(synset1.pos, synset2.pos);
   if (synset1.id === synset2.id) return 1.0;
   try {
     const pathArr = await shortestPath(synset1, synset2, wordnet);
@@ -51,7 +51,7 @@ export async function wup(
   synset2: Synset,
   wordnet: BaseWordnet
 ): Promise<number> {
-  _checkIfPosCompatible(synset1.partOfSpeech, synset2.partOfSpeech);
+  _checkIfPosCompatible(synset1.pos, synset2.pos);
   if (synset1.id === synset2.id) return 1.0;
   const lcsList = await lowestCommonHypernyms(synset1, synset2, wordnet);
   if (lcsList.length === 0) {
@@ -83,7 +83,7 @@ export async function lch(
   maxTaxonomyDepth: number,
   wordnet: BaseWordnet
 ): Promise<number> {
-  _checkIfPosCompatible(synset1.partOfSpeech, synset2.partOfSpeech);
+  _checkIfPosCompatible(synset1.pos, synset2.pos);
   
   if (maxTaxonomyDepth <= 0) {
     throw new WnError('maxDepth must be greater than 0');
@@ -103,7 +103,7 @@ export async function lch(
  * @returns A similarity score
  */
 export async function res(synset1: Synset, synset2: Synset, ic: Freq, wordnet: BaseWordnet): Promise<number> {
-  _checkIfPosCompatible(synset1.partOfSpeech, synset2.partOfSpeech);
+  _checkIfPosCompatible(synset1.pos, synset2.pos);
   
   const lcs = await _mostInformativeLcs(synset1, synset2, ic, wordnet);
   return information_content(lcs, ic);
@@ -124,7 +124,7 @@ export async function jcn(
   ic: Freq,
   wordnet: BaseWordnet
 ): Promise<number> {
-  _checkIfPosCompatible(synset1.partOfSpeech, synset2.partOfSpeech);
+  _checkIfPosCompatible(synset1.pos, synset2.pos);
   if (synset1.id === synset2.id) return 1.0;
   
   const ic1 = information_content(synset1, ic);
@@ -160,7 +160,7 @@ export async function lin(
   ic: Freq,
   wordnet: BaseWordnet
 ): Promise<number> {
-  _checkIfPosCompatible(synset1.partOfSpeech, synset2.partOfSpeech);
+  _checkIfPosCompatible(synset1.pos, synset2.pos);
   if (synset1.id === synset2.id) return 1.0;
   const ic1 = information_content(synset1, ic);
   const ic2 = information_content(synset2, ic);

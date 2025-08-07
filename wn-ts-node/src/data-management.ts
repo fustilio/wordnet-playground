@@ -154,7 +154,7 @@ async function _addIli(
   }
 
   const records = iliData.map((record: IliRecord) => [
-    record.ili,
+    record.id,
     record.definition || null,
     record.status,
     null, // superseded_by
@@ -395,13 +395,13 @@ async function _addLmf(
       const wordData = (lmfData.words || []).map(word => [
         word.id,
         word.lemma,
-        word.partOfSpeech,
+        word.pos,
         word.language,
         word.lexicon,
       ]);
       batchInsert(
         'words',
-        ['id', 'lemma', 'part_of_speech', 'language', 'lexicon'],
+        ['id', 'lemma', 'pos', 'language', 'lexicon'],
         wordData,
         p => {
           progress?.(0.1 + p * 0.2); // 0.1-0.3
@@ -435,13 +435,13 @@ async function _addLmf(
       const synsetData = (lmfData.synsets || []).map(synset => [
         synset.id,
         (synset as any).ili,
-        synset.partOfSpeech,
+        synset.pos,
         synset.language,
         synset.lexicon,
       ]);
       batchInsert(
         'synsets',
-        ['id', 'ili', 'part_of_speech', 'language', 'lexicon'],
+        ['id', 'ili', 'pos', 'language', 'lexicon'],
         synsetData,
         p => {
           progress?.(0.4 + p * 0.1); // 0.4-0.5

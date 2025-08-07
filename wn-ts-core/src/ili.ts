@@ -1,6 +1,6 @@
 
 export interface IliRecord {
-  ili: string;
+  id: string;
   status: string;
   definition?: string;
   [key: string]: string | undefined;

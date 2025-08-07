@@ -19,7 +19,7 @@ export function validateSynset(synset: Synset): void {
     throw new WnError('Synset must have an ID');
   }
   
-  if (!synset.partOfSpeech) {
+  if (!synset.pos) {
     throw new WnError('Synset must have a part of speech');
   }
   
@@ -94,7 +94,7 @@ export function validateWord(word: Word): void {
     throw new WnError('Word must have a lemma');
   }
   
-  if (!word.partOfSpeech) {
+  if (!word.pos) {
     throw new WnError('Word must have a part of speech');
   }
   

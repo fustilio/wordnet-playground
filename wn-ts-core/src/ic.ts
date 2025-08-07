@@ -45,7 +45,7 @@ export function information_content(synset: Synset, freq: Freq): number {
  * @returns The synset probability
  */
 export function synset_probability(synset: Synset, freq: Freq): number {
-  const posFreq = freq[synset.partOfSpeech];
+  const posFreq = freq[synset.pos];
   if (!posFreq) {
     return 0;
   }
@@ -124,7 +124,7 @@ export async function compute(
     const weight = distributeWeight ? count / num : count;
     
     for (const synset of synsets) {
-      let pos = synset.partOfSpeech;
+      let pos = synset.pos;
       if (pos === 's') {
         pos = 'a'; // ADJ_SAT -> ADJ
       }

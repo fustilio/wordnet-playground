@@ -339,7 +339,7 @@ export class WebWordnet extends BaseWordnet {
           id: word.id,
           lemma: {
             writtenForm: word.lemma,
-            partOfSpeech: word.part_of_speech,
+            partOfSpeech: word.pos,
           },
           senses: [],
         };
@@ -362,7 +362,7 @@ export class WebWordnet extends BaseWordnet {
         const synsetData: any = {
           id: synset.id,
           ili: synset.ili,
-          partOfSpeech: synset.part_of_speech,
+          partOfSpeech: synset.pos,
           definitions: [],
           examples: [],
           relations: [],

@@ -17,7 +17,7 @@ export abstract class AbstractWordQueries {
    * Find words by lemma (exact match)
    */
   async findWordsByLemma(lemma: string, options: WordSearchOptions = {}): Promise<WordRecord[]> {
-    const { language = 'en', lexicon, limit, offset, partOfSpeech } = options;
+    const { language = 'en', lexicon, limit, offset, pos: partOfSpeech } = options;
 
     let sql = 'SELECT * FROM words WHERE lemma = ? AND language = ?';
     const params: any[] = [lemma, language];
@@ -28,7 +28,7 @@ export abstract class AbstractWordQueries {
     }
 
     if (partOfSpeech) {
-      sql += ' AND part_of_speech = ?';
+      sql += ' AND pos = ?';
       params.push(partOfSpeech);
     }
 
@@ -49,7 +49,7 @@ export abstract class AbstractWordQueries {
    * Find words by partial lemma match
    */
   async findWordsByPartialLemma(partialLemma: string, options: WordSearchOptions = {}): Promise<WordRecord[]> {
-    const { language = 'en', lexicon, limit, offset, partOfSpeech } = options;
+    const { language = 'en', lexicon, limit, offset, pos: partOfSpeech } = options;
 
     let sql = 'SELECT * FROM words WHERE lemma LIKE ? AND language = ?';
     const params: any[] = [`%${partialLemma}%`, language];
@@ -60,7 +60,7 @@ export abstract class AbstractWordQueries {
     }
 
     if (partOfSpeech) {
-      sql += ' AND part_of_speech = ?';
+      sql += ' AND pos = ?';
       params.push(partOfSpeech);
     }
 
@@ -131,7 +131,7 @@ export abstract class AbstractWordQueries {
    * Find all words in a lexicon
    */
   async findWordsByLexicon(lexicon: string, options: WordSearchOptions = {}): Promise<WordRecord[]> {
-    const { language, limit, offset, partOfSpeech } = options;
+    const { language, limit, offset, pos: partOfSpeech } = options;
 
     let sql = 'SELECT * FROM words WHERE lexicon = ?';
     const params: any[] = [lexicon];
@@ -142,7 +142,7 @@ export abstract class AbstractWordQueries {
     }
 
     if (partOfSpeech) {
-      sql += ' AND part_of_speech = ?';
+      sql += ' AND pos = ?';
       params.push(partOfSpeech);
     }
 
@@ -165,7 +165,7 @@ export abstract class AbstractWordQueries {
   async findWordsByPartOfSpeech(partOfSpeech: string, options: WordSearchOptions = {}): Promise<WordRecord[]> {
     const { language = 'en', lexicon, limit, offset } = options;
 
-    let sql = 'SELECT * FROM words WHERE part_of_speech = ? AND language = ?';
+    let sql = 'SELECT * FROM words WHERE pos = ? AND language = ?';
     const params: any[] = [partOfSpeech, language];
 
     if (lexicon) {
@@ -190,7 +190,7 @@ export abstract class AbstractWordQueries {
    * Count words by various criteria
    */
   async countWords(criteria: Partial<WordSearchOptions> = {}): Promise<number> {
-    const { language = 'en', lexicon, partOfSpeech } = criteria;
+    const { language = 'en', lexicon, pos: partOfSpeech } = criteria;
 
     let sql = 'SELECT COUNT(*) as count FROM words WHERE language = ?';
     const params: any[] = [language];
@@ -201,7 +201,7 @@ export abstract class AbstractWordQueries {
     }
 
     if (partOfSpeech) {
-      sql += ' AND part_of_speech = ?';
+      sql += ' AND pos = ?';
       params.push(partOfSpeech);
     }
 
@@ -212,12 +212,12 @@ export abstract class AbstractWordQueries {
   /**
    * Get word statistics by part of speech
    */
-  async getWordStatisticsByPOS(language: string = 'en', lexicon?: string): Promise<Array<{ part_of_speech: string; count: number }>> {
+  async getWordStatisticsByPOS(language: string = 'en', lexicon?: string): Promise<Array<{ pos: string; count: number }>> {
     let sql = `
-      SELECT part_of_speech, COUNT(*) as count 
+      SELECT pos, COUNT(*) as count 
       FROM words 
       WHERE language = ?
-      GROUP BY part_of_speech 
+      GROUP BY pos 
       ORDER BY count DESC
     `;
     const params: any[] = [language];
@@ -227,7 +227,7 @@ export abstract class AbstractWordQueries {
       params.push(lexicon);
     }
 
-    return this.db.query<{ part_of_speech: string; count: number }>(sql, params);
+    return this.db.query<{ pos: string; count: number }>(sql, params);
   }
 
   /**
@@ -239,7 +239,7 @@ export abstract class AbstractWordQueries {
       lexicon, 
       limit = 50, 
       offset = 0, 
-      partOfSpeech,
+      pos: partOfSpeech,
       exact = false,
       caseSensitive = false 
     } = options;
@@ -262,7 +262,7 @@ export abstract class AbstractWordQueries {
     }
 
     if (partOfSpeech) {
-      sql += ' AND part_of_speech = ?';
+      sql += ' AND pos = ?';
       params.push(partOfSpeech);
     }
 
