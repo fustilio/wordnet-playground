@@ -1,47 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Morphy, createMorphy } from '../src/morphy';
 import { BaseWordnet } from '../src/wordnet';
+import { TestWordnet } from './helpers';
+import type { Word } from '../src/types';
 
 describe('Morphy', () => {
   let wordnet: BaseWordnet;
 
   beforeEach(async () => {
     // Create a mock implementation of BaseWordnet for testing
-    wordnet = {
-      lexicons: async () => [],
-      expandedLexicons: async () => [],
-      words: async () => [],
-      synsets: async () => [],
-      synset: async () => undefined,
-      senses: async () => [],
-      word: async () => undefined,
-      sense: async () => undefined,
-      ili: async () => undefined,
-      ilis: async () => [],
-      getStatistics: async () => ({
-        totalWords: 0,
-        totalSynsets: 0,
-        totalSenses: 0,
-        totalILIs: 0,
-        totalLexicons: 0
-      }),
-      getLexiconStatistics: async () => [],
-      getDataQualityMetrics: async () => ({
-        synsetsWithILI: 0,
-        synsetsWithoutILI: 0,
-        iliCoveragePercentage: 0,
-        emptySynsets: 0,
-        synsetsWithDefinitions: 0
-      }),
-      getPartOfSpeechDistribution: async () => ({}),
-      getSynsetSizeAnalysis: async () => ({
-        averageSize: 0,
-        maxSize: 0,
-        minSize: 0,
-        sizeDistribution: {}
-      }),
-      close: async () => {}
-    } as unknown as BaseWordnet;
+    wordnet = new TestWordnet();
   });
 
   describe('uninitialized', () => {
@@ -97,54 +65,25 @@ describe('Morphy', () => {
   describe('initialized with wordnet', () => {
     it('should filter results to valid words', async () => {
       // Mock wordnet to return specific words
-      const mockWordnet = {
-        words: async (word: string, pos?: string) => {
-          // When called with empty string (initialization), return all words for that POS
-          if (word === '') {
-            if (pos === 'n') return [{ id: 'test-example-n', pos: 'n' }, { id: 'test-datum-n', pos: 'n' }];
-            if (pos === 'v') return [{ id: 'test-exemplify-v', pos: 'v' }];
-            return [];
-          }
-          // When called with specific word, return matching words
-          if (word === 'example' && pos === 'n') return [{ id: 'test-example-n', pos: 'n' }];
-          if (word === 'exemplify' && pos === 'v') return [{ id: 'test-exemplify-v', pos: 'v' }];
-          if (word === 'datum' && pos === 'n') return [{ id: 'test-datum-n', pos: 'n' }];
-          return [];
-        },
-        lexicons: async () => [],
-        expandedLexicons: async () => [],
-        synsets: async () => [],
-        synset: async () => undefined,
-        senses: async () => [],
-        word: async () => undefined,
-        sense: async () => undefined,
-        ili: async () => undefined,
-        ilis: async () => [],
-        getStatistics: async () => ({
-          totalWords: 0,
-          totalSynsets: 0,
-          totalSenses: 0,
-          totalILIs: 0,
-          totalLexicons: 0
-        }),
-        getLexiconStatistics: async () => [],
-        getDataQualityMetrics: async () => ({
-          synsetsWithILI: 0,
-          synsetsWithoutILI: 0,
-          iliCoveragePercentage: 0,
-          emptySynsets: 0,
-          synsetsWithDefinitions: 0
-        }),
-        getPartOfSpeechDistribution: async () => ({}),
-        getSynsetSizeAnalysis: async () => ({
-          averageSize: 0,
-          maxSize: 0,
-          minSize: 0,
-          sizeDistribution: {}
-        }),
-        close: async () => {}
-      } as unknown as BaseWordnet;
+      const mockWords: Record<string, Word[]> = {
+        'n': [
+          { id: 'test-example-n', lemma: 'example', pos: 'n', language: 'en', lexicon: 'test', forms:[] } as Word,
+          { id: 'test-datum-n', lemma: 'datum', pos: 'n', language: 'en', lexicon: 'test', forms:[] } as Word,
+        ],
+        'v': [
+          { id: 'test-exemplify-v', lemma: 'exemplify', pos: 'v', language: 'en', lexicon: 'test', forms:[] } as Word,
+        ],
+      };
 
+      const wordsFn = async (word: string, pos?: string): Promise<Word[]> => {
+        if (word === '') {
+          return pos ? mockWords[pos] || [] : [];
+        }
+        const wordsForPos = pos ? mockWords[pos] || [] : [];
+        return wordsForPos.filter(w => w.lemma === word);
+      };
+
+      const mockWordnet = new TestWordnet({ words: wordsFn });
       const morphy = new Morphy(mockWordnet);
       
       // Should only return valid words
@@ -159,42 +98,7 @@ describe('Morphy', () => {
     });
 
     it('should return empty results for invalid words', async () => {
-      const mockWordnet = {
-        words: async () => [],
-        lexicons: async () => [],
-        expandedLexicons: async () => [],
-        synsets: async () => [],
-        synset: async () => undefined,
-        senses: async () => [],
-        word: async () => undefined,
-        sense: async () => undefined,
-        ili: async () => undefined,
-        ilis: async () => [],
-        getStatistics: async () => ({
-          totalWords: 0,
-          totalSynsets: 0,
-          totalSenses: 0,
-          totalILIs: 0,
-          totalLexicons: 0
-        }),
-        getLexiconStatistics: async () => [],
-        getDataQualityMetrics: async () => ({
-          synsetsWithILI: 0,
-          synsetsWithoutILI: 0,
-          iliCoveragePercentage: 0,
-          emptySynsets: 0,
-          synsetsWithDefinitions: 0
-        }),
-        getPartOfSpeechDistribution: async () => ({}),
-        getSynsetSizeAnalysis: async () => ({
-          averageSize: 0,
-          maxSize: 0,
-          minSize: 0,
-          sizeDistribution: {}
-        }),
-        close: async () => {}
-      } as unknown as BaseWordnet;
-
+      const mockWordnet = new TestWordnet();
       const morphy = new Morphy(mockWordnet);
       
       const result = await morphy.analyze('nonexistent', 'n');
