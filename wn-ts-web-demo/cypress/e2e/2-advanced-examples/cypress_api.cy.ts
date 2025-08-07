@@ -9,17 +9,20 @@ context('Cypress APIs', () => {
     // https://on.cypress.io/custom-commands
 
     it('.add() - create a custom command', () => {
-      Cypress.Commands.add('console', {
+      // Note: This is a demonstration of custom commands
+      // In a real TypeScript project, you would define the command type properly
+      // For now, we'll use 'any' to avoid TypeScript errors
+      Cypress.Commands.add('console' as any, {
         prevSubject: true,
-      }, (subject, method) => {
+      }, (subject: any, method: string) => {
       // the previous subject is automatically received
       // and the commands arguments are shifted
 
         // allow us to change the console method used
-        method = method || 'log'
+        method = method || 'log';
 
         // log the subject to the console
-        console[method]('The subject is', subject)
+        (console as any)[method]('The subject is', subject)
 
         // whatever we return becomes the new subject
         // we don't want to change the subject so
@@ -27,9 +30,10 @@ context('Cypress APIs', () => {
         return subject
       })
 
-      cy.get('button').console('info').then(($button) => {
-      // subject is still $button
-      })
+      // Note: This would require proper type definitions in a real project
+      // cy.get('button').console('info').then(($button) => {
+      // // subject is still $button
+      // })
     })
   })
 

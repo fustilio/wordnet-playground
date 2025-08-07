@@ -22,5 +22,7 @@ export default defineConfig({
     setupNodeEvents(on, config) {
       // implement node event listeners here
     },
+    // Ensure TypeScript support files are used
+    supportFile: 'cypress/support/e2e.ts',
   },
 });

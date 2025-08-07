@@ -105,7 +105,7 @@ context('Spies, Stubs, and Clock', () => {
        * Greets a person
        * @param {string} name
       */
-      greet (name) {
+      greet (name: string) {
         return `Hello, ${name}!`
       },
     }
@@ -116,11 +116,11 @@ context('Spies, Stubs, and Clock', () => {
       .withArgs(Cypress.sinon.match.number).throws(new Error('Invalid name'))
 
     expect(greeter.greet('World')).to.equal('Hi')
-    expect(() => greeter.greet(42)).to.throw('Invalid name')
+    expect(() => greeter.greet(42 as any)).to.throw('Invalid name')
     expect(greeter.greet).to.have.been.calledTwice
 
     // non-matched calls goes the actual method
-    expect(greeter.greet()).to.equal('Hello, undefined!')
+    expect(greeter.greet('')).to.equal('Hello, !')
   })
 
   it('matches call arguments using Sinon matchers', () => {
