@@ -2,19 +2,18 @@ import { join } from 'path';
 import { existsSync } from 'fs';
 import { config } from './config.js';
 import { db } from './db/database.js';
-import { downloadFile } from 'wn-ts-core';
-import { loadLMF, isLMF } from 'wn-ts-core';
+import { downloadFile } from './utils/download.js';
+import { loadLMF, isLMF } from './lmf.js';
 import { getProjectVersionUrls, getProjectVersionError } from './project.js';
 import type { DownloadOptions, AddOptions, ExportOptions } from 'wn-ts-core';
-import { ProjectError, DatabaseError } from 'wn-ts-core';
+import { ProjectError, DatabaseError, logger, isILI } from 'wn-ts-core';
 import {
   extractTarArchive,
   findLMFiles,
   decompressXz,
   decompressGz,
-} from 'wn-ts-core';
-import { isILI, loadILI } from 'wn-ts-core';
-import { logger } from 'wn-ts-core';
+} from './utils/archive.js';
+import { loadILI } from './ili.js';
 import { batchInsert } from './db/batch-insert.js';
 
 /**
@@ -65,7 +64,7 @@ export async function download(
       await downloadFile(
         url,
         destination,
-        progress ? { onProgress: progress } : undefined
+        progress ? { progress: progress } : undefined
       );
       logger.success(`Successfully downloaded to ${destination}`);
       return destination;
@@ -922,4 +921,68 @@ export async function addLexicalResource(
   options: AddOptions & { dryRun?: boolean } = {}
 ): Promise<boolean> {
   return add(path, options);
+}
+
+/**
+ * Load and parse a lexical resource file
+ * This function is environment-agnostic and returns parsed data
+ */
+export async function loadLexicalResource(
+  path: string,
+  options: { progress?: (progress: number) => void, parser?: string } = {}
+): Promise<{ type: 'lmf' | 'ili', data: any }> {
+  const { progress, parser = "" } = options;
+  if (progress) progress(0.1); // Initialize progress
+
+  if (!existsSync(path)) {
+    throw new ProjectError(`File not found: ${path}`);
+  }
+
+  try {
+    let processedPath = path;
+
+    if (path.endsWith('.tar.xz') || path.endsWith('.tar.gz')) {
+      logger.extract(`Extracting archive: ${path}...`);
+      const extractedPath = await extractTarArchive(path);
+      logger.success(`Extracted to: ${extractedPath}`);
+      const lmfFiles = await findLMFiles(extractedPath);
+      if (lmfFiles.length === 0) {
+        throw new ProjectError(`No LMF files found in extracted archive: ${path}`);
+      }
+      processedPath = lmfFiles[0] || '';
+    } else if (path.endsWith('.xz')) {
+      logger.extract(`Decompressing file: ${path}...`);
+      const decompressedPath = path.slice(0, -3);
+      await decompressXz(path, decompressedPath);
+      processedPath = decompressedPath;
+    } else if (path.endsWith('.gz')) {
+      logger.extract(`Decompressing file: ${path}...`);
+      const decompressedPath = path.slice(0, -3);
+      await decompressGz(path, decompressedPath);
+      processedPath = decompressedPath;
+    }
+
+    const isLmfFile = await isLMF(processedPath);
+    const isIliFile = !isLmfFile && (await isILI(processedPath));
+
+    if (isLmfFile) {
+      const lmfOptions: any = { debug: false };
+      if (parser) lmfOptions.parser = parser;
+      if (progress) lmfOptions.progress = progress;
+      const lmfData = await loadLMF(processedPath, lmfOptions);
+      return { type: 'lmf', data: lmfData };
+    } else if (isIliFile) {
+      const iliData = await loadILI(processedPath);
+      return { type: 'ili', data: iliData };
+    } else {
+      throw new ProjectError(`File is not a valid LMF or ILI file: ${processedPath}`);
+    }
+  } catch (error) {
+    if (error instanceof ProjectError) {
+      throw error;
+    }
+    throw new ProjectError(
+      `Failed to load lexical resource: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
 }

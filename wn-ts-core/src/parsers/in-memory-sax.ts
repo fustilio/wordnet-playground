@@ -10,18 +10,20 @@ const isNode = typeof process !== 'undefined' && process.versions && process.ver
 
 // Browser-compatible stubs
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const browserReadFile = async (path: string, encoding?: string) => {
+const browserReadFile = async (_path: string, _encoding?: string) => {
   throw new Error('File system operations not available in browser environment');
 };
 
 const browserSax = {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  parser: (strict: boolean, options?: any) => {
+  parser: (_strict: boolean, _options?: any) => {
     return {
       onopentag: () => {},
       onend: () => {},
-      onerror: (error: any) => {},
-      write: (content: string) => ({ close: () => {} })
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      onerror: (_error: any) => {},
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      write: (_content: string) => ({ close: () => {} })
     };
   }
 };

@@ -86,14 +86,8 @@ describe('LMF Parsers Module', () => {
     expect(result.senses.length).toBe(2);
   });
 
-  it('should parse with full streaming parser', async () => {
+  it('should throw an error for full streaming parser in core', async () => {
     const parser = getParser('full-streaming');
-    const result = await parser.parse(sampleFile);
-    
-    expect(result.lmfVersion).toBe('1.0');
-    expect(result.lexicons.length).toBe(1);
-    expect(result.words.length).toBe(2);
-    expect(result.synsets.length).toBe(1);
-    expect(result.senses.length).toBe(2);
+    await expect(parser.parse(sampleFile)).rejects.toThrow('This parser is not available in the browser environment.');
   });
 }); 

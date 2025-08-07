@@ -2,9 +2,9 @@
 const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
 
 // Browser-compatible stubs with proper signatures
-const browserReadFileSync = (path: string, encoding?: string) => '';
-const browserExistsSync = (path: string) => false;
-const browserCopyFileSync = (src: string, dest: string) => {};
+const browserReadFileSync = (_path: string, _encoding?: string) => '';
+const browserExistsSync = (_path: string) => false;
+const browserCopyFileSync = (_src: string, _dest: string) => {};
 const browserJoin = (...paths: string[]) => paths.join('/');
 const browserDirname = (path: string) => path.split('/').slice(0, -1).join('/') || '.';
 const browserFileURLToPath = (url: string) => url;

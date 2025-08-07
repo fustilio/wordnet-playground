@@ -9,7 +9,7 @@
 const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
 
 // Browser-compatible stubs
-const browserReadFile = async (path: string, encoding?: string) => {
+const browserReadFile = async (_path: string, _encoding?: string) => {
   throw new Error('File system operations not available in browser environment');
 };
 

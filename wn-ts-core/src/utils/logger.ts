@@ -120,8 +120,6 @@ class Logger {
 export const logger = new Logger();
 
 // Browser environment check
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const isBrowser = typeof window !== 'undefined';
 const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
 
 // Test environment: be more quiet by default

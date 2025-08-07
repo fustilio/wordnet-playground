@@ -86,13 +86,14 @@ export {
 
 // LMF Parsers module
 export {
-  loadLMF,
   parseLMFXML,
-  isLMF,
   createMinimalLMF,
-  type LMFDocument,
-  type LMFLoadOptions,
 } from 'wn-ts-core';
+export {
+  loadLMF,
+  isLMF,
+} from './lmf.js';
+export type { LMFDocument, LMFLoadOptions } from 'wn-ts-core';
 
 // Database exports
 export * from './db/database.js';

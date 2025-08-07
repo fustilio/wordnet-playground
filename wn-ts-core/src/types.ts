@@ -143,6 +143,7 @@ export interface WordnetOptions {
 export interface DownloadOptions {
   force?: boolean;
   progress?: (progress: number) => void;
+  timeout?: number;
 }
 
 export interface AddOptions {

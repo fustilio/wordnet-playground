@@ -37,7 +37,7 @@ export abstract class BaseWordnet {
     }
     
     this.lexiconId = lexiconSpecifier;
-    this.lexiconVersion = version || options.version;
+    this.lexiconVersion = version ?? options.version;
     this.expand = Array.isArray(options.expand) ? options.expand : options.expand ? [options.expand] : [];
     if (options.normalizer) {
       this.normalizer = options.normalizer;

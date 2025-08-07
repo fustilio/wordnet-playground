@@ -74,14 +74,14 @@ const DETACHMENT_RULES: Partial<Record<PartOfSpeech, Rule[]>> = {
  * Wordnet object, the returned lemmas may be invalid.
  */
 export class Morphy {
-  private wordnet: Wordnet | undefined;
+  private wordnet: BaseWordnet | undefined;
   private _initialized: boolean;
   private _initPromise: Promise<void> | undefined;
   private _exceptions: ExceptionMap;
   private _all_lemmas: Partial<Record<PartOfSpeech, Set<string>>>;
   private _rules: Partial<Record<PartOfSpeech, Rule[]>>;
 
-  constructor(wordnet?: Wordnet) {
+  constructor(wordnet?: BaseWordnet) {
     this.wordnet = wordnet;
     
     // Filter rules to only include WN system rules
@@ -279,7 +279,7 @@ export class Morphy {
  * @param wordnet - Optional Wordnet instance for validation
  * @returns A new Morphy instance
  */
-export function createMorphy(wordnet?: Wordnet): Morphy {
+export function createMorphy(wordnet?: BaseWordnet): Morphy {
   return new Morphy(wordnet);
 }
 
