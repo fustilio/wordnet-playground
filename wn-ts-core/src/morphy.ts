@@ -131,7 +131,7 @@ export class Morphy {
           if (!wordPos || !this._exceptions[wordPos]) continue;
           const posExc = this._exceptions[wordPos]!;
           // Use word.lemma if available, otherwise fallback to inference for test mocks
-          const lemma = (word as any).lemma ?? this._inferLemmaFromWord(word);
+          const lemma = word.lemma;
           if (!lemma) continue;
 
           if (this._all_lemmas[wordPos]) {
@@ -162,28 +162,6 @@ export class Morphy {
     this._initialized = true;
   }
 
-  /**
-   * Infer lemma from a Word object, used as a fallback for test mocks
-   * that may not have a `lemma` property.
-   * @param word - Word object
-   * @returns Inferred lemma or undefined
-   */
-  private _inferLemmaFromWord(word: import('./types.js').Word): string | undefined {
-    const forms = (word.forms || []) as import('./types.js').Form[];
-    if (forms.length > 0 && forms[0]?.writtenForm) {
-      return forms[0].writtenForm;
-    }
-    if ('id' in word && typeof word.id === 'string') {
-      const idParts = word.id.split('-');
-      if (idParts.length >= 3) {
-        return idParts[idParts.length - 2];
-      }
-      if (idParts.length === 2) {
-        return idParts[0];
-      }
-    }
-    return undefined;
-  }
 
   /**
    * Callable interface - find the base forms of a word.

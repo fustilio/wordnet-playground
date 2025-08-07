@@ -395,7 +395,7 @@ async function _addLmf(
       const wordData = (lmfData.words || []).map(word => [
         word.id,
         word.lemma,
-        word.part_of_speech,
+        word.pos,
         word.language,
         word.lexicon,
       ]);
