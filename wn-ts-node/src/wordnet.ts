@@ -111,7 +111,7 @@ export class Wordnet extends BaseWordnet {
 
     // Use UNION to include words that match by lemma OR by form
     let sql = `
-      SELECT DISTINCT w.id, w.lemma, w.pos, w.language, w.lexicon
+      SELECT DISTINCT w.id, w.lemma, w.part_of_speech, w.language, w.lexicon
       FROM words w
       WHERE w.lemma = ?
     `;
@@ -119,7 +119,7 @@ export class Wordnet extends BaseWordnet {
     const params: unknown[] = [normalizedForm];
 
     if (pos) {
-      sql += ' AND w.pos = ?';
+      sql += ' AND w.part_of_speech = ?';
       params.push(pos);
     }
 
@@ -140,7 +140,7 @@ export class Wordnet extends BaseWordnet {
 
     sql += `
       UNION
-      SELECT DISTINCT w.id, w.lemma, w.pos, w.language, w.lexicon
+      SELECT DISTINCT w.id, w.lemma, w.part_of_speech, w.language, w.lexicon
       FROM words w
       JOIN forms f ON w.id = f.word_id
       WHERE f.written_form = ?
@@ -149,7 +149,7 @@ export class Wordnet extends BaseWordnet {
     params.push(normalizedForm);
 
     if (pos) {
-      sql += ' AND w.pos = ?';
+      sql += ' AND w.part_of_speech = ?';
       params.push(pos);
     }
 
@@ -184,11 +184,11 @@ export class Wordnet extends BaseWordnet {
       if (allForms.size > 0) {
         const formPlaceholders = Array.from(allForms).map(() => '?').join(',');
         sql = `
-          SELECT DISTINCT w.id, w.lemma, w.pos, w.language, w.lexicon
+          SELECT DISTINCT w.id, w.lemma, w.part_of_speech, w.language, w.lexicon
           FROM words w
           WHERE w.lemma IN (${formPlaceholders})
           UNION
-          SELECT DISTINCT w.id, w.lemma, w.pos, w.language, w.lexicon
+          SELECT DISTINCT w.id, w.lemma, w.part_of_speech, w.language, w.lexicon
           FROM words w
           JOIN forms f ON w.id = f.word_id
           WHERE f.written_form IN (${formPlaceholders})
@@ -197,7 +197,7 @@ export class Wordnet extends BaseWordnet {
         const formParams = [...Array.from(allForms), ...Array.from(allForms)];
           
         if (pos) {
-          sql += ' AND w.pos = ?';
+          sql += ' AND w.part_of_speech = ?';
           formParams.push(pos);
         }
 
@@ -317,7 +317,7 @@ export class Wordnet extends BaseWordnet {
         WHERE (f.written_form = ? OR w.lemma = ?)
       `;
       const params: unknown[] = [normalizedForm, normalizedForm];
-      sql += ' AND w.pos = ?';
+      sql += ' AND w.part_of_speech = ?';
       params.push(pos);
       if (this._lexiconId !== '*') {
         sql += ' AND w.lexicon = ?';
@@ -348,7 +348,7 @@ export class Wordnet extends BaseWordnet {
             WHERE (f.written_form IN (${formPlaceholders}) OR w.lemma IN (${formPlaceholders}))
           `;
           const formParams = [...Array.from(allForms), ...Array.from(allForms)];
-          sql += ' AND w.pos = ?';
+          sql += ' AND w.part_of_speech = ?';
           formParams.push(pos);
           if (this._lexiconId !== '*') {
             sql += ' AND w.lexicon = ?';
@@ -454,7 +454,7 @@ export class Wordnet extends BaseWordnet {
     await db.initialize();
 
     const sql = `
-      SELECT id, lemma, pos, language, lexicon
+      SELECT id, lemma, part_of_speech, language, lexicon
       FROM words
       WHERE id = ?
     `;

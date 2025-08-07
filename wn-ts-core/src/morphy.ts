@@ -127,7 +127,7 @@ export class Morphy {
       for (const pos of posList) {
         const words = await this.wordnet.words('', pos) as import('./types.js').Word[];
         for (const word of words) {
-          const wordPos = pos;
+          const wordPos = word.pos;
           if (!wordPos || !this._exceptions[wordPos]) continue;
           const posExc = this._exceptions[wordPos]!;
           const forms = (word.forms || []) as import('./types.js').Form[];

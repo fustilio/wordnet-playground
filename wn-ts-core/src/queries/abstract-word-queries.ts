@@ -28,7 +28,7 @@ export abstract class AbstractWordQueries {
     }
 
     if (partOfSpeech) {
-      sql += ' AND pos = ?';
+      sql += ' AND part_of_speech = ?';
       params.push(partOfSpeech);
     }
 
@@ -60,7 +60,7 @@ export abstract class AbstractWordQueries {
     }
 
     if (partOfSpeech) {
-      sql += ' AND pos = ?';
+      sql += ' AND part_of_speech = ?';
       params.push(partOfSpeech);
     }
 
@@ -142,7 +142,7 @@ export abstract class AbstractWordQueries {
     }
 
     if (partOfSpeech) {
-      sql += ' AND pos = ?';
+      sql += ' AND part_of_speech = ?';
       params.push(partOfSpeech);
     }
 
@@ -165,7 +165,7 @@ export abstract class AbstractWordQueries {
   async findWordsByPartOfSpeech(partOfSpeech: string, options: WordSearchOptions = {}): Promise<WordRecord[]> {
     const { language = 'en', lexicon, limit, offset } = options;
 
-    let sql = 'SELECT * FROM words WHERE pos = ? AND language = ?';
+    let sql = 'SELECT * FROM words WHERE part_of_speech = ? AND language = ?';
     const params: any[] = [partOfSpeech, language];
 
     if (lexicon) {
@@ -201,7 +201,7 @@ export abstract class AbstractWordQueries {
     }
 
     if (partOfSpeech) {
-      sql += ' AND pos = ?';
+      sql += ' AND part_of_speech = ?';
       params.push(partOfSpeech);
     }
 
@@ -214,10 +214,10 @@ export abstract class AbstractWordQueries {
    */
   async getWordStatisticsByPOS(language: string = 'en', lexicon?: string): Promise<Array<{ pos: string; count: number }>> {
     let sql = `
-      SELECT pos, COUNT(*) as count 
+      SELECT part_of_speech as pos, COUNT(*) as count 
       FROM words 
       WHERE language = ?
-      GROUP BY pos 
+      GROUP BY part_of_speech 
       ORDER BY count DESC
     `;
     const params: any[] = [language];
@@ -262,7 +262,7 @@ export abstract class AbstractWordQueries {
     }
 
     if (partOfSpeech) {
-      sql += ' AND pos = ?';
+      sql += ' AND part_of_speech = ?';
       params.push(partOfSpeech);
     }
 

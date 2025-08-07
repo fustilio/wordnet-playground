@@ -42,7 +42,7 @@ export interface LexiconTable {
 export interface WordTable {
   id: string;
   lemma: string;
-  pos: string;
+  part_of_speech: string;
   language: string;
   lexicon: string;
 }

@@ -64,7 +64,7 @@ export function parseLMFXML(
     // Add options to handle large files better
     processEntities: false,
     allowBooleanAttributes: true,
-    stopNodes: ['LexicalEntry', 'Synset'] // Stop processing at these nodes to reduce memory
+    // stopNodes: ['LexicalEntry', 'Synset'] // Stop processing at these nodes to reduce memory
   });
 
   if (debug) console.log(`[DEBUG] Parsing XML with fast-xml-parser...`);

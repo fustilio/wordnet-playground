@@ -395,13 +395,13 @@ async function _addLmf(
       const wordData = (lmfData.words || []).map(word => [
         word.id,
         word.lemma,
-        word.pos,
+        word.part_of_speech,
         word.language,
         word.lexicon,
       ]);
       batchInsert(
         'words',
-        ['id', 'lemma', 'pos', 'language', 'lexicon'],
+        ['id', 'lemma', 'part_of_speech', 'language', 'lexicon'],
         wordData,
         p => {
           progress?.(0.1 + p * 0.2); // 0.1-0.3
