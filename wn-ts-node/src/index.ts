@@ -49,10 +49,6 @@ export {
 } from 'wn-ts-core';
 export type { ProjectIndex, ProjectVersion } from 'wn-ts-core';
 
-// Browser data generation tool
-export { makeBrowserData } from './browser-data.js';
-export type { MakeBrowserDataOptions } from './browser-data.js';
-
 // Types and interfaces
 export type {
   Word,

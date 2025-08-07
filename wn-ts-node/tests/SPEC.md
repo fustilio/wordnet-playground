@@ -54,17 +54,11 @@ These tests verify the functionality of individual components in isolation. They
 
 ### Existing Functional Tests:
 
+- **`batch-insert.test.ts`**: Tests the `batchInsert` utility for inserting large amounts of data into the database efficiently.
 - **`config.test.ts`**: Tests `ConfigManager` for handling settings, project definitions, default directories, derived paths (database, downloads), and error handling.
 - **`data-management.test.ts`**: Verifies data operations like `add`, `remove`, `download`, and `exportData`. It tests database interactions, the `force` option, and progress callbacks.
-- **`download.test.ts`**: Unit tests for the `downloadFile` utility, mocking `fetch` to test success, network errors (e.g., 404), timeouts, and edge cases.
-- **`lmf-parser.test.ts`**: Tests the `loadLMF` streaming parser by parsing a sample XML file and verifying the output structure.
 - **`module-functions.test.ts`**: Tests high-level API functions (`words`, `senses`, `synsets`) against a temporary database populated from a small, standard test file (`mini-lmf-1.0.xml`).
-- **`morphy.test.ts`**: Tests the `Morphy` class for morphological analysis, covering both standalone rule-based analysis and validation against a `Wordnet` instance.
-- **`parsers.test.ts`**: Verifies the parser registration system, ensuring all LMF parsers can be retrieved and can successfully parse a sample file.
-- **`similarity.test.ts`**: Verifies semantic similarity algorithms (`path`, `wup`, `lch`) using mock `Synset` data to test path-based and information-content-based metrics.
-- **`synset-utils.test.ts`**: Tests `Synset` utility functions like `hypernyms`, `shortestPath`, `maxDepth`, and `lowestCommonHypernyms` using a mock graph.
-- **`taxonomy.test.ts`**: Tests functions for navigating the WordNet taxonomy (`roots`, `leaves`, `hypernymPaths`) using mock data to simulate the synset graph.
-- **`validate.test.ts`**: Tests data validation logic for `Word`, `Sense`, and `Synset` objects, ensuring `WnError` is thrown for invalid or incomplete structures.
+- **`taxonomy.test.ts`**: Tests functions for navigating the WordNet taxonomy (`roots`, `leaves`, `hypernymPaths`) against a real database.
 - **`wordnet.test.ts`**: Tests the main `Wordnet` class, its constructor options, and its method behaviors against an empty database to check for graceful failures.
 
 ### Strategy for Functional Tests:

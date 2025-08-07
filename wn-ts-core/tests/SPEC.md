@@ -49,11 +49,11 @@ These tests verify the functionality of individual components in isolation. They
 
 ### Existing Functional Tests:
 
+- **`abstract-database-interfaces.test.ts`**: Tests the abstract database client and query builder interfaces.
 - **`config.test.ts`**: Tests `ConfigManager` for handling settings, project definitions, default directories, derived paths (downloads), and error handling.
 - **`data-management.test.ts`**: Verifies database-agnostic data operations like `download` and `loadLexicalResource`. It tests the `force` option and progress callbacks.
 - **`db-interface.test.ts`**: Tests the database interface abstractions and placeholder implementations.
 - **`download.test.ts`**: Unit tests for the `downloadFile` utility, mocking `fetch` to test success, network errors (e.g., 404), timeouts, and edge cases.
-- **`lmf-parser.test.ts`**: Tests the `loadLMF` streaming parser by parsing a sample XML file and verifying the output structure.
 - **`module-functions.test.ts`**: Tests high-level API functions (`words`, `senses`, `synsets`) in database-agnostic mode, returning empty arrays when no database is available.
 - **`morphy.test.ts`**: Tests the `Morphy` class for morphological analysis, covering both standalone rule-based analysis and validation against a `Wordnet` instance.
 - **`parsers.test.ts`**: Verifies the parser registration system, ensuring all LMF parsers can be retrieved and can successfully parse a sample file.
