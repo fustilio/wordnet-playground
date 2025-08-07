@@ -1,12 +1,14 @@
 import { defineConfig } from "vite";
 import path from "node:path";
+import dts from "vite-plugin-dts";
 
 export default defineConfig({
   build: {
     lib: {
-      entry: path.resolve(process.cwd(), "src/index.ts"),
+      entry: { "wn-ts-web": path.resolve(process.cwd(), "src/index.ts") },
       name: "WnTsWeb",
-      fileName: (format) => `wn-ts-web.${format === "es" ? "mjs" : "umd.cjs"}`,
+      fileName: (format, entryName) =>
+        `${entryName}.${format === "es" ? "mjs" : "umd.cjs"}`,
       formats: ["es", "umd"],
     },
     outDir: "dist",
@@ -34,13 +36,7 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ["@sqlite.org/sqlite-wasm"],
   },
-  // Generate TypeScript declaration files
-  plugins: [
-    {
-      name: 'generate-types',
-      generateBundle() {
-        // This will be handled by the build script
-      }
-    }
-  ]
+  plugins: [dts({
+    insertTypesEntry: true,
+  })],
 });

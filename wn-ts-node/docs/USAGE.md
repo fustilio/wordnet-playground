@@ -157,22 +157,22 @@ const oewnVersions = oewn?.versions;
 
 - **Download a project:**
   ```typescript
-  import { download } from 'wn-ts';
+  import { download } from 'wn-ts-node';
   await download('oewn:2024');
   ```
 - **Add a lexical resource:**
   ```typescript
-  import { add } from 'wn-ts';
+  import { add } from 'wn-ts-node';
   await add('oewn-2024-english-wordnet-2024.xml.gz');
   ```
 - **Remove a lexicon:**
   ```typescript
-  import { remove } from 'wn-ts';
+  import { remove } from 'wn-ts-node';
   await remove('oewn');
   ```
 - **Export data:**
   ```typescript
-  import { exportData } from 'wn-ts';
+  import { exportData } from 'wn-ts-node';
   await exportData({ format: 'json', output: 'wn-export.json', include: ['oewn'] });
   ```
 

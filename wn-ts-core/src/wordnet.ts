@@ -57,7 +57,7 @@ export abstract class BaseWordnet {
   // Abstract methods that must be implemented by concrete classes
   abstract lexicons(): Promise<Lexicon[]>;
   abstract expandedLexicons(): Promise<Lexicon[]>;
-  abstract words(form: string, pos?: PartOfSpeech): Promise<Word[]>;
+  abstract words(form: string, pos?: PartOfSpeech, options?: { lexicon: string }): Promise<Word[]>;
   abstract synsets(form: string, pos?: PartOfSpeech, ili?: string | ILI): Promise<Synset[]>;
   abstract synset(synsetId: string): Promise<Synset | undefined>;
   abstract senses(wordIdOrForm: string, pos?: PartOfSpeech): Promise<Sense[]>;

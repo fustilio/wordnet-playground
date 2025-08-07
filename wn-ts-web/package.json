@@ -32,9 +32,7 @@
     }
   },
   "scripts": {
-    "prebuild": "pnpm run build:index",
-    "build": "tsc",
-    "build:index": "node scripts/build-index.js",
+    "build": "vite build",
     "build:watch": "vite build --watch",
     "clean": "rimraf dist",
     "dev": "vite build --watch",
@@ -82,6 +80,7 @@
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
+    "vite-plugin-dts": "catalog:",
     "vitest": "catalog:"
   },
   "peerDependencies": {

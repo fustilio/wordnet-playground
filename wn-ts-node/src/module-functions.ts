@@ -27,9 +27,10 @@ export async function word(
 
 export async function words(
   form?: string,
-  pos?: any
+  pos?: any,
+  options?: { lexicon: string }
 ): Promise<any[]> {
-  return coreWords(defaultClient, form, pos);
+  return coreWords(defaultClient, form, pos, options);
 }
 
 export async function sense(
@@ -40,9 +41,10 @@ export async function sense(
 
 export async function senses(
   form?: string,
-  pos?: any
+  pos?: any,
+  options?: { lexicon: string }
 ): Promise<any[]> {
-  return coreSenses(defaultClient, form, pos);
+  return coreSenses(defaultClient, form, pos, options);
 }
 
 export async function synset(
@@ -53,9 +55,10 @@ export async function synset(
 
 export async function synsets(
   form?: string,
-  pos?: any
+  pos?: any,
+  options?: { lexicon: string }
 ): Promise<any[]> {
-  return coreSynsets(defaultClient, form, pos);
+  return coreSynsets(defaultClient, form, pos, options);
 }
 
 export async function ili(

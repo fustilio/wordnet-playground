@@ -6,7 +6,7 @@
  */
 
 // Import from wn-ts-web package
-import { getAvailableProjects, getProjectDetails, type ProjectInfo } from 'wn-ts-web';
+import { getAvailableProjects, getProjectDetails, type ProjectInfo } from '../../wn-ts-web/src/index';
 
 /**
  * Get projects by language

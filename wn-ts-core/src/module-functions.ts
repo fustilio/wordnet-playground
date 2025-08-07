@@ -77,10 +77,11 @@ export async function word(
 export async function words(
   client: BaseWordnet,
   form?: string,
-  pos?: PartOfSpeech
+  pos?: PartOfSpeech,
+  options?: { lexicon: string }
 ): Promise<Word[]> {
   try {
-    return await client.words(form || '', pos);
+    return await client.words(form || '', pos, options);
   } catch (error) {
     if (error instanceof DatabaseError) {
       return [];

@@ -21,6 +21,7 @@ A modern TypeScript implementation of the [wn library](https://github.com/goodma
 - ✅ **Benchmark Integration**: Proper exports for external benchmarking and comparison
 - ✅ **Clean API**: No direct database access - all functionality through Wordnet instance methods
 - ✅ **Statistics & Analysis**: Built-in methods for database statistics and data quality analysis
+- ✅ **Test Organization**: Clear separation between core and platform-specific tests
 - ✅ **Explicit Client Passing**: All module functions explicitly receive `BaseWordnet` instances
 - ✅ **Decoupled Architecture**: No internal client instantiation in module functions
 

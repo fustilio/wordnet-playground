@@ -11,7 +11,7 @@
   "author": "fustilio",
   "type": "module",
   "scripts": {
-    "autotest": "pnpm --filter wn-ts-web test:e2e",
+    "autotest": "pnpm --filter wn-ts-web-demo test",
     "benchmark": "pnpm --filter wordnet-benchmark test:bench",
     "benchmark:cross": "pnpm --filter wordnet-benchmark test:bench:cross",
     "benchmark:func": "pnpm --filter wordnet-benchmark test:func",
