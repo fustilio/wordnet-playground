@@ -164,7 +164,7 @@ const results = await words(wordnetClient, 'run', 'v');
 ## 🧪 **Testing & Quality**
 
 ### **Test Infrastructure**
-- **Unit Tests**: 190+ tests across all packages
+- **Unit Tests**: 390+ tests across all packages
 - **E2E Tests**: Real data integration testing
 - **Performance Benchmarks**: Comprehensive library comparisons
 - **Browser Tests**: Full browser environment testing

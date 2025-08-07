@@ -27,14 +27,21 @@ pnpm test
 This command runs the unit and integration tests in the `jsdom` environment.
 
 ```bash
-pnpm vitest run
+pnpm test:node
 ```
 
 ### Run Browser Tests Only
-This command runs the browser-specific and end-to-end tests in a headless Chromium instance.
+This command runs the browser-specific tests in a headless Chromium instance.
 
 ```bash
-pnpm vitest run --browser
+pnpm test:browser
+```
+
+### Run E2E Tests Only
+This command runs the end-to-end tests in a headless Chromium instance.
+
+```bash
+pnpm test:e2e
 ```
 
 ### Run Tests in Watch Mode
@@ -42,8 +49,8 @@ For interactive development, you can run tests in watch mode.
 
 ```bash
 # Watch Node.js tests
-pnpm vitest watch
+pnpm vitest
 
 # Watch browser tests
-pnpm vitest watch --browser
+pnpm vitest --config=vitest.browser.config.ts
 ```

@@ -455,20 +455,7 @@ pnpm test:e2e
 
 ### Test Files
 
-- `tests/abstract-database-interfaces.test.ts` - Abstract database interface tests
-- `tests/config.test.ts` - Configuration management tests
-- `tests/data-management.test.ts` - Database-agnostic data management tests
-- `tests/db-interface.test.ts` - Database interface and placeholder tests
-- `tests/download.test.ts` - Download utility tests
-- `tests/module-functions.test.ts` - High-level API function tests
-- `tests/morphy.test.ts` - Morphological analysis tests
-- `tests/parsers.test.ts` - Data parsing tests
-- `tests/similarity.test.ts` - Similarity metric tests
-- `tests/synset-utils.test.ts` - Synset utility tests
-- `tests/taxonomy.test.ts` - Taxonomy and hierarchy tests
-- `tests/validate.test.ts` - Data validation tests
-- `tests/wordnet.test.ts` - Core Wordnet class tests
-- `tests/SPEC.md` - Test strategy documentation
+For a complete overview of the testing strategy and files, see [TESTING_STRATEGY.md](./docs/TESTING_STRATEGY.md).
 
 ## 🔄 CI Integration
 
