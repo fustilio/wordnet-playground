@@ -6,14 +6,14 @@ import { downloadFile } from './utils/download.js';
 import { loadLMF, isLMF } from './lmf.js';
 import { getProjectVersionUrls, getProjectVersionError } from './project.js';
 import type { DownloadOptions, AddOptions, ExportOptions } from 'wn-ts-core';
-import { ProjectError, DatabaseError, logger, isILI } from 'wn-ts-core';
+import { ProjectError, DatabaseError, logger } from 'wn-ts-core';
 import {
   extractTarArchive,
   findLMFiles,
   decompressXz,
   decompressGz,
 } from './utils/archive.js';
-import { loadILI } from './ili.js';
+import { loadILI, isILI } from './ili.js';
 import { batchInsert } from './db/batch-insert.js';
 
 /**
