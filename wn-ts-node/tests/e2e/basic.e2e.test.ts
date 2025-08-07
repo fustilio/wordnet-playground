@@ -157,7 +157,7 @@ describe('End-to-End Integration Tests', () => {
       const word = infoWords[0];
       expect(word).toHaveProperty('id');
       expect(word).toHaveProperty('lemma');
-      expect(word).toHaveProperty('partOfSpeech');
+      expect(word).toHaveProperty('pos');
       expect(word).toHaveProperty('language');
       expect(word).toHaveProperty('lexicon');
       logger.success('Word structure verified');
@@ -178,7 +178,7 @@ describe('End-to-End Integration Tests', () => {
       // Verify structure of the first synset
       const synset = infoSynsets[0];
       expect(synset).toHaveProperty('id');
-      expect(synset).toHaveProperty('partOfSpeech');
+      expect(synset).toHaveProperty('pos');
       expect(synset).toHaveProperty('language');
       expect(synset).toHaveProperty('lexicon');
       expect(synset).toHaveProperty('definitions');
@@ -275,7 +275,7 @@ describe('End-to-End Integration Tests', () => {
         const word = results[0];
         expect(typeof word.id).toBe('string');
         expect(typeof word.lemma).toBe('string');
-        expect(typeof word.partOfSpeech).toBe('string');
+        expect(typeof word.pos).toBe('string');
         expect(typeof word.language).toBe('string');
         expect(typeof word.lexicon).toBe('string');
       }

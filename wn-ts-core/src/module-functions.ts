@@ -158,6 +158,7 @@ export async function synsets(
   pos?: PartOfSpeech
 ): Promise<Synset[]> {
   try {
+    // TODO: add ili support or lexicon filtering? i'm not sure if this is a thing
     return await client.synsets(form || '', pos);
   } catch (error) {
     if (error instanceof DatabaseError) {
