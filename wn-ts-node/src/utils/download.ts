@@ -14,7 +14,7 @@ export async function downloadFile(
   destination: string,
   options: DownloadOptions = {}
 ): Promise<void> {
-  const { timeout = 10000, progress } = options;
+  const { timeout = 60000, progress } = options;
   
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);

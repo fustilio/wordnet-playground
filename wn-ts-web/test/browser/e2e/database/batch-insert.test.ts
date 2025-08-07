@@ -53,7 +53,7 @@ describe.skipIf(isNode)('batchInsert E2E', () => {
     const testData = Array.from({ length: 10 }, (_, i) => ({
       id: `word-${i}`,
       lemma: `lemma-${i}`,
-      part_of_speech: 'n',
+      pos: 'n',
       language: 'en',
       lexicon: 'test-lexicon'
     }));
@@ -68,7 +68,7 @@ describe.skipIf(isNode)('batchInsert E2E', () => {
     const testData = Array.from({ length: 25 }, (_, i) => ({
       id: `word-${i}`,
       lemma: `lemma-${i}`,
-      part_of_speech: 'n',
+      pos: 'n',
       language: 'en',
       lexicon: 'test-lexicon'
     }));
@@ -89,7 +89,7 @@ describe.skipIf(isNode)('batchInsert E2E', () => {
     const initialData = [{
       id: `word-1`,
       lemma: `lemma-1`,
-      part_of_speech: 'n',
+      pos: 'n',
       language: 'en',
       lexicon: 'test-lexicon'
     }];
@@ -100,8 +100,8 @@ describe.skipIf(isNode)('batchInsert E2E', () => {
     expect(Number(countResult?.count)).toBe(1);
 
     const conflictData = [
-        { id: `word-1`, lemma: `lemma-1-conflict`, part_of_speech: 'v', language: 'en', lexicon: 'test-lexicon' },
-        { id: `word-2`, lemma: `lemma-2`, part_of_speech: 'n', language: 'en', lexicon: 'test-lexicon' }
+        { id: `word-1`, lemma: `lemma-1-conflict`, pos: 'v', language: 'en', lexicon: 'test-lexicon' },
+        { id: `word-2`, lemma: `lemma-2`, pos: 'n', language: 'en', lexicon: 'test-lexicon' }
     ];
 
     // Attempt to insert data with a conflict
@@ -114,6 +114,6 @@ describe.skipIf(isNode)('batchInsert E2E', () => {
     // Check that the conflicted row was not updated
     const word1 = await kyselyDb.selectFrom('words').selectAll().where('id', '=', 'word-1').executeTakeFirst();
     expect(word1?.lemma).toBe('lemma-1');
-    expect(word1?.part_of_speech).toBe('n');
+    expect(word1?.pos).toBe('n');
   });
 });

@@ -42,7 +42,7 @@ describe.skipIf(isNode)("WordNet E2E Tests", () => {
       const happyWord = words.find((w) => w.lemma === "happy");
       expect(happyWord).toBeDefined();
       expect(happyWord?.lemma).toBe("happy");
-      expect(happyWord?.partOfSpeech).toBe("a");
+      expect(happyWord?.pos).toBe("a");
       expect(happyWord?.lexicon).toBe("oewn");
     });
 
@@ -54,7 +54,7 @@ describe.skipIf(isNode)("WordNet E2E Tests", () => {
         s.definitions.some((d) => d.text.includes("happiness"))
       );
       expect(joySynset).toBeDefined();
-      expect(joySynset?.partOfSpeech).toBe("n");
+      expect(joySynset?.pos).toBe("n");
       expect(joySynset?.definitions.length).toBeGreaterThanOrEqual(1);
       
       const joyDefinition = joySynset?.definitions.find((d) => d.text.includes("happiness"));

@@ -741,7 +741,7 @@ async function exportToJSON(lexicons: unknown[]): Promise<string> {
         id: word.id,
         lemma: {
           writtenForm: word.lemma,
-          partOfSpeech: word.part_of_speech,
+          partOfSpeech: word.pos,
         },
         senses: [],
       };
@@ -763,7 +763,7 @@ async function exportToJSON(lexicons: unknown[]): Promise<string> {
     for (const synset of synsets as any[]) {
       const synsetData: any = {
         id: synset.id,
-        partOfSpeech: synset.part_of_speech,
+        partOfSpeech: synset.pos,
         ili: synset.ili,
         definition: '',
         examples: [],
@@ -810,7 +810,7 @@ async function exportToXML(lexicons: unknown[]): Promise<string> {
     // Get words for this lexicon
     const words = db.all('SELECT * FROM words WHERE lexicon = ?', [lexicon.id]);
     for (const word of words as any[]) {
-      xml += `    <word id="${word.id}" lemma="${word.lemma}" pos="${word.part_of_speech}">\n`;
+      xml += `    <word id="${word.id}" lemma="${word.lemma}" pos="${word.pos}">\n`;
 
       // Get forms for this word
       const forms = db.all('SELECT * FROM forms WHERE word_id = ?', [word.id]);
@@ -830,7 +830,7 @@ async function exportToXML(lexicons: unknown[]): Promise<string> {
     // Get synsets for this lexicon
     const synsets = db.all('SELECT * FROM synsets WHERE lexicon = ?', [lexicon.id]);
     for (const synset of synsets as any[]) {
-      xml += `    <synset id="${synset.id}" pos="${synset.part_of_speech}">\n`;
+      xml += `    <synset id="${synset.id}" pos="${synset.pos}">\n`;
 
       // Get definitions for this synset
       const definitions = db.all('SELECT * FROM definitions WHERE synset_id = ?', [
@@ -903,7 +903,7 @@ async function exportToCSV(lexicons: unknown[]): Promise<string> {
               : '';
 
           csvLines.push(
-            `word,${word.id},"${word.lemma}",${word.part_of_speech},${word.language},${word.lexicon},"${def}","${ex}"`
+            `word,${word.id},"${word.lemma}",${word.pos},${word.language},${word.lexicon},"${def}","${ex}"`
           );
         }
       }
