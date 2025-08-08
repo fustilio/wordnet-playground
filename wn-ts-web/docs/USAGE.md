@@ -6,17 +6,18 @@ This guide provides a comprehensive overview of how to install, configure, and u
 
 1.  [Installation](#installation)
 2.  [Quick Start](#quick-start)
-3.  [Core Concepts](#core-concepts)
-4.  [API Reference](#api-reference)
+3.  [React Integration](#react-integration)
+4.  [Core Concepts](#core-concepts)
+5.  [API Reference](#api-reference)
     -   [Initialization](#initialization)
     -   [Data Loading](#data-loading)
     -   [Querying Data](#querying-data)
     -   [Statistics & Data Quality](#statistics--data-quality)
-5.  [Advanced Usage](#advanced-usage)
+6.  [Advanced Usage](#advanced-usage)
     -   [Cross-Origin Isolation for OPFS](#cross-origin-isolation-for-opfs)
     -   [Loading a Custom Database](#loading-a-custom-database)
     -   [Error Handling](#error-handling)
-6.  [Browser Environment](#browser-environment)
+7.  [Browser Environment](#browser-environment)
 
 ---
 
@@ -67,6 +68,18 @@ async function main() {
 
 main();
 ```
+
+## React Integration
+
+For React-specific integration patterns, hooks, and component examples, see the dedicated [React Integration Guide](./REACT_INTEGRATION.md).
+
+The guide includes:
+- Custom React hooks for WordNet state management
+- Component examples with loading states and error handling
+- OPFS integration patterns for optimal performance
+- Server configuration for OPFS support
+- Advanced patterns like context providers and caching
+- Comprehensive error handling and loading states
 
 ## Core Concepts
 
@@ -250,3 +263,10 @@ try {
 -   **OPFS**: The Origin Private File System is used for persistent storage, which is much faster than IndexedDB for this use case.
 -   **In-Memory Fallback**: If OPFS is not available (e.g., due to missing headers or an older browser), the database runs entirely in memory.
 -   **Web Workers**: The library is designed to work efficiently with web workers, though direct worker management is handled internally.
+
+### Browser Compatibility
+
+- **Modern Browsers**: Chrome 88+, Firefox 85+, Safari 14+, Edge 88+
+- **OPFS Support**: Chrome 86+, Firefox 111+, Safari 16.4+, Edge 86+
+- **WebAssembly**: All modern browsers support WebAssembly
+- **Fallback**: The library gracefully falls back to in-memory storage when OPFS is not available
