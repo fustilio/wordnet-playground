@@ -8,23 +8,14 @@
     "dev": "vite",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "pnpm test:func && pnpm test:e2e",
-    "test:browser": "vitest --config=vitest.browser.config.ts --run",
-    "test:browser:watch": "vitest --config=vitest.browser.config.ts",
-    "test:e2e": "pnpm test:browser --no-file-parallelism tests/e2e",
-    "test:func": "pnpm test:browser --exclude \"**/e2e/*.test.ts\"",
-    "test:quick": "vitest --config=vitest.browser.config.ts --no-file-parallelism --reporter=verbose tests/e2e/BasicAppLoad.test.tsx --run",
-    "test:real-data": "vitest --config=vitest.browser.config.ts --no-file-parallelism --reporter=verbose tests/e2e/RealDataE2E.test.tsx --run",
-    "test:focus": "vitest --config=vitest.browser.config.ts --no-file-parallelism --reporter=verbose tests/e2e/RealDataE2E.test.tsx --run -t \"should load thousands of synsets from real WordNet data\"",
-    "test:parser": "vitest --config=vitest.browser.config.ts --no-file-parallelism --reporter=verbose tests/e2e/RealDataE2E.test.tsx --run -t \"should validate browser-compatible parser handles large XML files\"",
-    "test:debug": "vitest --config=vitest.browser.config.ts --no-file-parallelism --reporter=verbose --timeout=300000 tests/e2e/RealDataE2E.test.tsx --run",
-    "cypress": "start-server-and-test dev http://localhost:5173 cypress:open",
-    "cypress:run": "cypress run",
-    "cypress:open": "cypress open",
+    "test": "pnpm test:cypress",
     "test:cypress": "start-server-and-test dev http://localhost:5173 cypress:run --config-file cypress.wordnet.config.mjs",
     "test:cypress:all": "start-server-and-test dev http://localhost:5173 cypress:run",
     "test:cypress:wordnet": "start-server-and-test dev http://localhost:5173 cypress:run --config-file cypress.wordnet.config.mjs",
-    "test:cypress:examples": "start-server-and-test dev http://localhost:5173 cypress:run --spec cypress/e2e/1-getting-started/todo.cy.ts"
+    "test:cypress:examples": "start-server-and-test dev http://localhost:5173 cypress:run --spec cypress/e2e/1-getting-started/todo.cy.ts",
+    "cypress": "start-server-and-test dev http://localhost:5173 cypress:open",
+    "cypress:run": "cypress run",
+    "cypress:open": "cypress open"
   },
   "dependencies": {
     "@sqlite.org/sqlite-wasm": "catalog:",
@@ -42,18 +33,14 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
-    "@vitest/browser": "catalog:",
     "cypress": "^14.5.3",
     "eslint": "catalog:",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
-    "playwright": "^1.54.1",
     "start-server-and-test": "^2.0.13",
     "typescript": "catalog:",
     "typescript-eslint": "^8.35.1",
-    "vite": "catalog:",
-    "vitest": "catalog:",
-    "vitest-browser-react": "^1.0.1"
+    "vite": "catalog:"
   }
 }

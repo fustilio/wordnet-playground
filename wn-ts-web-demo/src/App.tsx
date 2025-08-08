@@ -3,7 +3,7 @@ import './index.css';
 
 import { useWordNet, useOPFS, useSearch, useStatistics } from './hooks';
 import { Tabs } from './components/shared';
-import { StatusWidget, StatisticsWidget, OPFSWidget } from './components/widgets';
+import { StatusWidget, StatisticsWidget, OPFSWidget, CacheWidget } from './components/widgets';
 import { BasicDemo, AdvancedDemo, DeveloperDemo } from './components/demos';
 
 
@@ -33,6 +33,7 @@ function App() {
             <StatusWidget {...wordnetState} />
             <StatisticsWidget stats={stats} />
             <OPFSWidget {...opfsState} />
+            <CacheWidget />
           </aside>
 
           <div className="lg:col-span-3">

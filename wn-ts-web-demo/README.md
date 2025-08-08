@@ -1,118 +1,188 @@
-# WordNet TypeScript Web Demo
+# WordNet TypeScript Demo
 
-An interactive browser demo for the `wn-ts` ecosystem, showcasing `wn-ts-web` with SQLite WASM, persistent storage via OPFS, and real-time data exploration.
+A comprehensive demonstration of the `wn-ts-web` library, showcasing browser-based WordNet functionality with real data loading, search capabilities, and OPFS storage with intelligent caching.
 
-## 🌟 Status: ✅ Fully Functional
+## Features
 
-This demo is a comprehensive showcase of `wn-ts-web` capabilities, featuring:
+- **Real WordNet Data**: Loads actual Open English WordNet (OEWN) 2024 data
+- **Browser-Based**: Runs entirely in the browser using WebAssembly SQLite
+- **OPFS Storage**: Uses Origin Private File System for persistent storage
+- **Intelligent Caching**: Caches WordNet databases locally to avoid repeated downloads
+- **Search Functionality**: Full-text search across words, senses, and synsets
+- **Statistics**: Real-time database statistics and data validation
+- **Developer Tools**: Advanced features for data management and debugging
 
-- ✅ **SQLite WASM Integration**: High-performance database operations in the browser.
-- ✅ **Persistent Storage**: Utilizes the Origin Private File System (OPFS) for data persistence.
-- ✅ **Real-time Statistics**: Live updates on system status, database statistics, and storage.
-- ✅ **Structured Demo Pages**:
-    - **Basic**: Simple interface for word, synset, and sense lookups.
-    - **Advanced**: Tools for loading WordNet packages and managing database import/export.
-    - **Developer**: Utilities for inspecting cache and managing OPFS storage.
-- ✅ **Modern UI**: Built with React and styled with Tailwind CSS for a responsive experience.
-- ✅ **CORS Proxy**: Built-in proxy for downloading external WordNet data during local development.
+## Quick Start
 
-## 🚀 Quick Start
+```bash
+# Install dependencies
+pnpm install
 
-1.  **Install dependencies**:
-    ```bash
-    pnpm install
-    ```
-2.  **Start the development server**:
-    ```bash
-    pnpm dev
-    ```
-3.  Open your browser to `http://localhost:5173`.
+# Start development server
+pnpm dev
 
-## ✨ Features
-
-The demo is organized into three main tabs, each offering a different level of interaction with the WordNet API.
-
-### Basic Demo
-A straightforward interface for new users to start exploring WordNet.
-- **Search**: Look up words, synsets, or senses.
-- **View Results**: See raw JSON output from the API.
-
-### Advanced Demo
-For users who want to manage WordNet data packages.
-- **Load Packages**: Dynamically load available WordNet projects (e.g., OEWN, CILI).
-- **Export Database**: Download the current SQLite database as a file.
-- **Import Database**: Load a previously exported `.db` file.
-
-### Developer Demo
-Tools for developers to inspect the inner workings of `wn-ts-web`.
-- **Cache Inspection**: View details about browser storage (`localStorage`, `sessionStorage`, `IndexedDB`).
-- **Data Management**: Clear all data from the database or OPFS.
-- **OPFS Snapshot**: Save the current database state to a new file in OPFS for testing.
-
-### Status Widgets
-On the side, you'll find real-time information about the system:
-- **System Status**: Tracks initialization, loading progress, and errors.
-- **Database Statistics**: Displays totals for words, synsets, and senses, plus part-of-speech distribution.
-- **OPFS Status**: Shows whether OPFS is supported and provides a breakdown of storage usage.
-
-## 🔧 Development
-
-### Scripts
-- `pnpm dev`: Start the development server.
-- `pnpm build`: Build the application for production.
-- `pnpm test`: Run the browser-based test suite.
-
-### Project Structure
-```
-wn-ts-web-demo/
-└── src/
-    ├── App.tsx             # Main application component and layout
-    ├── main.tsx            # Application entry point
-    ├── components/
-    │   ├── demos/          # Components for each demo tab (Basic, Advanced, etc.)
-    │   ├── shared/         # Reusable components (Card, Tabs)
-    │   └── widgets/        # Components for the status sidebar
-    ├── hooks/              # Custom React hooks for state management
-    └── utils/              # Utility functions
+# Run tests
+pnpm test
 ```
 
-## 🧪 Testing
-The demo includes comprehensive Cypress tests focused on **real WordNet data validation**, **search functionality**, and **CILI integration** rather than just UI elements.
+## Caching System
+
+### OPFS-Based Caching
+
+The demo implements intelligent caching using the Origin Private File System (OPFS):
+
+- **Automatic Caching**: WordNet databases are automatically cached after first download
+- **Cache-First Loading**: Subsequent loads check cache before downloading
+- **Persistent Storage**: Cached data persists across browser sessions
+- **Cache Management**: UI controls for viewing and managing cached data
+
+### Cache Benefits
+
+- **Faster Loading**: Cached databases load instantly on subsequent visits
+- **Reduced Network Usage**: No repeated downloads from proxy servers
+- **Offline Capability**: Works without internet after initial download
+- **Bandwidth Savings**: Especially beneficial for large WordNet databases
+
+### Cache Management
+
+The Cache Widget in the sidebar provides:
+- **Cache Status**: Shows OPFS support and storage usage
+- **Cached Packages**: Lists all cached WordNet databases
+- **Storage Information**: Total size and available space
+- **Management Controls**: Clear cache, remove specific packages
+
+## Testing
+
+This project uses **Cypress** for comprehensive end-to-end testing:
 
 ### Test Categories
-- **Data Loading & Statistics**: Validates actual WordNet data loading with real statistics (100k+ words, 100k+ synsets, 200k+ senses)
-- **WordNet Search**: Tests search functionality with multiple words ('run', 'happy', 'computer', 'book') and validates JSON structure
-- **CILI Integration**: Tests Collaborative Interlingual Index package loading and cross-lingual data access
-- **Package Management**: Validates OEWN 2024 and CILI 1.0 package loading and integration
+
+- **WordNet Demo Tests** (`cypress/e2e/wordnet-demo/`): Application-specific tests
+  - `app.cy.ts`: Basic application functionality and UI validation
+  - `data-loading.cy.ts`: Data loading, statistics validation, and search functionality
+
+- **Example Tests** (`cypress/e2e/1-getting-started/`, `cypress/e2e/2-advanced-examples/`): Cypress example tests for reference
 
 ### Running Tests
+
 ```bash
-# Run WordNet-specific tests (recommended)
+# Run all WordNet-specific tests (recommended)
 pnpm test:cypress
 
-# Run all Cypress tests (including examples)
+# Run all tests (including examples)
 pnpm test:cypress:all
 
-# Run example tests only
+# Run only WordNet demo tests
+pnpm test:cypress:wordnet
+
+# Run only example tests
 pnpm test:cypress:examples
+
+# Open Cypress UI
+pnpm cypress
 ```
 
 ### Test Features
-- **Comprehensive Logging**: Extensive use of `cy.log()` to track data loading, search results, and validation
-- **Real Data Validation**: Tests actual WordNet statistics and search results
-- **Edge Case Testing**: Empty searches, long words, network failures
-- **Performance Monitoring**: Tracks data loading times and search response performance
 
-For detailed testing methodology, see [TESTING_METHODOLOGY.md](./TESTING_METHODOLOGY.md).
+- **Real Data Validation**: Tests verify actual WordNet statistics and data integrity
+- **Search Functionality**: Comprehensive testing of word lookup and result validation
+- **OPFS Integration**: Tests browser storage capabilities and fallback behavior
+- **Cache Testing**: Validates caching functionality and performance
+- **Error Handling**: Robust error detection and recovery testing
+- **Performance**: Validates loading times and user experience
 
-## 🤝 Contributing
-Contributions are welcome! Please feel free to open an issue or submit a pull request.
+## Architecture
 
-1.  Fork the repository.
-2.  Create your feature branch (`git checkout -b feature/AmazingFeature`).
-3.  Commit your changes (`git commit -m 'Add some AmazingFeature'`).
-4.  Push to the branch (`git push origin feature/AmazingFeature`).
-5.  Open a Pull Request.
+### Core Components
 
-## 📄 License
-This project is licensed under the MIT License.
+- **WebWordnet**: Main WordNet query interface
+- **DataLoader**: Manages data downloading and loading
+- **WebDatabase**: SQLite WASM database wrapper
+- **OPFS Storage**: Browser-based persistent storage
+- **Cache System**: Intelligent caching with OPFS
+
+### Data Flow
+
+1. **Initialization**: Load SQLite WASM module
+2. **Cache Check**: Check for cached database in OPFS
+3. **Data Loading**: Load from cache or download and cache
+4. **Storage**: Persist data in OPFS for future use
+5. **Querying**: Execute searches and retrieve results
+6. **Statistics**: Generate real-time database metrics
+
+## Browser Compatibility
+
+- **Modern Browsers**: Chrome 88+, Firefox 85+, Safari 14+, Edge 88+
+- **OPFS Support**: Chrome 86+, Firefox 111+, Safari 16.4+, Edge 86+
+- **WebAssembly**: All modern browsers support WebAssembly
+- **Fallback**: Graceful degradation when features aren't supported
+
+## Development
+
+### Project Structure
+
+```
+wn-ts-web-demo/
+├── src/
+│   ├── components/          # React components
+│   ├── hooks/              # Custom React hooks
+│   ├── services/           # WordNet service layer
+│   └── App.tsx            # Main application
+├── cypress/
+│   ├── e2e/
+│   │   ├── wordnet-demo/   # Application-specific tests
+│   │   └── ...            # Cypress example tests
+│   └── support/           # Cypress support files
+└── docs/                  # Documentation
+```
+
+### Key Technologies
+
+- **React 19**: Modern React with hooks and functional components
+- **TypeScript**: Full type safety and development experience
+- **Tailwind CSS**: Utility-first styling
+- **Vite**: Fast development and build tooling
+- **Cypress**: End-to-end testing framework
+- **OPFS**: Origin Private File System for caching
+
+## Testing Methodology
+
+### Data-First Approach
+
+Tests prioritize real data validation over UI testing:
+
+1. **Statistics Validation**: Verify actual WordNet data counts
+2. **Search Validation**: Test real word lookup functionality
+3. **Data Integrity**: Ensure data consistency and relationships
+4. **Performance**: Validate loading times and user experience
+5. **Cache Validation**: Test caching functionality and performance
+
+### Test Categories
+
+- **Application Tests**: Basic UI and functionality validation
+- **Data Loading Tests**: Real WordNet data loading and statistics
+- **Search Tests**: Comprehensive search functionality validation
+- **Cache Tests**: OPFS caching functionality validation
+- **Integration Tests**: End-to-end workflow validation
+
+### Quality Assurance
+
+- **Real Data**: Tests use actual WordNet 2024 data
+- **Comprehensive Coverage**: All major features tested
+- **Error Handling**: Robust error detection and recovery
+- **Performance**: Validates acceptable loading times
+- **Cross-Browser**: Tests multiple browser environments
+- **Cache Performance**: Validates caching benefits
+
+## Contributing
+
+1. **Fork the repository**
+2. **Create a feature branch**
+3. **Make your changes**
+4. **Add tests for new functionality**
+5. **Run the test suite**: `pnpm test`
+6. **Submit a pull request**
+
+## License
+
+This project is part of the WordNet TypeScript ecosystem and follows the same licensing terms.
