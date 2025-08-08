@@ -5,7 +5,7 @@ import type { WordNetState } from '../../hooks/useWordNet';
 export const StatusWidget: React.FC<WordNetState> = ({ isInitializing, loading, error, progress, progressStage, loadedPackages }) => {
   return (
     <Card title="System Status">
-      <div className="space-y-4">
+      <div data-testid="system-status" className="space-y-4">
         <div>
           <p className="text-sm font-medium text-gray-500">Overall Status</p>
           {isInitializing ? (

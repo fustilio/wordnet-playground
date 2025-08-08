@@ -16,7 +16,7 @@ function formatBytes(bytes: number, decimals = 2) {
 export const OPFSWidget: React.FC<OPFSWidgetProps> = ({ isSupported, storageInfo }) => {
   return (
     <Card title="OPFS Status">
-      <div className="space-y-4 text-sm">
+      <div data-testid="opfs-status" className="space-y-4 text-sm">
         <div>
           <p className="font-medium text-gray-500">OPFS Support</p>
           <p className={isSupported ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>

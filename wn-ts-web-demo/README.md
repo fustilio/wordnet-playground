@@ -77,13 +77,33 @@ wn-ts-web-demo/
 ```
 
 ## 🧪 Testing
-The demo includes a comprehensive test suite using `vitest-browser-react` to ensure all components and hooks function correctly in a real browser environment.
+The demo includes comprehensive Cypress tests focused on **real WordNet data validation**, **search functionality**, and **CILI integration** rather than just UI elements.
 
+### Test Categories
+- **Data Loading & Statistics**: Validates actual WordNet data loading with real statistics (100k+ words, 100k+ synsets, 200k+ senses)
+- **WordNet Search**: Tests search functionality with multiple words ('run', 'happy', 'computer', 'book') and validates JSON structure
+- **CILI Integration**: Tests Collaborative Interlingual Index package loading and cross-lingual data access
+- **Package Management**: Validates OEWN 2024 and CILI 1.0 package loading and integration
+
+### Running Tests
 ```bash
-# Run all browser tests
-pnpm test
+# Run WordNet-specific tests (recommended)
+pnpm test:cypress
+
+# Run all Cypress tests (including examples)
+pnpm test:cypress:all
+
+# Run example tests only
+pnpm test:cypress:examples
 ```
-For more details, see [TESTING_METHODOLOGY.md](./TESTING_METHODOLOGY.md).
+
+### Test Features
+- **Comprehensive Logging**: Extensive use of `cy.log()` to track data loading, search results, and validation
+- **Real Data Validation**: Tests actual WordNet statistics and search results
+- **Edge Case Testing**: Empty searches, long words, network failures
+- **Performance Monitoring**: Tracks data loading times and search response performance
+
+For detailed testing methodology, see [TESTING_METHODOLOGY.md](./TESTING_METHODOLOGY.md).
 
 ## 🤝 Contributing
 Contributions are welcome! Please feel free to open an issue or submit a pull request.

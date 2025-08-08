@@ -9,7 +9,9 @@ export const StatisticsWidget: React.FC<StatisticsWidgetProps> = ({ stats }) => 
   if (!stats) {
     return (
       <Card title="Statistics">
-        <p className="text-sm text-gray-500">No statistics available. Load a lexicon to see statistics.</p>
+        <div data-testid="database-stats">
+          <p className="text-sm text-gray-500">No statistics available. Load a lexicon to see statistics.</p>
+        </div>
       </Card>
     );
   }
@@ -18,7 +20,7 @@ export const StatisticsWidget: React.FC<StatisticsWidgetProps> = ({ stats }) => 
 
   return (
     <Card title="Database Statistics">
-      <div className="space-y-4">
+      <div data-testid="database-stats" className="space-y-4">
         <div>
           <h3 className="text-md font-semibold text-gray-700">Totals</h3>
           <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
