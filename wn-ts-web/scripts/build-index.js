@@ -15,6 +15,7 @@ const __dirname = path.dirname(__filename);
 
 const INDEX_TOML_PATH = path.join(__dirname, '../../wn-ts-core/src/index.toml');
 const INDEX_JSON_PATH = path.join(__dirname, '../src/index.json');
+const INDEX_LOCAL_JSON_PATH = path.join(__dirname, '../src/index.local.json');
 
 function buildIndex() {
   try {
@@ -26,6 +27,17 @@ function buildIndex() {
     // Parse TOML to object
     const parsed = parse(tomlContent);
     
+    // Merge optional local overrides if present
+    if (fs.existsSync(INDEX_LOCAL_JSON_PATH)) {
+      console.log('➕ Merging local index overrides from', INDEX_LOCAL_JSON_PATH);
+      try {
+        const localJson = JSON.parse(fs.readFileSync(INDEX_LOCAL_JSON_PATH, 'utf8'));
+        Object.assign(parsed, localJson);
+      } catch (e) {
+        console.warn('⚠️ Failed to merge local index overrides:', e);
+      }
+    }
+
     // Convert to JSON with proper formatting
     const jsonContent = JSON.stringify(parsed, null, 2);
     

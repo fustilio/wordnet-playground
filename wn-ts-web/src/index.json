@@ -24,13 +24,13 @@
         "url": "https://en-word.net/static/english-wordnet-2021.xml.gz"
       },
       "2022": {
-        "url": "      https://en-word.net/static/english-wordnet-2022.xml.gz\r\n      https://github.com/globalwordnet/english-wordnet/releases/download/2022-edition/english-wordnet-2022.xml.gz\r\n    "
+        "url": "      https://en-word.net/static/english-wordnet-2022.xml.gz\n      https://github.com/globalwordnet/english-wordnet/releases/download/2022-edition/english-wordnet-2022.xml.gz\n    "
       },
       "2023": {
-        "url": "      https://en-word.net/static/english-wordnet-2023.xml.gz\r\n      https://github.com/globalwordnet/english-wordnet/releases/download/2023-edition/english-wordnet-2023.xml.gz\r\n    "
+        "url": "      https://en-word.net/static/english-wordnet-2023.xml.gz\n      https://github.com/globalwordnet/english-wordnet/releases/download/2023-edition/english-wordnet-2023.xml.gz\n    "
       },
       "2024": {
-        "url": "      https://en-word.net/static/english-wordnet-2024.xml.gz\r\n      https://github.com/globalwordnet/english-wordnet/releases/download/2024-edition/english-wordnet-2024.xml.gz\r\n    "
+        "url": "      https://en-word.net/static/english-wordnet-2024.xml.gz\n      https://github.com/globalwordnet/english-wordnet/releases/download/2024-edition/english-wordnet-2024.xml.gz\n    "
       }
     }
   },
@@ -548,5 +548,16 @@
   },
   "zsmwn": {
     "error": "'zsmwn:1.3+omw' is no longer indexed; use 'omw-zsm:1.4' instead (https://github.com/goodmami/wn#changes-to-the-index)"
+  },
+  "th-en-sample": {
+    "type": "bilingual",
+    "label": "Thai–English Sample Lexicon",
+    "language": "th",
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "versions": {
+      "1.0": {
+        "url": "http://localhost:5173/lexicons/th-en-sample.xml.gz"
+      }
+    }
   }
 }

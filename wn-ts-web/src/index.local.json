@@ -1,0 +1,13 @@
+{
+  "th-en-sample": {
+    "type": "bilingual",
+    "label": "Thai–English Sample Lexicon",
+    "language": "th",
+    "license": "https://creativecommons.org/licenses/by/4.0/",
+    "versions": {
+      "1.0": {
+        "url": "http://localhost:5173/lexicons/th-en-sample.xml.gz"
+      }
+    }
+  }
+}

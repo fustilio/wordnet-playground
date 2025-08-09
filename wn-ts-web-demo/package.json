@@ -18,7 +18,10 @@
     "test:cypress:wordnet": "start-server-and-test dev http://localhost:5173 cypress:run:wordnet",
     "test:cypress:wordnet:chrome": "start-server-and-test dev http://localhost:5173 cypress:run:wordnet:chrome",
     "test:cypress:examples": "start-server-and-test dev http://localhost:5173 \"cypress run --spec cypress/e2e/1-getting-started/todo.cy.ts\"",
-    "cypress": "start-server-and-test dev http://localhost:5173 cypress:open"
+    "cypress": "start-server-and-test dev http://localhost:5173 cypress:open",
+    "index:build": "pnpm -C ../wn-ts-web node scripts/build-index.js",
+    "lexicon:generate": "node scripts/generate-th-en-lexicon.cjs",
+    "test:cypress:local": "pnpm run index:build && pnpm run lexicon:generate && start-server-and-test dev http://localhost:5173 \"cypress run --spec cypress/e2e/wordnet-demo/local-lexicon.cy.ts\""
   },
   "dependencies": {
     "@sqlite.org/sqlite-wasm": "catalog:",
@@ -44,6 +47,7 @@
     "start-server-and-test": "^2.0.13",
     "typescript": "catalog:",
     "typescript-eslint": "^8.35.1",
-    "vite": "catalog:"
+    "vite": "catalog:",
+    "ts-node": "^10.9.2"
   }
 }
