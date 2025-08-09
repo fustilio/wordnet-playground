@@ -25,3 +25,6 @@ dist-ssr
 
 __screenshots__
 screenshots
+
+.cache
+.cache/proxy

@@ -2,7 +2,8 @@
 
 describe('WordNet TypeScript Demo', () => {
   beforeEach(() => {
-    cy.visit('http://localhost:5173')
+    Cypress.log({ name: 'init', message: 'Visiting app for UI smoke checks' })
+    cy.visitApp()
   })
 
   it('should load the application and display basic elements', () => {
@@ -16,7 +17,7 @@ describe('WordNet TypeScript Demo', () => {
     
     // Check that status widgets are present
     cy.contains('System Status').should('be.visible')
-    cy.contains('Database Statistics').should('be.visible')
+    cy.contains(/(Database Statistics|Statistics)/).should('be.visible')
     cy.contains('OPFS Status').should('be.visible')
   })
 

@@ -5,6 +5,7 @@ import { useWordNet, useOPFS, useSearch, useStatistics } from './hooks';
 import { Tabs } from './components/shared';
 import { StatusWidget, StatisticsWidget, OPFSWidget, CacheWidget } from './components/widgets';
 import { BasicDemo, AdvancedDemo, DeveloperDemo } from './components/demos';
+import { ExamplesPage } from './examples/ExamplesPage';
 
 
 function App() {
@@ -14,7 +15,7 @@ function App() {
   const searchState = useSearch(wordnetState.wordnet);
   const { stats } = useStatistics(wordnetState.wordnet);
 
-  const tabs = ['Basic', 'Advanced', 'Developer'];
+  const tabs = ['Basic', 'Advanced', 'Developer', 'Examples'];
 
   return (
     <div className="min-h-screen bg-gray-100 text-gray-800 font-sans">
@@ -42,6 +43,7 @@ function App() {
               {activeTab === 'Basic' && <BasicDemo {...wordnetState} {...searchState} />}
               {activeTab === 'Advanced' && <AdvancedDemo {...wordnetState} {...opfsState} />}
               {activeTab === 'Developer' && <DeveloperDemo {...wordnetState} {...opfsState} />}
+              {activeTab === 'Examples' && <ExamplesPage wordnetState={wordnetState} />}
             </div>
           </div>
         </div>

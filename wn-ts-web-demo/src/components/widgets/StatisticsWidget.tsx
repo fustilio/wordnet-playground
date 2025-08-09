@@ -8,7 +8,7 @@ interface StatisticsWidgetProps {
 export const StatisticsWidget: React.FC<StatisticsWidgetProps> = ({ stats }) => {
   if (!stats) {
     return (
-      <Card title="Statistics">
+      <Card title="Database Statistics">
         <div data-testid="database-stats">
           <p className="text-sm text-gray-500">No statistics available. Load a lexicon to see statistics.</p>
         </div>

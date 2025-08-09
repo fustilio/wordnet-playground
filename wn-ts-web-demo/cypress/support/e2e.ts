@@ -16,5 +16,12 @@
 // Import commands.ts using ES2015 syntax:
 import './commands'
 
-// Alternatively you can use CommonJS syntax:
-// require('./commands')
+// Global verbose network logging
+before(() => {
+  cy.intercept({ url: /\/api\// }).as('api')
+})
+
+beforeEach(() => {
+  cy.intercept('GET', /.*/).as('GET_ALL')
+  cy.intercept('POST', /.*/).as('POST_ALL')
+})

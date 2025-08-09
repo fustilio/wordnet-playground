@@ -9,13 +9,16 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "pnpm test:cypress",
-    "test:cypress": "start-server-and-test dev http://localhost:5173 cypress:run --config-file cypress.wordnet.config.mjs",
-    "test:cypress:all": "start-server-and-test dev http://localhost:5173 cypress:run",
-    "test:cypress:wordnet": "start-server-and-test dev http://localhost:5173 cypress:run --config-file cypress.wordnet.config.mjs",
-    "test:cypress:examples": "start-server-and-test dev http://localhost:5173 cypress:run --spec cypress/e2e/1-getting-started/todo.cy.ts",
-    "cypress": "start-server-and-test dev http://localhost:5173 cypress:open",
     "cypress:run": "cypress run",
-    "cypress:open": "cypress open"
+    "cypress:open": "cypress open",
+    "cypress:run:wordnet": "cypress run --config-file cypress.wordnet.config.mjs",
+    "cypress:run:wordnet:chrome": "cypress run --browser chrome --config-file cypress.wordnet.config.mjs",
+    "test:cypress": "start-server-and-test dev http://localhost:5173 cypress:run:wordnet",
+    "test:cypress:all": "start-server-and-test dev http://localhost:5173 cypress:run",
+    "test:cypress:wordnet": "start-server-and-test dev http://localhost:5173 cypress:run:wordnet",
+    "test:cypress:wordnet:chrome": "start-server-and-test dev http://localhost:5173 cypress:run:wordnet:chrome",
+    "test:cypress:examples": "start-server-and-test dev http://localhost:5173 \"cypress run --spec cypress/e2e/1-getting-started/todo.cy.ts\"",
+    "cypress": "start-server-and-test dev http://localhost:5173 cypress:open"
   },
   "dependencies": {
     "@sqlite.org/sqlite-wasm": "catalog:",

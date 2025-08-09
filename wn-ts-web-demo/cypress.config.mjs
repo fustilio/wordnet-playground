@@ -20,7 +20,21 @@ export default defineConfig({
 
   e2e: {
     setupNodeEvents(on, config) {
-      // implement node event listeners here
+      // Verbose task/status logging for headless mode
+      on('task', {
+        log(message) {
+          console.log('🧪 [task:log]', message)
+          return null
+        },
+        section(message) {
+          console.log('🧪 [section]', message)
+          return null
+        },
+        progress(payload) {
+          console.log('🧪 [progress]', payload)
+          return null
+        }
+      })
     },
     specPattern: 'cypress/e2e/wordnet-demo/*.cy.ts',
     // Ensure TypeScript support files are used

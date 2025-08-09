@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { ResultsSection } from '../components/ui/ResultsSection';
-import { WordNetStatistics } from '../components/widgets/WordNetStatistics';
-import { DataLoader } from '../components/features/DataLoader';
-import { DataManager } from '../components/features/DataManager';
+import { WordNetStatistics } from '../components/WordNetStatistics';
+import { DataLoader } from '../components/DataLoader';
+import { DataManager } from '../components/DataManager';
 
 interface BasicWordNetDemoProps {
   wordNetState: any;
