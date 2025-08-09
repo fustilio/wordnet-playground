@@ -60,7 +60,10 @@ describe('WordNet Data Loading', () => {
     
     // Test OEWN package loading (if possible)
     cy.log('Testing OEWN package loading')
-    cy.get('button').contains('Open English WordNet').then(($btn) => {
+    if (Cypress.env('SKIP_REAL_DATA')) {
+      Cypress.log({ name: 'info', message: 'SKIP_REAL_DATA set, skipping OEWN load' })
+    } else {
+      cy.get('button').contains('Open English WordNet').then(($btn) => {
       if (!$btn.prop('disabled')) {
         cy.log('OEWN button is enabled - attempting to load')
         cy.wrap($btn).click({ force: true })
@@ -76,10 +79,14 @@ describe('WordNet Data Loading', () => {
         cy.log('OEWN button is disabled - may already be loaded or in progress')
       }
     })
+    }
     
     // Test CILI package loading (if possible)
     cy.log('Testing CILI package loading')
-    cy.get('button').contains('Collaborative Interlingual Index').then(($btn) => {
+    if (Cypress.env('SKIP_REAL_DATA')) {
+      Cypress.log({ name: 'info', message: 'SKIP_REAL_DATA set, skipping CILI load' })
+    } else {
+      cy.get('button').contains('Collaborative Interlingual Index').then(($btn) => {
       if (!$btn.prop('disabled')) {
         cy.log('CILI button is enabled - attempting to load')
         cy.wrap($btn).click({ force: true })
@@ -95,6 +102,7 @@ describe('WordNet Data Loading', () => {
         cy.log('CILI button is disabled - may already be loaded or in progress')
       }
     })
+    }
     
     // Validate that packages can be accessed after loading
     cy.log('Validating package access after loading')
@@ -211,7 +219,9 @@ describe('WordNet Data Loading', () => {
     })
   })
 
-  it('should validate real WordNet data loading with strict statistics checks', () => {
+  it('should validate real WordNet data loading with strict statistics checks', function () {
+    if (Cypress.env('SKIP_REAL_DATA')) { this.skip() }
+    
     // First, ensure we have data loaded
     cy.goToTab('Advanced')
     cy.log('Navigating to Advanced tab to ensure data is loaded')
@@ -234,6 +244,11 @@ describe('WordNet Data Loading', () => {
           'System should be ready or loaded'
         )
       })
+    }
+    
+    if (Cypress.env('SKIP_REAL_DATA')) {
+      Cypress.log({ name: 'info', message: 'SKIP_REAL_DATA set, skipping strict OEWN load/validate' })
+      return
     }
     
     // Load OEWN if not already loaded
@@ -544,7 +559,9 @@ describe('WordNet Data Loading', () => {
     cy.contains('OPFS Operations').should('be.visible')
   })
 
-  it('should validate real WordNet search functionality with actual data validation', () => {
+  it('should validate real WordNet search functionality with actual data validation', function () {
+    if (Cypress.env('SKIP_REAL_DATA')) { this.skip() }
+    
     // First, ensure we have data loaded
     cy.goToTab('Advanced')
     cy.log('Navigating to Advanced tab to ensure data is loaded')
@@ -567,6 +584,11 @@ describe('WordNet Data Loading', () => {
           'System should be ready or loaded'
         )
       })
+    }
+    
+    if (Cypress.env('SKIP_REAL_DATA')) {
+      Cypress.log({ name: 'info', message: 'SKIP_REAL_DATA set, skipping strict OEWN load/validate (search section)' })
+      return
     }
     
     // Load OEWN if not already loaded

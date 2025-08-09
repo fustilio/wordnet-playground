@@ -112,7 +112,7 @@ context('Spies, Stubs, and Clock', () => {
 
     cy.stub(greeter, 'greet')
       .callThrough() // if you want non-matched calls to call the real method
-      .withArgs(Cypress.sinon.match.string).returns('Hi')
+      .withArgs(Cypress.sinon.match((s) => typeof s === 'string' && s.length > 0)).returns('Hi')
       .withArgs(Cypress.sinon.match.number).throws(new Error('Invalid name'))
 
     expect(greeter.greet('World')).to.equal('Hi')
