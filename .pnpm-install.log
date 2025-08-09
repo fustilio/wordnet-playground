@@ -1,0 +1,14 @@
+Scope: all 9 workspace projects
+Lockfile is up to date, resolution step is skipped
+Already up to date
+
+╭ Warning ─────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│   Ignored build scripts: @tailwindcss/oxide, better-sqlite3, cypress,        │
+│   esbuild, lzma-native, sqlite3, wndb-with-exceptions, wordpos.              │
+│   Run "pnpm approve-builds" to pick which dependencies should be allowed     │
+│   to run scripts.                                                            │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+Done in 664ms using pnpm v10.14.0
