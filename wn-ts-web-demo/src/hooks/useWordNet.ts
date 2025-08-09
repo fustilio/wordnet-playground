@@ -123,6 +123,57 @@ export function useWordNet(): WordNetState & {
           progressStage: 'Initializing cache...'
         }));
 
+        // Expose minimal demo API for tests and manual control
+        try {
+          if (typeof window !== 'undefined') {
+            // @ts-ignore
+            window.__wnDemo = {
+              loadProject: async (projectIdWithVersion: string) => {
+                try {
+                  setState(prev => ({ ...prev, loading: true, progressStage: `Loading ${projectIdWithVersion}...` }))
+                  await dataLoader.downloadAndLoad(projectIdWithVersion, {
+                    progress: (p: number) => {
+                      setState(prev => ({ ...prev, progress: p }))
+                    }
+                  } as any)
+                  const stats = await dataLoader.getStatistics()
+                  setState(prev => ({
+                    ...prev,
+                    statistics: {
+                      totalWords: stats.totalWords,
+                      totalSynsets: stats.totalSynsets,
+                      totalSenses: stats.totalSenses,
+                      totalRelations: 0,
+                      totalDefinitions: 0,
+                      languages: ['th','en'],
+                      partsOfSpeech: ['n','v','a','r'],
+                      dataSize: stats.totalWords * 100 + stats.totalSynsets * 200,
+                      lastUpdated: new Date().toISOString(),
+                      source: 'Database'
+                    },
+                    loadedPackages: Array.from(new Set([...(prev.loadedPackages||[]), projectIdWithVersion])),
+                    loading: false,
+                    progressStage: 'Ready'
+                  }))
+                  return true
+                } catch (e) {
+                  setState(prev => ({ ...prev, error: e instanceof Error ? e.message : String(e), loading: false }))
+                  return false
+                }
+              },
+              clear: async () => {
+                try {
+                  await dataLoader.clearAllData()
+                  setState(prev => ({ ...prev, loadedPackages: [], statistics: null }))
+                  return true
+                } catch (e) {
+                  return false
+                }
+              }
+            }
+          }
+        } catch {}
+
         // Initialize cache
         await cache.checkOPFSSupport();
         const cacheStats = cache.getCacheStats();
