@@ -28,3 +28,7 @@ screenshots
 
 .cache
 .cache/proxy
+
+# Generated lexicons (built by scripts)
+public/lexicons/th-en-sample.xml
+public/lexicons/th-en-sample.xml.gz
