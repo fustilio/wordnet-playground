@@ -32,3 +32,12 @@ screenshots
 # Generated lexicons (built by scripts)
 public/lexicons/th-en-sample.xml
 public/lexicons/th-en-sample.xml.gz
+
+# Runtime artifacts
+.dev.log
+.dev.pid
+.cypress-all.log
+.cypress-all.pid
+.nohup.out
+.nohup.pid
+.orchestrator.log
