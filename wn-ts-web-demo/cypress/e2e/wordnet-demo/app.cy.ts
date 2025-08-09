@@ -104,7 +104,7 @@ describe('WordNet TypeScript Demo', () => {
 
   it('should allow switching between tabs with proper content validation', () => {
     // Test Basic tab
-    cy.contains('Basic').click()
+    cy.goToTab('Basic')
     cy.contains('Basic WordNet Explorer').should('be.visible')
     
     // Validate Basic tab content structure
@@ -113,7 +113,7 @@ describe('WordNet TypeScript Demo', () => {
     cy.get('button').contains('Search').should('be.visible')
     
     // Test Advanced tab
-    cy.contains('Advanced').click()
+    cy.goToTab('Advanced')
     cy.contains('Advanced Data Management').should('be.visible')
     
     // Validate Advanced tab content structure
@@ -123,7 +123,7 @@ describe('WordNet TypeScript Demo', () => {
     cy.contains('Import Database').should('be.visible')
     
     // Test Developer tab
-    cy.contains('Developer').click()
+    cy.goToTab('Developer')
     cy.contains('Developer Tools').should('be.visible')
     
     // Validate Developer tab content structure
@@ -134,7 +134,7 @@ describe('WordNet TypeScript Demo', () => {
   })
 
   it('should have functional search in Basic tab with data validation', () => {
-    cy.contains('Basic').click()
+    cy.goToTab('Basic')
     
     // Check that search input is present
     cy.get('input[placeholder*="happy"]').should('be.visible')
@@ -164,7 +164,7 @@ describe('WordNet TypeScript Demo', () => {
   })
 
   it('should have package loading functionality in Advanced tab with validation', () => {
-    cy.contains('Advanced').click()
+    cy.goToTab('Advanced')
     
     // Check that package loading section is present
     cy.contains('Available Packages').should('be.visible')
@@ -183,7 +183,7 @@ describe('WordNet TypeScript Demo', () => {
   })
 
   it('should have developer tools in Developer tab with functionality validation', () => {
-    cy.contains('Developer').click()
+    cy.goToTab('Developer')
     
     // Check that cache inspection is present
     cy.contains('Inspect Cache').should('be.visible')

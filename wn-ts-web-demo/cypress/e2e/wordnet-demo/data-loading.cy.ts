@@ -131,7 +131,7 @@ describe('WordNet Data Loading', () => {
   })
 
   it('should have export and import functionality with proper validation', () => {
-    cy.contains('Advanced').click()
+    cy.goToTab('Advanced')
     
     // Check export functionality
     cy.contains('Export Database').should('be.visible')
@@ -213,7 +213,7 @@ describe('WordNet Data Loading', () => {
 
   it('should validate real WordNet data loading with strict statistics checks', () => {
     // First, ensure we have data loaded
-    cy.contains('Advanced').click()
+    cy.goToTab('Advanced')
     cy.log('Navigating to Advanced tab to ensure data is loaded')
     
     // Function to check if data is loaded
@@ -531,7 +531,7 @@ describe('WordNet Data Loading', () => {
     cy.contains('Available Packages').should('be.visible')
     cy.contains('Database Operations').should('be.visible')
     
-    cy.contains('Developer').click()
+    cy.goToTab('Developer')
     cy.contains('Developer Tools').should('be.visible')
     cy.contains('Cache & Storage').should('be.visible')
     cy.contains('OPFS Operations').should('be.visible')
@@ -539,7 +539,7 @@ describe('WordNet Data Loading', () => {
 
   it('should validate real WordNet search functionality with actual data validation', () => {
     // First, ensure we have data loaded
-    cy.contains('Advanced').click()
+    cy.goToTab('Advanced')
     cy.log('Navigating to Advanced tab to ensure data is loaded')
     
     // Function to check if data is loaded
@@ -581,14 +581,14 @@ describe('WordNet Data Loading', () => {
     })
     
     // Navigate to Basic tab for search testing
-    cy.contains('Basic').click()
+    cy.goToTab('Basic')
     cy.wait(3000) // Wait for tab switch
     
     // Ensure we're on the Basic tab
     cy.contains('Basic WordNet Explorer').should('be.visible')
     
     // Navigate to Basic tab for search testing
-    cy.contains('Basic').click()
+    cy.goToTab('Basic')
     cy.log('Navigated to Basic tab')
     
     // Known WordNet test cases with expected results

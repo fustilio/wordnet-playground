@@ -27,13 +27,13 @@ Cypress.Commands.add('getByTestId', (testId: string, options?: Partial<Cypress.L
 
 // Visit app
 Cypress.Commands.add('visitApp', () => {
-  cy.task('log', 'Visiting app at http://localhost:5173')
+  Cypress.log({ name: 'visitApp', message: 'Visiting app at http://localhost:5173' })
   cy.visit('http://localhost:5173')
 })
 
 // Wait for system ready
 Cypress.Commands.add('waitForSystemReady', (timeout = 20000) => {
-  cy.task('log', `Waiting for system ready (timeout=${timeout}ms)`) 
+  Cypress.log({ name: 'waitForSystemReady', message: `timeout=${timeout}ms` }) 
   cy.getByTestId('system-status', { timeout })
     .should(($status) => {
       const statusText = $status.text().toLowerCase()
@@ -46,7 +46,7 @@ Cypress.Commands.add('ensureWordNetLoaded', () => {
   cy.contains('Advanced').click()
   cy.get('button').contains('Open English WordNet').then(($btn) => {
     if (!$btn.prop('disabled')) {
-      cy.task('log', 'Loading OEWN via Advanced tab')
+      Cypress.log({ name: 'ensureWordNetLoaded', message: 'Loading OEWN via Advanced tab' })
       cy.wrap($btn).click()
       cy.waitForSystemReady()
     }
@@ -57,25 +57,29 @@ Cypress.Commands.add('ensureWordNetLoaded', () => {
 
 // Navigate tabs
 Cypress.Commands.add('goToTab', (name: string) => {
-  cy.task('log', `Navigating to tab: ${name}`)
+  Cypress.log({ name: 'goToTab', message: `Navigating to tab: ${name}` })
   // Wait for tabs to be visible and clickable
   cy.get('nav[aria-label="Tabs"]').should('be.visible')
   cy.contains('button', name).should('be.visible').click({ force: true })
-  cy.task('log', `Successfully clicked tab: ${name}`)
+  Cypress.log({ name: 'goToTab', message: `Clicked tab: ${name}` })
 })
 
 // Search helper
 Cypress.Commands.add('search', (term: string, tab: 'words' | 'synsets' | 'senses' = 'words') => {
   cy.get('input[placeholder*="happy"]').clear({ force: true }).type(term, { force: true })
-  cy.contains('Search').click()
-  cy.contains(tab).click()
-  return cy.get('pre')
+  cy.contains('Search').click({ force: true })
+  cy.contains(tab).click({ force: true })
+  // Wait for JSON-ish content to appear
+  return cy.get('pre', { timeout: 20000 }).should(($pre) => {
+    const text = $pre.text().trim()
+    // accept [] but prefer actual array content; ensure it's valid JSON
+    expect(text.startsWith('[')).to.eq(true)
+  })
 })
 
 // Section log helper
 Cypress.Commands.add('section', (message: string) => {
   Cypress.log({ name: 'section', message })
-  cy.task('section', message)
 })
 
 export {}
