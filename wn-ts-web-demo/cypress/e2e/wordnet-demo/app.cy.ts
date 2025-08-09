@@ -222,13 +222,13 @@ describe('WordNet TypeScript Demo', () => {
     })
     
     // Validate that all main sections are accessible
-    cy.contains('Basic').click()
+    cy.goToTab('Basic')
     cy.contains('Basic WordNet Explorer').should('be.visible')
     
-    cy.contains('Advanced').click()
+    cy.goToTab('Advanced')
     cy.contains('Advanced Data Management').should('be.visible')
     
-    cy.contains('Developer').click()
+    cy.goToTab('Developer')
     cy.contains('Developer Tools').should('be.visible')
   })
 })

@@ -32,7 +32,7 @@ pnpm install
 
 echo "[orchestrator] Launching dev server..."
 cd "$APP_DIR"
-(pnpm dev > "$DEV_LOG" 2>&1 & echo $! > "$APP_DIR/.dev.pid")
+export VITE_E2E=1; pnpm exec vite --port 5173 --strictPort > "$DEV_LOG" 2>&1 & echo $! > "$APP_DIR/.dev.pid"
 DEV_PID=$(cat "$APP_DIR/.dev.pid")
 echo "[orchestrator] Dev server PID: $DEV_PID"
 

@@ -47,7 +47,7 @@ export default defineConfig({
     }
   ],
   server: {
-    headers: {
+    headers: (process.env.VITE_E2E === '1') ? undefined : {
       "Cross-Origin-Opener-Policy": "same-origin",
       "Cross-Origin-Embedder-Policy": "require-corp",
     },
