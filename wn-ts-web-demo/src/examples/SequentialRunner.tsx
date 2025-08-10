@@ -121,29 +121,29 @@ export const SequentialRunner: React.FC<SequentialRunnerProps> = ({ wordnetState
       : 'text-gray-700 bg-gray-50 border-gray-200'
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="sequential-runner">
       <div className="flex gap-2">
-        <button onClick={runAll} disabled={isRunningAll} className="px-3 py-2 rounded bg-blue-600 text-white disabled:opacity-50">Run All</button>
-        <button onClick={reset} disabled={isRunningAll} className="px-3 py-2 rounded bg-gray-200 text-gray-800">Reset</button>
+        <button onClick={runAll} disabled={isRunningAll} className="px-3 py-2 rounded bg-blue-600 text-white disabled:opacity-50" data-testid="run-all">Run All</button>
+        <button onClick={reset} disabled={isRunningAll} className="px-3 py-2 rounded bg-gray-200 text-gray-800" data-testid="reset-runner">Reset</button>
       </div>
 
       <div className="space-y-3">
         {steps.map((s) => {
           const r = results[s.key] || { status: 'idle' as StepStatus }
           return (
-            <div key={s.key} className={`border rounded p-3 ${statusColor(r.status)}`}>
+            <div key={s.key} className={`border rounded p-3 ${statusColor(r.status)}`} data-testid={`step-${s.key}`}>
               <div className="flex items-center justify-between">
                 <div className="font-medium">{s.label}</div>
                 <div className="flex items-center gap-2 text-sm">
-                  {r.durationMs != null && <span>{r.durationMs.toFixed(1)}ms</span>}
-                  <button onClick={() => run(s.key, s.action)} disabled={isRunningAll || r.status === 'running'} className="px-2 py-1 rounded bg-white text-gray-800 border">Run</button>
+                  {r.durationMs != null && <span data-testid={`step-duration-${s.key}`}>{r.durationMs.toFixed(1)}ms</span>}
+                  <button onClick={() => run(s.key, s.action)} disabled={isRunningAll || r.status === 'running'} className="px-2 py-1 rounded bg-white text-gray-800 border" data-testid={`run-step-${s.key}`}>Run</button>
                 </div>
               </div>
               {r.error && (
-                <div className="mt-2 text-xs">Error: {r.error}</div>
+                <div className="mt-2 text-xs" data-testid={`step-error-${s.key}`}>Error: {r.error}</div>
               )}
               {typeof r.output !== 'undefined' && (
-                <pre className="mt-2 text-xs bg-white p-2 rounded overflow-auto max-h-60">{JSON.stringify(r.output as unknown, null, 2)}</pre>
+                <pre className="mt-2 text-xs bg-white p-2 rounded overflow-auto max-h-60" data-testid={`step-output-${s.key}`}>{JSON.stringify(r.output as unknown, null, 2)}</pre>
               )}
             </div>
           )

@@ -224,8 +224,10 @@ export const useOPFS = () => {
           tables: [] // TODO: Get actual table list from SQLite
         }));
 
+      // Per sqlite wasm OPFS docs, prefer navigator.storage.estimate() usage/quota as the source of truth
+      // for space usage, since not all OPFS files are necessarily visible or accounted for individually.
       const total = quota.quota;
-      const used = databases.reduce((sum: number, db: { name: string; size: number; lastModified: Date; tables: string[] }) => sum + db.size, 0);
+      const used = quota.usage; // use whole-origin usage as the best signal
       const available = Math.max(0, total - used);
 
       const duration = performance.now() - startTime;
