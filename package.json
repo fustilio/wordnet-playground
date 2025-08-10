@@ -46,7 +46,9 @@
     "dev": "pnpm --filter wn-cli... dev",
     "suite": "pnpm build && pnpm test"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "vite": "catalog:"
+  },
   "engines": {
     "node": ">=18.0.0"
   }
