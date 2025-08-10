@@ -7,7 +7,7 @@
     "build": "tsc -b && vite build",
     "cypress": "pnpm with-server \"pnpm run cypress:open\"",
     "cypress:open": "cypress open",
-    "cypress:run": "cypress run",
+    "cypress:run": "cross-env DEBUG='cypress:*' cypress run --headed",
     "dev": "vite --port 5173 --strictPort",
     "dev:e2e": "vite --port 5174 --strictPort",
     "index:build": "pnpm -C ../wn-ts-web node scripts/build-index.js",
