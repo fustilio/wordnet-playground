@@ -82,11 +82,7 @@ export const ExamplesPage: React.FC<ExamplesPageProps> = ({ wordnetState }) => {
       label: 'Sequential Runner',
       render: () => <SequentialRunner wordnetState={wordnetState as any} />
     },
-    {
-      id: 'info',
-      label: 'Data Info',
-      render: () => <DemoDataSection />
-    }
+    // Removed duplicate 'info' to avoid key conflicts
   ]
 
   const active = examples.find(e => e.id === selected)!

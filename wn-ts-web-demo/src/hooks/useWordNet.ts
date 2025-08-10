@@ -305,11 +305,15 @@ export function useWordNet(): WordNetState & {
           progress?.(p);
         });
         
-        if (cachedData) {
+        if (cachedData && cachedData.byteLength >= 100) {
           // Load the cached database
           await state.dataLoader.loadDbFromBuffer(cachedData, packageId);
           console.log(`✅ Loaded ${packageId} from cache successfully`);
         } else {
+          console.warn(`⚠️ Cache entry for ${packageId} is invalid or empty (${cachedData?.byteLength ?? 0} bytes). Falling back to download.`);
+          // Attempt to remove bad cache then proceed to download
+          try { await cache.removeFromCache(packageId); } catch {}
+          // Force the download path below
           throw new Error('Failed to load from cache');
         }
       } else {

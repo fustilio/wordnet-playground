@@ -189,7 +189,10 @@ export class DataLoader {
   ): Promise<void> {
     // This will replace the current DB with the one from the buffer
     await this.database.loadDatabase(new Uint8Array(data));
-
+    // Recreate Kysely connections after DB swap
+    try {
+      this.wordnet.refreshConnections();
+    } catch {}
     await this.insertLexicon(projectIdWithVersion);
   }
 

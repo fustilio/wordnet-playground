@@ -81,6 +81,15 @@ export class WebWordnet extends BaseWordnet {
   }
 
   /**
+   * Refresh Kysely connections after the underlying database handle changes
+   */
+  refreshConnections(): void {
+    const dialect = createSqliteWasmDialect(this.database.getDatabase());
+    this.kyselyDb = new Kysely<Database>({ dialect });
+    this.queryService = new KyselyQueryService(this.kyselyDb);
+  }
+
+  /**
    * Get the database instance (for internal use by DataLoader)
    */
   getDatabase(): WebDatabase {
