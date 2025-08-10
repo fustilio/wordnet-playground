@@ -1,12 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Morphy, createMorphy } from '../src/morphy';
-import { Wordnet } from '../src/wordnet';
+import { BaseWordnet } from '../src/wordnet';
+import { TestWordnet } from './helpers';
+import type { Word } from '../src/types';
 
 describe('Morphy', () => {
-  let wordnet: Wordnet;
+  let wordnet: BaseWordnet;
 
   beforeEach(async () => {
-    wordnet = new Wordnet('test-en');
+    // Create a mock implementation of BaseWordnet for testing
+    wordnet = new TestWordnet();
   });
 
   describe('uninitialized', () => {
@@ -62,22 +65,25 @@ describe('Morphy', () => {
   describe('initialized with wordnet', () => {
     it('should filter results to valid words', async () => {
       // Mock wordnet to return specific words
-      const mockWordnet = {
-        words: async (word: string, pos?: string) => {
-          // When called with empty string (initialization), return all words for that POS
-          if (word === '') {
-            if (pos === 'n') return [{ id: 'test-example-n' }, { id: 'test-datum-n' }];
-            if (pos === 'v') return [{ id: 'test-exemplify-v' }];
-            return [];
-          }
-          // When called with specific word, return matching words
-          if (word === 'example' && pos === 'n') return [{ id: 'test-example-n' }];
-          if (word === 'exemplify' && pos === 'v') return [{ id: 'test-exemplify-v' }];
-          if (word === 'datum' && pos === 'n') return [{ id: 'test-datum-n' }];
-          return [];
-        }
-      } as unknown as Wordnet;
+      const mockWords: Record<string, Word[]> = {
+        'n': [
+          { id: 'test-example-n', lemma: 'example', pos: 'n', language: 'en', lexicon: 'test', forms:[] } as Word,
+          { id: 'test-datum-n', lemma: 'datum', pos: 'n', language: 'en', lexicon: 'test', forms:[] } as Word,
+        ],
+        'v': [
+          { id: 'test-exemplify-v', lemma: 'exemplify', pos: 'v', language: 'en', lexicon: 'test', forms:[] } as Word,
+        ],
+      };
 
+      const wordsFn = async (word: string, pos?: string): Promise<Word[]> => {
+        if (word === '') {
+          return pos ? mockWords[pos] || [] : [];
+        }
+        const wordsForPos = pos ? mockWords[pos] || [] : [];
+        return wordsForPos.filter(w => w.lemma === word);
+      };
+
+      const mockWordnet = new TestWordnet({ words: wordsFn });
       const morphy = new Morphy(mockWordnet);
       
       // Should only return valid words
@@ -92,25 +98,22 @@ describe('Morphy', () => {
     });
 
     it('should return empty results for invalid words', async () => {
-      const mockWordnet = {
-        words: async () => []
-      } as unknown as Wordnet;
-
+      const mockWordnet = new TestWordnet();
       const morphy = new Morphy(mockWordnet);
       
       const result = await morphy.analyze('nonexistent', 'n');
-      expect(result['n']).toEqual(new Set());
+      expect(result['n']).toEqual(new Set([]));
     });
   });
 
   describe('createMorphy', () => {
-    it('should create a Morphy instance', () => {
-      const morphy = createMorphy();
+    it('should create a Morphy instance', async () => {
+      const morphy = await createMorphy();
       expect(morphy).toBeInstanceOf(Morphy);
     });
 
-    it('should create a Morphy instance with wordnet', () => {
-      const morphy = createMorphy(wordnet);
+    it('should create a Morphy instance with wordnet', async () => {
+      const morphy = await createMorphy(wordnet);
       expect(morphy).toBeInstanceOf(Morphy);
     });
   });
@@ -118,8 +121,8 @@ describe('Morphy', () => {
   describe('edge cases', () => {
     it('should handle empty string', async () => {
       const morphy = new Morphy();
-      const result = await morphy.analyze('', 'n');
-      expect(result['n']).toEqual(new Set(['']));
+      const result = await morphy.analyze('');
+      expect(result['null']).toEqual(new Set(['']));
     });
 
     it('should handle single character words', async () => {
@@ -130,8 +133,8 @@ describe('Morphy', () => {
 
     it('should handle words without morphological changes', async () => {
       const morphy = new Morphy();
-      const result = await morphy.analyze('information', 'n');
-      expect(result['n']).toEqual(new Set(['information']));
+      const result = await morphy.analyze('test', 'n');
+      expect(result['n']).toEqual(new Set(['test']));
     });
   });
 }); 

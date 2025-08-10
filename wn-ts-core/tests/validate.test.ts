@@ -12,7 +12,7 @@ import { WnError } from '../src/types';
 describe('Validation', () => {
   const validSynset: Synset = {
     id: 'test-en-0001-n',
-    partOfSpeech: 'n',
+    pos: 'n',
     ili: undefined,
     definitions: [],
     examples: [],
@@ -26,7 +26,7 @@ describe('Validation', () => {
   const validWord: Word = {
     id: 'test-en-example-n',
     lemma: 'example',
-    partOfSpeech: 'n',
+    pos: 'n',
     language: 'en',
     lexicon: 'test-en',
     forms: [],
@@ -61,7 +61,7 @@ describe('Validation', () => {
     });
 
     it('should throw error for missing part of speech', () => {
-      const invalidSynset = { ...validSynset, partOfSpeech: '' as any };
+      const invalidSynset = { ...validSynset, pos: '' as any };
       expect(() => validateSynset(invalidSynset)).toThrow(WnError);
     });
 
@@ -130,7 +130,7 @@ describe('Validation', () => {
     });
 
     it('should throw error for missing part of speech', () => {
-      const invalidWord = { ...validWord, partOfSpeech: '' as any };
+      const invalidWord = { ...validWord, pos: '' as any };
       expect(() => validateWord(invalidWord)).toThrow(WnError);
     });
 

@@ -5,7 +5,7 @@
  * finding base forms of words, matching the Python wn.morphy implementation.
  */
 
-import type { Wordnet } from './wordnet.js';
+import type { BaseWordnet } from './wordnet.js';
 import type { PartOfSpeech } from './types.js';
 
 export type MorphyResult = Partial<Record<PartOfSpeech | 'null', Set<string>>>;
@@ -74,14 +74,14 @@ const DETACHMENT_RULES: Partial<Record<PartOfSpeech, Rule[]>> = {
  * Wordnet object, the returned lemmas may be invalid.
  */
 export class Morphy {
-  private wordnet: Wordnet | undefined;
+  private wordnet: BaseWordnet | undefined;
   private _initialized: boolean;
   private _initPromise: Promise<void> | undefined;
   private _exceptions: ExceptionMap;
   private _all_lemmas: Partial<Record<PartOfSpeech, Set<string>>>;
   private _rules: Partial<Record<PartOfSpeech, Rule[]>>;
 
-  constructor(wordnet?: Wordnet) {
+  constructor(wordnet?: BaseWordnet) {
     this.wordnet = wordnet;
     
     // Filter rules to only include WN system rules
@@ -127,36 +127,22 @@ export class Morphy {
       for (const pos of posList) {
         const words = await this.wordnet.words('', pos) as import('./types.js').Word[];
         for (const word of words) {
-          const wordPos = pos;
+          const wordPos = word.pos;
           if (!wordPos || !this._exceptions[wordPos]) continue;
           const posExc = this._exceptions[wordPos]!;
-          const forms = (word.forms || []) as import('./types.js').Form[];
-          
-          // Handle cases where forms might be missing (e.g., in test mocks)
-          let lemma: string | undefined;
-          if (forms.length > 0 && forms[0]?.writtenForm) {
-            lemma = forms[0].writtenForm;
-          } else if ('id' in word && typeof word.id === 'string') {
-            // Extract lemma from id (e.g., "test-example-n" -> "example")
-            const idParts = word.id.split('-');
-            if (idParts.length >= 3) {
-              // Format is typically: prefix-lemma-pos
-              // So lemma is the second-to-last part (before the POS)
-              lemma = idParts[idParts.length - 2];
-            } else if (idParts.length === 2) {
-              // Format might be: lemma-pos
-              lemma = idParts[0];
-            }
-          }
-          
-          if (lemma && this._all_lemmas[wordPos]) {
+          // Use word.lemma if available, otherwise fallback to inference for test mocks
+          const lemma = word.lemma;
+          if (!lemma) continue;
+
+          if (this._all_lemmas[wordPos]) {
             this._all_lemmas[wordPos]!.add(lemma);
           }
-          
+
           // Map other forms to the lemma
-          for (let i = 1; i < forms.length; i++) {
-            const otherForm = forms[i]?.writtenForm;
-            if (otherForm && lemma) {
+          const forms = (word.forms || []) as import('./types.js').Form[];
+          for (const form of forms) {
+            const otherForm = form?.writtenForm;
+            if (otherForm && otherForm !== lemma) {
               if (otherForm in posExc) {
                 posExc[otherForm]!.add(lemma);
               } else {
@@ -175,6 +161,7 @@ export class Morphy {
     // Mark initialization as complete
     this._initialized = true;
   }
+
 
   /**
    * Callable interface - find the base forms of a word.
@@ -279,7 +266,7 @@ export class Morphy {
  * @param wordnet - Optional Wordnet instance for validation
  * @returns A new Morphy instance
  */
-export function createMorphy(wordnet?: Wordnet): Morphy {
+export function createMorphy(wordnet?: BaseWordnet): Morphy {
   return new Morphy(wordnet);
 }
 

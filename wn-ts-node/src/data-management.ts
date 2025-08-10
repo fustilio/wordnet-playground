@@ -2,19 +2,18 @@ import { join } from 'path';
 import { existsSync } from 'fs';
 import { config } from './config.js';
 import { db } from './db/database.js';
-import { downloadFile } from 'wn-ts-core';
-import { loadLMF, isLMF } from 'wn-ts-core';
-import { getProjectVersionUrls, getProjectVersionError } from 'wn-ts-core';
-import type { DownloadOptions, AddOptions, ExportOptions } from 'wn-ts-core';
-import { ProjectError, DatabaseError } from 'wn-ts-core';
+import { downloadFile } from './utils/download.js';
+import { loadLMF, isLMF } from './lmf.js';
+import { getProjectVersionUrls, getProjectVersionError } from './project.js';
+import type { DownloadOptions, AddOptions, ExportOptions, IliRecord } from 'wn-ts-core';
+import { ProjectError, DatabaseError, logger } from 'wn-ts-core';
 import {
   extractTarArchive,
   findLMFiles,
   decompressXz,
   decompressGz,
-} from 'wn-ts-core';
-import { isILI, loadILI } from 'wn-ts-core';
-import { logger } from 'wn-ts-core';
+} from './utils/archive.js';
+import { loadILI, isILI } from './ili.js';
 import { batchInsert } from './db/batch-insert.js';
 
 /**
@@ -65,7 +64,7 @@ export async function download(
       await downloadFile(
         url,
         destination,
-        progress ? { onProgress: progress } : undefined
+        progress ? { progress: progress } : undefined
       );
       logger.success(`Successfully downloaded to ${destination}`);
       return destination;
@@ -144,7 +143,7 @@ async function _addIli(
 ): Promise<boolean> {
   const { progress, dryRun = false } = options;
   logger.info(`Loading ILI file: ${path}...`);
-  const iliData = await loadILI(path);
+  const iliData: IliRecord[] = await loadILI(path);
   logger.success(`ILI file loaded. Found ${iliData.length} records.`);
   if (progress) progress(0.5);
 
@@ -154,8 +153,8 @@ async function _addIli(
     return false;
   }
 
-  const records = iliData.map(record => [
-    record.ili,
+  const records = iliData.map((record: IliRecord) => [
+    record.id,
     record.definition || null,
     record.status,
     null, // superseded_by
@@ -396,13 +395,13 @@ async function _addLmf(
       const wordData = (lmfData.words || []).map(word => [
         word.id,
         word.lemma,
-        word.partOfSpeech,
+        word.pos,
         word.language,
         word.lexicon,
       ]);
       batchInsert(
         'words',
-        ['id', 'lemma', 'part_of_speech', 'language', 'lexicon'],
+        ['id', 'lemma', 'pos', 'language', 'lexicon'],
         wordData,
         p => {
           progress?.(0.1 + p * 0.2); // 0.1-0.3
@@ -436,13 +435,13 @@ async function _addLmf(
       const synsetData = (lmfData.synsets || []).map(synset => [
         synset.id,
         (synset as any).ili,
-        synset.partOfSpeech,
+        synset.pos,
         synset.language,
         synset.lexicon,
       ]);
       batchInsert(
         'synsets',
-        ['id', 'ili', 'part_of_speech', 'language', 'lexicon'],
+        ['id', 'ili', 'pos', 'language', 'lexicon'],
         synsetData,
         p => {
           progress?.(0.4 + p * 0.1); // 0.4-0.5
@@ -742,7 +741,7 @@ async function exportToJSON(lexicons: unknown[]): Promise<string> {
         id: word.id,
         lemma: {
           writtenForm: word.lemma,
-          partOfSpeech: word.part_of_speech,
+          partOfSpeech: word.pos,
         },
         senses: [],
       };
@@ -764,7 +763,7 @@ async function exportToJSON(lexicons: unknown[]): Promise<string> {
     for (const synset of synsets as any[]) {
       const synsetData: any = {
         id: synset.id,
-        partOfSpeech: synset.part_of_speech,
+        partOfSpeech: synset.pos,
         ili: synset.ili,
         definition: '',
         examples: [],
@@ -811,7 +810,7 @@ async function exportToXML(lexicons: unknown[]): Promise<string> {
     // Get words for this lexicon
     const words = db.all('SELECT * FROM words WHERE lexicon = ?', [lexicon.id]);
     for (const word of words as any[]) {
-      xml += `    <word id="${word.id}" lemma="${word.lemma}" pos="${word.part_of_speech}">\n`;
+      xml += `    <word id="${word.id}" lemma="${word.lemma}" pos="${word.pos}">\n`;
 
       // Get forms for this word
       const forms = db.all('SELECT * FROM forms WHERE word_id = ?', [word.id]);
@@ -831,7 +830,7 @@ async function exportToXML(lexicons: unknown[]): Promise<string> {
     // Get synsets for this lexicon
     const synsets = db.all('SELECT * FROM synsets WHERE lexicon = ?', [lexicon.id]);
     for (const synset of synsets as any[]) {
-      xml += `    <synset id="${synset.id}" pos="${synset.part_of_speech}">\n`;
+      xml += `    <synset id="${synset.id}" pos="${synset.pos}">\n`;
 
       // Get definitions for this synset
       const definitions = db.all('SELECT * FROM definitions WHERE synset_id = ?', [
@@ -904,7 +903,7 @@ async function exportToCSV(lexicons: unknown[]): Promise<string> {
               : '';
 
           csvLines.push(
-            `word,${word.id},"${word.lemma}",${word.part_of_speech},${word.language},${word.lexicon},"${def}","${ex}"`
+            `word,${word.id},"${word.lemma}",${word.pos},${word.language},${word.lexicon},"${def}","${ex}"`
           );
         }
       }
@@ -922,4 +921,68 @@ export async function addLexicalResource(
   options: AddOptions & { dryRun?: boolean } = {}
 ): Promise<boolean> {
   return add(path, options);
+}
+
+/**
+ * Load and parse a lexical resource file
+ * This function is environment-agnostic and returns parsed data
+ */
+export async function loadLexicalResource(
+  path: string,
+  options: { progress?: (progress: number) => void, parser?: string } = {}
+): Promise<{ type: 'lmf' | 'ili', data: any }> {
+  const { progress, parser = "" } = options;
+  if (progress) progress(0.1); // Initialize progress
+
+  if (!existsSync(path)) {
+    throw new ProjectError(`File not found: ${path}`);
+  }
+
+  try {
+    let processedPath = path;
+
+    if (path.endsWith('.tar.xz') || path.endsWith('.tar.gz')) {
+      logger.extract(`Extracting archive: ${path}...`);
+      const extractedPath = await extractTarArchive(path);
+      logger.success(`Extracted to: ${extractedPath}`);
+      const lmfFiles = await findLMFiles(extractedPath);
+      if (lmfFiles.length === 0) {
+        throw new ProjectError(`No LMF files found in extracted archive: ${path}`);
+      }
+      processedPath = lmfFiles[0] || '';
+    } else if (path.endsWith('.xz')) {
+      logger.extract(`Decompressing file: ${path}...`);
+      const decompressedPath = path.slice(0, -3);
+      await decompressXz(path, decompressedPath);
+      processedPath = decompressedPath;
+    } else if (path.endsWith('.gz')) {
+      logger.extract(`Decompressing file: ${path}...`);
+      const decompressedPath = path.slice(0, -3);
+      await decompressGz(path, decompressedPath);
+      processedPath = decompressedPath;
+    }
+
+    const isLmfFile = await isLMF(processedPath);
+    const isIliFile = !isLmfFile && (await isILI(processedPath));
+
+    if (isLmfFile) {
+      const lmfOptions: any = { debug: false };
+      if (parser) lmfOptions.parser = parser;
+      if (progress) lmfOptions.progress = progress;
+      const lmfData = await loadLMF(processedPath, lmfOptions);
+      return { type: 'lmf', data: lmfData };
+    } else if (isIliFile) {
+      const iliData = await loadILI(processedPath);
+      return { type: 'ili', data: iliData };
+    } else {
+      throw new ProjectError(`File is not a valid LMF or ILI file: ${processedPath}`);
+    }
+  } catch (error) {
+    if (error instanceof ProjectError) {
+      throw error;
+    }
+    throw new ProjectError(
+      `Failed to load lexical resource: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
 }

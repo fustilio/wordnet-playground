@@ -96,12 +96,15 @@ export function isDatabaseLocked(): boolean {
   return false;
 }
 
+// Browser environment check
+const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
+
 // Gracefully close the database on process exit or unhandled errors
 const gracefulShutdown = () => {
   try {
     db.close();
     // On Windows, add a short delay to help release file handles
-    if (process.platform === 'win32') {
+    if (isNode && process.platform === 'win32') {
       const waitUntil = Date.now() + 200;
       while (Date.now() < waitUntil) {}
     }
@@ -111,8 +114,11 @@ const gracefulShutdown = () => {
 };
 
 // These handlers help avoid persistent DB locks if the process is interrupted or crashes.
-process.on('exit', gracefulShutdown);
-process.on('SIGINT', () => { gracefulShutdown(); process.exit(0); });
-process.on('SIGTERM', () => { gracefulShutdown(); process.exit(0); });
-process.on('uncaughtException', (err) => { gracefulShutdown(); throw err; });
-process.on('unhandledRejection', (reason) => { gracefulShutdown(); throw reason; });
+// Only register in Node.js environment
+if (isNode) {
+  process.on('exit', gracefulShutdown);
+  process.on('SIGINT', () => { gracefulShutdown(); process.exit(0); });
+  process.on('SIGTERM', () => { gracefulShutdown(); process.exit(0); });
+  process.on('uncaughtException', (err) => { gracefulShutdown(); throw err; });
+  process.on('unhandledRejection', (reason) => { gracefulShutdown(); throw reason; });
+}

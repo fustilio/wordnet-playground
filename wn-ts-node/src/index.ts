@@ -49,10 +49,6 @@ export {
 } from 'wn-ts-core';
 export type { ProjectIndex, ProjectVersion } from 'wn-ts-core';
 
-// Browser data generation tool
-export { makeBrowserData } from './browser-data.js';
-export type { MakeBrowserDataOptions } from './browser-data.js';
-
 // Types and interfaces
 export type {
   Word,
@@ -86,13 +82,14 @@ export {
 
 // LMF Parsers module
 export {
-  loadLMF,
   parseLMFXML,
-  isLMF,
   createMinimalLMF,
-  type LMFDocument,
-  type LMFLoadOptions,
 } from 'wn-ts-core';
+export {
+  loadLMF,
+  isLMF,
+} from './lmf.js';
+export type { LMFDocument, LMFLoadOptions } from 'wn-ts-core';
 
 // Database exports
 export * from './db/database.js';

@@ -48,7 +48,7 @@
     "node-wordnet": "https://github.com/morungos/wordnet#develop",
     "vitest": "catalog:",
     "wn-pybridge": "workspace:*",
-    "wn-ts": "workspace:*",
+    "wn-ts-node": "workspace:*",
     "wndb-with-exceptions": "^3.0.2",
     "wordnet": "^2.0.0",
     "wordpos": "^2.1.0",

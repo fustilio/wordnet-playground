@@ -53,7 +53,7 @@ export class DatabaseManager {
       CREATE TABLE IF NOT EXISTS words (
         id TEXT PRIMARY KEY,
         lemma TEXT NOT NULL,
-        part_of_speech TEXT NOT NULL,
+        pos TEXT NOT NULL,
         language TEXT NOT NULL,
         lexicon TEXT NOT NULL,
         FOREIGN KEY (lexicon) REFERENCES lexicons (id) ON DELETE CASCADE
@@ -71,7 +71,7 @@ export class DatabaseManager {
       CREATE TABLE IF NOT EXISTS synsets (
         id TEXT PRIMARY KEY,
         ili TEXT,
-        part_of_speech TEXT NOT NULL,
+        pos TEXT NOT NULL,
         language TEXT NOT NULL,
         lexicon TEXT NOT NULL,
         FOREIGN KEY (lexicon) REFERENCES lexicons (id) ON DELETE CASCADE

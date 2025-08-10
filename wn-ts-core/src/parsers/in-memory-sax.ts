@@ -1,12 +1,51 @@
 /**
  * In-memory SAX parser that loads the entire file into memory
  * 
- * This parser loads the complete XML file into memory before parsing.
- * It's faster than streaming for small files but uses more memory.
+ * This parser loads the entire XML file into memory before parsing.
+ * It's useful for smaller files or when you need to parse the same file multiple times.
  */
 
-import { readFile } from 'fs/promises';
-import sax from 'sax';
+// Browser environment check
+const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
+
+// Browser-compatible stubs
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const browserReadFile = async (_path: string, _encoding?: string) => {
+  throw new Error('File system operations not available in browser environment');
+};
+
+const browserSax = {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  parser: (_strict: boolean, _options?: any) => {
+    return {
+      onopentag: () => {},
+      onend: () => {},
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      onerror: (_error: any) => {},
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      write: (_content: string) => ({ close: () => {} })
+    };
+  }
+};
+
+// Use browser stubs by default, will be overridden in Node.js
+let readFile = browserReadFile;
+let sax = browserSax;
+
+// Initialize Node.js functions if available
+if (isNode) {
+  try {
+    const fsPromises = require('fs/promises');
+    const saxModule = require('sax');
+    
+    readFile = fsPromises.readFile;
+    sax = saxModule;
+  } catch (e) {
+    // Fall back to browser stubs if Node.js modules fail to load
+    console.warn('Failed to load Node.js modules, using browser stubs');
+  }
+}
+
 import type { LMFParser } from './base.js';
 import type { LMFDocument, LMFLoadOptions } from '../lmf.js';
 

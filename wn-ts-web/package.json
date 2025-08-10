@@ -1,6 +1,6 @@
 {
   "name": "wn-ts-web",
-  "version": "0.3.1",
+  "version": "0.5.0",
   "description": "Browser/web distribution and interactive demo for wn-ts. Implements the node-to-browser strategy for WordNet access in the browser, following the approach of wordpos/wordpos-web.",
   "keywords": [
     "wordnet",
@@ -17,44 +17,74 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/fustilio/wordnet-playground.git",
-    "directory": "wn-ts"
+    "directory": "wn-ts-web"
   },
   "license": "MIT",
   "author": "fustilio",
   "type": "module",
-  "browser": "dist/wn-ts.min.js",
-  "files": [
-    "dist/",
-    "demo/",
-    "data/",
-    "README.md"
-  ],
+  "main": "./dist/wn-ts-web.mjs",
+  "types": "./dist/wn-ts-web.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/wn-ts-web.d.ts",
+      "import": "./dist/wn-ts-web.mjs",
+      "default": "./dist/wn-ts-web.mjs"
+    }
+  },
   "scripts": {
-    "cli": "wn-cli",
-    "cli:reset": "wn-cli config force-reset",
-    "build:data": "wn-cli browser prep --lexicon oewn:2024 --outDir ./data",
-    "build": "pnpm run build:data",
+    "build": "vite build",
+    "build:watch": "vite build --watch",
     "clean": "rimraf dist",
-    "demo": "vite --open demo/",
-    "dev": "vite",
-    "preview": "vite preview"
+    "dev": "vite build --watch",
+    "bench": "npx --node-options=--max-old-space-size=16384 vitest --config=vitest.e2e.config.ts bench --run",
+    "test": "pnpm test:node && pnpm test:browser && pnpm test:e2e",
+    "test:browser": "npx --node-options=--max-old-space-size=16384 vitest --config=vitest.browser.config.ts --run",
+    "test:browser:opfs": "npx --node-options=--max-old-space-size=8192 vitest --config=vitest.browser.config.ts --run test/browser/opfs-manager.test.ts",
+    "test:browser:sqlite": "npx --node-options=--max-old-space-size=8192 vitest --config=vitest.browser.config.ts --run test/browser/sqlite-wasm-browser.test.ts",
+    "test:browser:watch": "vitest --config=vitest.browser.config.ts",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "npx --node-options=--max-old-space-size=16384 vitest --config=vitest.e2e.config.ts --run",
+    "test:e2e:batch-insert": "npx --node-options=--max-old-space-size=8192 vitest --config=vitest.e2e.config.ts --run batch-insert",
+    "test:node": "npx --node-options=--max-old-space-size=16384 vitest run",
+    "test:node:all": "npx --node-options=--max-old-space-size=16384 vitest run",
+    "test:node:core": "npx --node-options=--max-old-space-size=8192 vitest run test/factory.test.ts test/kysely-integration.test.ts test/demo-utils.test.ts test/web-database-simple.test.ts",
+    "test:node:fast": "npx --node-options=--max-old-space-size=8192 vitest run test/factory.test.ts test/kysely-integration.test.ts test/demo-utils.test.ts",
+    "test:ui": "vitest --ui",
+    "test:watch": "vitest",
+    "type-check": "tsc --noEmit",
+    "vitest": "npx --node-options=--max-old-space-size=16384 vitest run"
   },
   "dependencies": {
-    "wn-ts": "workspace:*"
+    "kysely": "^0.28.3",
+    "kysely-sqlite-builder": "^1.0.0",
+    "kysely-wasm": "^1.2.1",
+    "pako": "^2.1.0",
+    "smol-toml": "^1.4.1",
+    "sqlite-wasm-kysely": "^0.3.0",
+    "wn-ts-core": "workspace:*",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.7",
+    "@sqlite.org/sqlite-wasm": "catalog:",
     "@types/node": "catalog:",
+    "@types/pako": "^2.0.3",
     "@typescript-eslint/eslint-plugin": "catalog:",
     "@typescript-eslint/parser": "catalog:",
+    "@vitest/browser": "catalog:",
     "@vitest/coverage-v8": "catalog:",
-    "@vitest/ui": "^3.2.4",
+    "@vitest/ui": "catalog:",
     "eslint": "catalog:",
+    "playwright": "^1.54.1",
     "prettier": "catalog:",
     "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:",
-    "wn-cli": "workspace:*"
+    "vite": "catalog:",
+    "vite-plugin-dts": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@sqlite.org/sqlite-wasm": "catalog:"
   },
   "engines": {
     "node": ">=18.0.0"

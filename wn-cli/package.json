@@ -94,7 +94,7 @@
     "ink": "^4.1.0",
     "react": "^18.2.0",
     "vite-tsconfig-paths": "^5.1.4",
-    "wn-ts": "workspace:*"
+    "wn-ts-node": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",
@@ -107,7 +107,7 @@
     "ink-testing-library": "^4.0.0",
     "prettier": "^2.8.7",
     "typescript": "~5.8.3",
-    "vite": "^7.0.2",
+    "vite": "catalog:",
     "vitest": "catalog:",
     "xo": "^0.53.1"
   },

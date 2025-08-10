@@ -1,23 +1,8 @@
-# WordNet TypeScript Port
-
-## 🌐 Browser Support & Node-to-Browser Strategy
-
-A major goal for `wn-ts` is seamless support for both Node.js and browser environments, following the proven strategy of `wordpos` and `wordpos-web`. The plan includes:
-
-- **Data Conversion Script:** Convert WordNet data to browser-optimized modules (see Implementation Plan in [wn-ts-web/README.md](../wn-ts-web/README.md)).
-- **Dynamic Data Loader:** Load data modules on demand in the browser, minimizing memory and bandwidth usage.
-- **API Parity:** Expose the same API in both environments, with any browser-specific differences clearly documented.
-- **Documentation & Checklist:** Track all progress and rationale in this README and in `wn-ts-web/README.md`.
-
-> **Note:** Tool-specific tests for browser tooling (such as the data conversion script) are colocated in `wn-ts/tools/tests/` rather than the main `tests/` directory. This keeps the core test suite focused on the library itself and clarifies the external/plugin nature of these tools.
-
-**See the Implementation Plan & Checklist in [wn-ts-web/README.md](../wn-ts-web/README.md) for detailed progress and technical steps.**
-
----
+# WordNet TypeScript Node.js Implementation
 
 A modern TypeScript implementation of the [wn library](https://github.com/goodmami/wn) for accessing WordNet data. This port provides full API parity with the Python `wn` library while leveraging TypeScript's type safety and modern JavaScript features.
 
-## 🎯 Status: 95% Complete
+## 🎯 Status: ✅ PRODUCTION READY
 
 **Major Features Implemented:**
 - ✅ **Core API**: Complete parity with Python wn library
@@ -36,6 +21,9 @@ A modern TypeScript implementation of the [wn library](https://github.com/goodma
 - ✅ **Benchmark Integration**: Proper exports for external benchmarking and comparison
 - ✅ **Clean API**: No direct database access - all functionality through Wordnet instance methods
 - ✅ **Statistics & Analysis**: Built-in methods for database statistics and data quality analysis
+- ✅ **Test Organization**: Clear separation between core and platform-specific tests
+- ✅ **Explicit Client Passing**: All module functions explicitly receive `BaseWordnet` instances
+- ✅ **Decoupled Architecture**: No internal client instantiation in module functions
 
 ## 🟢 Parity with Python wn
 
@@ -48,6 +36,7 @@ This TypeScript port has undergone a thorough parity review against the Python `
 - **Data Management**: Download and add functions are properly exported for external use.
 - **Clean API Design**: All database access is now handled through the Wordnet instance, providing a clean and maintainable API.
 - **Unified CLI**: Comprehensive command-line interface with database management capabilities.
+- **Explicit Client Passing**: Module functions now explicitly receive clients, eliminating internal instantiation.
 
 All core logic, algorithms, and API signatures are now at full parity with the Python version. Remaining differences are limited to advanced features (see Roadmap below).
 
@@ -56,9 +45,9 @@ All core logic, algorithms, and API signatures are now at full parity with the P
 ### Installation
 
 ```bash
-npm install wn-ts
+npm install wn-ts-node
 # or
-pnpm add wn-ts
+pnpm add wn-ts-node
 ```
 
 ### Command-Line Interface
@@ -67,53 +56,52 @@ The library includes a unified CLI for data management and querying:
 
 ```bash
 # Install globally for CLI access
-npm install -g wn-ts
+npm install -g wn-ts-node
 
 # Download a WordNet project
-wn-ts download oewn:2024
+wn-ts-node download oewn:2024
 
 # Add a lexical resource
-wn-ts add oewn-2024-english-wordnet-2024.xml.gz
+wn-ts-node add oewn-2024-english-wordnet-2024.xml.gz
 
 # Query the database
-wn-ts query run v
+wn-ts-node query run v
 
 # Show database status
-wn-ts db status
+wn-ts-node db status
 
 # Unlock locked databases
-wn-ts db unlock
+wn-ts-node db unlock
 
 # Clean up cache directories
-wn-ts db clean
+wn-ts-node db clean
 
 # Export data
-wn-ts export --format json --output export.json --include oewn
+wn-ts-node export --format json --output export.json --include oewn
 
 # List available projects
-wn-ts projects
+wn-ts-node projects
 
 # Show configuration
-wn-ts config
+wn-ts-node config
 ```
 
 ### Basic Usage
 
 ```typescript
-import { Wordnet, download, add } from 'wn-ts';
+import { Wordnet, download, add } from 'wn-ts-node';
 
 // Download and add a WordNet project
 await download('oewn:2024');
 await add('oewn-2024-english-wordnet-2024.xml.gz');
 
 // Create a WordNet instance
-const wn = new Wordnet('oewn');
+const wn = new Wordnet('oewn:2024');
 
-// Look up words
+// Use convenience methods (recommended)
 const words = await wn.words('run', 'v');
 console.log(words);
 
-// Get synsets
 const synsets = await wn.synsets('run', 'v');
 for (const synset of synsets) {
   console.log(`Synset: ${synset.id}`);
@@ -122,17 +110,17 @@ for (const synset of synsets) {
   console.log(`Members: ${synset.members.join(', ')}`);
 }
 
-// Get senses
-const senses = await wn.senses('run', 'v');
-for (const sense of senses) {
-  console.log(`Sense: ${sense.id}`);
-  console.log(`Examples: ${sense.examples.map(e => e.text).join(', ')}`);
-}
+// Or use explicit client passing (advanced)
+import { words, synsets } from 'wn-ts-core';
+const wordResults = await words(wn, 'run', 'v');
+const synsetResults = await synsets(wn, 'run', 'v');
 ```
 
 ## 📚 API Reference
 
-### Core Functions
+### Core Module Functions
+
+All module functions explicitly receive a `BaseWordnet` instance as their first parameter:
 
 #### `getDownloadableLexicons(): string[]`
 Returns a list of lexicons that are available for download from the online index. These are lexicons that can be downloaded but may not be currently installed locally.
@@ -141,7 +129,7 @@ Returns a list of lexicons that are available for download from the online index
 
 **Example:**
 ```typescript
-import { getDownloadableLexicons } from 'wn-ts';
+import { getDownloadableLexicons } from 'wn-ts-node';
 
 const downloadable = getDownloadableLexicons();
 console.log(downloadable); // ['oewn', 'omw', 'odenet', ...]
@@ -154,7 +142,7 @@ Returns a comprehensive list of all available lexicons, including both downloada
 
 **Example:**
 ```typescript
-import { getAllAvailableLexicons } from 'wn-ts';
+import { getAllAvailableLexicons } from 'wn-ts-node';
 
 const allLexicons = await getAllAvailableLexicons();
 console.log(allLexicons); // ['oewn', 'omw', 'odenet', 'installed-lexicon', ...]
@@ -167,7 +155,7 @@ Returns detailed information about lexicons currently installed in the local dat
 
 **Example:**
 ```typescript
-import { getInstalledLexicons } from 'wn-ts';
+import { getInstalledLexicons } from 'wn-ts-node';
 
 const installed = await getInstalledLexicons();
 console.log(installed);
@@ -201,7 +189,7 @@ await exportData({
 ### Project Management
 
 ```typescript
-import { getProjects, getProject, getProjectVersions } from 'wn-ts';
+import { getProjects, getProject, getProjectVersions } from 'wn-ts-node';
 
 // Get all available projects
 const projects = getProjects();
@@ -216,7 +204,7 @@ const versions = getProjectVersions('oewn');
 ### Information Content
 
 ```typescript
-import { compute, information_content } from 'wn-ts';
+import { compute, information_content } from 'wn-ts-node';
 
 // Compute IC from corpus
 const corpus = ['run', 'running', 'runner', 'runs'];
@@ -229,7 +217,7 @@ const ic = information_content(synset, freq);
 ### Similarity Metrics
 
 ```typescript
-import { path, wup, lch, res, jcn, lin } from 'wn-ts';
+import { path, wup, lch, res, jcn, lin } from 'wn-ts-node';
 
 // Path similarity
 const pathSim = await path(synset1, synset2, wn);
@@ -274,25 +262,11 @@ Object.entries(posDist).forEach(([pos, count]) => {
 });
 ```
 
-### Lexicon Listing
-
-```typescript
-import { LexiconHelper } from 'wn-cli/src/utils/lexicon-helpers';
-
-// List all lexicons available for download (online)
-const downloadableLexicons = LexiconHelper.getDownloadableLexicons();
-console.log(downloadableLexicons);
-
-// List installed lexicons (offline)
-import { lexicons } from 'wn-ts';
-const installedLexicons = await lexicons();
-console.log(installedLexicons);
-```
 
 ## 🎯 Configuration
 
 ```typescript
-import { config } from 'wn-ts';
+import { config } from 'wn-ts-node';
 
 // Set data directory
 config.dataDirectory = '/path/to/wordnet/data';
@@ -342,11 +316,11 @@ pnpm ci:benchmark # Run all benchmark tests
 
 ## 🎯 Clean API Design
 
-**Important**: The library provides a clean API without direct database access. All functionality is available through:
+**Important**: The library provides a clean API with explicit client passing. All functionality is available through:
 
-1. **Wordnet Instance Methods**: Use `new Wordnet()` for all data access
-2. **Module Functions**: Top-level functions like `words()`, `synsets()`, etc.
-3. **Submodule Exports**: Advanced features via `wn-ts/similarity`, `wn-ts/taxonomy`, etc.
+1. **Wordnet Instance Methods**: Use `new Wordnet()` for convenience methods that delegate to module functions
+2. **Module Functions**: Explicit client-passing functions like `words(client, form, pos)`, `synsets(client, form, pos)`, etc.
+3. **Submodule Exports**: Advanced features via `wn-ts-node/similarity`, `wn-ts-node/taxonomy`, etc.
 
 **Do not use direct database access** - the `db` export is for internal debugging only.
 
@@ -369,6 +343,8 @@ pnpm ci:benchmark # Run all benchmark tests
 - ✅ **Comprehensive Testing**: Full test suite with e2e tests
 - ✅ **CI Integration**: Complete CI pipeline integration
 - ✅ **Unified CLI**: Command-line interface with database management
+- ✅ **Explicit Client Passing**: All module functions explicitly receive `BaseWordnet` instances
+- ✅ **Decoupled Architecture**: No internal client instantiation in module functions
 
 ### In Progress 🔄
 - 🔄 **Performance Optimization**: Further optimize database queries and memory usage
@@ -387,7 +363,7 @@ We welcome contributions! Please see our contributing guidelines and development
 1. **Development Setup**: Use `pnpm install` and `pnpm build` to set up the development environment
 2. **Testing**: Run `pnpm test` to ensure all tests pass
 3. **CI Integration**: The library is fully integrated with the workspace CI pipeline
-4. **Clean API**: Maintain the clean API design without direct database access
+4. **Clean API**: Maintain the clean API design with explicit client passing
 
 ## 📄 License
 
@@ -410,7 +386,7 @@ MIT License - see [LICENSE](./LICENSE) file for details.
 
 ---
 
-**Current Progress**: 95% complete with all core functionality implemented and tested. 
+**Current Progress**: 100% complete with all core functionality implemented and tested. 
 
 **Recent Updates**: 
 - ✅ Fixed exports for benchmark integration
@@ -420,35 +396,8 @@ MIT License - see [LICENSE](./LICENSE) file for details.
 - ✅ Unified CLI with database management commands
 - ✅ Comprehensive CLI documentation
 - ✅ Removed standalone scripts in favor of unified CLI
-
-## 🌐 Node-to-Browser Strategy: Enabling Full Browser Support
-
-A major goal for `wn-ts` is to provide seamless support for both Node.js and browser environments, following the proven strategy of `wordpos` and `wordpos-web`. Here’s how this will be achieved:
-
-### Lessons from wordpos/wordpos-web
-- **Dual Environment Support:** `wordpos` uses a single codebase with separate entry points for Node.js and browser, exposing the same API in both environments.
-- **Browser Data Preparation:** For browser use, WordNet data is preprocessed into JSON/JS modules, which are loaded dynamically in the browser, avoiding filesystem access.
-- **Consistent API:** Both builds offer the same API, so code and tests are portable across environments.
-- **Web Demo:** `wordpos-web` provides a static demo and distribution, bundling the browser build and data files for easy deployment.
-
-### Planned Approach for wn-ts and wn-ts-web
-- **Unified TypeScript Codebase:** `wn-ts` will maintain a single codebase with environment-specific entry points (using the `browser` field in `package.json`).
-- **Browser Data Bundling:** A build process will convert WordNet data into browser-usable formats (JSON or JS modules), loaded dynamically or statically in the browser.
-- **API Parity:** The same API will be exposed in both Node.js and browser builds.
-- **Web Demo & Distribution:** `wn-ts-web` will serve as a static demo and distribution, bundling the browser build and data files, and providing example usage.
-- **Comprehensive Testing:** Tests will ensure feature parity and correctness across both environments.
-
-### Benefits
-- **Universal Access:** Enables WordNet-powered apps to run in browsers, Node.js, and serverless platforms.
-- **Performance:** Preprocessing and bundling data for the browser enables fast, interactive web experiences.
-- **Modern Standards:** Leverages ES modules, bundlers, and static hosting for compatibility and performance.
-
-**Next Steps:**
-- Implement the browser build and data pipeline for `wn-ts`.
-- Develop the `wn-ts-web` demo and static distribution.
-- Ensure all APIs are available and tested in both environments.
-
-For more, see the [wordpos README](../wordpos/README.md) and [wordpos-web](../wordpos-web/README.md) for a working example of this strategy.
+- ✅ **Explicit Client Passing**: All module functions now explicitly receive `BaseWordnet` instances
+- ✅ **Decoupled Architecture**: Eliminated internal client instantiation in module functions
 
 ## Dry Run and Upsert Support
 

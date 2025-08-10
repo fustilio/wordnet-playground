@@ -11,7 +11,8 @@ import type {
   Relation,
   Form,
   ILI,
-  Example
+  Example,
+  Project
 } from 'wn-ts-core';
 import { BaseWordnet } from 'wn-ts-core'
 
@@ -110,7 +111,7 @@ export class Wordnet extends BaseWordnet {
 
     // Use UNION to include words that match by lemma OR by form
     let sql = `
-      SELECT DISTINCT w.id, w.lemma, w.part_of_speech as partOfSpeech, w.language, w.lexicon
+      SELECT DISTINCT w.id, w.lemma, w.pos, w.language, w.lexicon
       FROM words w
       WHERE w.lemma = ?
     `;
@@ -118,7 +119,7 @@ export class Wordnet extends BaseWordnet {
     const params: unknown[] = [normalizedForm];
 
     if (pos) {
-      sql += ' AND w.part_of_speech = ?';
+      sql += ' AND w.pos = ?';
       params.push(pos);
     }
 
@@ -139,7 +140,7 @@ export class Wordnet extends BaseWordnet {
 
     sql += `
       UNION
-      SELECT DISTINCT w.id, w.lemma, w.part_of_speech as partOfSpeech, w.language, w.lexicon
+      SELECT DISTINCT w.id, w.lemma, w.pos, w.language, w.lexicon
       FROM words w
       JOIN forms f ON w.id = f.word_id
       WHERE f.written_form = ?
@@ -148,7 +149,7 @@ export class Wordnet extends BaseWordnet {
     params.push(normalizedForm);
 
     if (pos) {
-      sql += ' AND w.part_of_speech = ?';
+      sql += ' AND w.pos = ?';
       params.push(pos);
     }
 
@@ -183,11 +184,11 @@ export class Wordnet extends BaseWordnet {
       if (allForms.size > 0) {
         const formPlaceholders = Array.from(allForms).map(() => '?').join(',');
         sql = `
-          SELECT DISTINCT w.id, w.lemma, w.part_of_speech as partOfSpeech, w.language, w.lexicon
+          SELECT DISTINCT w.id, w.lemma, w.pos, w.language, w.lexicon
           FROM words w
           WHERE w.lemma IN (${formPlaceholders})
           UNION
-          SELECT DISTINCT w.id, w.lemma, w.part_of_speech as partOfSpeech, w.language, w.lexicon
+          SELECT DISTINCT w.id, w.lemma, w.pos, w.language, w.lexicon
           FROM words w
           JOIN forms f ON w.id = f.word_id
           WHERE f.written_form IN (${formPlaceholders})
@@ -196,7 +197,7 @@ export class Wordnet extends BaseWordnet {
         const formParams = [...Array.from(allForms), ...Array.from(allForms)];
           
         if (pos) {
-          sql += ' AND w.part_of_speech = ?';
+          sql += ' AND w.pos = ?';
           formParams.push(pos);
         }
 
@@ -250,7 +251,7 @@ export class Wordnet extends BaseWordnet {
     await db.initialize();
 
     const sql = `
-      SELECT id, ili, part_of_speech as partOfSpeech, language, lexicon
+      SELECT id, ili, pos, language, lexicon
       FROM synsets
       WHERE id = ?
     `;
@@ -316,7 +317,7 @@ export class Wordnet extends BaseWordnet {
         WHERE (f.written_form = ? OR w.lemma = ?)
       `;
       const params: unknown[] = [normalizedForm, normalizedForm];
-      sql += ' AND w.part_of_speech = ?';
+      sql += ' AND w.pos = ?';
       params.push(pos);
       if (this._lexiconId !== '*') {
         sql += ' AND w.lexicon = ?';
@@ -347,7 +348,7 @@ export class Wordnet extends BaseWordnet {
             WHERE (f.written_form IN (${formPlaceholders}) OR w.lemma IN (${formPlaceholders}))
           `;
           const formParams = [...Array.from(allForms), ...Array.from(allForms)];
-          sql += ' AND w.part_of_speech = ?';
+          sql += ' AND w.pos = ?';
           formParams.push(pos);
           if (this._lexiconId !== '*') {
             sql += ' AND w.lexicon = ?';
@@ -453,7 +454,7 @@ export class Wordnet extends BaseWordnet {
     await db.initialize();
 
     const sql = `
-      SELECT id, lemma, part_of_speech as partOfSpeech, language, lexicon
+      SELECT id, lemma, pos, language, lexicon
       FROM words
       WHERE id = ?
     `;
@@ -582,16 +583,27 @@ export class Wordnet extends BaseWordnet {
       FROM ilis
     `;
     
-    const params: unknown[] = [];
+    const params: any[] = [];
+    const conditions: string[] = [];
     
     if (status) {
-      sql += ' WHERE status = ?';
+      conditions.push('status = ?');
       params.push(status);
+    }
+    
+    if (conditions.length > 0) {
+      sql += ' WHERE ' + conditions.join(' AND ');
     }
     
     sql += ' ORDER BY id';
     
     return await db.all<ILI>(sql, params);
+  }
+
+  async getProjects(): Promise<Project[]> {
+    // Use the Node.js config to load projects
+    const { getProjects } = await import('./project.js');
+    return getProjects();
   }
 
   // Statistics methods for use cases
@@ -686,11 +698,11 @@ export class Wordnet extends BaseWordnet {
   async getPartOfSpeechDistribution(): Promise<Record<string, number>> {
     await db.initialize();
     
-    const synsets = await db.all('SELECT part_of_speech FROM synsets') as { part_of_speech: string }[];
+    const synsets = await db.all('SELECT pos FROM synsets') as { pos: string }[];
     const posCounts: Record<string, number> = {};
     
     for (const synset of synsets) {
-      const pos = synset.part_of_speech || 'undefined';
+      const pos = synset.pos || 'undefined';
       posCounts[pos] = (posCounts[pos] || 0) + 1;
     }
     

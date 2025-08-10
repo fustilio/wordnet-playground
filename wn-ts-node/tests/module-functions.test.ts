@@ -15,6 +15,7 @@ import { add } from '../src/data-management';
 import { testUtils } from './setup';
 import { join } from 'path';
 import { existsSync } from 'fs';
+import { Wordnet } from '../src/wordnet';
 
 describe('Module Functions', () => {
   beforeEach(async () => {
@@ -28,7 +29,8 @@ describe('Module Functions', () => {
 
   describe('projects', () => {
     it('should return list of known projects', async () => {
-      const result = await projects();
+      const wordnet = new Wordnet('test-en');
+      const result = await projects(wordnet);
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBeGreaterThan(0);
     });
@@ -60,7 +62,7 @@ describe('Module Functions', () => {
     it('should return words when they exist', async () => {
       const result = await words('information');
       expect(result.length).toBeGreaterThan(0);
-      expect(result.some(w => w.lemma === 'information' && w.partOfSpeech === 'n' && w.lexicon === 'test-en')).toBe(true);
+      expect(result.some(w => w.lemma === 'information' && w.pos === 'n' && w.lexicon === 'test-en')).toBe(true);
     });
 
     it('should return empty array for non-existent word', async () => {
@@ -71,7 +73,7 @@ describe('Module Functions', () => {
     it('should handle part of speech filtering', async () => {
       const result = await words('information', 'n');
       expect(result.length).toBeGreaterThan(0);
-      expect(result.every(w => w.partOfSpeech === 'n')).toBe(true);
+      expect(result.every(w => w.pos === 'n')).toBe(true);
     });
 
     it('should handle lexicon filtering', async () => {
@@ -122,7 +124,7 @@ describe('Module Functions', () => {
     it('should return synsets when they exist', async () => {
       const result = await synsets('information');
       expect(result.length).toBeGreaterThan(0);
-      expect(result.some(s => s.id === 'test-en-0001-n' && s.partOfSpeech === 'n')).toBe(true);
+      expect(result.some(s => s.id === 'test-en-0001-n' && s.pos === 'n')).toBe(true);
     });
 
     it('should return empty array for non-existent word', async () => {
@@ -133,7 +135,7 @@ describe('Module Functions', () => {
     it('should handle part of speech filtering', async () => {
       const result = await synsets('information', 'n');
       expect(result.length).toBeGreaterThan(0);
-      expect(result.every(s => s.partOfSpeech === 'n')).toBe(true);
+      expect(result.every(s => s.pos === 'n')).toBe(true);
     });
 
     it('should handle lexicon filtering', async () => {

@@ -2,7 +2,6 @@ import { beforeEach, afterEach } from 'vitest';
 import { join, dirname } from 'path';
 import { mkdtempSync, rmSync, existsSync } from 'fs';
 import { tmpdir } from 'os';
-import { config } from '../src/config';
 import { db } from '../src/db/database';
 import { fileURLToPath } from 'url';
 
@@ -14,8 +13,8 @@ const actualTestDataDir = join(__dirname, '../../wn-test-data/data');
 beforeEach(() => {
   // Create a new temp directory for each test
   testDataDir = mkdtempSync(join(tmpdir(), 'wn-ts-test-'));
-  config.dataDirectory = testDataDir;
-  // downloadDirectory and cacheDirectory are now derived from dataDirectory
+  // Note: We can't set config.dataDirectory anymore since it's abstract
+  // Tests that need configuration should use the concrete implementations from wn-ts-node
 });
 
 afterEach(async () => {

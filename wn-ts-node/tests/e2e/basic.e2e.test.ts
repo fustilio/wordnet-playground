@@ -3,18 +3,11 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import { existsSync, rmSync, mkdtempSync } from 'fs';
 import { 
-
-  // config, 
-  download, 
   words, 
   synsets, 
   projects 
-
 } from 'wn-ts-core';
-import { add, Wordnet, config,
-  //  download,  
-  //  projects 
-} from '../../src/index.js';
+import { add, Wordnet, config, download } from '../../src/index.js';
 import { logger } from 'wn-ts-core/utils';
 
 class ProgressLogger {
@@ -108,7 +101,7 @@ describe('End-to-End Integration Tests', () => {
     it('should load project index and list available projects', async () => {
       // This test now runs against the data set up in beforeAll
       logger.info('📋 Loading project index...');
-      const availableProjects = await projects();
+      const availableProjects = await projects(wordnetClient);
       logger.success(`Found ${availableProjects.length} projects`);
 
       expect(availableProjects).toBeInstanceOf(Array);
@@ -164,7 +157,7 @@ describe('End-to-End Integration Tests', () => {
       const word = infoWords[0];
       expect(word).toHaveProperty('id');
       expect(word).toHaveProperty('lemma');
-      expect(word).toHaveProperty('partOfSpeech');
+      expect(word).toHaveProperty('pos');
       expect(word).toHaveProperty('language');
       expect(word).toHaveProperty('lexicon');
       logger.success('Word structure verified');
@@ -185,7 +178,7 @@ describe('End-to-End Integration Tests', () => {
       // Verify structure of the first synset
       const synset = infoSynsets[0];
       expect(synset).toHaveProperty('id');
-      expect(synset).toHaveProperty('partOfSpeech');
+      expect(synset).toHaveProperty('pos');
       expect(synset).toHaveProperty('language');
       expect(synset).toHaveProperty('lexicon');
       expect(synset).toHaveProperty('definitions');
@@ -282,7 +275,7 @@ describe('End-to-End Integration Tests', () => {
         const word = results[0];
         expect(typeof word.id).toBe('string');
         expect(typeof word.lemma).toBe('string');
-        expect(typeof word.partOfSpeech).toBe('string');
+        expect(typeof word.pos).toBe('string');
         expect(typeof word.language).toBe('string');
         expect(typeof word.lexicon).toBe('string');
       }

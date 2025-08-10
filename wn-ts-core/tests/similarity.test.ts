@@ -8,7 +8,7 @@ import type { Freq } from '../src/ic';
 const synsets: Record<string, Synset> = {
   root: {
     id: 'root',
-    partOfSpeech: 'n',
+    pos: 'n',
     ili: undefined,
     definitions: [],
     examples: [],
@@ -20,7 +20,7 @@ const synsets: Record<string, Synset> = {
   },
   a: {
     id: 'a',
-    partOfSpeech: 'n',
+    pos: 'n',
     ili: undefined,
     definitions: [],
     examples: [],
@@ -32,7 +32,7 @@ const synsets: Record<string, Synset> = {
   },
   b: {
     id: 'b',
-    partOfSpeech: 'n',
+    pos: 'n',
     ili: undefined,
     definitions: [],
     examples: [],
@@ -44,7 +44,7 @@ const synsets: Record<string, Synset> = {
   },
   c: {
     id: 'c',
-    partOfSpeech: 'n',
+    pos: 'n',
     ili: undefined,
     definitions: [],
     examples: [],
@@ -56,7 +56,7 @@ const synsets: Record<string, Synset> = {
   },
   d: {
     id: 'd',
-    partOfSpeech: 'n',
+    pos: 'n',
     ili: undefined,
     definitions: [],
     examples: [],
@@ -109,7 +109,7 @@ describe('similarity', () => {
       const verbSynset: Synset = {
         ...a,
         id: 'verb',
-        partOfSpeech: 'v',
+        pos: 'v',
       };
       await expect(path(a, verbSynset, wordnet)).rejects.toThrow();
     });
@@ -135,7 +135,7 @@ describe('similarity', () => {
       const verbSynset: Synset = {
         ...a,
         id: 'verb',
-        partOfSpeech: 'v',
+        pos: 'v',
       };
       await expect(wup(a, verbSynset, wordnet)).rejects.toThrow();
     });
@@ -160,7 +160,7 @@ describe('similarity', () => {
       const verbSynset: Synset = {
         ...a,
         id: 'verb',
-        partOfSpeech: 'v',
+        pos: 'v',
       };
       await expect(lch(a, verbSynset, 3, wordnet)).rejects.toThrow();
     });
@@ -179,7 +179,7 @@ describe('similarity', () => {
       const verbSynset: Synset = {
         ...a,
         id: 'verb',
-        partOfSpeech: 'v',
+        pos: 'v',
       };
       await expect(res(a, verbSynset, mockIc, wordnet)).rejects.toThrow();
     });
@@ -222,7 +222,7 @@ describe('similarity', () => {
       const verbSynset: Synset = {
         ...a,
         id: 'verb',
-        partOfSpeech: 'v',
+        pos: 'v',
       };
       await expect(jcn(a, verbSynset, mockIc, wordnet)).rejects.toThrow();
     });
@@ -259,7 +259,7 @@ describe('similarity', () => {
       const verbSynset: Synset = {
         ...a,
         id: 'verb',
-        partOfSpeech: 'v',
+        pos: 'v',
       };
       await expect(lin(a, verbSynset, mockIc, wordnet)).rejects.toThrow();
     });

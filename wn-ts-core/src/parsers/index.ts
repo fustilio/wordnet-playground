@@ -15,5 +15,5 @@ export * from './python.js';
 export * from './registry.js';
 
 // Re-export the main loadLMF function for backward compatibility
-export { loadLMF, parseLMFXML, isLMF, createMinimalLMF } from '../lmf.js';
-export type { LMFDocument, LMFLoadOptions } from '../lmf.js'; 
+export { parseLMFXML, createMinimalLMF } from '../lmf.js';
+export type { LMFDocument, LMFLoadOptions } from '../lmf.js';

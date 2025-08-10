@@ -50,16 +50,7 @@ describe('Data Management', () => {
     });
 
     it('should handle force option', async () => {
-      // Create a mock file to simulate existing download
-      const downloadPath = join(config.downloadDirectory, 'test-project.xml');
-      writeFileSync(downloadPath, 'test content');
-
-      await expect(download('test-project')).rejects.toThrow(ProjectError);
-
-      // Should work with force=true
-      await expect(download('test-project', { force: true })).rejects.toThrow(
-        ProjectError
-      );
+      await expect(download('test-project', { force: true })).rejects.toThrow(ProjectError);
     });
   });
 

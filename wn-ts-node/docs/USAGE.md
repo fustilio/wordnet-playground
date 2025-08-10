@@ -65,14 +65,14 @@ pnpm add wn-ts
 ## Quick Start
 
 ```typescript
-import { Wordnet, download, add } from 'wn-ts';
+import { Wordnet, download, add } from 'wn-ts-node';
 
 // Download and add a WordNet project
 await download('oewn:2024');
 await add('oewn-2024-english-wordnet-2024.xml.gz');
 
 // Create a WordNet instance
-const wn = new Wordnet('oewn');
+const wn = new Wordnet('oewn:2024');
 
 // Look up words
 const words = await wn.words('run', 'v');
@@ -99,8 +99,8 @@ synsets.forEach(synset => {
 The main entry point for querying WordNet data is the `Wordnet` class:
 
 ```typescript
-import { Wordnet } from 'wn-ts';
-const wn = new Wordnet('oewn');
+import { Wordnet } from 'wn-ts-node';
+const wn = new Wordnet('oewn:2024');
 ```
 
 #### Common Methods
@@ -120,7 +120,7 @@ console.log(nouns.map(w => w.lemma));
 
 #### Example: Get all synsets for a word in a specific language
 ```typescript
-const wnFr = new Wordnet('omw-fr:1.4');
+const wnFr = new Wordnet('omw:1.4');
 const synsetsFr = await wnFr.synsets('ordinateur', 'n');
 console.log(synsetsFr);
 ```
@@ -130,7 +130,7 @@ console.log(synsetsFr);
 For convenience, you can use top-level functions:
 
 ```typescript
-import { words, synsets, senses, projects, lexicons, ilis, ili } from 'wn-ts';
+import { words, synsets, senses, projects, lexicons, ilis, ili } from 'wn-ts-node';
 
 const ws = await words('run', 'v');
 const ss = await synsets('run', 'v');
@@ -146,33 +146,33 @@ const iliEntry = await ili('i12345');
 Manage available projects and versions:
 
 ```typescript
-import { getProjects, getProject, getProjectVersions } from 'wn-ts';
+import { projects } from 'wn-ts-core';
 
-const projects = getProjects();
-const oewn = getProject('oewn');
-const oewnVersions = getProjectVersions('oewn');
+const allProjects = await projects();
+const oewn = allProjects.find(p => p.id === 'oewn');
+const oewnVersions = oewn?.versions;
 ```
 
 ### Data Management
 
 - **Download a project:**
   ```typescript
-  import { download } from 'wn-ts';
+  import { download } from 'wn-ts-node';
   await download('oewn:2024');
   ```
 - **Add a lexical resource:**
   ```typescript
-  import { add } from 'wn-ts';
+  import { add } from 'wn-ts-node';
   await add('oewn-2024-english-wordnet-2024.xml.gz');
   ```
 - **Remove a lexicon:**
   ```typescript
-  import { remove } from 'wn-ts';
+  import { remove } from 'wn-ts-node';
   await remove('oewn');
   ```
 - **Export data:**
   ```typescript
-  import { exportData } from 'wn-ts';
+  import { exportData } from 'wn-ts-node';
   await exportData({ format: 'json', output: 'wn-export.json', include: ['oewn'] });
   ```
 
@@ -257,8 +257,8 @@ console.log(`Smallest synset: ${sizeAnalysis.minSize} words`);
 
 ```typescript
 // For advanced similarity and IC, see the submodule section below!
-import { path, wup, lch, res, jcn, lin } from 'wn-ts/similarity';
-import { compute, information_content } from 'wn-ts/ic';
+import { path, wup, lch, res, jcn, lin } from 'wn-ts-core';
+import { compute, information_content } from 'wn-ts-core';
 
 // Compute Information Content (IC) from a corpus
 const freq = await compute(['run', 'running', 'runner'], wn);
@@ -279,7 +279,7 @@ For advanced features, import from specific submodules:
 ### Similarity Metrics
 
 ```typescript
-import { path, wup, lch, res, jcn, lin } from 'wn-ts/similarity';
+import { path, wup, lch, res, jcn, lin } from 'wn-ts-core';
 
 // Path similarity
 const pathSim = await path(synset1, synset2, wn);
@@ -307,7 +307,7 @@ import {
   taxonomyDepth, 
   hypernymPaths, 
   taxonomyShortestPath 
-} from 'wn-ts/taxonomy';
+} from 'wn-ts-core';
 
 // Find root synsets
 const rootSynsets = await roots(wn, 'n');
@@ -328,7 +328,7 @@ const path = await taxonomyShortestPath(synset1, synset2, wn);
 ### Morphological Analysis
 
 ```typescript
-import { createMorphy } from 'wn-ts/morphy';
+import { createMorphy } from 'wn-ts-core';
 
 // Create a morphological analyzer
 const morphy = createMorphy(wn);
@@ -341,7 +341,7 @@ console.log(forms); // ['run', 'running']
 ### Information Content (IC)
 
 ```typescript
-import { compute, information_content } from 'wn-ts/ic';
+import { compute, information_content } from 'wn-ts-core';
 
 // Compute IC from corpus
 const corpus = ['run', 'running', 'runner', 'runs'];
@@ -420,17 +420,15 @@ For complete CLI documentation with all commands, options, and examples, see [US
 
 ### Browser Usage
 
-The library is designed to work in browser environments:
+For browser-based applications, use the `wn-ts-web` package. It provides a similar API but is optimized for the browser with SQLite WASM and OPFS support.
 
 ```typescript
 // In a browser environment
-import { Wordnet } from 'wn-ts';
+import { createWordNetInstance } from 'wn-ts-web';
 
-// Create instance with browser-compatible options
-const wn = new Wordnet('oewn', {
-  dataDirectory: '/path/to/data',
-  downloadDirectory: '/path/to/downloads'
-});
+const { wordnet, dataLoader } = await createWordNetInstance();
+await dataLoader.downloadAndLoad('oewn:2024');
+const words = await wordnet.words('joy', 'n');
 ```
 
 ### Custom Queries & Filtering
@@ -520,8 +518,8 @@ The following advanced scenarios go beyond basic lookups and show how to combine
 Find the fundamental difference between two concepts by locating their common hypernym and comparing their definitions.
 
 ```typescript
-import { Wordnet } from 'wn-ts';
-import { commonHypernyms } from 'wn-ts/taxonomy';
+import { Wordnet } from 'wn-ts-node';
+import { lowestCommonHypernyms as commonHypernyms } from 'wn-ts-core';
 
 async function conceptualDifference(word1: string, word2: string, wn: Wordnet) {
   const synsets1 = await wn.synsets(word1, 'n');
@@ -540,7 +538,7 @@ async function conceptualDifference(word1: string, word2: string, wn: Wordnet) {
 Recursively traverse relations (e.g., hyponyms, meronyms) to generate a comprehensive list of related concepts.
 
 ```typescript
-import { Wordnet } from 'wn-ts';
+import { Wordnet } from 'wn-ts-node';
 async function expandSemanticField(seed: string, wn: Wordnet) {
   const field = new Set<string>();
   const queue = [...await wn.synsets(seed, 'n')];
@@ -566,7 +564,7 @@ async function expandSemanticField(seed: string, wn: Wordnet) {
 Solve analogies like "A is to B as C is to ?" by matching synset relations.
 
 ```typescript
-import { Wordnet } from 'wn-ts';
+import { Wordnet } from 'wn-ts-node';
 async function solveAnalogy(a: string, b: string, c: string, wn: Wordnet) {
   const [sa] = await wn.synsets(a, 'n');
   const [sb] = await wn.synsets(b, 'n');
@@ -586,8 +584,8 @@ async function solveAnalogy(a: string, b: string, c: string, wn: Wordnet) {
 You can script batch queries, exports, and analyses using the API:
 
 ```typescript
-import { Wordnet, exportData } from 'wn-ts';
-const wn = new Wordnet('oewn');
+import { Wordnet, exportData } from 'wn-ts-node';
+const wn = new Wordnet('oewn:2024');
 const words = ['run', 'bank', 'music'];
 for (const word of words) {
   const synsets = await wn.synsets(word);
@@ -602,7 +600,7 @@ await exportData({ format: 'json', output: 'export.json', include: ['oewn', 'omw
 Export or import data with filters (by lexicon, POS, etc.):
 
 ```typescript
-import { exportData } from 'wn-ts';
+import { exportData } from 'wn-ts-node';
 await exportData({ format: 'csv', output: 'wn.csv', include: ['oewn'], exclude: ['test'] });
 ```
 
@@ -612,7 +610,7 @@ All core objects (Wordnet, synset, word, etc.) are composable for advanced workf
 
 ### Browser Support
 
-`wn-ts` is designed for browser compatibility, but some features (e.g., file system access, SQLite) may require polyfills or alternative storage. See the [Browser Usage](#browser-usage) section for details.
+`wn-ts-node` is for Node.js. For browser usage, see the `wn-ts-web` package.
 
 ### Error Handling in Advanced Workflows
 
@@ -635,7 +633,7 @@ The library supports various real-world applications:
 ### 1. Multilingual Word Linking
 
 ```typescript
-import { words, synsets, ili, ilis } from 'wn-ts';
+import { words, synsets, ili, ilis } from 'wn-ts-node';
 
 // Link words across languages using ILI
 const computerSynsets = await synsets('computer', 'n');
@@ -653,7 +651,7 @@ console.log(`Total ILI entries: ${iliEntries.length}`);
 ### 2. Word Sense Disambiguation
 
 ```typescript
-import { synsets } from 'wn-ts';
+import { synsets } from 'wn-ts-node';
 
 // Analyze polysemous words
 const bankSynsets = await synsets('bank');
@@ -675,7 +673,7 @@ Object.entries(bankByPOS).forEach(([pos, synsets]) => {
 ### 3. Database Statistics & Quality Analysis
 
 ```typescript
-import { lexicons } from 'wn-ts';
+import { lexicons } from 'wn-ts-node';
 
 // Analyze available lexicons
 const allLexicons = await lexicons();
@@ -697,7 +695,7 @@ Object.entries(lexiconsByLanguage).forEach(([lang, lexicons]) => {
 ### 4. Lexical Database Exploration
 
 ```typescript
-import { words, synsets } from 'wn-ts';
+import { words, synsets } from 'wn-ts-node';
 
 // Analyze word coverage
 const testWords = ['computer', 'information', 'happy', 'run'];
@@ -712,10 +710,14 @@ for (const word of testWords) {
 ### 5. Python-style API Compatibility
 
 ```typescript
-import { synsets } from 'wn-ts';
+import { synsets, ili } from 'wn-ts-node';
+import { Wordnet } from 'wn-ts-node';
 
 // Replicate Python wn library functionality
-const synsets = await wn.synsets('win', 'v');
+const wn = new Wordnet('oewn:2024');
+const ss_results = await wn.synsets('win', 'v');
+if (ss_results.length > 0) {
+  const ss = ss_results[0];
 if (synsets.length > 0) {
   const ss = synsets[0];
   console.log(`Synset: ${ss.id}`);
@@ -752,11 +754,11 @@ pnpm test:e2e
 
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { Wordnet } from 'wn-ts';
+import { Wordnet } from 'wn-ts-node';
 
 describe('Wordnet Class', () => {
   it('should find words', async () => {
-    const wn = new Wordnet('oewn');
+    const wn = new Wordnet('oewn:2024');
     const words = await wn.words('run', 'v');
     expect(words.length).toBeGreaterThan(0);
   });
@@ -827,21 +829,12 @@ wn-cli db unlock
 wn-cli db status
 ```
 
-**5. Database locked errors**
-```bash
-# Use the CLI to unlock databases
-wn-cli db unlock
-
-# Or check database status
-wn-cli db status
-```
-
 ### Debug Mode
 
 Enable debug logging:
 
 ```typescript
-import { logger } from 'wn-ts/utils/logger';
+import { logger } from 'wn-ts-core';
 
 // Set log level
 logger.setLevel('debug');
@@ -872,4 +865,4 @@ logger.setLevel('debug');
 
 ---
 
-**Remember**: Always use the clean API through Wordnet instance methods or module functions. Do not access the database directly for application development.
+**Remember**: Always use the clean API through Wordnet instance methods or module functions.
