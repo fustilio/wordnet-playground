@@ -1,0 +1,53 @@
+{
+  "name": "wn-ts-web-demo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b && vite build",
+    "dev": "vite --port 5173 --strictPort",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "test": "pnpm test:cypress",
+    "cypress:run": "cypress run",
+    "cypress:open": "cypress open",
+    "cypress:run:wordnet": "cypress run --config-file cypress.wordnet.config.mjs",
+    "cypress:run:wordnet:chrome": "cypress run --browser chrome --config-file cypress.wordnet.config.mjs",
+    "test:cypress": "start-server-and-test dev http://localhost:5173 cypress:run:wordnet",
+    "test:cypress:all": "start-server-and-test dev http://localhost:5173 cypress:run",
+    "test:cypress:wordnet": "start-server-and-test dev http://localhost:5173 cypress:run:wordnet",
+    "test:cypress:wordnet:chrome": "start-server-and-test dev http://localhost:5173 cypress:run:wordnet:chrome",
+    "test:cypress:examples": "start-server-and-test dev http://localhost:5173 \"cypress run --spec cypress/e2e/1-getting-started/todo.cy.ts\"",
+    "cypress": "start-server-and-test dev http://localhost:5173 cypress:open",
+    "index:build": "pnpm -C ../wn-ts-web node scripts/build-index.js",
+    "lexicon:generate": "node scripts/generate-th-en-lexicon.cjs",
+    "test:cypress:local": "pnpm run index:build && pnpm run lexicon:generate && start-server-and-test dev http://localhost:5173 \"cypress run --spec cypress/e2e/wordnet-demo/local-lexicon.cy.ts\""
+  },
+  "dependencies": {
+    "@sqlite.org/sqlite-wasm": "catalog:",
+    "@tailwindcss/vite": "^4.1.11",
+    "pako": "^2.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tailwindcss": "^4.1.11",
+    "wn-ts-web": "workspace:*"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.30.1",
+    "@types/node": "^24.2.0",
+    "@types/pako": "^2.0.3",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.6.0",
+    "cypress": "^14.5.3",
+    "eslint": "catalog:",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.3.0",
+    "start-server-and-test": "^2.0.13",
+    "typescript": "catalog:",
+    "typescript-eslint": "^8.35.1",
+    "vite": "catalog:",
+    "ts-node": "^10.9.2"
+  }
+}

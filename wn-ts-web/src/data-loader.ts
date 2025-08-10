@@ -23,20 +23,35 @@ export class DataLoader {
   }
 
   /**
-   * Recursively extract text from a parsed XML node
+   * Extract text from a parsed XML node using an iterative traversal to avoid deep recursion.
    */
   private extractTextFromNode(node: any): string {
     if (!node) return "";
-    if (node.name === '#text') return node.text || '';
-    
-    let text = "";
-    if (node.children) {
-      for (const child of node.children) {
-        text += " " + this.extractTextFromNode(child);
+    let aggregatedText = "";
+    const stack: any[] = [node];
+
+    while (stack.length > 0) {
+      const current = stack.pop();
+      if (!current) continue;
+
+      if (current.name === '#text') {
+        if (typeof current.text === 'string' && current.text.length > 0) {
+          aggregatedText += " " + current.text;
+        }
+      } else if (typeof current.text === 'string' && current.text.length > 0) {
+        // Some nodes may carry inline text as well
+        aggregatedText += " " + current.text;
+      }
+
+      if (Array.isArray(current.children) && current.children.length > 0) {
+        // Push children in original order by reversing to maintain left-to-right traversal
+        for (let i = current.children.length - 1; i >= 0; i--) {
+          stack.push(current.children[i]);
+        }
       }
     }
-    
-    return text;
+
+    return aggregatedText;
   }
 
   /**

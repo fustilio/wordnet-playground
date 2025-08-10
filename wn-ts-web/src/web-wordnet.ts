@@ -117,13 +117,17 @@ export class WebWordnet extends BaseWordnet {
     if (!this.initialized || !this.queryService) throw new Error('WebWordnet not initialized');
 
     try {
-      return await this.queryService.getWords({
+      const started = performance.now();
+      const result = await this.queryService.getWords({
         form,
         pos,
         lexicon: this._lexiconId,
         language: this._lang,
         searchAllForms: this._searchAllForms,
       });
+      const ms = performance.now() - started;
+      console.log(`🕒 words("${form ?? ''}") → ${Array.isArray(result) ? result.length : 0} in ${ms.toFixed(1)}ms`);
+      return result;
     } catch (error) {
       console.error('Failed to get words:', error);
       return [];
@@ -137,6 +141,7 @@ export class WebWordnet extends BaseWordnet {
   ): Promise<Synset[]> {
     if (!this.initialized || !this.queryService) throw new Error('WebWordnet not initialized');
 
+    const started = performance.now();
     const synsets = await this.queryService.getSynsets({
       form,
       pos,
@@ -146,6 +151,7 @@ export class WebWordnet extends BaseWordnet {
     });
 
     // Load definitions for each synset
+    const loadDefsStarted = performance.now();
     const synsetsWithDefinitions: Synset[] = [];
     for (const synset of synsets) {
       const definitions = await this.queryService.getDefinitionsBySynsetId(synset.id);
@@ -154,7 +160,9 @@ export class WebWordnet extends BaseWordnet {
         definitions,
       });
     }
-    
+    const totalMs = performance.now() - started;
+    const defsMs = performance.now() - loadDefsStarted;
+    console.log(`🕒 synsets("${form}") → ${synsets.length} (defs loaded in ${defsMs.toFixed(1)}ms, total ${totalMs.toFixed(1)}ms)`);
     return synsetsWithDefinitions;
   }
 
@@ -306,8 +314,11 @@ export class WebWordnet extends BaseWordnet {
    */
   async searchWords(searchTerm: string, options: any = {}): Promise<any[]> {
     if (!this.initialized || !this.queryService) throw new Error('WebWordnet not initialized');
-
-    return this.queryService.searchWords(searchTerm, options);
+    const started = performance.now();
+    const result = await this.queryService.searchWords(searchTerm, options);
+    const ms = performance.now() - started;
+    console.log(`🕒 searchWords("${searchTerm}") → ${Array.isArray(result) ? result.length : 0} in ${ms.toFixed(1)}ms`);
+    return result;
   }
 
   /**

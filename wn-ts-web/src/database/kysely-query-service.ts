@@ -76,12 +76,21 @@ export class KyselyQueryService {
       query = query.where('words.language', '=', options.language);
     }
 
+    const started = performance.now();
     const results = await query
       .orderBy('words.lemma')
       .orderBy('words.pos')
       .execute();
-
-    return results.map(this.transformWordRecord.bind(this));
+    const transformed = results.map(this.transformWordRecord.bind(this));
+    const ms = performance.now() - started;
+    console.log(`🗃️ getWords(${JSON.stringify({
+      form: options.form,
+      pos: options.pos,
+      lexicon: options.lexicon,
+      language: options.language,
+      searchAllForms: options.searchAllForms
+    })}) → ${transformed.length} in ${ms.toFixed(1)}ms`);
+    return transformed;
   }
 
   async getWordById(id: string): Promise<Word | undefined> {
@@ -141,13 +150,16 @@ export class KyselyQueryService {
       query = query.where('pos', '=', pos);
     }
 
+    const started = performance.now();
     const results = await query
       .orderBy('lemma')
       .limit(limit)
       .offset(offset)
       .execute();
-
-    return results.map(this.transformWordRecord.bind(this));
+    const transformed = results.map(this.transformWordRecord.bind(this));
+    const ms = performance.now() - started;
+    console.log(`🗃️ searchWords(${JSON.stringify({ searchTerm, language, lexicon, limit, offset, pos, exact, caseSensitive })}) → ${transformed.length} in ${ms.toFixed(1)}ms`);
+    return transformed;
   }
 
   // Synset queries
