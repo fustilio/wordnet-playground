@@ -33,7 +33,8 @@ describe('Examples Hub', () => {
     cy.contains('Available WordNet Projects').should('exist')
     cy.contains('Examples').click()
     cy.contains('Data Info').click()
-    cy.contains('WordNet Data Information').should('exist')
+    // The Data Info section shows a Statistics pre block; assert its presence
+    cy.contains('Statistics').should('exist')
   })
 })
 
