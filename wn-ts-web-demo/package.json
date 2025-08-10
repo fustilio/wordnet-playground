@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc -b && vite build",
     "dev": "vite --port 5173 --strictPort",
+    "dev:e2e": "vite --port 5174 --strictPort",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "pnpm test:cypress",
@@ -13,15 +14,15 @@
     "cypress:open": "cypress open",
     "cypress:run:wordnet": "cypress run --config-file cypress.wordnet.config.mjs",
     "cypress:run:wordnet:chrome": "cypress run --browser chrome --config-file cypress.wordnet.config.mjs",
-    "test:cypress": "VITE_E2E=1 start-server-and-test \"pnpm run dev\" http://localhost:5173 \"pnpm run cypress:run:wordnet\"",
-    "test:cypress:all": "VITE_E2E=1 start-server-and-test \"pnpm run dev\" http://localhost:5173 \"pnpm run cypress:run\"",
-    "test:cypress:wordnet": "VITE_E2E=1 start-server-and-test \"pnpm run dev\" http://localhost:5173 \"pnpm run cypress:run:wordnet\"",
-    "test:cypress:wordnet:chrome": "VITE_E2E=1 start-server-and-test \"pnpm run dev\" http://localhost:5173 \"pnpm run cypress:run:wordnet:chrome\"",
-    "test:cypress:examples": "VITE_E2E=1 start-server-and-test \"pnpm run dev\" http://localhost:5173 \"cypress run --spec cypress/e2e/1-getting-started/todo.cy.ts\"",
-    "cypress": "VITE_E2E=1 start-server-and-test \"pnpm run dev\" http://localhost:5173 \"pnpm run cypress:open\"",
+    "test:cypress": "VITE_E2E=1 start-server-and-test \"pnpm run dev:e2e\" http://localhost:5174 \"pnpm run cypress:run:wordnet\"",
+    "test:cypress:all": "VITE_E2E=1 start-server-and-test \"pnpm run dev:e2e\" http://localhost:5174 \"pnpm run cypress:run\"",
+    "test:cypress:wordnet": "VITE_E2E=1 start-server-and-test \"pnpm run dev:e2e\" http://localhost:5174 \"pnpm run cypress:run:wordnet\"",
+    "test:cypress:wordnet:chrome": "VITE_E2E=1 start-server-and-test \"pnpm run dev:e2e\" http://localhost:5174 \"pnpm run cypress:run:wordnet:chrome\"",
+    "test:cypress:examples": "VITE_E2E=1 start-server-and-test \"pnpm run dev:e2e\" http://localhost:5174 \"cypress run --spec cypress/e2e/1-getting-started/todo.cy.ts\"",
+    "cypress": "VITE_E2E=1 start-server-and-test \"pnpm run dev:e2e\" http://localhost:5174 \"pnpm run cypress:open\"",
     "index:build": "pnpm -C ../wn-ts-web node scripts/build-index.js",
     "lexicon:generate": "node scripts/generate-th-en-lexicon.cjs",
-    "test:cypress:local": "pnpm run index:build && pnpm run lexicon:generate && VITE_E2E=1 start-server-and-test \"pnpm run dev\" http://localhost:5173 \"cypress run --spec cypress/e2e/wordnet-demo/local-lexicon.cy.ts\""
+    "test:cypress:local": "pnpm run index:build && pnpm run lexicon:generate && VITE_E2E=1 start-server-and-test \"pnpm run dev:e2e\" http://localhost:5174 \"cypress run --spec cypress/e2e/wordnet-demo/local-lexicon.cy.ts\""
   },
   "dependencies": {
     "@sqlite.org/sqlite-wasm": "catalog:",
