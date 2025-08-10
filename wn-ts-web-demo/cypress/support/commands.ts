@@ -58,9 +58,11 @@ Cypress.Commands.add('ensureWordNetLoaded', () => {
 // Navigate tabs
 Cypress.Commands.add('goToTab', (name: string) => {
   Cypress.log({ name: 'goToTab', message: `Navigating to tab: ${name}` })
-  // Wait for tabs to be visible and clickable
-  cy.get('nav[aria-label="Tabs"]').should('be.visible')
-  cy.contains('button', name).should('be.visible').click({ force: true })
+  // Ensure app root and header are present before looking for tabs
+  cy.get('#root', { timeout: 20000 }).should('exist')
+  cy.contains('WordNet TypeScript Demo', { timeout: 20000 }).should('exist')
+  cy.get('nav[aria-label="Tabs"]', { timeout: 20000 }).should('be.visible')
+  cy.contains('button', name, { timeout: 20000 }).should('be.visible').click({ force: true })
   Cypress.log({ name: 'goToTab', message: `Clicked tab: ${name}` })
 })
 
