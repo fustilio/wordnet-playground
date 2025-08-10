@@ -20,18 +20,28 @@ export default defineConfig({
 
   e2e: {
     setupNodeEvents(on, config) {
-      // Verbose task/status logging for headless mode
+      // Verbose task/status logging can be controlled via LOG_LEVEL
+      // Levels: 'silent' | 'basic' (default) | 'progress' | 'verbose'
+      const logLevel = (config?.env?.LOG_LEVEL || process.env.CYPRESS_LOG_LEVEL || 'basic').toLowerCase()
+      const shouldLog = (type) => {
+        if (logLevel === 'silent') return false
+        if (logLevel === 'verbose') return true
+        if (logLevel === 'progress') return type === 'section' || type === 'progress'
+        // 'basic' default: only high-level sections
+        return type === 'section'
+      }
+
       on('task', {
         log(message) {
-          console.log('🧪 [task:log]', message)
+          if (shouldLog('log')) console.log('🧪 [log]', message)
           return null
         },
         section(message) {
-          console.log('🧪 [section]', message)
+          if (shouldLog('section')) console.log('🧪 [section]', message)
           return null
         },
         progress(payload) {
-          console.log('🧪 [progress]', payload)
+          if (shouldLog('progress')) console.log('🧪 [progress]', payload)
           return null
         }
       })

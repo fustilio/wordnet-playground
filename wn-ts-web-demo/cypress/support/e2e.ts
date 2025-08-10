@@ -25,3 +25,16 @@ beforeEach(() => {
   cy.intercept('GET', /.*/).as('GET_ALL')
   cy.intercept('POST', /.*/).as('POST_ALL')
 })
+
+// Log filtering: keep output concise by default
+const getLogLevel = () => (Cypress.env('LOG_LEVEL') || 'basic').toLowerCase()
+
+Cypress.Commands.overwrite('log', (originalFn, ...args) => {
+  const level = getLogLevel()
+  if (level === 'verbose') {
+    // @ts-ignore - forward to original
+    return originalFn(...args)
+  }
+  // suppress standard cy.log in non-verbose modes
+  return cy.wrap(null, { log: false })
+})
