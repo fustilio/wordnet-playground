@@ -7,7 +7,16 @@ export default defineConfig({
       framework: "react",
       bundler: "vite",
       // optionally pass in vite config
-      viteConfig: customViteConfig,
+      viteConfig: () => {
+        let modifiedConfig = customViteConfig;
+        modifiedConfig.server.port === 5174;
+        modifiedConfig.server.headers = {
+          ...  modifiedConfig.server.headers,
+          "Cross-Origin-Opener-Policy": "same-origin",
+          "Cross-Origin-Embedder-Policy": "require-corp",
+        }
+        return customViteConfig
+      },
       // or a function - the result is merged with
       // any `vite.config` file that is detected
       //   viteConfig: async () => {
@@ -39,5 +48,6 @@ export default defineConfig({
     specPattern: 'cypress/e2e/wordnet-demo/*.cy.ts',
     // Ensure TypeScript support files are used
     supportFile: 'cypress/support/e2e.ts',
+    baseUrl: 'http://localhost:5174',
   },
 });

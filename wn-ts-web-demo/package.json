@@ -8,8 +8,6 @@
     "cypress": "pnpm with-server \"pnpm run cypress:open\"",
     "cypress:open": "cypress open",
     "cypress:run": "cypress run",
-    "cypress:run:wordnet": "cypress run --config-file cypress.wordnet.config.mjs",
-    "cypress:run:wordnet:chrome": "cypress run --browser chrome --config-file cypress.wordnet.config.mjs",
     "dev": "vite --port 5173 --strictPort",
     "dev:e2e": "vite --port 5174 --strictPort",
     "index:build": "pnpm -C ../wn-ts-web node scripts/build-index.js",
@@ -17,13 +15,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "pnpm test:cypress",
-    "test:cypress": "pnpm with-server \"pnpm run cypress:run:wordnet\"",
-    "test:cypress:all": "pnpm with-server \"pnpm run cypress:run\"",
+    "test:cypress": "pnpm with-server \"pnpm run cypress:run\"",
     "test:cypress:examples": "pnpm with-server \"cypress run --spec cypress/e2e/1-getting-started/todo.cy.ts\"",
-    "test:cypress:local": "pnpm run index:build && pnpm run lexicon:generate && VITE_E2E=1 start-server-and-test \"pnpm run dev:e2e\" http://localhost:5174 \"cypress run --spec cypress/e2e/wordnet-demo/local-lexicon.cy.ts\"",
-    "test:cypress:wordnet": "pnpm with-server \"pnpm run cypress:run:wordnet\"",
-    "test:cypress:wordnet:chrome": "pnpm with-server \"pnpm run cypress:run:wordnet:chrome\"",
-    "with-server": "cross-env VITE_E2E=1 start-server-and-test \"pnpm run dev:e2e\" http://localhost:5174"
+    "test:cypress:local": "pnpm run index:build && pnpm run lexicon:generate && pnpm with-server \"cypress run --spec cypress/e2e/wordnet-demo/local-lexicon.cy.ts\"",
+    "with-server": "start-server-and-test \"pnpm run dev:e2e\" http://localhost:5174"
   },
   "dependencies": {
     "@sqlite.org/sqlite-wasm": "catalog:",

@@ -1,20 +1,4 @@
 /// <reference types="cypress" />
-
-// {
-//   "th-en-sample": {
-//     "type": "bilingual",
-//     "label": "Thai–English Sample Lexicon",
-//     "language": "th",
-//     "license": "https://creativecommons.org/licenses/by/4.0/",
-//     "versions": {
-//       "1.0": {
-//         "url": "http://localhost:5173/lexicons/th-en-sample.xml.gz"
-//       }
-//     }
-//   }
-// }
-
-
 describe('Local Thai–English Lexicon', () => {
   beforeEach(() => {
     cy.visitApp()
@@ -44,7 +28,7 @@ describe('Local Thai–English Lexicon', () => {
           license: 'https://creativecommons.org/licenses/by/4.0/',
           versions: {
             '1.0': {
-              url: 'http://localhost:5173/lexicons/th-en-sample.xml.gz'
+              url: 'http://localhost:5174/lexicons/th-en-sample.xml.gz'
             }
           }
         }

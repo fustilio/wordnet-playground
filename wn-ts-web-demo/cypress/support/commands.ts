@@ -27,8 +27,8 @@ Cypress.Commands.add('getByTestId', (testId: string, options?: Partial<Cypress.L
 
 // Visit app
 Cypress.Commands.add('visitApp', () => {
-  Cypress.log({ name: 'visitApp', message: 'Visiting app at http://localhost:5173' })
-  cy.visit('http://localhost:5173')
+  Cypress.log({ name: 'visitApp', message: 'Visiting app at http://localhost:5174' })
+  cy.visit('http://localhost:5174')
 })
 
 // Wait for system ready
