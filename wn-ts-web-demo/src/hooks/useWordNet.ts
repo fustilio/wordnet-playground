@@ -129,7 +129,7 @@ export function useWordNet(): WordNetState & {
         // Expose minimal demo API for tests and manual control
         try {
           if (typeof window !== 'undefined') {
-            // @ts-ignore
+            // @ts-expect-error attach demo API for manual/e2e usage
             window.__wnDemo = {
               loadProject: async (projectIdWithVersion: string) => {
                 try {
@@ -138,7 +138,7 @@ export function useWordNet(): WordNetState & {
                     progress: (p: number) => {
                       setState(prev => ({ ...prev, progress: p }))
                     }
-                  } as any)
+                  })
                   const stats = await dataLoader.getStatistics()
                   setState(prev => ({
                     ...prev,
@@ -159,7 +159,7 @@ export function useWordNet(): WordNetState & {
                     progressStage: 'Ready'
                   }))
                   return true
-                } catch (e) {
+                } catch (e: unknown) {
                   setState(prev => ({ ...prev, error: e instanceof Error ? e.message : String(e), loading: false }))
                   return false
                 }
@@ -169,7 +169,7 @@ export function useWordNet(): WordNetState & {
                 try {
                   extendProjectIndex(indexLike);
                   return true;
-                } catch (e) {
+                } catch (e: unknown) {
                   console.error('extendIndex failed', e);
                   return false;
                 }
@@ -187,13 +187,15 @@ export function useWordNet(): WordNetState & {
                   await dataLoader.clearAllData()
                   setState(prev => ({ ...prev, loadedPackages: [], statistics: null }))
                   return true
-                } catch (e) {
+                } catch {
                   return false
                 }
               }
             }
           }
-        } catch {}
+        } catch (ex) {
+          console.warn('Failed to attach __wnDemo API:', ex);
+        }
 
         // Initialize cache
         await cache.checkOPFSSupport();
@@ -275,7 +277,9 @@ export function useWordNet(): WordNetState & {
       };
       loadInitialData();
     }
-  }, [state.dataLoader, state.isInitializing]);
+  // Intentionally not including loadDemoData to avoid effect recreation; guarded by ref
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.dataLoader, state.isInitializing, state.loadedPackages.length]);
 
   // Load package data with caching
   const loadPackageData = useCallback(async (packageId: string, progress?: ProgressCallback) => {
@@ -313,29 +317,18 @@ export function useWordNet(): WordNetState & {
         setState(prev => ({ ...prev, progressStage: `Downloading ${packageId}...` }));
         
         // Download and load the package
+        const dlStarted = performance.now();
         await state.dataLoader.downloadAndLoad(packageId, {
           progress: (p: number) => {
             setState(prev => ({ ...prev, progress: p }));
             progress?.(p);
           }
         });
+        const dlMs = performance.now() - dlStarted;
+        console.log(`⏱️ Download+Load ${packageId} took ${dlMs.toFixed(1)}ms`);
         
-        // Cache the downloaded database
-        console.log(`💾 Caching ${packageId}...`);
-        setState(prev => ({ ...prev, progressStage: `Caching ${packageId}...` }));
-        
-        // Get the database buffer and cache it
-        // Note: This is a simplified approach. In a real implementation,
-        // you'd need to extract the database buffer from the DataLoader
-        const success = await cache.saveToCache(packageId, new ArrayBuffer(0), (p) => {
-          setState(prev => ({ ...prev, progress: 0.8 + p * 0.2 }));
-        });
-        
-        if (success) {
-          console.log(`✅ Cached ${packageId} successfully`);
-        } else {
-          console.warn(`⚠️ Failed to cache ${packageId}`);
-        }
+        // Cache placeholder disabled until we export real DB bytes
+        console.log(`💾 Skipping cache save for ${packageId} (no DB export available yet)`);
       }
 
       setState(prev => ({
