@@ -508,6 +508,13 @@ describe('WordNet Data Loading', () => {
               expect(synsets.length).to.be.at.least(1)
             }
           }
+          // Validate at least the expected POS exist among synsets (allow extras)
+          if (testCase.expectedPOS && Array.isArray(synsets)) {
+            const posSet = new Set<string>((synsets as any[]).map((s) => normalizePos((s as any).pos)))
+            testCase.expectedPOS.forEach((pos) => {
+              expect(Array.from(posSet)).to.include(pos, `"${testCase.word}" should include a ${pos} synset`)
+            })
+          }
         } catch (e) {
           cy.log('Error parsing synset JSON:', e)
           throw new Error(`Failed to parse synset results for "${testCase.word}": ${e.message}`)
@@ -526,14 +533,7 @@ describe('WordNet Data Loading', () => {
             availableProps: Object.keys(synset)
           })
           
-          // Validate POS is one of the expected ones
-          if (testCase.expectedPOS) {
-            const normalized = normalizePos(synset.pos)
-            expect(testCase.expectedPOS).to.include(
-              normalized,
-              `"${testCase.word}" synset should have one of expected POS: ${testCase.expectedPOS.join(', ')}`
-            )
-          }
+          // POS presence is validated against the overall set above
           
           // Check if any expected definition pattern is present in available text fields
           if (testCase.expectedDefinitions && i < 5) { // Check first 5 synsets
