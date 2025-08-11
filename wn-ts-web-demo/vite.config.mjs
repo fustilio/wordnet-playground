@@ -5,6 +5,12 @@ import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 
+// Log level for dev server proxy logs
+const LOG_LEVEL = process.env.LOG_LEVEL || 'info'
+const LOG_WEIGHT = { silent: 0, error: 1, warn: 2, info: 3, debug: 4 }
+const logWeight = LOG_WEIGHT[LOG_LEVEL] ?? LOG_WEIGHT.info
+const shouldLog = (min) => logWeight >= (LOG_WEIGHT[min] ?? LOG_WEIGHT.info)
+
 const cacheDir = path.join(process.cwd(), '.cache', 'proxy')
 if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true })
 
@@ -34,7 +40,7 @@ export default defineConfig({
           if (!cacheable) return next()
           const filePath = toCachePath(url)
           if (fs.existsSync(filePath)) {
-            console.log('🔁 [cache] Serving from disk:', url)
+            if (shouldLog('info')) console.log('🔁 [cache] Serving from disk:', url)
             res.statusCode = 200
             res.setHeader('Content-Type', 'application/octet-stream')
             res.setHeader('X-Proxy-Cache', 'HIT')
@@ -60,64 +66,61 @@ export default defineConfig({
             req.__startTs = Date.now()
           })
           proxy.on('error', (err) => {
-            console.log('proxy error', err);
+            if (shouldLog('warn')) console.log('proxy error', err);
           });
           proxy.on('proxyReq', (proxyReq, req) => {
-            console.log('Sending Request to the Target:', req.method, req.url);
+            if (shouldLog('debug')) console.log('Sending Request to the Target:', req.method, req.url);
           });
           proxy.on('proxyRes', (proxyRes, req) => {
-            console.log('⬅️ en-word.net (generic)', proxyRes.statusCode, req.method, req.url);
+            if (shouldLog('info')) console.log('⬅️ en-word.net (generic)', proxyRes.statusCode, req.method, req.url);
           });
           proxy.on('proxyRes', (proxyRes, req, res) => {
             const started = /** @type {any} */ (req).__startTs || Date.now()
             const dur = Date.now() - started
             try { res.setHeader('X-Proxy-Duration-Ms', String(dur)) } catch {}
-            console.log('⏱ en-word.net duration', dur + 'ms', req.method, req.url)
+            if (shouldLog('info')) console.log('⏱ en-word.net duration', dur + 'ms', req.method, req.url)
           })
           proxy.on('proxyRes', (proxyRes, req, res) => {
             const urlPath = req.url;
             if (proxyRes.statusCode === 200) {
-              const filePath = toCachePath(urlPath);
-              const writeStream = fs.createWriteStream(filePath);
-              proxyRes.pipe(writeStream);
+              const filePath = toCachePath('/api/wordnet' + urlPath)
+              const writeStream = fs.createWriteStream(filePath)
+              proxyRes.pipe(writeStream)
             }
-            try { res.setHeader('X-Proxy-Cache', 'MISS') } catch {}
-          });
-        },
+          })
+        }
       },
       '/api/github': {
-        target: 'https://github.com',
+        target: 'https://api.github.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/github/, ''),
         configure: (proxy) => {
           proxy.on('proxyReq', (proxyReq, req) => { /** @type {any} */ (req).__startTs = Date.now() })
           proxy.on('error', (err) => {
-            console.log('proxy error', err);
+            if (shouldLog('warn')) console.log('proxy error', err);
           });
           proxy.on('proxyReq', (proxyReq, req) => {
-            console.log('Sending Request to GitHub:', req.method, req.url);
+            if (shouldLog('debug')) console.log('Sending Request to GitHub:', req.method, req.url);
           });
           proxy.on('proxyRes', (proxyRes, req) => {
-            console.log('⬅️ github.com', proxyRes.statusCode, req.method, req.url);
+            if (shouldLog('info')) console.log('⬅️ github.com', proxyRes.statusCode, req.method, req.url);
           });
           proxy.on('proxyRes', (proxyRes, req, res) => {
             const started = /** @type {any} */ (req).__startTs || Date.now()
             const dur = Date.now() - started
             try { res.setHeader('X-Proxy-Duration-Ms', String(dur)) } catch {}
-            console.log('⏱ github.com duration', dur + 'ms', req.method, req.url)
+            if (shouldLog('info')) console.log('⏱ github.com duration', dur + 'ms', req.method, req.url)
           })
           proxy.on('proxyRes', (proxyRes, req, res) => {
             const urlPath = req.url;
             if (proxyRes.statusCode === 200) {
-              const filePath = toCachePath(urlPath);
-              const writeStream = fs.createWriteStream(filePath);
-              proxyRes.pipe(writeStream);
+              const filePath = toCachePath('/api/github' + urlPath)
+              const writeStream = fs.createWriteStream(filePath)
+              proxyRes.pipe(writeStream)
             }
-            try { res.setHeader('X-Proxy-Cache', 'MISS') } catch {}
-          });
-        },
+          })
+        }
       },
-      // Proxy for en-word.net static files
       '/api/en-word-net': {
         target: 'https://en-word.net',
         changeOrigin: true,
@@ -125,34 +128,31 @@ export default defineConfig({
         configure: (proxy) => {
           proxy.on('proxyReq', (proxyReq, req) => { /** @type {any} */ (req).__startTs = Date.now() })
           proxy.on('error', (err) => {
-            console.log('en-word.net proxy error', err);
+            if (shouldLog('warn')) console.log('en-word.net proxy error', err);
           });
           proxy.on('proxyReq', (proxyReq, req) => {
-            console.log('Sending Request to en-word.net:', req.method, req.url);
+            if (shouldLog('debug')) console.log('Sending Request to en-word.net:', req.method, req.url);
           });
           proxy.on('proxyRes', (proxyRes, req) => {
-            console.log('⬅️ en-word.net', proxyRes.statusCode, req.method, req.url, '| headers:', proxyRes.headers['content-type'], proxyRes.headers['content-length']);
+            if (shouldLog('info')) console.log('⬅️ en-word.net', proxyRes.statusCode, req.method, req.url, '| headers:', proxyRes.headers['content-type'], proxyRes.headers['content-length']);
           });
           proxy.on('proxyRes', (proxyRes, req, res) => {
             const started = /** @type {any} */ (req).__startTs || Date.now()
             const dur = Date.now() - started
             try { res.setHeader('X-Proxy-Duration-Ms', String(dur)) } catch {}
-            console.log('⏱ en-word.net duration', dur + 'ms', req.method, req.url)
+            if (shouldLog('info')) console.log('⏱ en-word.net duration', dur + 'ms', req.method, req.url)
           })
           // Save successful responses to cache
           proxy.on('proxyRes', (proxyRes, req, res) => {
             const urlPath = req.url;
             if (proxyRes.statusCode === 200) {
-              const filePath = toCachePath(urlPath);
-              const writeStream = fs.createWriteStream(filePath);
-              proxyRes.pipe(writeStream);
+              const filePath = toCachePath('/api/en-word-net' + urlPath)
+              const writeStream = fs.createWriteStream(filePath)
+              proxyRes.pipe(writeStream)
             }
-            // mark as MISS while saving to cache
-            try { res.setHeader('X-Proxy-Cache', 'MISS') } catch {}
-          });
-        },
+          })
+        }
       },
-      // Proxy for globalwordnet releases with better redirect handling
       '/api/globalwordnet': {
         target: 'https://github.com',
         changeOrigin: true,
@@ -160,10 +160,10 @@ export default defineConfig({
         configure: (proxy) => {
           proxy.on('proxyReq', (proxyReq, req) => { /** @type {any} */ (req).__startTs = Date.now() })
           proxy.on('error', (err) => {
-            console.log('globalwordnet proxy error', err);
+            if (shouldLog('warn')) console.log('globalwordnet proxy error', err);
           });
           proxy.on('proxyReq', (proxyReq, req) => {
-            console.log('Sending Request to globalwordnet:', req.method, req.url);
+            if (shouldLog('debug')) console.log('Sending Request to globalwordnet:', req.method, req.url);
             // Only set headers if they haven't been set already
             if (!proxyReq.getHeader('Accept')) {
               proxyReq.setHeader('Accept', 'application/octet-stream');
@@ -173,27 +173,24 @@ export default defineConfig({
             }
           });
           proxy.on('proxyRes', (proxyRes, req) => {
-            console.log('⬅️ globalwordnet', proxyRes.statusCode, req.method, req.url);
+            if (shouldLog('info')) console.log('⬅️ globalwordnet', proxyRes.statusCode, req.method, req.url);
           });
           proxy.on('proxyRes', (proxyRes, req, res) => {
             const started = /** @type {any} */ (req).__startTs || Date.now()
             const dur = Date.now() - started
             try { res.setHeader('X-Proxy-Duration-Ms', String(dur)) } catch {}
-            console.log('⏱ globalwordnet duration', dur + 'ms', req.method, req.url)
+            if (shouldLog('info')) console.log('⏱ globalwordnet duration', dur + 'ms', req.method, req.url)
           })
           proxy.on('proxyRes', (proxyRes, req, res) => {
             const urlPath = req.url;
             if (proxyRes.statusCode === 200) {
-              const filePath = toCachePath(urlPath);
-              const writeStream = fs.createWriteStream(filePath);
-              proxyRes.pipe(writeStream);
+              const filePath = toCachePath('/api/globalwordnet' + urlPath)
+              const writeStream = fs.createWriteStream(filePath)
+              proxyRes.pipe(writeStream)
             }
-            try { res.setHeader('X-Proxy-Cache', 'MISS') } catch {}
-          });
-        },
-        followRedirects: true,
+          })
+        }
       },
-      // Proxy for raw.githubusercontent.com (more reliable for direct file access)
       '/api/raw-github': {
         target: 'https://raw.githubusercontent.com',
         changeOrigin: true,
@@ -201,10 +198,10 @@ export default defineConfig({
         configure: (proxy) => {
           proxy.on('proxyReq', (proxyReq, req) => { /** @type {any} */ (req).__startTs = Date.now() })
           proxy.on('error', (err) => {
-            console.log('raw-github proxy error', err);
+            if (shouldLog('warn')) console.log('raw-github proxy error', err);
           });
           proxy.on('proxyReq', (proxyReq, req) => {
-            console.log('Sending Request to raw.githubusercontent.com:', req.method, req.url);
+            if (shouldLog('debug')) console.log('Sending Request to raw.githubusercontent.com:', req.method, req.url);
             // Only set headers if they haven't been set already
             if (!proxyReq.getHeader('Accept')) {
               proxyReq.setHeader('Accept', 'application/octet-stream');
@@ -214,59 +211,56 @@ export default defineConfig({
             }
           });
           proxy.on('proxyRes', (proxyRes, req) => {
-            console.log('⬅️ raw.githubusercontent.com', proxyRes.statusCode, req.method, req.url);
+            if (shouldLog('info')) console.log('⬅️ raw.githubusercontent.com', proxyRes.statusCode, req.method, req.url);
           });
           proxy.on('proxyRes', (proxyRes, req, res) => {
             const started = /** @type {any} */ (req).__startTs || Date.now()
             const dur = Date.now() - started
             try { res.setHeader('X-Proxy-Duration-Ms', String(dur)) } catch {}
-            console.log('⏱ raw.githubusercontent.com duration', dur + 'ms', req.method, req.url)
+            if (shouldLog('info')) console.log('⏱ raw.githubusercontent.com duration', dur + 'ms', req.method, req.url)
           })
           proxy.on('proxyRes', (proxyRes, req, res) => {
             const urlPath = req.url;
             if (proxyRes.statusCode === 200) {
-              const filePath = toCachePath(urlPath);
-              const writeStream = fs.createWriteStream(filePath);
-              proxyRes.pipe(writeStream);
+              const filePath = toCachePath('/api/raw-github' + urlPath)
+              const writeStream = fs.createWriteStream(filePath)
+              proxyRes.pipe(writeStream)
             }
-            try { res.setHeader('X-Proxy-Cache', 'MISS') } catch {}
-          });
-        },
+          })
+        }
       },
-      // Generic proxy for any external data source
       '/api/external': {
-        target: 'https://httpbin.org',
+        target: 'https://en-word.net',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/external/, ''),
         configure: (proxy) => {
           proxy.on('proxyReq', (proxyReq, req) => { /** @type {any} */ (req).__startTs = Date.now() })
           proxy.on('error', (err) => {
-            console.log('external proxy error', err);
+            if (shouldLog('warn')) console.log('external proxy error', err);
           });
           proxy.on('proxyReq', (proxyReq, req) => {
-            console.log('Sending Request to external:', req.method, req.url);
+            if (shouldLog('debug')) console.log('Sending Request to external:', req.method, req.url);
           });
           proxy.on('proxyRes', (proxyRes, req) => {
-            console.log('⬅️ external', proxyRes.statusCode, req.method, req.url);
+            if (shouldLog('info')) console.log('⬅️ external', proxyRes.statusCode, req.method, req.url);
           });
           proxy.on('proxyRes', (proxyRes, req, res) => {
             const started = /** @type {any} */ (req).__startTs || Date.now()
             const dur = Date.now() - started
             try { res.setHeader('X-Proxy-Duration-Ms', String(dur)) } catch {}
-            console.log('⏱ external duration', dur + 'ms', req.method, req.url)
+            if (shouldLog('info')) console.log('⏱ external duration', dur + 'ms', req.method, req.url)
           })
           proxy.on('proxyRes', (proxyRes, req, res) => {
             const urlPath = req.url;
             if (proxyRes.statusCode === 200) {
-              const filePath = toCachePath(urlPath);
-              const writeStream = fs.createWriteStream(filePath);
-              proxyRes.pipe(writeStream);
+              const filePath = toCachePath('/api/external' + urlPath)
+              const writeStream = fs.createWriteStream(filePath)
+              proxyRes.pipe(writeStream)
             }
-            try { res.setHeader('X-Proxy-Cache', 'MISS') } catch {}
-          });
-        },
+          })
+        }
       },
-    },
+    }
   },
   optimizeDeps: {
     exclude: ["@sqlite.org/sqlite-wasm"],
