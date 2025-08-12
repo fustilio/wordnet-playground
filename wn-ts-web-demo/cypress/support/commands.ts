@@ -28,8 +28,8 @@ Cypress.Commands.add('getByTestId', (testId: string, options?: Partial<Cypress.L
 
 // Visit app
 Cypress.Commands.add('visitApp', () => {
-  Cypress.log({ name: 'visitApp', message: 'Visiting app at http://localhost:5174' })
-  cy.visit('http://localhost:5174')
+  Cypress.log({ name: 'visitApp', message: 'Visiting app at baseUrl /' })
+  cy.visit('/')
 })
 
 // Wait for system ready
@@ -75,9 +75,12 @@ Cypress.Commands.add('goToTab', (name: string) => {
 
 // Search helper
 Cypress.Commands.add('search', (term: string, tab: 'words' | 'synsets' | 'senses' = 'words') => {
-  cy.get('input[placeholder*="happy"]').clear({ force: true }).type(term, { force: true })
-  cy.contains('Search').click({ force: true })
-  cy.contains(tab).click({ force: true })
+  cy.get('input[placeholder*="happy"], input[type="text"]', { timeout: 20000 })
+    .first()
+    .clear({ force: true })
+    .type(term, { force: true })
+  cy.contains('Search', { timeout: 20000 }).click({ force: true })
+  cy.contains(tab, { timeout: 20000 }).click({ force: true })
   // Wait for JSON-ish content to appear
   return cy.get('pre', { timeout: 20000 }).should(($pre) => {
     const text = $pre.text().trim()

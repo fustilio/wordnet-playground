@@ -53,6 +53,13 @@ export default defineConfig({
     }
   ],
   server: {
+    // Ensure consistent port and enable COOP/COEP for SharedArrayBuffer/OPFS worker support
+    port: 5174,
+    strictPort: true,
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
     proxy: {
       // Proxy WordNet data sources to bypass CORS
       '/api/wordnet': {

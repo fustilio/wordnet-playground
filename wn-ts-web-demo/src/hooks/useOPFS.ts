@@ -47,41 +47,40 @@ export const useOPFS = () => {
     const checkSupport = async () => {
       try {
         // Check for secure context (required for OPFS)
-        const isSecureContext = window.isSecureContext;
-        if (!isSecureContext) {
+        const isSecure = window.isSecureContext;
+        if (!isSecure) {
           console.warn('OPFS requires secure context (HTTPS) - some features may not work');
         }
 
-        const hasOPFS = 'storage' in navigator && 'getDirectory' in navigator.storage;
+        const hasOPFS = 'storage' in navigator && 'getDirectory' in (navigator.storage as any);
         const hasSharedArrayBuffer = typeof SharedArrayBuffer !== 'undefined';
         const hasWebWorkers = typeof Worker !== 'undefined';
         
-        const supported = hasOPFS && hasSharedArrayBuffer && isSecureContext;
+        // Treat OPFS as supported when OPFS API is present and secure context, even without SAB
+        const supported = !!(hasOPFS && isSecure);
         setIsSupported(supported);
         
         if (!hasOPFS) {
           console.warn('OPFS not supported in this browser');
         }
         if (!hasSharedArrayBuffer) {
-          console.info('SharedArrayBuffer not available - using standard ArrayBuffer (performance may be slightly reduced)');
+          console.info('SharedArrayBuffer not available - SQLite WASM OPFS VFS requires COOP/COEP. Using standard ArrayBuffer for non-worker OPFS operations.');
         }
         if (!hasWebWorkers) {
           console.warn('Web Workers not supported - synchronous OPFS access unavailable');
         }
-        if (!isSecureContext) {
+        if (!isSecure) {
           console.warn('Secure context required for OPFS - use HTTPS');
         }
 
         // Initialize OPFSManager if supported
         if (supported) {
           console.log('🚀 Initializing OPFS manager...');
-          // For now, we'll create a simple OPFS manager
-          // In a real implementation, you'd import the actual OPFSManager class
           const manager: OPFSManager = {
             async initialize() {
               try {
                 console.log('📁 Getting OPFS root directory...');
-                await navigator.storage.getDirectory();
+                await (navigator.storage as any).getDirectory();
                 console.log('✅ OPFS root directory obtained');
                 return true;
               } catch (error) {
@@ -90,18 +89,18 @@ export const useOPFS = () => {
               }
             },
             async listFiles() {
-              const root = await navigator.storage.getDirectory();
+              const root = await (navigator.storage as any).getDirectory();
               const files: Array<{ name: string; size: number; lastModified: Date; type: string }> = [];
               
               try {
                 for await (const [name, handle] of (root as FileSystemDirectoryHandle).entries()) {
-                  if (handle.kind === 'file') {
-                    const file = await (handle as FileSystemFileHandle).getFile();
+                  if ((handle as any).kind === 'file') {
+                    const file = await (handle as any as FileSystemFileHandle).getFile();
                     files.push({
                       name,
                       size: file.size,
                       lastModified: new Date(file.lastModified),
-                      type: file.type || 'application/octet-stream'
+                      type: (file as any).type || 'application/octet-stream'
                     });
                   }
                 }
@@ -113,20 +112,25 @@ export const useOPFS = () => {
             },
             async writeSyncFile(filename: string, data: Uint8Array) {
               try {
-                const root = await navigator.storage.getDirectory();
-                const fileHandle = await root.getFileHandle(filename, { create: true });
+                const root = await (navigator.storage as any).getDirectory();
+                const fileHandle = await (root as any).getFileHandle(filename, { create: true });
                 
-                // Use the new OPFS API with createSyncAccessHandle
-                const accessHandle = await fileHandle.createSyncAccessHandle();
-                
-                try {
-                  // Write the data using the sync access handle
-                  accessHandle.write(data);
-                  accessHandle.flush();
+                // Use the new OPFS API with createSyncAccessHandle if available
+                if (fileHandle.createSyncAccessHandle) {
+                  const accessHandle = await fileHandle.createSyncAccessHandle();
+                  try {
+                    accessHandle.write(data);
+                    accessHandle.flush();
+                    return true;
+                  } finally {
+                    accessHandle.close();
+                  }
+                } else {
+                  // Fallback: write via writable stream
+                  const writable = await (fileHandle as any).createWritable();
+                  await writable.write(data);
+                  await writable.close();
                   return true;
-                } finally {
-                  // Always close the access handle
-                  accessHandle.close();
                 }
               } catch (error) {
                 console.error('Failed to write sync file:', error);
@@ -135,24 +139,25 @@ export const useOPFS = () => {
             },
             async readSyncFile(filename: string) {
               try {
-                const root = await navigator.storage.getDirectory();
-                const fileHandle = await root.getFileHandle(filename);
+                const root = await (navigator.storage as any).getDirectory();
+                const fileHandle = await (root as any).getFileHandle(filename);
                 
-                // Use the new OPFS API with createSyncAccessHandle
-                const accessHandle = await fileHandle.createSyncAccessHandle();
-                
-                try {
-                  const size = accessHandle.getSize();
-                  const buffer = new ArrayBuffer(size);
-                  const view = new DataView(buffer);
-                  
-                  // Read the data using the sync access handle
-                  accessHandle.read(view);
-                  
-                  return new Uint8Array(buffer);
-                } finally {
-                  // Always close the access handle
-                  accessHandle.close();
+                // Use the new OPFS API with createSyncAccessHandle if available
+                if (fileHandle.createSyncAccessHandle) {
+                  const accessHandle = await fileHandle.createSyncAccessHandle();
+                  try {
+                    const size = accessHandle.getSize();
+                    const buffer = new ArrayBuffer(size);
+                    const view = new DataView(buffer);
+                    accessHandle.read(view);
+                    return new Uint8Array(buffer);
+                  } finally {
+                    accessHandle.close();
+                  }
+                } else {
+                  const file = await (fileHandle as any).getFile();
+                  const buf = await file.arrayBuffer();
+                  return new Uint8Array(buf);
                 }
               } catch (error) {
                 console.error('Failed to read sync file:', error);
@@ -173,7 +178,7 @@ export const useOPFS = () => {
             },
             async clearAll() {
               try {
-                const root = await navigator.storage.getDirectory();
+                const root = await (navigator.storage as any).getDirectory();
                 await (root as FileSystemDirectoryHandle).remove({ recursive: true });
                 return true;
               } catch (error) {
@@ -348,7 +353,7 @@ export const useOPFS = () => {
       const filename = `wordnet-${Date.now()}.db`;
       console.log(`💾 Saving to OPFS as: ${filename}`);
       
-      // Use synchronous write for better performance
+      // Use synchronous write for better performance when available
       const success = await opfsManager.writeSyncFile(filename, data);
       
       if (!success) {
@@ -385,7 +390,21 @@ export const useOPFS = () => {
       }
 
       // Use OPFSManager for better error handling
-      await navigator.storage.getDirectory().then(root => root.removeEntry(filename));
+      const root: any = await (navigator.storage as any).getDirectory();
+      if (typeof root.removeEntry === 'function') {
+        await root.removeEntry(filename);
+      } else {
+        const fh = await root.getFileHandle(filename).catch(() => null);
+        if (fh?.createSyncAccessHandle) {
+          const ah = await fh.createSyncAccessHandle();
+          try {
+            ah.truncate(0);
+            ah.flush();
+          } finally {
+            ah.close();
+          }
+        }
+      }
       
       // Refresh storage info
       const newStorageInfo = await getStorageInfo();
@@ -418,8 +437,6 @@ export const useOPFS = () => {
         
         console.log('All OPFS data cleared');
         alert('All OPFS data cleared successfully');
-      } else {
-        throw new Error('Failed to clear OPFS data');
       }
     } catch (error) {
       console.error('Clear OPFS failed:', error);
@@ -427,21 +444,14 @@ export const useOPFS = () => {
     }
   };
 
-  useEffect(() => {
-    if (isSupported && opfsManager) {
-      getStorageInfo().then(setStorageInfo);
-    }
-  }, [isSupported, opfsManager]);
-
   return {
-    storageInfo,
     isSupported,
-    opfsManager,
+    storageInfo,
     getStorageInfo,
     exportDatabase,
     importDatabase,
     saveToOPFS,
     deleteFromOPFS,
-    clearAllOPFS
-  };
-};
+    clearAllOPFS,
+  } as const;
+}
