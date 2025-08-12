@@ -21,7 +21,7 @@ export interface ProxyConfig {
  */
 export const defaultProxyConfig: ProxyConfig = {
   enabled: true,
-  baseUrl: 'http://localhost:5173', // Vite dev server
+  baseUrl: 'http://localhost:5174', // Vite dev server
   endpoints: {
     'en-word-net': {
       target: 'https://en-word.net',
@@ -34,6 +34,10 @@ export const defaultProxyConfig: ProxyConfig = {
     'github': {
       target: 'https://github.com',
       rewrite: (path) => path.replace(/^\/api\/github/, ''),
+    },
+    'release-assets': {
+      target: 'https://release-assets.githubusercontent.com',
+      rewrite: (path) => path.replace(/^\/api\/release-assets/, ''),
     },
     'raw-github': {
       target: 'https://raw.githubusercontent.com',
@@ -62,6 +66,10 @@ export function toProxyUrl(url: string, config: ProxyConfig = defaultProxyConfig
   // Convert external URLs to proxy URLs
   if (url.includes('en-word.net')) {
     return url.replace('https://en-word.net', '/api/en-word-net');
+  }
+  
+  if (url.includes('release-assets.githubusercontent.com')) {
+    return url.replace('https://release-assets.githubusercontent.com', '/api/release-assets');
   }
   
   if (url.includes('github.com/globalwordnet')) {
@@ -95,7 +103,8 @@ export function needsProxy(url: string): boolean {
   return url.startsWith('https://') && 
          (url.includes('en-word.net') || 
           url.includes('github.com') || 
-          url.includes('globalwordnet'));
+          url.includes('globalwordnet') ||
+          url.includes('release-assets.githubusercontent.com'));
 }
 
 /**
@@ -148,6 +157,7 @@ export async function testProxyConnectivity(): Promise<{
     { name: 'en-word-net', url: '/api/en-word-net/static/english-wordnet-2024.xml.gz' },
     { name: 'globalwordnet', url: '/api/globalwordnet/globalwordnet/english-wordnet/releases/latest' },
     { name: 'github', url: '/api/github/globalwordnet/english-wordnet' },
+    { name: 'release-assets', url: '/api/release-assets/' },
     { name: 'raw-github', url: '/api/raw-github/globalwordnet/english-wordnet/2024-edition/english-wordnet-2024.xml.gz' },
   ];
 

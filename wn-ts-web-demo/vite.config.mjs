@@ -188,6 +188,24 @@ export default defineConfig({
             try { res.setHeader('X-Proxy-Duration-Ms', String(dur)) } catch {}
             if (shouldLog('info')) console.log('⏱ globalwordnet duration', dur + 'ms', req.method, req.url)
           })
+          // Rewrite redirects to GitHub release assets through our proxy to avoid CORS
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            const loc = proxyRes.headers?.location
+            if (loc && typeof loc === 'string') {
+              let newLoc = loc
+              if (loc.startsWith('https://release-assets.githubusercontent.com')) {
+                newLoc = loc.replace('https://release-assets.githubusercontent.com', '/api/release-assets')
+              }
+              if (loc.includes('github-production-release-asset')) {
+                // Some redirects use the older CDN hostname
+                newLoc = '/api/release-assets' + loc.replace(/^https?:\/\/[^/]+/, '')
+              }
+              if (newLoc !== loc) {
+                try { res.setHeader('Location', newLoc) } catch {}
+                if (shouldLog('info')) console.log('🔀 Rewrote redirect Location to', newLoc)
+              }
+            }
+          })
           proxy.on('proxyRes', (proxyRes, req, res) => {
             const urlPath = req.url;
             if (proxyRes.statusCode === 200) {
@@ -195,6 +213,27 @@ export default defineConfig({
               const writeStream = fs.createWriteStream(filePath)
               proxyRes.pipe(writeStream)
             }
+          })
+        }
+      },
+      // New: handle GitHub release asset CDN via same-origin proxy to avoid CORS on redirects
+      '/api/release-assets': {
+        target: 'https://release-assets.githubusercontent.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/release-assets/, ''),
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq, req) => { /** @type {any} */ (req).__startTs = Date.now() })
+          proxy.on('error', (err) => {
+            if (shouldLog('warn')) console.log('release-assets proxy error', err);
+          });
+          proxy.on('proxyRes', (proxyRes, req) => {
+            if (shouldLog('info')) console.log('⬅️ release-assets', proxyRes.statusCode, req.method, req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            const started = /** @type {any} */ (req).__startTs || Date.now()
+            const dur = Date.now() - started
+            try { res.setHeader('X-Proxy-Duration-Ms', String(dur)) } catch {}
+            if (shouldLog('info')) console.log('⏱ release-assets duration', dur + 'ms', req.method, req.url)
           })
         }
       },
