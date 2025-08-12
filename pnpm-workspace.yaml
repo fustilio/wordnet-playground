@@ -26,3 +26,4 @@ packages:
   - wn-pybridge
   - wn-cli
   - wn-ts-web-demo
+  - sqlite-opfs-demo
