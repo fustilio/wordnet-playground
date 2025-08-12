@@ -16,12 +16,18 @@
 // Import commands.ts using ES2015 syntax:
 import './commands'
 
-// Global verbose network logging
+// Minimal, useful network logging
+const LOG_LEVEL = (Cypress.env('LOG_LEVEL') as string) || 'info'
+const isDebug = LOG_LEVEL === 'debug'
+
 before(() => {
+  // Only alias API calls used in tests; avoid aliasing every GET/POST
   cy.intercept({ url: /\/api\// }).as('api')
 })
 
 beforeEach(() => {
-  cy.intercept('GET', /.*/).as('GET_ALL')
-  cy.intercept('POST', /.*/).as('POST_ALL')
+  if (isDebug) {
+    cy.intercept('GET', /.*/).as('GET_ALL')
+    cy.intercept('POST', /.*/).as('POST_ALL')
+  }
 })

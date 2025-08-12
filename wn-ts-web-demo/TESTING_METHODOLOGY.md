@@ -146,7 +146,7 @@ pnpm test:cypress:examples
 describe('WordNet Data Loading', () => {
   beforeEach(() => {
     // Setup and initialization
-    cy.visit('http://localhost:5173')
+    cy.visit('http://localhost:5174')
     cy.wait(2000)
   })
 

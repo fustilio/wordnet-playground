@@ -2,14 +2,26 @@ import React from 'react'
 import { BasicWordNetDemo } from './BasicWordNetDemo'
 import { DemoDataSection } from './DemoDataSection'
 import { ProjectList } from './ProjectList'
+import { SequentialRunner } from './SequentialRunner'
 
-type WordNetState = any
-
-interface ExamplesPageProps {
-  wordnetState: WordNetState
+interface WordNetPackage { id: string; label: string; language: string; version: string }
+interface CacheInfoView { totalFiles: number; totalSizeMB: number; availableSpaceMB: number; isSupported: boolean }
+interface WordNetStateView {
+  availablePackages: WordNetPackage[]
+  loadPackageData: (id: string, progress?: (p: number) => void) => Promise<void>
+  loadDemoData: (progress?: (p: number) => void) => Promise<void>
+  unloadData: () => Promise<void>
+  clearCacheAndUnload: () => Promise<void>
+  getCacheInfo: () => Promise<Record<string, unknown>>
+  isInitializing: boolean
+  loadedPackages?: string[]
+  cacheInfo?: CacheInfoView
+  statistics?: Record<string, unknown>
 }
 
-type ExampleId = 'basic' | 'projects' | 'info'
+interface ExamplesPageProps { wordnetState: WordNetStateView }
+
+type ExampleId = 'basic' | 'projects' | 'info' | 'sequential'
 
 export const ExamplesPage: React.FC<ExamplesPageProps> = ({ wordnetState }) => {
   const [selected, setSelected] = React.useState<ExampleId>('basic')
@@ -20,26 +32,44 @@ export const ExamplesPage: React.FC<ExamplesPageProps> = ({ wordnetState }) => {
       label: 'Basic WordNet Demo',
       render: () => (
         <BasicWordNetDemo
-          wordNetState={wordnetState}
-          availablePackages={wordnetState.availablePackages}
+          wordNetState={wordnetState as any}
+          storageInfo={null as any}
+          availablePackages={(wordnetState as any).availablePackages}
           onLoadPackage={async (packageId: string, version: string, onProgress?: (p: number) => void) => {
             const id = `${packageId}:${version}`
-            await wordnetState.loadPackageData(id, onProgress)
+            await (wordnetState as any).loadPackageData(id, onProgress)
           }}
           onLoadDemo={async () => {
-            await wordnetState.loadDemoData()
+            await (wordnetState as any).loadDemoData()
           }}
           onUnloadData={async () => {
-            await wordnetState.unloadData()
+            await (wordnetState as any).unloadData()
           }}
           onClearCacheAndUnload={async () => {
-            await wordnetState.clearCacheAndUnload()
+            await (wordnetState as any).clearCacheAndUnload()
           }}
           getCacheInfo={async () => {
-            return await wordnetState.getCacheInfo()
+            return await (wordnetState as any).getCacheInfo()
           }}
-          isInitializing={wordnetState.isInitializing}
+          isInitializing={(wordnetState as any).isInitializing}
         />
+      )
+    },
+    // Simple sequential run card (like a notebook)
+    {
+      id: 'info',
+      label: 'Data Info',
+      render: () => (
+        <div className="space-y-3">
+          <div className="bg-white rounded-lg border p-4">
+            <div className="text-sm text-gray-700">Statistics</div>
+            <pre className="text-xs bg-gray-50 p-2 rounded overflow-auto">{JSON.stringify({
+              loadedPackages: (wordnetState as any).loadedPackages,
+              cacheInfo: (wordnetState as any).cacheInfo,
+              stats: (wordnetState as any).statistics
+            }, null, 2)}</pre>
+          </div>
+        </div>
       )
     },
     {
@@ -48,10 +78,11 @@ export const ExamplesPage: React.FC<ExamplesPageProps> = ({ wordnetState }) => {
       render: () => <ProjectList />
     },
     {
-      id: 'info',
-      label: 'Data Info',
-      render: () => <DemoDataSection />
-    }
+      id: 'sequential',
+      label: 'Sequential Runner',
+      render: () => <SequentialRunner wordnetState={wordnetState as any} />
+    },
+    // Removed duplicate 'info' to avoid key conflicts
   ]
 
   const active = examples.find(e => e.id === selected)!
