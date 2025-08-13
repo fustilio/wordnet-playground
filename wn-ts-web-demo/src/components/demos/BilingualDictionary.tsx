@@ -2,39 +2,55 @@ import React, { useEffect, useMemo, useState } from 'react';
 import type { useWordNet } from '../../hooks/useWordNet';
 import { Card } from '../shared/Card';
 
-// Language codes in the DB are ISO-3 like 'eng','fra','tha'. Map friendly labels.
-const LANG_LABEL: Record<string, string> = { eng: 'English', fra: 'French', tha: 'Thai' };
+// Use ISO-2 codes to match DB inserts ('en','fr','th')
+const LANG_LABEL: Record<string, string> = { en: 'English', fr: 'French', th: 'Thai' };
 
-type Pair = { from: 'eng' | 'fra'; to: 'fra' | 'tha' } | { from: 'eng'; to: 'tha' };
+type Pair = { from: 'en' | 'fr'; to: 'fr' | 'th' } | { from: 'en'; to: 'th' };
 
 type Props = ReturnType<typeof useWordNet>;
 
 export const BilingualDictionary: React.FC<Props> = ({ wordnet, dataLoader, availablePackages, loadedPackages, loadPackageData, refreshPackages, loading }) => {
-  const [pair, setPair] = useState<Pair>({ from: 'eng', to: 'fra' });
+  const [pair, setPair] = useState<Pair>({ from: 'en', to: 'fr' });
   const [term, setTerm] = useState('water');
   const [results, setResults] = useState<Array<{ source: string; target: string; synsetId: string; defFrom?: string; defTo?: string }>>([]);
   const [busy, setBusy] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
 
+  const findLatestByPrefix = (prefix: string, filter?: (v: string) => boolean) => {
+    const candidates = availablePackages
+      .filter(p => p.id.startsWith(prefix + ':'))
+      .map(p => ({ id: p.id, version: p.id.split(':')[1] }))
+      .filter(x => (filter ? filter(x.version) : true));
+    const toNum = (v: string) => {
+      const n = parseFloat(v.replace(/[^0-9.]/g, ''));
+      return isNaN(n) ? -Infinity : n;
+    };
+    candidates.sort((a, b) => toNum(b.version) - toNum(a.version));
+    return candidates[0]?.id;
+  };
+
   const requiredProjects = useMemo(() => {
-    // Try to pick Open English WordNet (oewn), French (omw-en/fra), Thai (omw-tha) if present
-    const all = availablePackages.map(p => p.id);
-    const pick = (idPrefix: string) => all.find(id => id.startsWith(idPrefix + ':'));
-    const en = pick('oewn') || pick('omw-en') || pick('ewn');
-    const fr = pick('omw-fra') || pick('wn-fra') || pick('fra');
-    const th = pick('omw-tha') || pick('wn-tha') || pick('th');
+    // English: prefer 'oewn:>=2021', else 'ewn:<2021'
+    const en = findLatestByPrefix('oewn', v => toInt(v) >= 2021) || findLatestByPrefix('ewn', v => toInt(v) < 2021);
+    // French/Thai from OMW where available
+    const fr = findLatestByPrefix('omw-fra') || findLatestByPrefix('wn-fra') || findLatestByPrefix('fra');
+    const th = findLatestByPrefix('omw-tha') || findLatestByPrefix('wn-tha') || findLatestByPrefix('th');
     return { en, fr, th };
+    function toInt(v: string) {
+      const n = parseInt(v.replace(/[^0-9]/g, ''), 10);
+      return isNaN(n) ? -Infinity : n;
+    }
   }, [availablePackages]);
 
   const ensureLoaded = async () => {
     const need: string[] = [];
-    if (pair.from === 'eng' && !loadedPackages.some(id => id.startsWith('oewn') || id.startsWith('omw-en') || id.startsWith('ewn'))) {
+    if (pair.from === 'en' && !loadedPackages.some(id => id.startsWith('oewn') || id.startsWith('ewn') || id.startsWith('omw-en'))) {
       if (requiredProjects.en) need.push(requiredProjects.en);
     }
-    if ((pair.from === 'fra' || pair.to === 'fra') && !loadedPackages.some(id => id.startsWith('omw-fra') || id.startsWith('wn-fra') || id.startsWith('fra'))) {
+    if ((pair.from === 'fr' || pair.to === 'fr') && !loadedPackages.some(id => id.startsWith('omw-fra') || id.startsWith('wn-fra') || id.startsWith('fra'))) {
       if (requiredProjects.fr) need.push(requiredProjects.fr);
     }
-    if (pair.to === 'tha' && !loadedPackages.some(id => id.startsWith('omw-tha') || id.startsWith('wn-tha') || id.startsWith('th'))) {
+    if (pair.to === 'th' && !loadedPackages.some(id => id.startsWith('omw-tha') || id.startsWith('wn-tha') || id.startsWith('th'))) {
       if (requiredProjects.th) need.push(requiredProjects.th);
     }
     for (const id of need) {
@@ -59,7 +75,7 @@ export const BilingualDictionary: React.FC<Props> = ({ wordnet, dataLoader, avai
       const srcWords = await qs.getWords({ form: term, language: fromLang, searchAllForms: true });
       const out: Array<{ source: string; target: string; synsetId: string; defFrom?: string; defTo?: string }> = [];
 
-      for (const w of srcWords.slice(0, 25)) { // cap fan-out
+      for (const w of srcWords.slice(0, 25)) {
         const senses = await qs.getSenses({ wordIdOrForm: w.id });
         for (const s of senses.slice(0, 25)) {
           // 2) Same synset, other-language words
@@ -85,7 +101,6 @@ export const BilingualDictionary: React.FC<Props> = ({ wordnet, dataLoader, avai
   };
 
   useEffect(() => {
-    // Try to pre-load essentials silently
     const boot = async () => {
       try {
         await ensureLoaded();
@@ -102,13 +117,13 @@ export const BilingualDictionary: React.FC<Props> = ({ wordnet, dataLoader, avai
       <div className="space-y-4">
         <div className="flex gap-2 items-center">
           <select value={pair.from} onChange={(e) => setPair(p => ({ ...p, from: e.target.value as any }))} className="px-2 py-1 border rounded">
-            <option value="eng">English</option>
-            <option value="fra">French</option>
+            <option value="en">English</option>
+            <option value="fr">French</option>
           </select>
           <span className="text-gray-600">→</span>
           <select value={pair.to} onChange={(e) => setPair(p => ({ ...p, to: e.target.value as any }))} className="px-2 py-1 border rounded">
-            <option value="fra">French</option>
-            <option value="tha">Thai</option>
+            <option value="fr">French</option>
+            <option value="th">Thai</option>
           </select>
         </div>
 
@@ -121,7 +136,6 @@ export const BilingualDictionary: React.FC<Props> = ({ wordnet, dataLoader, avai
           <button onClick={refreshPackages} className="px-3 py-2 bg-gray-200 rounded">Refresh</button>
         </div>
 
-        {/* Loaded indicator */}
         <div className="text-sm text-gray-600">
           <span className="font-medium">Loaded:</span>{' '}
           {loadedPackages.length > 0 ? loadedPackages.join(', ') : 'none'}
