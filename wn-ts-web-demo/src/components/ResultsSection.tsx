@@ -1,10 +1,11 @@
 import React from 'react';
+import type { StatisticsBundle } from '../types';
 
 interface ResultsSectionProps {
   activeTab: string;
   searchTerm: string;
-  searchResults: any;
-  stats: any;
+  searchResults: unknown;
+  stats: StatisticsBundle | null;
 }
 
 export const ResultsSection: React.FC<ResultsSectionProps> = ({
@@ -42,9 +43,9 @@ export const ResultsSection: React.FC<ResultsSectionProps> = ({
           <h3>Search Results for "{searchTerm}"</h3>
           {searchResults ? (
             <div className="results">
-              {searchResults.error ? (
+              {typeof searchResults === 'object' && searchResults !== null && 'error' in (searchResults as any) ? (
                 <div className="error-message">
-                  <p>Error: {searchResults.error}</p>
+                  <p>Error: {(searchResults as any).error}</p>
                 </div>
               ) : (
                 <pre className="results-json">

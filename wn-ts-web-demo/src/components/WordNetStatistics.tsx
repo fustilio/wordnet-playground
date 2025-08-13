@@ -1,42 +1,9 @@
 import React from 'react';
-
-interface WordNetStatistics {
-  totalWords: number;
-  totalSynsets: number;
-  totalSenses: number;
-  totalRelations: number;
-  totalDefinitions: number;
-  languages: string[];
-  partsOfSpeech: string[];
-  dataSize: number;
-  lastUpdated: string;
-  source: string;
-}
-
-interface WordNetIntegrity {
-  isValid: boolean;
-  checksum?: string;
-  fileSize: number;
-  compressionType?: string;
-  format: string;
-  errors: string[];
-  warnings: string[];
-  qualityScore: number;
-}
-
-interface DataSourceInfo {
-  id: string;
-  name: string;
-  version: string;
-  url: string;
-  description: string;
-  lastChecked: string;
-  status: 'available' | 'unavailable' | 'error';
-}
+import type { DataSourceInfo, WordNetIntegrityInfo, WordNetStats } from '../types';
 
 interface WordNetStatisticsProps {
-  statistics?: WordNetStatistics;
-  integrity?: WordNetIntegrity;
+  statistics?: WordNetStats;
+  integrity?: WordNetIntegrityInfo;
   dataSource?: DataSourceInfo;
 }
 
@@ -53,14 +20,6 @@ export const WordNetStatistics: React.FC<WordNetStatisticsProps> = ({
       </div>
     );
   }
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
 
   const getQualityColor = (score: number): string => {
     if (score >= 90) return 'text-green-600';
@@ -129,28 +88,18 @@ export const WordNetStatistics: React.FC<WordNetStatisticsProps> = ({
             <p className="text-2xl font-bold text-green-600">{statistics.totalSenses.toLocaleString()}</p>
             <p className="text-sm text-green-700">Senses</p>
           </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-green-600">{statistics.totalRelations.toLocaleString()}</p>
-            <p className="text-sm text-green-700">Relations</p>
-          </div>
-        </div>
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <p className="text-sm text-green-600 font-medium">Data Size</p>
-            <p className="text-green-900">{formatFileSize(statistics.dataSize)}</p>
-          </div>
-          <div>
-            <p className="text-sm text-green-600 font-medium">Definitions</p>
-            <p className="text-green-900">{statistics.totalDefinitions.toLocaleString()}</p>
-          </div>
-          <div>
-            <p className="text-sm text-green-600 font-medium">Languages</p>
-            <p className="text-green-900">{statistics.languages.join(', ') || 'None detected'}</p>
-          </div>
-          <div>
-            <p className="text-sm text-green-600 font-medium">Parts of Speech</p>
-            <p className="text-green-900">{statistics.partsOfSpeech.join(', ')}</p>
-          </div>
+          {'totalILIs' in statistics && (
+            <div className="text-center">
+              <p className="text-2xl font-bold text-green-600">{(statistics as any).totalILIs.toLocaleString()}</p>
+              <p className="text-sm text-green-700">ILIs</p>
+            </div>
+          )}
+          {'totalLexicons' in statistics && (
+            <div className="text-center">
+              <p className="text-2xl font-bold text-green-600">{(statistics as any).totalLexicons.toLocaleString()}</p>
+              <p className="text-sm text-green-700">Lexicons</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -174,12 +123,10 @@ export const WordNetStatistics: React.FC<WordNetStatisticsProps> = ({
             <p className="text-sm text-purple-700">Valid</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-purple-600">{formatFileSize(integrity.fileSize)}</p>
+            <p className="text-2xl font-bold text-purple-600">{(integrity.fileSize / 1024 / 1024).toFixed(2)} MB</p>
             <p className="text-sm text-purple-700">File Size</p>
           </div>
         </div>
-        
-        {/* Errors and Warnings */}
         {(integrity.errors.length > 0 || integrity.warnings.length > 0) && (
           <div className="space-y-3">
             {integrity.errors.length > 0 && (
@@ -194,7 +141,6 @@ export const WordNetStatistics: React.FC<WordNetStatisticsProps> = ({
                 </ul>
               </div>
             )}
-            
             {integrity.warnings.length > 0 && (
               <div>
                 <p className="text-sm font-medium text-yellow-700 mb-2">Warnings ({integrity.warnings.length})</p>
@@ -209,7 +155,6 @@ export const WordNetStatistics: React.FC<WordNetStatisticsProps> = ({
             )}
           </div>
         )}
-        
         {integrity.errors.length === 0 && integrity.warnings.length === 0 && (
           <div className="text-center py-4">
             <p className="text-green-600 font-medium">✓ No issues detected</p>
@@ -218,10 +163,10 @@ export const WordNetStatistics: React.FC<WordNetStatisticsProps> = ({
         )}
       </div>
 
-      {/* Last Updated */}
+      {/* Timestamp */}
       <div className="bg-gray-50 p-3 rounded-lg">
         <p className="text-sm text-gray-600">
-          Last updated: {new Date(statistics.lastUpdated).toLocaleString()}
+          Last checked: {new Date(dataSource.lastChecked).toLocaleString()}
         </p>
       </div>
     </div>
