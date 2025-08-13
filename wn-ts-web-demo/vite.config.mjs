@@ -138,35 +138,15 @@ export default defineConfig({
           proxy.on("proxyRes", (proxyRes, req, res) => {
             const url = req.url || "";
             if (shouldLog("info")) console.log("🔁 [forward]", url);
-          });
-        },
-        bypass: (req, res, options) => {
-          // Example: cache GET responses to disk for reproducibility
-          if (req.method === "GET") {
-            const url = req.url || "";
-            const filePath = toCachePath(url);
-            if (fs.existsSync(filePath)) {
-              if (shouldLog("info"))
-                console.log("🔁 [cache] Serving from disk:", url);
-              res.setHeader("X-Proxy-Cache", "HIT");
-              return filePath;
-            }
-            // otherwise write the proxied response to disk
-            return undefined;
-          }
-        },
-        configure: (proxy) => {
-          proxy.on("proxyRes", (proxyRes, req, res) => {
-            const url = req.url || "";
+            // Cache successful GETs to disk
             const filePath = toCachePath(url);
             if (req.method === "GET" && proxyRes.statusCode === 200) {
-              if (shouldLog("info"))
-                console.log("💾 [cache] Writing to disk:", url);
+              if (shouldLog("info")) console.log("💾 [cache] Writing to disk:", url);
               const writeStream = fs.createWriteStream(filePath);
               proxyRes.pipe(writeStream);
             }
           });
-        },
+        }
       },
     },
   },
