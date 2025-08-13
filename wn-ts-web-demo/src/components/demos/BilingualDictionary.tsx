@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import type { useWordNet } from '../../hooks/useWordNet';
 import { Card } from '../shared/Card';
 
 // Use ISO-2 codes to match DB inserts ('en','fr','th')
@@ -7,7 +6,15 @@ const LANG_LABEL: Record<string, string> = { en: 'English', fr: 'French', th: 'T
 
 type Pair = { from: 'en' | 'fr'; to: 'fr' | 'th' } | { from: 'en'; to: 'th' };
 
-type Props = ReturnType<typeof useWordNet>;
+type Props = {
+  wordnet: any;
+  dataLoader: any;
+  availablePackages: Array<{ id: string; label: string; language: string; version: string }>;
+  loadedPackages: string[];
+  loadPackageData: (projectIdWithVersion: string) => Promise<void>;
+  refreshPackages: () => Promise<void>;
+  loading: boolean;
+};
 
 export const BilingualDictionary: React.FC<Props> = ({ wordnet, dataLoader, availablePackages, loadedPackages, loadPackageData, refreshPackages, loading }) => {
   const [pair, setPair] = useState<Pair>({ from: 'en', to: 'fr' });
@@ -84,8 +91,8 @@ export const BilingualDictionary: React.FC<Props> = ({ wordnet, dataLoader, avai
 
           // 3) Definitions from both langs
           const defs = await qs.getDefinitionsBySynsetId(s.synset);
-          const defFrom = defs.find(d => d.language === fromLang)?.text;
-          const defTo = defs.find(d => d.language === toLang)?.text;
+          const defFrom = defs.find((d: any) => d.language === fromLang)?.text;
+          const defTo = defs.find((d: any) => d.language === toLang)?.text;
 
           for (const tw of toWords.slice(0, 10)) {
             out.push({ source: w.lemma, target: tw.lemma, synsetId: s.synset, defFrom, defTo });

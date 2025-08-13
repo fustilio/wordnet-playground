@@ -1,8 +1,16 @@
 import React from 'react';
 import { Card } from '../shared/Card';
-import type { WordNetState } from '../../hooks/useWordNet';
 
-export const StatusWidget: React.FC<WordNetState> = ({ isInitializing, loading, error, progress, progressStage, loadedPackages }) => {
+interface StatusWidgetProps {
+  isInitializing: boolean;
+  loading: boolean;
+  error: string | null;
+  progress: number;
+  progressStage: string;
+  loadedPackages: string[];
+}
+
+export const StatusWidget: React.FC<StatusWidgetProps> = ({ isInitializing, loading, error, progress, progressStage, loadedPackages }) => {
   return (
     <Card title="System Status">
       <div data-testid="system-status" className="space-y-4">

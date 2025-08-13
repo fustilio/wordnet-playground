@@ -1,9 +1,11 @@
 import React from 'react';
 import { Card } from '../shared/Card';
-import type { useWordNet } from '../../hooks/useWordNet';
-import type { useOPFS } from '../../hooks/useOPFS';
 
-type AdvancedDemoProps = ReturnType<typeof useWordNet> & ReturnType<typeof useOPFS>;
+type AdvancedDemoProps = {
+  availablePackages: Array<{ id: string; label: string; language: string; version: string }>;
+  loadedPackages: string[];
+  loadPackageData: (projectIdWithVersion: string) => Promise<void>;
+};
 
 export const AdvancedDemo: React.FC<AdvancedDemoProps> = ({ 
   availablePackages, 
