@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { createWordNetInstance, WebWordnet, DataLoader, extendProjectIndex, extendProjectIndexFromUrl, clearCustomProjectIndex } from 'wn-ts-web';
+import { createWordNetInstance, WebWordnet, DataLoader, extendProjectIndex, extendProjectIndexFromUrl, clearCustomProjectIndex, getAvailableProjects } from 'wn-ts-web';
 import { useWordNetCache } from './useWordNetCache';
 
 export interface WordNetState {
@@ -59,6 +59,7 @@ export function useWordNet(): WordNetState & {
   getCacheInfo: () => Promise<Record<string, unknown>>;
   clearCache: () => Promise<boolean>;
   removeFromCache: (packageId: string) => Promise<boolean>;
+  refreshPackages: () => Promise<void>;
 } {
   const cache = useWordNetCache();
   
@@ -71,20 +72,7 @@ export function useWordNet(): WordNetState & {
     statistics: undefined,
     integrity: null,
     dataSource: null,
-    availablePackages: [
-      {
-        id: 'oewn:2024',
-        label: 'Open English WordNet',
-        language: 'en',
-        version: '2024'
-      },
-      {
-        id: 'cili:1.0',
-        label: 'Collaborative Interlingual Index',
-        language: 'interlingual',
-        version: '1.0'
-      }
-    ],
+    availablePackages: [],
     loadedPackages: [],
     progress: 0,
     progressStage: 'Ready - No packages loaded', // Clear message that no packages are loaded
@@ -96,7 +84,42 @@ export function useWordNet(): WordNetState & {
     }
   });
 
+  const computeAvailablePackages = () => {
+    try {
+      const projects = getAvailableProjects();
+      const flat = projects.flatMap(p => p.versions.map(v => ({
+        id: `${p.id}:${v}`,
+        label: p.label,
+        language: p.language || 'unknown',
+        version: v
+      })));
+      return flat;
+    } catch {
+      // Fallback to a minimal list if index isn't available
+      return [
+        { id: 'oewn:2024', label: 'Open English WordNet', language: 'en', version: '2024' },
+        { id: 'cili:1.0', label: 'Collaborative Interlingual Index', language: 'interlingual', version: '1.0' },
+      ];
+    }
+  };
 
+  const refreshPackages = useCallback(async () => {
+    try {
+      const available = computeAvailablePackages();
+      let loaded: string[] = [];
+      if (state.wordnet) {
+        try {
+          const lexStats = await state.wordnet.getLexiconStatistics();
+          loaded = (lexStats || []).map(ls => ls.lexiconId);
+        } catch {
+          // ignore if not available yet
+        }
+      }
+      setState(prev => ({ ...prev, availablePackages: available, loadedPackages: loaded }));
+    } catch (e) {
+      // keep previous on failure
+    }
+  }, [state.wordnet]);
 
   // Initialize WordNet instance (run once on mount)
   useEffect(() => {
@@ -152,7 +175,6 @@ export function useWordNet(): WordNetState & {
                   return false
                 }
               },
-              // Allow tests and manual usage to extend the project index at runtime
               extendIndex: (indexLike: Record<string, unknown>) => {
                 try {
                   extendProjectIndex(indexLike);
@@ -192,8 +214,13 @@ export function useWordNet(): WordNetState & {
         setState(prev => ({ 
           ...prev, 
           cacheInfo: cacheStats,
-          progressStage: 'Ready'
+          progressStage: 'Ready',
+          loading: false,
+          progress: 0,
         }));
+
+        // Populate available and loaded packages
+        await refreshPackages();
 
         console.log('✅ WordNet initialized successfully');
         console.log('📦 Cache status:', cacheStats);
@@ -204,7 +231,8 @@ export function useWordNet(): WordNetState & {
           ...prev, 
           error: error instanceof Error ? error.message : 'Unknown error',
           isInitializing: false,
-          progressStage: 'Initialization failed'
+          progressStage: 'Initialization failed',
+          loading: false,
         }));
       }
     };
@@ -213,9 +241,6 @@ export function useWordNet(): WordNetState & {
     // Intentionally run once; cache methods are stable via useCallback
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Manual loading - no automatic loading
-  // Users must explicitly call loadDemoData() or loadPackageData() to load packages
 
   // Load package data with caching
   const loadPackageData = useCallback(async (packageId: string, progress?: ProgressCallback) => {
@@ -247,14 +272,15 @@ export function useWordNet(): WordNetState & {
           console.log(`✅ Loaded ${packageId} from cache successfully`);
         } else {
           console.warn(`⚠️ Cache entry for ${packageId} is invalid or empty (${cachedData?.byteLength ?? 0} bytes). Falling back to download.`);
-          // Attempt to remove bad cache then proceed to download
           try { await cache.removeFromCache(packageId); } catch {}
-          // Force the download path below
           throw new Error('Failed to load from cache');
         }
       } else {
         console.log(`📥 Downloading ${packageId} from server...`);
         setState(prev => ({ ...prev, progressStage: `Downloading ${packageId}...` }));
+        
+        // Yield to UI
+        await Promise.resolve();
         
         // Download and load the package
         const dlStarted = performance.now();
@@ -266,9 +292,6 @@ export function useWordNet(): WordNetState & {
         });
         const dlMs = performance.now() - dlStarted;
         console.log(`⏱️ Download+Load ${packageId} took ${dlMs.toFixed(1)}ms`);
-        
-        // Cache placeholder disabled until we export real DB bytes
-        console.log(`💾 Skipping cache save for ${packageId} (no DB export available yet)`);
       }
 
       setState(prev => ({
@@ -335,9 +358,7 @@ export function useWordNet(): WordNetState & {
 
     try {
       console.log('📦 Attempting to load oewn:2024...');
-      // Load a sample package for demo
       await loadPackageData('oewn:2024', progress);
-      
       console.log('✅ Demo data loaded successfully');
     } catch (error) {
       console.error('❌ Failed to load demo data:', error);
@@ -371,21 +392,22 @@ export function useWordNet(): WordNetState & {
     if (!state.dataLoader) {
       return;
     }
-    
-          try {
-        // Clear the database - using a simple approach for now
-        // In a real implementation, you'd call the appropriate method
-        setState(prev => ({
-          ...prev,
-          loadedPackages: [],
-          statistics: undefined,
-          integrity: null,
-          dataSource: null
-        }));
-        console.log('✅ Data unloaded successfully');
-      } catch (error) {
-        console.error('❌ Failed to unload data:', error);
-      }
+    try {
+      setState(prev => ({ ...prev, loading: true }));
+      await state.dataLoader.clearAllData();
+      setState(prev => ({
+        ...prev,
+        loadedPackages: [],
+        statistics: undefined,
+        integrity: null,
+        dataSource: null,
+        loading: false,
+      }));
+      console.log('✅ Data unloaded successfully');
+    } catch (error) {
+      console.error('❌ Failed to unload data:', error);
+      setState(prev => ({ ...prev, loading: false }));
+    }
   }, [state.dataLoader]);
 
   // Clear cache and unload
@@ -395,7 +417,6 @@ export function useWordNet(): WordNetState & {
       const success = await cache.clearCache();
       if (success) {
         console.log('✅ Cache cleared successfully');
-        // Update cache info
         const cacheStats = cache.getCacheStats();
         setState(prev => ({ ...prev, cacheInfo: cacheStats }));
       }
@@ -439,6 +460,7 @@ export function useWordNet(): WordNetState & {
     clearCacheAndUnload,
     getCacheInfo,
     clearCache,
-    removeFromCache
+    removeFromCache,
+    refreshPackages,
   };
 }
