@@ -705,6 +705,46 @@ export class KyselyQueryService {
       .execute();
   }
 
+  async getSensesBySynsetId(synsetId: string): Promise<Database['senses'][]> {
+    return this.db
+      .selectFrom('senses')
+      .selectAll()
+      .where('synset_id', '=', synsetId)
+      .execute();
+  }
+
+  async getWordsByIds(wordIds: string[]): Promise<Word[]> {
+    if (!wordIds || wordIds.length === 0) return [];
+    const rows = await this.db
+      .selectFrom('words')
+      .selectAll()
+      .where('id', 'in', wordIds)
+      .execute();
+    return rows.map(this.transformWordRecord.bind(this));
+  }
+
+  async getWordsBySynsetAndLanguage(synsetId: string, language?: string): Promise<Word[]> {
+    let query = this.db
+      .selectFrom('senses')
+      .innerJoin('words', 'senses.word_id', 'words.id')
+      .selectAll('words')
+      .where('senses.synset_id', '=', synsetId);
+    if (language) {
+      query = query.where('words.language', '=', language);
+    }
+    const rows = await query.execute();
+    // Deduplicate words
+    const seen = new Set<string>();
+    const out: Word[] = [];
+    for (const row of rows) {
+      if (!seen.has(row.id)) {
+        seen.add(row.id);
+        out.push(this.transformWordRecord(row as any));
+      }
+    }
+    return out;
+  }
+
   async getRelationsBySynsetId(synsetId: string): Promise<Database['relations'][]> {
     return this.db
       .selectFrom('relations')
