@@ -10,6 +10,6 @@ export { DataLoader } from './DataLoader';
 export { DataManager } from './DataManager';
 export { ProjectList } from './ProjectList';
 export { ProxyStatus } from './ProxyStatus';
-export { ResultsSection as RootResultsSection } from './ResultsSection';
+export { ResultsSection } from './ResultsSection';
 export { SimpleDataLoader } from './SimpleDataLoader';
 export { WordNetStatistics } from './WordNetStatistics';
