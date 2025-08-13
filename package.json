@@ -46,9 +46,11 @@
     "dev": "pnpm --filter wn-cli... dev",
     "suite": "pnpm build && pnpm test"
   },
-  "devDependencies": {},
   "engines": {
     "node": ">=18.0.0"
   },
-  "packageManager": "pnpm@10.14.0"
+  "packageManager": "pnpm@10.14.0",
+  "dependencies": {
+    "typescript": "catalog:"
+  }
 }
