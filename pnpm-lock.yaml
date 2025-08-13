@@ -65,6 +65,19 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 5.8.3
+    devDependencies:
+      '@types/react':
+        specifier: ^19.1.9
+        version: 19.1.9
+      '@types/react-dom':
+        specifier: ^19.1.7
+        version: 19.1.7(@types/react@19.1.9)
+      react:
+        specifier: ^19.1.1
+        version: 19.1.1
+      react-dom:
+        specifier: ^19.1.1
+        version: 19.1.1(react@19.1.1)
 
   benchmark:
     dependencies:
@@ -495,9 +508,6 @@ importers:
       '@heroicons/react':
         specifier: ^2.2.0
         version: 2.2.0(react@19.1.1)
-      '@sqlite.org/sqlite-wasm':
-        specifier: 'catalog:'
-        version: 3.50.3-build1
       '@tailwindcss/vite':
         specifier: ^4.1.11
         version: 4.1.11(vite@7.0.6(@types/node@24.2.0)(jiti@2.5.1)(lightningcss@1.30.1)(terser@5.43.1))
@@ -523,6 +533,9 @@ importers:
       '@eslint/js':
         specifier: ^9.30.1
         version: 9.30.1
+      '@sqlite.org/sqlite-wasm':
+        specifier: 'catalog:'
+        version: 3.50.3-build1
       '@types/node':
         specifier: ^24.2.0
         version: 24.2.0
@@ -530,10 +543,10 @@ importers:
         specifier: ^2.0.3
         version: 2.0.3
       '@types/react':
-        specifier: ^19.1.8
+        specifier: ^19.1.9
         version: 19.1.9
       '@types/react-dom':
-        specifier: ^19.1.6
+        specifier: ^19.1.7
         version: 19.1.7(@types/react@19.1.9)
       '@vitejs/plugin-react':
         specifier: ^4.6.0
@@ -8620,7 +8633,7 @@ snapshots:
     dependencies:
       debug: 3.2.7(supports-color@8.1.1)
       enhanced-resolve: 0.9.1
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-webpack@0.13.10(eslint-plugin-import@2.32.0(eslint@8.57.1))(webpack@5.99.9))(eslint@8.57.1)
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-webpack@0.13.10)(eslint@8.57.1)
       find-root: 1.1.0
       hasown: 2.0.2
       interpret: 1.4.0
@@ -8667,7 +8680,7 @@ snapshots:
       eslint: 8.57.1
       ignore: 5.3.2
 
-  eslint-plugin-import@2.32.0(eslint-import-resolver-webpack@0.13.10(eslint-plugin-import@2.32.0(eslint@8.57.1))(webpack@5.99.9))(eslint@8.57.1):
+  eslint-plugin-import@2.32.0(eslint-import-resolver-webpack@0.13.10)(eslint@8.57.1):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.1.9
@@ -12341,7 +12354,7 @@ snapshots:
       eslint-import-resolver-webpack: 0.13.10(eslint-plugin-import@2.32.0(eslint@8.57.1))(webpack@5.99.9)
       eslint-plugin-ava: 13.2.0(eslint@8.57.1)
       eslint-plugin-eslint-comments: 3.2.0(eslint@8.57.1)
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-webpack@0.13.10(eslint-plugin-import@2.32.0(eslint@8.57.1))(webpack@5.99.9))(eslint@8.57.1)
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-webpack@0.13.10)(eslint@8.57.1)
       eslint-plugin-n: 15.7.0(eslint@8.57.1)
       eslint-plugin-no-use-extend-native: 0.5.0
       eslint-plugin-prettier: 4.2.1(eslint-config-prettier@8.10.0(eslint@8.57.1))(eslint@8.57.1)(prettier@2.8.8)
