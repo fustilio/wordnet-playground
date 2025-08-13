@@ -3,6 +3,8 @@ import { Project } from "./project.js";
 import type { ProgressCallback } from "./types/progress.js";
 import { WebDatabase } from "./web-database.js";
 import { WebWordnet } from "./web-wordnet.js";
+import pako from "pako";
+import { XzReadableStream } from "xz-decompress";
 
 export interface DataLoadOptions {
   force?: boolean;
@@ -34,11 +36,11 @@ export class DataLoader {
       const current = stack.pop();
       if (!current) continue;
 
-      if (current.name === '#text') {
-        if (typeof current.text === 'string' && current.text.length > 0) {
+      if (current.name === "#text") {
+        if (typeof current.text === "string" && current.text.length > 0) {
           aggregatedText += " " + current.text;
         }
-      } else if (typeof current.text === 'string' && current.text.length > 0) {
+      } else if (typeof current.text === "string" && current.text.length > 0) {
         // Some nodes may carry inline text as well
         aggregatedText += " " + current.text;
       }
@@ -158,10 +160,20 @@ export class DataLoader {
       try {
         const proxyUrl = this.toProxyUrl(url);
         console.log(`🌐 Downloading from ${url} (proxied as ${proxyUrl})...`);
-        const data = await this.downloadFile(proxyUrl, progress);
+        const data = await DataLoader.downloadFile(proxyUrl, progress);
+
+        // Additional check: verify we actually got data
+        if (data.byteLength === 0) {
+          console.warn(
+            `⚠️ URL ${url} returned empty response (0 bytes) - trying next URL`
+          );
+          continue; // Try next URL instead of attempting to load empty data
+        }
 
         // Load the data into the database
-        console.log(`📊 Loading data into database...`);
+        console.log(
+          `📊 Loading data (${data.byteLength} bytes) into database...`
+        );
         await this.loadData(data, projectIdWithVersion, progress);
 
         console.log(`✅ Successfully loaded ${projectIdWithVersion}`);
@@ -189,25 +201,62 @@ export class DataLoader {
   ): Promise<void> {
     // This will replace the current DB with the one from the buffer
     await this.database.loadDatabase(new Uint8Array(data));
-
+    // Recreate Kysely connections after DB swap
+    try {
+      this.wordnet.refreshConnections();
+    } catch {}
     await this.insertLexicon(projectIdWithVersion);
   }
 
   /**
    * Download a file from a URL
    */
-  protected async downloadFile(
+  public static async downloadFile(
     url: string,
     progress?: ProgressCallback
   ): Promise<ArrayBuffer> {
+    console.log(`🔍 Debug downloadFile: Starting download from ${url}`);
+
     const response = await fetch(url);
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      const errorText = await response
+        .text()
+        .catch(() => "Unable to read error response");
+      console.error(`❌ HTTP ${response.status}: ${response.statusText}`);
+      console.error(`❌ Response headers:`, {
+        "content-type": response.headers.get("content-type"),
+        "content-length": response.headers.get("content-length"),
+        server: response.headers.get("server"),
+        date: response.headers.get("date"),
+      });
+      console.error(`❌ Error response body:`, errorText.substring(0, 500));
+      throw new Error(
+        `HTTP ${response.status}: ${response.statusText}. Response: ${errorText.substring(0, 200)}`
+      );
     }
 
+    // Check content type to help diagnose issues
+    const contentType = response.headers.get("content-type");
     const contentLength = response.headers.get("content-length");
     const total = contentLength ? parseInt(contentLength, 10) : 0;
+
+    console.log(`🔍 Debug downloadFile: Content-Type: ${contentType}`);
+    console.log(
+      `🔍 Debug downloadFile: Content-Length: ${contentLength || "unknown"}`
+    );
+
+    // Warn about unexpected content types
+    if (
+      contentType &&
+      !contentType.includes("xml") &&
+      !contentType.includes("gzip") &&
+      !contentType.includes("octet-stream")
+    ) {
+      console.warn(
+        `⚠️ Warning: Unexpected content type: ${contentType}. Expected XML or gzip.`
+      );
+    }
 
     if (!response.body) {
       throw new Error("Response body is null");
@@ -240,6 +289,29 @@ export class DataLoader {
       offset += chunk.length;
     }
 
+    console.log(`🔍 Debug downloadFile: Downloaded ${totalLength} bytes`);
+
+    // Basic validation that we got some data
+    if (totalLength === 0) {
+      throw new Error("Downloaded file is empty (0 bytes)");
+    }
+
+    // Check if this looks like an error page (HTML) instead of XML
+    const firstBytes = result.slice(0, Math.min(100, totalLength));
+    const firstChars = new TextDecoder().decode(firstBytes);
+    if (
+      firstChars.toLowerCase().includes("<!doctype html>") ||
+      firstChars.toLowerCase().includes("<html")
+    ) {
+      console.error(
+        `❌ Downloaded content appears to be HTML, not XML:`,
+        firstChars.substring(0, 200)
+      );
+      throw new Error(
+        "Downloaded content is HTML, not XML. This usually indicates a server error page."
+      );
+    }
+
     return result.buffer;
   }
 
@@ -254,30 +326,176 @@ export class DataLoader {
     let xmlText: string;
     const view = new Uint8Array(data);
 
-    // Check for gzip magic numbers: 0x1f 0x8b
-    if (view.length > 2 && view[0] === 0x1f && view[1] === 0x8b) {
+    console.log(`🔍 Debug loadData: Received ${data.byteLength} bytes`);
+    console.log(
+      `🔍 Debug loadData: First 16 bytes:`,
+      Array.from(view.slice(0, 16))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join(" ")
+    );
+
+    // Check for XZ magic numbers: 0xfd 0x37 0x7a 0x58 0x5a 0x00
+    if (
+      view.length > 6 &&
+      view[0] === 0xfd &&
+      view[1] === 0x37 &&
+      view[2] === 0x7a &&
+      view[3] === 0x58 &&
+      view[4] === 0x5a &&
+      view[5] === 0x00
+    ) {
+      console.log(
+        `🔍 Debug: XZ magic numbers detected: ${view[0].toString(16).padStart(2, "0")} ${view[1].toString(16).padStart(2, "0")} ${view[2].toString(16).padStart(2, "0")} ${view[3].toString(16).padStart(2, "0")} ${view[4].toString(16).padStart(2, "0")} ${view[5].toString(16).padStart(2, "0")}`
+      );
       try {
-        // Dynamically import pako for decompression
-        const pako = await import("pako");
-        const decompressed = pako.inflate(view);
+        console.log(`🔍 Debug: Starting XZ decompression...`);
+
+        const viewStream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(view);
+            controller.close();
+          },
+        });
+        const decompressed = await new Response(
+          new XzReadableStream(viewStream)
+        ).text();
+
+        console.log(
+          `🔍 Debug: XZ decompression completed: ${decompressed.length} bytes`
+        );
+        if (typeof decompressed === "string") {
+          xmlText = decompressed;
+        } else {
+          xmlText = new TextDecoder().decode(decompressed);
+        }
+        console.log(
+          `📊 Decompressed XZ data: ${view.length} bytes -> ${xmlText.length} characters`
+        );
+        console.log(
+          `🔍 Debug: First 200 chars after XZ decompression:`,
+          xmlText.substring(0, 200)
+        );
+        console.log(
+          `🔍 Debug: Last 200 chars after XZ decompression:`,
+          xmlText.substring(Math.max(0, xmlText.length - 200))
+        );
+      } catch (err) {
+        console.error("❌ Failed to decompress XZ data:", err);
+        throw err;
+      }
+    }
+    // Check for gzip magic numbers: 0x1f 0x8b
+    else if (view.length > 2 && view[0] === 0x1f && view[1] === 0x8b) {
+      console.log(
+        `🔍 Debug: Gzip magic numbers detected: ${view[0].toString(16).padStart(2, "0")} ${view[1].toString(16).padStart(2, "0")}`
+      );
+      try {
+        // Use pako for gzip decompression
+        let workingView = view;
+        if (view[view.length - 1] === 0x3b) {
+          console.warn("removing last byte");
+          workingView = view.slice(0, -1);
+        }
+
+        const decompressed = pako.inflate(workingView);
+
+        console.log("Debug decompressed", decompressed);
+        console.log(
+          `🔍 Debug: Decompression completed: ${decompressed.length} bytes`
+        );
         xmlText = new TextDecoder().decode(decompressed);
-        console.log("📊 Decompressed gzipped data.");
+        console.log(
+          `📊 Decompressed gzipped data: ${decompressed.length} bytes -> ${xmlText.length} characters`
+        );
+        console.log(
+          `🔍 Debug: First 200 chars after decompression:`,
+          xmlText.substring(0, 200)
+        );
+        console.log(
+          `🔍 Debug: Last 200 chars after decompression:`,
+          xmlText.substring(Math.max(0, xmlText.length - 200))
+        );
       } catch (err) {
         console.error("❌ Failed to decompress gzipped data:", err);
         throw err;
       }
     } else {
-      // Data is not gzipped
+      // Data is not compressed
       xmlText = new TextDecoder().decode(data);
+      console.log(
+        `📊 Data is not compressed: ${data.byteLength} bytes -> ${xmlText.length} characters`
+      );
+      console.log(`🔍 Debug: First 200 chars:`, xmlText.substring(0, 200));
     }
 
     if (progress) progress(0.1);
+
+    // Get project metadata to determine file type
+    const project = Project.from(projectIdWithVersion);
+    const projectType = (project as any).projectData?.type;
+    
+    console.log(`🔍 Debug: Project type from metadata: ${projectType}`);
+    console.log(`🔍 Debug: Project data:`, (project as any).projectData);
+
+    // Handle different file types based on project metadata
+    if (projectType === 'ili') {
+      console.log(`📝 Detected ILI file type from project metadata`);
+      
+      // Parse ILI TSV data
+      const iliData = await this.loadILI(xmlText);
+      console.log(`📊 Loaded ${iliData.length} ILI records`);
+      
+      if (progress) progress(0.5);
+      
+      // Insert ILI data
+      await this.insertILIData(iliData, projectIdWithVersion);
+      
+      if (progress) progress(1.0);
+      console.log(`✅ ILI data loaded successfully for ${projectIdWithVersion}`);
+      return;
+    }
+
+    // Default to LMF XML processing
+    console.log(`📝 Processing as LMF XML file`);
+    
+    // Verify that we have valid LMF XML content
+    console.log(`🔍 Debug: Verifying XML content...`);
+
+    // Check for empty content first
+    if (xmlText.length === 0) {
+      console.error(`❌ CRITICAL: Decompressed XML is empty (0 characters)!`);
+      throw new Error(
+        "Decompressed XML is empty - file may be corrupted or download failed"
+      );
+    }
+
+    if (!xmlText.includes("<LexicalResource")) {
+      console.error(
+        `❌ CRITICAL: Decompressed XML does not contain LexicalResource element!`
+      );
+      console.error(`❌ XML length: ${xmlText.length}`);
+      console.error(`❌ First 500 chars:`, xmlText.substring(0, 500));
+      console.error(
+        `❌ Last 500 chars:`,
+        xmlText.substring(Math.max(0, xmlText.length - 500))
+      );
+      throw new Error(
+        "Decompressed XML does not contain LexicalResource element - file may be corrupted"
+      );
+    }
+    console.log(
+      `✅ XML content verification passed - LexicalResource element found`
+    );
 
     // Lexicon information will be inserted from the file data
 
     if (progress) progress(0.2);
 
     // Check if the XML is very large (over 1MB)
+    console.log(
+      `🔍 Debug: XML size check - xmlText.length: ${xmlText.length}, threshold: 1000000, isLarge: ${xmlText.length > 1000000}`
+    );
+
     if (xmlText.length > 1000000) {
       console.log(
         `📊 Large XML file detected (${(xmlText.length / 1024 / 1024).toFixed(
@@ -285,25 +503,48 @@ export class DataLoader {
         )}MB), using browser-compatible parser...`
       );
 
-      // Use browser-compatible parser for large files
-      const browserParser = new BrowserXMLParser(xmlText, {
-        debug: true,
-        progress: (p) => {
-          if (progress) {
-            // Map parser progress to our progress range (0.2-0.9)
-            progress(0.2 + p * 0.7);
-          }
-        },
-      });
+      try {
+        // Use browser-compatible parser for large files
+        const browserParser = new BrowserXMLParser(xmlText, {
+          debug: true,
+          progress: (p) => {
+            if (progress) {
+              // Map parser progress to our progress range (0.2-0.9)
+              progress(0.2 + p * 0.7);
+            }
+          },
+        });
 
-      const parsed = await browserParser.parse();
+        console.log(`🔍 Debug: Browser parser created, starting parse...`);
+        const parsed = await browserParser.parse();
+        console.log(`🔍 Debug: Browser parser completed successfully`);
 
-      if (progress) progress(0.9);
+        if (progress) progress(0.9);
 
-      // Convert browser parser output to LMF format and insert
-      await this.insertBrowserParsedData(parsed, projectIdWithVersion);
+        // Convert browser parser output to LMF format and insert
+        console.log(`🔍 Debug: Starting insertBrowserParsedData...`);
+        await this.insertBrowserParsedData(parsed, projectIdWithVersion);
+        console.log(`🔍 Debug: insertBrowserParsedData completed successfully`);
 
-      if (progress) progress(1.0);
+        if (progress) progress(1.0);
+      } catch (browserError) {
+        console.error(`❌ Browser parser failed:`, browserError);
+        console.error(`❌ Falling back to regular parser...`);
+
+        // Fallback to regular parser if browser parser fails
+        const { parseLMFXML, diagnoseDownloadIssue } = await import(
+          "wn-ts-core"
+        );
+
+        try {
+          const lmfDocument = parseLMFXML(xmlText, { debug: true });
+          await this.insertLMFData(lmfDocument, projectIdWithVersion);
+          if (progress) progress(1.0);
+        } catch (fallbackError) {
+          console.error(`❌ Fallback parser also failed:`, fallbackError);
+          throw fallbackError;
+        }
+      }
     } else {
       // For smaller files, use the regular parser
       console.log(
@@ -311,15 +552,120 @@ export class DataLoader {
           2
         )}KB), using regular parser...`
       );
-      const { parseLMFXML } = await import("wn-ts-core");
-      const lmfDocument = parseLMFXML(xmlText, { debug: true });
+      const { parseLMFXML, diagnoseDownloadIssue } = await import("wn-ts-core");
 
-      if (progress) progress(0.5);
+      try {
+        const lmfDocument = parseLMFXML(xmlText, { debug: true });
 
-      // Insert the parsed data into the database
-      await this.insertLMFData(lmfDocument, projectIdWithVersion);
+        if (progress) progress(0.5);
 
-      if (progress) progress(1.0);
+        // Insert the parsed data into the database
+        await this.insertLMFData(lmfDocument, projectIdWithVersion);
+
+        if (progress) progress(1.0);
+      } catch (error) {
+        // Provide better error diagnosis
+        const { diagnoseDownloadIssue, analyzeXMLContent } = await import(
+          "wn-ts-core"
+        );
+        const diagnosis = diagnoseDownloadIssue(xmlText);
+        const analysis = analyzeXMLContent(xmlText);
+
+        console.error(`❌ LMF parsing failed: ${diagnosis}`);
+        console.error(`❌ Error details:`, error);
+        console.error(`❌ XML analysis:`, analysis);
+
+        // Log additional debugging information
+        console.error(`❌ XML content length: ${xmlText.length}`);
+        console.error(`❌ First 500 characters:`, xmlText.substring(0, 500));
+        console.error(
+          `❌ Last 500 characters:`,
+          xmlText.substring(Math.max(0, xmlText.length - 500))
+        );
+
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        throw new Error(
+          `Failed to parse LMF file: ${diagnosis}. Original error: ${errorMessage}`
+        );
+      }
+    }
+  }
+
+
+
+  /**
+   * Load ILI data from TSV content
+   */
+  private async loadILI(content: string): Promise<any[]> {
+    const lines = content.split(/\r?\n/);
+    const records: any[] = [];
+    
+    // CILI data file typically doesn't have a header, but some might
+    const dataLines = lines.filter(line => line.trim());
+    
+    for (const line of dataLines) {
+      if (!line.trim()) continue;
+      const values = line.split('\t');
+      if (values.length >= 2) {
+        const record = {
+          id: values[0]?.trim(),
+          definition: values[1]?.trim(),
+          status: values[2]?.trim() || 'active'
+        };
+        
+        // Skip records with empty IDs or definitions, and skip header-like lines
+        if (record.id && record.definition && 
+            !record.id.toLowerCase().includes('ili') && 
+            !record.id.toLowerCase().includes('definition')) {
+          records.push(record);
+        }
+      }
+    }
+    
+    console.log(`📊 Parsed ${records.length} valid ILI records from ${dataLines.length} total lines`);
+    return records;
+  }
+
+  /**
+   * Insert ILI data into the database
+   */
+  private async insertILIData(iliData: any[], projectIdWithVersion: string): Promise<void> {
+    console.log(`📝 Inserting ILI data for ${projectIdWithVersion}...`);
+    
+    try {
+      // Insert lexicon information first
+      await this.insertLexicon(projectIdWithVersion);
+      
+      // Insert ILI records
+      const iliRecords = iliData.map(record => ({
+        id: record.id,
+        definition: record.definition,
+        status: record.status || 'active',
+        superseded_by: null,
+        note: null,
+        meta: null
+      }));
+      
+      const queryService = this.getQueryService();
+      if (queryService) {
+        console.log(`📝 Inserting ${iliRecords.length} ILI records...`);
+        await queryService.batchInsert("ilis", iliRecords);
+        console.log(`✅ ILI data inserted for ${projectIdWithVersion}`);
+      } else {
+        // Fall back to raw SQL if query service is not available
+        console.log(`📝 Inserting ${iliRecords.length} ILI records using raw SQL...`);
+        for (const record of iliRecords) {
+          this.database.run(
+            `INSERT OR REPLACE INTO ilis (id, definition, status, superseded_by, note, meta) VALUES (?, ?, ?, ?, ?, ?)`,
+            [record.id, record.definition, record.status, record.superseded_by, record.note, record.meta]
+          );
+        }
+        console.log(`✅ ILI data inserted for ${projectIdWithVersion}`);
+      }
+    } catch (error) {
+      console.error(`❌ Failed to insert ILI data for ${projectIdWithVersion}:`, error);
+      throw error;
     }
   }
 
@@ -395,7 +741,9 @@ export class DataLoader {
       throw new Error("Query service not available for batch insert.");
     }
     try {
-      const lexicons = lmfDocument.lexicons || (lmfDocument.lexicon ? [lmfDocument.lexicon] : []);
+      const lexicons =
+        lmfDocument.lexicons ||
+        (lmfDocument.lexicon ? [lmfDocument.lexicon] : []);
       const lexiconsToInsert = lexicons.map((lexicon: any) => ({
         id: lexicon.id,
         label: lexicon.label,
@@ -408,17 +756,19 @@ export class DataLoader {
         id: word.id,
         lemma: word.lemma,
         pos: word.partOfSpeech,
-        language: word.language || lexicons[0]?.language || 'en',
+        language: word.language || lexicons[0]?.language || "en",
         lexicon: word.lexicon || lexicons[0]?.id || projectIdWithVersion,
       }));
 
-      const synsetsToInsert = (lmfDocument.synsets || []).map((synset: any) => ({
-        id: synset.id,
-        ili: synset.ili || null,
-        pos: synset.partOfSpeech,
-        language: synset.language || lexicons[0]?.language || 'en',
-        lexicon: synset.lexicon || lexicons[0]?.id || projectIdWithVersion,
-      }));
+      const synsetsToInsert = (lmfDocument.synsets || []).map(
+        (synset: any) => ({
+          id: synset.id,
+          ili: synset.ili || null,
+          pos: synset.partOfSpeech,
+          language: synset.language || lexicons[0]?.language || "en",
+          lexicon: synset.lexicon || lexicons[0]?.id || projectIdWithVersion,
+        })
+      );
 
       const sensesToInsert = (lmfDocument.senses || []).map((sense: any) => ({
         id: sense.id,
@@ -433,7 +783,10 @@ export class DataLoader {
             // The gloss can be a string with embedded markup. Strip it for plain text.
             const text =
               typeof gloss === "string"
-                ? gloss.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim()
+                ? gloss
+                    .replace(/<[^>]*>/g, "")
+                    .replace(/\s+/g, " ")
+                    .trim()
                 : "";
             return {
               id: `${synset.id}.def.${def.language || "en"}.${i}`,
@@ -445,12 +798,17 @@ export class DataLoader {
       );
 
       // Batch insert all data
-      if (lexiconsToInsert.length > 0) await queryService.batchInsert('lexicons', lexiconsToInsert);
-      if (wordsToInsert.length > 0) await queryService.batchInsert('words', wordsToInsert);
-      if (synsetsToInsert.length > 0) await queryService.batchInsert('synsets', synsetsToInsert);
-      if (sensesToInsert.length > 0) await queryService.batchInsert('senses', sensesToInsert);
-      if (definitionsToInsert.length > 0) await queryService.batchInsert('definitions', definitionsToInsert);
-      
+      if (lexiconsToInsert.length > 0)
+        await queryService.batchInsert("lexicons", lexiconsToInsert);
+      if (wordsToInsert.length > 0)
+        await queryService.batchInsert("words", wordsToInsert);
+      if (synsetsToInsert.length > 0)
+        await queryService.batchInsert("synsets", synsetsToInsert);
+      if (sensesToInsert.length > 0)
+        await queryService.batchInsert("senses", sensesToInsert);
+      if (definitionsToInsert.length > 0)
+        await queryService.batchInsert("definitions", definitionsToInsert);
+
       console.log(`✅ LMF data inserted for ${projectIdWithVersion}`);
     } catch (error) {
       console.error(
@@ -494,23 +852,30 @@ export class DataLoader {
 
       for (const lexiconElem of lexicons) {
         const lexiconId = lexiconElem.attributes?.id || projectIdWithVersion;
-        const lexiconLang = lexiconElem.attributes?.language || 'en';
+        const lexiconLang = lexiconElem.attributes?.language || "en";
 
         lexiconsToInsert.push({
           id: lexiconId,
-          label: lexiconElem.attributes?.label || 'Unknown Lexicon',
+          label: lexiconElem.attributes?.label || "Unknown Lexicon",
           language: lexiconLang,
           version: lexiconElem.attributes?.version,
           license: lexiconElem.attributes?.license,
         });
-        
+
         // Process lexical entries
-        const entries = lexiconElem.children?.filter((child: any) => child.name === "LexicalEntry") || [];
-        console.log(`📊 Processing ${entries.length} lexical entries for lexicon ${lexiconId}...`);
+        const entries =
+          lexiconElem.children?.filter(
+            (child: any) => child.name === "LexicalEntry"
+          ) || [];
+        console.log(
+          `📊 Processing ${entries.length} lexical entries for lexicon ${lexiconId}...`
+        );
 
         for (const entry of entries) {
           const wordId = entry.attributes?.id || "unknown-word";
-          const lemmaElem = entry.children?.find((child: any) => child.name === "Lemma");
+          const lemmaElem = entry.children?.find(
+            (child: any) => child.name === "Lemma"
+          );
           const lemma = lemmaElem?.attributes?.writtenForm || wordId;
           const partOfSpeech = lemmaElem?.attributes?.partOfSpeech || "n";
 
@@ -522,17 +887,28 @@ export class DataLoader {
             lexicon: lexiconId,
           });
 
-          const senses = entry.children?.filter((child: any) => child.name === "Sense") || [];
+          const senses =
+            entry.children?.filter((child: any) => child.name === "Sense") ||
+            [];
           for (const sense of senses) {
             const senseId = sense.attributes?.id || `${wordId}.sense`;
             const synsetId = sense.attributes?.synset || `${wordId}.synset`;
-            sensesToInsert.push({ id: senseId, word_id: wordId, synset_id: synsetId });
+            sensesToInsert.push({
+              id: senseId,
+              word_id: wordId,
+              synset_id: synsetId,
+            });
           }
         }
-        
+
         // Process synsets
-        const synsetElems = lexiconElem.children?.filter((child: any) => child.name === "Synset") || [];
-        console.log(`📊 Processing ${synsetElems.length} synsets for lexicon ${lexiconId}...`);
+        const synsetElems =
+          lexiconElem.children?.filter(
+            (child: any) => child.name === "Synset"
+          ) || [];
+        console.log(
+          `📊 Processing ${synsetElems.length} synsets for lexicon ${lexiconId}...`
+        );
 
         for (const synset of synsetElems) {
           const synsetId = synset.attributes?.id || "unknown-synset";
@@ -544,14 +920,21 @@ export class DataLoader {
             lexicon: lexiconId,
           });
 
-          const definitions = synset.children?.filter((child: any) => child.name === "Definition") || [];
+          const definitions =
+            synset.children?.filter(
+              (child: any) => child.name === "Definition"
+            ) || [];
           for (const [i, def] of definitions.entries()) {
             const lang = def.attributes?.language || "en";
-            const glossElem = def.children?.find((c: any) => c.name === 'gloss');
-            
+            const glossElem = def.children?.find(
+              (c: any) => c.name === "gloss"
+            );
+
             // Use the recursive text extractor
-            const textContent = glossElem ? this.extractTextFromNode(glossElem) : this.extractTextFromNode(def);
-            const cleanedText = textContent.replace(/\s+/g, ' ').trim();
+            const textContent = glossElem
+              ? this.extractTextFromNode(glossElem)
+              : this.extractTextFromNode(def);
+            const cleanedText = textContent.replace(/\s+/g, " ").trim();
 
             definitionsToInsert.push({
               id: `${synsetId}.def.${lang}.${i}`,
@@ -565,12 +948,19 @@ export class DataLoader {
 
       const queryService = this.getQueryService();
       if (queryService) {
-        console.log(`📝 Inserting ${lexiconsToInsert.length} lexicons, ${wordsToInsert.length} words, ${sensesToInsert.length} senses, ${synsetsToInsert.length} synsets, and ${definitionsToInsert.length} definitions in batches...`);
-        if (lexiconsToInsert.length > 0) await queryService.batchInsert('lexicons', lexiconsToInsert);
-        if (wordsToInsert.length > 0) await queryService.batchInsert('words', wordsToInsert);
-        if (synsetsToInsert.length > 0) await queryService.batchInsert('synsets', synsetsToInsert);
-        if (sensesToInsert.length > 0) await queryService.batchInsert('senses', sensesToInsert);
-        if (definitionsToInsert.length > 0) await queryService.batchInsert('definitions', definitionsToInsert);
+        console.log(
+          `📝 Inserting ${lexiconsToInsert.length} lexicons, ${wordsToInsert.length} words, ${sensesToInsert.length} senses, ${synsetsToInsert.length} synsets, and ${definitionsToInsert.length} definitions in batches...`
+        );
+        if (lexiconsToInsert.length > 0)
+          await queryService.batchInsert("lexicons", lexiconsToInsert);
+        if (wordsToInsert.length > 0)
+          await queryService.batchInsert("words", wordsToInsert);
+        if (synsetsToInsert.length > 0)
+          await queryService.batchInsert("synsets", synsetsToInsert);
+        if (sensesToInsert.length > 0)
+          await queryService.batchInsert("senses", sensesToInsert);
+        if (definitionsToInsert.length > 0)
+          await queryService.batchInsert("definitions", definitionsToInsert);
       } else {
         throw new Error("Query service not available for batch insert.");
       }

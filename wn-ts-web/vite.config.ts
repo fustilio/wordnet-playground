@@ -1,42 +1,12 @@
-import { defineConfig } from "vite";
-import path from "node:path";
-import dts from "vite-plugin-dts";
+import { defineConfig, mergeConfig } from "vite";
+import baseConfig from "./vite.base.config.js";
 
-export default defineConfig({
-  build: {
-    lib: {
-      entry: { "wn-ts-web": path.resolve(process.cwd(), "src/index.ts") },
-      name: "WnTsWeb",
-      fileName: (format, entryName) =>
-        `${entryName}.${format === "es" ? "mjs" : "umd.cjs"}`,
-      formats: ["es", "umd"],
+export default defineConfig(
+  mergeConfig(baseConfig, {
+    mode: "production",
+    build: {
+      sourcemap: true, // Production build - with source maps, because we want people to be able to debug the code
+      minify: true, // Production build - with minification
     },
-    outDir: "dist",
-    emptyOutDir: true,
-    rollupOptions: {
-      external: ["wn-ts-core", "@sqlite.org/sqlite-wasm"],
-      output: {
-        globals: {
-          "wn-ts-core": "WnTsCore",
-          "@sqlite.org/sqlite-wasm": "SqliteWasm",
-        },
-      },
-    },
-    minify: true,
-  },
-  resolve: {
-    extensions: [".ts", ".js", ".tsx", ".jsx"],
-  },
-  server: {
-    headers: {
-      "Cross-Origin-Opener-Policy": "same-origin",
-      "Cross-Origin-Embedder-Policy": "require-corp",
-    },
-  },
-  optimizeDeps: {
-    exclude: ["@sqlite.org/sqlite-wasm"],
-  },
-  plugins: [dts({
-    insertTypesEntry: true,
-  })],
-});
+  })
+);

@@ -76,6 +76,33 @@ The primary entry point is `createWordNetInstance`, which sets up the WordNet in
 - **Efficient Queries**: Kysely provides an optimized query engine.
 - **Persistent Storage**: Leverages the Origin Private File System (OPFS) for fast, persistent data storage in the browser, with a fallback to an in-memory database.
 
+## Build Configuration
+
+This package provides multiple build configurations for different use cases:
+
+### Production Build (Default)
+```bash
+pnpm build
+```
+- **Minified**: Code is compressed and optimized for production
+- **No source maps**: Smaller bundle size
+- **Optimized**: Best performance for end users
+
+### Development Build
+```bash
+pnpm build:dev
+```
+- **Unminified**: Readable code for debugging
+- **Source maps**: Full debugging support
+- **Larger bundle**: Better for development and troubleshooting
+
+### Build Configuration Files
+- `vite.base.config.ts` - Base configuration shared by all builds
+- `vite.config.ts` - Production build configuration (extends base)
+- `vite.dev.config.ts` - Development build configuration (extends base)
+
+The configuration uses Vite's `mergeConfig` to extend the base configuration, eliminating duplication and making maintenance easier.
+
 ## Testing
 
 This package is rigorously tested in both Node.js (via `jsdom`) and real browser (via `playwright`) environments.

@@ -1,22 +1,3 @@
----
-catalog:
-  '@sqlite.org/sqlite-wasm': 3.50.3-build1
-  '@types/node': ^20.10.0
-  '@typescript-eslint/eslint-plugin': ^8.35.1
-  '@typescript-eslint/parser': ^8.35.1
-  '@vitest/browser': ^3.2.4
-  '@vitest/coverage-v8': ^3.2.4
-  '@vitest/ui': ^3.2.4
-  eslint: ^9.30.1
-  prettier: ^3.6.2
-  pythonia: ^1.2.2
-  rimraf: ^5.0.0
-  sql.js: ^1.10.2
-  typescript: ^5.3.0
-  vite: ^7.0.4
-  vite-plugin-dts: ^4.5.4
-  vitest: ^3.2.4
-  zod: ^3.25.71
 packages:
   - wn-ts-core
   - wn-ts-node
@@ -27,3 +8,33 @@ packages:
   - wn-cli
   - wn-ts-web-demo
   - sqlite-opfs-demo
+
+catalog:
+  '@sqlite.org/sqlite-wasm': 3.50.3-build1
+  '@types/node': ^20.10.0
+  '@typescript-eslint/eslint-plugin': ^8.35.1
+  '@typescript-eslint/parser': ^8.35.1
+  '@vitest/browser': ^3.2.4
+  '@vitest/coverage-v8': ^3.2.4
+  '@vitest/ui': ^3.2.4
+  cross-env: ^7.0.3
+  eslint: ^9.30.1
+  prettier: ^3.6.2
+  pythonia: ^1.2.2
+  rimraf: ^5.0.0
+  sql.js: ^1.10.2
+  typescript: ^5.3.0
+  vite: ^7.0.4
+  vite-plugin-dts: ^4.5.4
+  vitest: ^3.2.4
+  zod: ^3.25.71
+
+onlyBuiltDependencies:
+  - '@tailwindcss/oxide'
+  - better-sqlite3
+  - cypress
+  - esbuild
+  - lzma-native
+  - sqlite3
+  - wndb-with-exceptions
+  - wordpos

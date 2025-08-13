@@ -88,7 +88,7 @@ export {
 
 // LMF Parsers module (environment-agnostic)
 export * from './parsers/index.js';
-export { parseLMFXML } from './lmf.js';
+export { parseLMFXML, diagnoseDownloadIssue, analyzeXMLContent } from './lmf.js';
 
 // Database interface (environment-agnostic)
 export * from './db/interface.js';

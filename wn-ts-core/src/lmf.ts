@@ -36,6 +36,117 @@ export interface LMFLoadOptions {
 // Supported LMF versions
 const SUPPORTED_VERSIONS = new Set(['1.0', '1.1', '1.2', '1.3', '1.4']);
 
+/**
+ * Validate LMF XML content and provide helpful error messages
+ */
+function validateLMFContent(xmlContent: string, debug: boolean = false): void {
+  if (typeof xmlContent !== 'string') {
+    throw new Error('Invalid LMF file: XML content is not a valid string');
+  }
+  
+  if (xmlContent.trim().length === 0) {
+    throw new Error('Invalid LMF file: XML content is empty');
+  }
+  
+  const trimmedContent = xmlContent.trim();
+  
+  // Check for common error patterns first
+  if (trimmedContent.toLowerCase().includes('<!doctype html>') || 
+      trimmedContent.toLowerCase().includes('<html') ||
+      (trimmedContent.toLowerCase().includes('error') && trimmedContent.toLowerCase().includes('not found'))) {
+    throw new Error('Invalid LMF file: Content appears to be HTML error page, not XML');
+  }
+  
+  // Check for HTTP error responses
+  if (trimmedContent.toLowerCase().includes('http') && 
+      (trimmedContent.toLowerCase().includes('404') || 
+       trimmedContent.toLowerCase().includes('500') ||
+       trimmedContent.toLowerCase().includes('403'))) {
+    throw new Error('Invalid LMF file: Server returned HTTP error page');
+  }
+  
+  // Check if content starts with XML declaration or root element
+  if (!trimmedContent.startsWith('<?xml') && !trimmedContent.startsWith('<')) {
+    throw new Error('Invalid LMF file: Content does not appear to be XML');
+  }
+  
+  if (debug) {
+    console.log(`[DEBUG] XML content validation passed`);
+    console.log(`[DEBUG] First 200 characters:`, trimmedContent.substring(0, 200));
+  }
+}
+
+/**
+ * Helper function to diagnose common download issues
+ */
+export function diagnoseDownloadIssue(xmlContent: string): string {
+  if (typeof xmlContent !== 'string') {
+    return 'Download failed: No content received';
+  }
+  
+  const trimmed = xmlContent.trim();
+  
+  if (trimmed.length === 0) {
+    return 'Download failed: Empty content received';
+  }
+  
+  if (trimmed.toLowerCase().includes('<!doctype html>')) {
+    return 'Download failed: Received HTML page instead of XML (possible 404 or server error)';
+  }
+  
+  if (trimmed.toLowerCase().includes('error') && trimmed.toLowerCase().includes('not found')) {
+    return 'Download failed: File not found (404 error)';
+  }
+  
+  if (trimmed.toLowerCase().includes('access denied') || trimmed.toLowerCase().includes('forbidden')) {
+    return 'Download failed: Access denied (403 error)';
+  }
+  
+  if (trimmed.toLowerCase().includes('internal server error')) {
+    return 'Download failed: Server error (500)';
+  }
+  
+  if (!trimmed.startsWith('<?xml') && !trimmed.startsWith('<')) {
+    return 'Download failed: Content is not valid XML';
+  }
+  
+  if (!trimmed.includes('<LexicalResource')) {
+    return 'Download failed: XML does not contain LexicalResource element (not a valid LMF file)';
+  }
+  
+  return 'Download appears successful, but parsing failed';
+}
+
+/**
+ * Analyze XML content and provide a summary of found elements
+ */
+export function analyzeXMLContent(xmlContent: string): {
+  isXML: boolean;
+  hasXMLDeclaration: boolean;
+  rootElements: string[];
+  hasLexicalResource: boolean;
+  hasLexicon: boolean;
+  hasLexicalEntry: boolean;
+  hasSynset: boolean;
+  contentLength: number;
+  firstChars: string;
+  lastChars: string;
+} {
+  const trimmed = xmlContent.trim();
+  
+  return {
+    isXML: trimmed.startsWith('<?xml') || trimmed.startsWith('<'),
+    hasXMLDeclaration: trimmed.startsWith('<?xml'),
+    rootElements: Array.from(trimmed.match(/<(\w+)/g) || []).map(match => match.slice(1)),
+    hasLexicalResource: trimmed.includes('<LexicalResource'),
+    hasLexicon: trimmed.includes('<Lexicon'),
+    hasLexicalEntry: trimmed.includes('<LexicalEntry'),
+    hasSynset: trimmed.includes('<Synset'),
+    contentLength: trimmed.length,
+    firstChars: trimmed.substring(0, 200),
+    lastChars: trimmed.substring(Math.max(0, trimmed.length - 200))
+  };
+}
 
 /**
  * Parse LMF XML content into TypeScript data structures.
@@ -53,6 +164,9 @@ export function parseLMFXML(
   
   if (debug) console.log(`[DEBUG] parseLMFXML() starting with ${xmlContent.length.toLocaleString()} characters`);
   
+  // Validate XML content before parsing
+  validateLMFContent(xmlContent, debug);
+  
   // Configure XML parser for LMF format
   const parser = new XMLParser({
     ignoreAttributes: false,
@@ -62,7 +176,7 @@ export function parseLMFXML(
     parseTagValue: false,
     trimValues: true,
     // Add options to handle large files better
-    processEntities: false,
+    processEntities: true, // Enable entity processing for &amp; etc.
     allowBooleanAttributes: true,
     // stopNodes: ['LexicalEntry', 'Synset'] // Stop processing at these nodes to reduce memory
   });
@@ -73,10 +187,48 @@ export function parseLMFXML(
   const parseTime = Date.now() - parseStartTime;
   if (debug) console.log(`[DEBUG] XML parser completed in ${parseTime}ms`);
   
+  // Debug: Show the structure of the parsed XML
+  if (debug) {
+    console.log(`[DEBUG] Parsed XML structure:`, Object.keys(parsed));
+    console.log(`[DEBUG] First 1000 characters of XML content:`, xmlContent.substring(0, 1000));
+    if (parsed.LexicalResource) {
+      console.log(`[DEBUG] LexicalResource found with keys:`, Object.keys(parsed.LexicalResource));
+    }
+  }
+  
   const lexicalResource = parsed.LexicalResource;
 
   if (!lexicalResource) {
-    throw new Error('Invalid LMF file: missing LexicalResource element');
+    // Provide more detailed error information
+    const errorDetails = {
+      parsedKeys: Object.keys(parsed),
+      xmlLength: xmlContent.length,
+      firstChars: xmlContent.substring(0, 200),
+      lastChars: xmlContent.substring(Math.max(0, xmlContent.length - 200))
+    };
+    
+    console.error(`[ERROR] LMF parsing failed. Details:`, errorDetails);
+    
+    // Check if this might be a different file format
+    if (parsed.html || parsed.HTML || parsed.Html) {
+      throw new Error('Invalid LMF file: File appears to be HTML content, not LMF XML');
+    }
+    
+    if (parsed.error || parsed.Error) {
+      throw new Error(`Invalid LMF file: Server returned error: ${JSON.stringify(parsed.error || parsed.Error)}`);
+    }
+    
+    // Check if the file might be empty or corrupted
+    if (xmlContent.trim().length === 0) {
+      throw new Error('Invalid LMF file: File is empty or contains only whitespace');
+    }
+    
+    // Check if this might be a different XML format
+    if (parsed.rdf || parsed.RDF) {
+      throw new Error('Invalid LMF file: File appears to be RDF/XML format, not LMF XML');
+    }
+    
+    throw new Error(`Invalid LMF file: missing LexicalResource element. File contains: ${Object.keys(parsed).join(', ')}`);
   }
 
   // Extract LMF version
@@ -220,10 +372,26 @@ export function parseLMFXML(
 
           for (const def of definitions) {
             if (!def) continue;
+            
+            // Extract text content from definition, handling both direct text and gloss elements
+            let text = '';
+            if (def['#text']) {
+              text = def['#text'];
+            } else if (def.gloss) {
+              // Handle gloss element which may contain text or nested elements
+              if (Array.isArray(def.gloss)) {
+                text = def.gloss.map((g: any) => g['#text'] || '').join(' ');
+              } else if (def.gloss['#text']) {
+                text = def.gloss['#text'];
+              } else if (typeof def.gloss === 'string') {
+                text = def.gloss;
+              }
+            }
+            
             synset.definitions.push({
               id: def['@_id'] || '',
               language: def['@_language'] || lexicon.language,
-              text: def['#text'] || '',
+              text: text.trim(),
               source: def['@_source'] || '',
             });
           }

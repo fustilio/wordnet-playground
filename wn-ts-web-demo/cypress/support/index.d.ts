@@ -1,3 +1,4 @@
+/// <reference types="cypress" />
 // Type augmentation for custom Cypress commands
 // Placed in support so TypeScript picks it up automatically
 

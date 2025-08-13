@@ -28,9 +28,8 @@ export const useWordNetCache = () => {
     try {
       const isSecureContext = window.isSecureContext;
       const hasOPFS = 'storage' in navigator && 'getDirectory' in navigator.storage;
-      const hasSharedArrayBuffer = typeof SharedArrayBuffer !== 'undefined';
-      
-      const supported = hasOPFS && hasSharedArrayBuffer && isSecureContext;
+      // Treat as supported if OPFS is available in a secure context. SharedArrayBuffer is not required when we have stream fallbacks
+      const supported = hasOPFS && isSecureContext;
       setCacheStatus(prev => ({ ...prev, isSupported: supported }));
       
       if (supported) {

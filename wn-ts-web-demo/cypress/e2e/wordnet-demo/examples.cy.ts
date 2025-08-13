@@ -33,7 +33,7 @@ describe('Examples Hub', () => {
     cy.contains('Available WordNet Projects').should('exist')
     cy.contains('Examples').click()
     cy.contains('Data Info').click()
-    cy.contains('WordNet Data Information').should('exist')
+    cy.contains('Statistics').should('exist')
   })
 })
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createWordNetInstance, WebWordnet, DataLoader, extendProjectIndex, extendProjectIndexFromUrl, clearCustomProjectIndex } from 'wn-ts-web';
 import { useWordNetCache } from './useWordNetCache';
 
@@ -8,18 +8,7 @@ export interface WordNetState {
   loading: boolean;
   isInitializing: boolean;
   error: string | null;
-  statistics: {
-    totalWords: number;
-    totalSynsets: number;
-    totalSenses: number;
-    totalRelations: number;
-    totalDefinitions: number;
-    languages: string[];
-    partsOfSpeech: string[];
-    dataSize: number;
-    lastUpdated: string;
-    source: string;
-  } | null;
+  statistics: Record<string, unknown> | undefined;
   integrity: {
     isValid: boolean;
     checksum?: string;
@@ -76,10 +65,10 @@ export function useWordNet(): WordNetState & {
   const [state, setState] = useState<WordNetState>({
     wordnet: null,
     dataLoader: null,
-    loading: true,
+    loading: false, // Start with no loading
     isInitializing: true,
     error: null,
-    statistics: null,
+    statistics: undefined,
     integrity: null,
     dataSource: null,
     availablePackages: [
@@ -98,7 +87,7 @@ export function useWordNet(): WordNetState & {
     ],
     loadedPackages: [],
     progress: 0,
-    progressStage: 'Initializing...',
+    progressStage: 'Ready - No packages loaded', // Clear message that no packages are loaded
     cacheInfo: {
       isSupported: false,
       totalFiles: 0,
@@ -107,8 +96,7 @@ export function useWordNet(): WordNetState & {
     }
   });
 
-  // Ensure auto-load runs only once
-  const hasAutoLoadedRef = useRef(false);
+
 
   // Initialize WordNet instance (run once on mount)
   useEffect(() => {
@@ -129,7 +117,7 @@ export function useWordNet(): WordNetState & {
         // Expose minimal demo API for tests and manual control
         try {
           if (typeof window !== 'undefined') {
-            // @ts-ignore
+            // @ts-expect-error attach demo API for manual/e2e usage
             window.__wnDemo = {
               loadProject: async (projectIdWithVersion: string) => {
                 try {
@@ -138,7 +126,7 @@ export function useWordNet(): WordNetState & {
                     progress: (p: number) => {
                       setState(prev => ({ ...prev, progress: p }))
                     }
-                  } as any)
+                  })
                   const stats = await dataLoader.getStatistics()
                   setState(prev => ({
                     ...prev,
@@ -159,7 +147,7 @@ export function useWordNet(): WordNetState & {
                     progressStage: 'Ready'
                   }))
                   return true
-                } catch (e) {
+                } catch (e: unknown) {
                   setState(prev => ({ ...prev, error: e instanceof Error ? e.message : String(e), loading: false }))
                   return false
                 }
@@ -169,7 +157,7 @@ export function useWordNet(): WordNetState & {
                 try {
                   extendProjectIndex(indexLike);
                   return true;
-                } catch (e) {
+                } catch (e: unknown) {
                   console.error('extendIndex failed', e);
                   return false;
                 }
@@ -185,15 +173,17 @@ export function useWordNet(): WordNetState & {
               clear: async () => {
                 try {
                   await dataLoader.clearAllData()
-                  setState(prev => ({ ...prev, loadedPackages: [], statistics: null }))
+                  setState(prev => ({ ...prev, loadedPackages: [], statistics: undefined }))
                   return true
-                } catch (e) {
+                } catch {
                   return false
                 }
               }
             }
           }
-        } catch {}
+        } catch (ex) {
+          console.warn('Failed to attach __wnDemo API:', ex);
+        }
 
         // Initialize cache
         await cache.checkOPFSSupport();
@@ -224,58 +214,8 @@ export function useWordNet(): WordNetState & {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Automatically load demo data on initialization
-  useEffect(() => {
-    if (
-      state.dataLoader &&
-      !state.isInitializing &&
-      state.loadedPackages.length === 0 &&
-      !hasAutoLoadedRef.current
-    ) {
-      hasAutoLoadedRef.current = true;
-      console.log('🔄 Auto-load effect triggered');
-      const loadInitialData = async () => {
-        try {
-          console.log('📊 Checking initial statistics...');
-          const stats = await state.dataLoader!.getStatistics();
-          console.log('📊 Initial stats:', stats);
-          
-          // Always load demo data to ensure it works
-          console.log('📊 Loading demo data...');
-          await loadDemoData();
-          
-          // Update statistics after loading
-          const finalStats = await state.dataLoader!.getStatistics();
-          console.log('📊 Final stats after loading:', finalStats);
-          
-          const uiStatistics = {
-            totalWords: finalStats.totalWords,
-            totalSynsets: finalStats.totalSynsets,
-            totalSenses: finalStats.totalSenses,
-            totalRelations: 0,
-            totalDefinitions: 0,
-            languages: ['en'],
-            partsOfSpeech: ['n', 'v', 'a', 'r'],
-            dataSize: finalStats.totalWords * 100 + finalStats.totalSynsets * 200,
-            lastUpdated: new Date().toISOString(),
-            source: 'Database'
-          };
-          
-          setState(prev => ({ 
-            ...prev, 
-            statistics: uiStatistics,
-            loadedPackages: ['oewn:2024'],
-          }));
-          
-        } catch (error) {
-          console.error("❌ Error checking initial stats, attempting to load demo data.", error);
-          // If stats fails, it probably means the DB is empty. Load demo data.
-          await loadDemoData();
-        }
-      };
-      loadInitialData();
-    }
-  }, [state.dataLoader, state.isInitializing]);
+  // Manual loading - no automatic loading
+  // Users must explicitly call loadDemoData() or loadPackageData() to load packages
 
   // Load package data with caching
   const loadPackageData = useCallback(async (packageId: string, progress?: ProgressCallback) => {
@@ -301,11 +241,15 @@ export function useWordNet(): WordNetState & {
           progress?.(p);
         });
         
-        if (cachedData) {
+        if (cachedData && cachedData.byteLength >= 100) {
           // Load the cached database
           await state.dataLoader.loadDbFromBuffer(cachedData, packageId);
           console.log(`✅ Loaded ${packageId} from cache successfully`);
         } else {
+          console.warn(`⚠️ Cache entry for ${packageId} is invalid or empty (${cachedData?.byteLength ?? 0} bytes). Falling back to download.`);
+          // Attempt to remove bad cache then proceed to download
+          try { await cache.removeFromCache(packageId); } catch {}
+          // Force the download path below
           throw new Error('Failed to load from cache');
         }
       } else {
@@ -313,29 +257,18 @@ export function useWordNet(): WordNetState & {
         setState(prev => ({ ...prev, progressStage: `Downloading ${packageId}...` }));
         
         // Download and load the package
+        const dlStarted = performance.now();
         await state.dataLoader.downloadAndLoad(packageId, {
           progress: (p: number) => {
             setState(prev => ({ ...prev, progress: p }));
             progress?.(p);
           }
         });
+        const dlMs = performance.now() - dlStarted;
+        console.log(`⏱️ Download+Load ${packageId} took ${dlMs.toFixed(1)}ms`);
         
-        // Cache the downloaded database
-        console.log(`💾 Caching ${packageId}...`);
-        setState(prev => ({ ...prev, progressStage: `Caching ${packageId}...` }));
-        
-        // Get the database buffer and cache it
-        // Note: This is a simplified approach. In a real implementation,
-        // you'd need to extract the database buffer from the DataLoader
-        const success = await cache.saveToCache(packageId, new ArrayBuffer(0), (p) => {
-          setState(prev => ({ ...prev, progress: 0.8 + p * 0.2 }));
-        });
-        
-        if (success) {
-          console.log(`✅ Cached ${packageId} successfully`);
-        } else {
-          console.warn(`⚠️ Failed to cache ${packageId}`);
-        }
+        // Cache placeholder disabled until we export real DB bytes
+        console.log(`💾 Skipping cache save for ${packageId} (no DB export available yet)`);
       }
 
       setState(prev => ({
@@ -445,7 +378,7 @@ export function useWordNet(): WordNetState & {
         setState(prev => ({
           ...prev,
           loadedPackages: [],
-          statistics: null,
+          statistics: undefined,
           integrity: null,
           dataSource: null
         }));
