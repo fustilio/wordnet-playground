@@ -56,6 +56,7 @@ export default defineConfig({
   ],
   worker: {
     format: "es",
+    plugins: () => [comlink()],
   },
   server: {
     // Ensure consistent port and enable COOP/COEP for SharedArrayBuffer/OPFS worker support
@@ -78,439 +79,89 @@ export default defineConfig({
           proxy.on("error", (err) => {
             if (shouldLog("warn")) console.log("proxy error", err);
           });
-          proxy.on("proxyReq", (proxyReq, req) => {
-            if (shouldLog("debug"))
-              console.log(
-                "Sending Request to the Target:",
-                req.method,
-                req.url
-              );
-          });
           proxy.on("proxyRes", (proxyRes, req, res) => {
-            if (shouldLog("info"))
-              console.log(
-                "⬅️ en-word.net (generic)",
-                proxyRes.statusCode,
-                req.method,
-                req.url
-              );
-            // Set CORS headers to allow the browser to access the response
-            res.setHeader("Access-Control-Allow-Origin", "*");
-            res.setHeader(
-              "Access-Control-Allow-Methods",
-              "GET, POST, PUT, DELETE, OPTIONS"
-            );
-            res.setHeader(
-              "Access-Control-Allow-Headers",
-              "Content-Type, Authorization, X-Requested-With"
-            );
-            res.setHeader("Access-Control-Allow-Credentials", "true");
-          });
-          proxy.on("proxyRes", (proxyRes, req, res) => {
-            const started = /** @type {any} */ (req).__startTs || Date.now();
-            const dur = Date.now() - started;
-            try {
-              res.setHeader("X-Proxy-Duration-Ms", String(dur));
-            } catch {}
-            if (shouldLog("info"))
-              console.log(
-                "⏱ en-word.net duration",
-                dur + "ms",
-                req.method,
-                req.url
-              );
-          });
-          proxy.on("proxyRes", (proxyRes, req, res) => {
-            const urlPath = req.url;
-            if (proxyRes.statusCode === 200) {
-              const filePath = toCachePath("/api/wordnet" + urlPath);
-              const writeStream = fs.createWriteStream(filePath);
-              proxyRes.pipe(writeStream);
-            }
-          });
-        },
-      },
-      "/api/github": {
-        target: "https://github.com",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/github/, ""),
-        configure: (proxy) => {
-          proxy.on("proxyReq", (proxyReq, req) => {
-            /** @type {any} */ (req).__startTs = Date.now();
-          });
-          proxy.on("error", (err) => {
-            if (shouldLog("warn")) console.log("proxy error", err);
-          });
-          proxy.on("proxyReq", (proxyReq, req) => {
-            if (shouldLog("debug"))
-              console.log("Sending Request to GitHub:", req.method, req.url);
-          });
-          proxy.on("proxyRes", (proxyRes, req, res) => {
-            if (shouldLog("info"))
-              console.log(
-                "⬅️ github.com",
-                proxyRes.statusCode,
-                req.method,
-                req.url
-              );
-            // Set CORS headers to allow the browser to access the response
-            res.setHeader("Access-Control-Allow-Origin", "*");
-            res.setHeader(
-              "Access-Control-Allow-Methods",
-              "GET, POST, PUT, DELETE, OPTIONS"
-            );
-            res.setHeader(
-              "Access-Control-Allow-Headers",
-              "Content-Type, Authorization, X-Requested-With"
-            );
-            res.setHeader("Access-Control-Allow-Credentials", "true");
-          });
-          proxy.on("proxyRes", (proxyRes, req, res) => {
-            const started = /** @type {any} */ (req).__startTs || Date.now();
-            const dur = Date.now() - started;
-            try {
-              res.setHeader("X-Proxy-Duration-Ms", String(dur));
-            } catch {}
-            if (shouldLog("info"))
-              console.log(
-                "⏱ github.com duration",
-                dur + "ms",
-                req.method,
-                req.url
-              );
-          });
-          proxy.on("proxyRes", (proxyRes, req, res) => {
-            const urlPath = req.url;
-            if (proxyRes.statusCode === 200) {
-              const filePath = toCachePath("/api/github" + urlPath);
-              const writeStream = fs.createWriteStream(filePath);
-              proxyRes.pipe(writeStream);
-            }
-          });
-        },
-      },
-      "/api/en-word-net": {
-        target: "https://en-word.net",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/en-word-net/, ""),
-        configure: (proxy) => {
-          proxy.on("proxyReq", (proxyReq, req) => {
-            /** @type {any} */ (req).__startTs = Date.now();
-          });
-          proxy.on("error", (err) => {
-            if (shouldLog("warn")) console.log("en-word.net proxy error", err);
-          });
-          proxy.on("proxyReq", (proxyReq, req) => {
-            if (shouldLog("debug"))
-              console.log(
-                "Sending Request to en-word.net:",
-                req.method,
-                req.url
-              );
-          });
-          proxy.on("proxyRes", (proxyRes, req, res) => {
-            if (shouldLog("info"))
-              console.log(
-                "⬅️ en-word.net",
-                proxyRes.statusCode,
-                req.method,
-                req.url,
-                "| headers:",
-                proxyRes.headers["content-type"],
-                proxyRes.headers["content-length"]
-              );
-            // Set CORS headers to allow the browser to access the response
-            res.setHeader("Access-Control-Allow-Origin", "*");
-            res.setHeader(
-              "Access-Control-Allow-Methods",
-              "GET, POST, PUT, DELETE, OPTIONS"
-            );
-            res.setHeader(
-              "Access-Control-Allow-Headers",
-              "Content-Type, Authorization, X-Requested-With"
-            );
-            res.setHeader("Access-Control-Allow-Credentials", "true");
-          });
-          proxy.on("proxyRes", (proxyRes, req, res) => {
-            const started = /** @type {any} */ (req).__startTs || Date.now();
-            const dur = Date.now() - started;
-            try {
-              res.setHeader("X-Proxy-Duration-Ms", String(dur));
-            } catch {}
-            if (shouldLog("info"))
-              console.log(
-                "⏱ en-word.net duration",
-                dur + "ms",
-                req.method,
-                req.url
-              );
-          });
-          // Save successful responses to cache
-          proxy.on("proxyRes", (proxyRes, req, res) => {
-            const urlPath = req.url;
-            if (proxyRes.statusCode === 200) {
-              const filePath = toCachePath("/api/en-word-net" + urlPath);
-              const writeStream = fs.createWriteStream(filePath);
-              proxyRes.pipe(writeStream);
-            }
+            const url = req.url || "";
+            if (shouldLog("info")) console.log("🔁 [forward]", url);
           });
         },
       },
       "/api/globalwordnet": {
-        target: "https://github.com",
+        target: "https://github.com/globalwordnet/english-wordnet/releases/download",
         changeOrigin: true,
-        rewrite: (path) =>
-          path.replace(/^\/api\/globalwordnet/, "/globalwordnet"),
-        followRedirects: true,
+        rewrite: (path) => path.replace(/^\/api\/globalwordnet\//, "/"),
         configure: (proxy) => {
-          proxy.on("proxyReq", (proxyReq, req) => {
-            /** @type {any} */ (req).__startTs = Date.now();
-          });
           proxy.on("error", (err) => {
-            if (shouldLog("warn"))
-              console.log("globalwordnet proxy error", err);
-          });
-          proxy.on("proxyReq", (proxyReq, req) => {
-            if (shouldLog("debug"))
-              console.log(
-                "Sending Request to globalwordnet:",
-                req.method,
-                req.url
-              );
-            // Only set headers if they haven't been set already
-            if (!proxyReq.getHeader("Accept")) {
-              proxyReq.setHeader("Accept", "application/octet-stream");
-            }
-            if (!proxyReq.getHeader("User-Agent")) {
-              proxyReq.setHeader("User-Agent", "WordNet-Demo/1.0");
-            }
+            if (shouldLog("warn")) console.log("proxy error", err);
           });
           proxy.on("proxyRes", (proxyRes, req, res) => {
-            if (shouldLog("info"))
-              console.log(
-                "⬅️ globalwordnet",
-                proxyRes.statusCode,
-                req.method,
-                req.url
-              );
-            // Set CORS headers to allow the browser to access the response
-            res.setHeader("Access-Control-Allow-Origin", "*");
-            res.setHeader(
-              "Access-Control-Allow-Methods",
-              "GET, POST, PUT, DELETE, OPTIONS"
-            );
-            res.setHeader(
-              "Access-Control-Allow-Headers",
-              "Content-Type, Authorization, X-Requested-With"
-            );
-            res.setHeader("Access-Control-Allow-Credentials", "true");
-          });
-          proxy.on("proxyRes", (proxyRes, req, res) => {
-            const started = /** @type {any} */ (req).__startTs || Date.now();
-            const dur = Date.now() - started;
-            try {
-              res.setHeader("X-Proxy-Duration-Ms", String(dur));
-            } catch {}
-            if (shouldLog("info"))
-              console.log(
-                "⏱ globalwordnet duration",
-                dur + "ms",
-                req.method,
-                req.url
-              );
-          });
-          // Save successful responses to cache
-          proxy.on("proxyRes", (proxyRes, req, res) => {
-            const urlPath = req.url;
-            if (proxyRes.statusCode === 200) {
-              const filePath = toCachePath("/api/globalwordnet" + urlPath);
-              const writeStream = fs.createWriteStream(filePath);
-              proxyRes.pipe(writeStream);
-            }
-          });
-        },
-      },
-      // New: handle GitHub release asset CDN via same-origin proxy to avoid CORS on redirects
-      "/api/release-assets": {
-        target: "https://release-assets.githubusercontent.com",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/release-assets/, ""),
-        configure: (proxy) => {
-          proxy.on("proxyReq", (proxyReq, req) => {
-            /** @type {any} */ (req).__startTs = Date.now();
-          });
-          proxy.on("error", (err) => {
-            if (shouldLog("warn"))
-              console.log("release-assets proxy error", err);
-          });
-          proxy.on("proxyRes", (proxyRes, req, res) => {
-            if (shouldLog("info"))
-              console.log(
-                "⬅️ release-assets",
-                proxyRes.statusCode,
-                req.method,
-                req.url
-              );
-            // Set CORS headers to allow the browser to access the response
-            res.setHeader("Access-Control-Allow-Origin", "*");
-            res.setHeader(
-              "Access-Control-Allow-Methods",
-              "GET, POST, PUT, DELETE, OPTIONS"
-            );
-            res.setHeader(
-              "Access-Control-Allow-Headers",
-              "Content-Type, Authorization, X-Requested-With"
-            );
-            res.setHeader("Access-Control-Allow-Credentials", "true");
-          });
-          proxy.on("proxyRes", (proxyRes, req, res) => {
-            const started = /** @type {any} */ (req).__startTs || Date.now();
-            const dur = Date.now() - started;
-            try {
-              res.setHeader("X-Proxy-Duration-Ms", String(dur));
-            } catch {}
-            if (shouldLog("info"))
-              console.log(
-                "⏱ release-assets duration",
-                dur + "ms",
-                req.method,
-                req.url
-              );
-          });
-          // Save successful responses to cache
-          proxy.on("proxyRes", (proxyRes, req, res) => {
-            const urlPath = req.url;
-            if (proxyRes.statusCode === 200) {
-              const filePath = toCachePath("/api/release-assets" + urlPath);
-              const writeStream = fs.createWriteStream(filePath);
-              proxyRes.pipe(writeStream);
-            }
+            const url = req.url || "";
+            if (shouldLog("info")) console.log("🔁 [forward]", url);
           });
         },
       },
       "/api/raw-github": {
         target: "https://raw.githubusercontent.com",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/raw-github/, ""),
+        rewrite: (path) => path.replace(/^\/api\/raw-github\//, "/"),
         configure: (proxy) => {
-          proxy.on("proxyReq", (proxyReq, req) => {
-            /** @type {any} */ (req).__startTs = Date.now();
-          });
           proxy.on("error", (err) => {
-            if (shouldLog("warn")) console.log("raw-github proxy error", err);
-          });
-          proxy.on("proxyReq", (proxyReq, req) => {
-            if (shouldLog("debug"))
-              console.log(
-                "Sending Request to raw.githubusercontent.com:",
-                req.method,
-                req.url
-              );
-            // Only set headers if they haven't been set already
-            if (!proxyReq.getHeader("Accept")) {
-              proxyReq.setHeader("Accept", "application/octet-stream");
-            }
-            if (!proxyReq.getHeader("User-Agent")) {
-              proxyReq.setHeader("User-Agent", "WordNet-Demo/1.0");
-            }
+            if (shouldLog("warn")) console.log("proxy error", err);
           });
           proxy.on("proxyRes", (proxyRes, req, res) => {
-            if (shouldLog("info"))
-              console.log(
-                "⬅️ raw.githubusercontent.com",
-                proxyRes.statusCode,
-                req.method,
-                req.url
-              );
-            // Set CORS headers to allow the browser to access the response
-            res.setHeader("Access-Control-Allow-Origin", "*");
-            res.setHeader(
-              "Access-Control-Allow-Methods",
-              "GET, POST, PUT, DELETE, OPTIONS"
-            );
-            res.setHeader(
-              "Access-Control-Allow-Headers",
-              "Content-Type, Authorization, X-Requested-With"
-            );
-            res.setHeader("Access-Control-Allow-Credentials", "true");
+            const url = req.url || "";
+            if (shouldLog("info")) console.log("🔁 [forward]", url);
+          });
+        },
+      },
+      "/api/github": {
+        target: "https://api.github.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/github\//, "/"),
+        configure: (proxy) => {
+          proxy.on("error", (err) => {
+            if (shouldLog("warn")) console.log("proxy error", err);
           });
           proxy.on("proxyRes", (proxyRes, req, res) => {
-            const started = /** @type {any} */ (req).__startTs || Date.now();
-            const dur = Date.now() - started;
-            try {
-              res.setHeader("X-Proxy-Duration-Ms", String(dur));
-            } catch {}
-            if (shouldLog("info"))
-              console.log(
-                "⏱ raw.githubusercontent.com duration",
-                dur + "ms",
-                req.method,
-                req.url
-              );
-          });
-          proxy.on("proxyRes", (proxyRes, req, res) => {
-            const urlPath = req.url;
-            if (proxyRes.statusCode === 200) {
-              const filePath = toCachePath("/api/raw-github" + urlPath);
-              const writeStream = fs.createWriteStream(filePath);
-              proxyRes.pipe(writeStream);
-            }
+            const url = req.url || "";
+            if (shouldLog("info")) console.log("🔁 [forward]", url);
           });
         },
       },
       "/api/external": {
-        target: "https://httpbin.org",
+        target: "https://",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/external/, ""),
+        rewrite: (path) => path.replace(/^\/api\/external\//, "/"),
         configure: (proxy) => {
-          proxy.on("proxyReq", (proxyReq, req) => {
-            /** @type {any} */ (req).__startTs = Date.now();
-          });
           proxy.on("error", (err) => {
-            if (shouldLog("warn")) console.log("external proxy error", err);
-          });
-          proxy.on("proxyReq", (proxyReq, req) => {
-            if (shouldLog("debug"))
-              console.log("Sending Request to external:", req.method, req.url);
+            if (shouldLog("warn")) console.log("proxy error", err);
           });
           proxy.on("proxyRes", (proxyRes, req, res) => {
-            if (shouldLog("info"))
-              console.log(
-                "⬅️ external",
-                proxyRes.statusCode,
-                req.method,
-                req.url
-              );
-            // Set CORS headers to allow the browser to access the response
-            res.setHeader("Access-Control-Allow-Origin", "*");
-            res.setHeader(
-              "Access-Control-Allow-Methods",
-              "GET, POST, PUT, DELETE, OPTIONS"
-            );
-            res.setHeader(
-              "Access-Control-Allow-Headers",
-              "Content-Type, Authorization, X-Requested-With"
-            );
-            res.setHeader("Access-Control-Allow-Credentials", "true");
+            const url = req.url || "";
+            if (shouldLog("info")) console.log("🔁 [forward]", url);
           });
+        },
+        bypass: (req, res, options) => {
+          // Example: cache GET responses to disk for reproducibility
+          if (req.method === "GET") {
+            const url = req.url || "";
+            const filePath = toCachePath(url);
+            if (fs.existsSync(filePath)) {
+              if (shouldLog("info"))
+                console.log("🔁 [cache] Serving from disk:", url);
+              res.setHeader("X-Proxy-Cache", "HIT");
+              return filePath;
+            }
+            // otherwise write the proxied response to disk
+            return undefined;
+          }
+        },
+        configure: (proxy) => {
           proxy.on("proxyRes", (proxyRes, req, res) => {
-            const started = /** @type {any} */ (req).__startTs || Date.now();
-            const dur = Date.now() - started;
-            try {
-              res.setHeader("X-Proxy-Duration-Ms", String(dur));
-            } catch {}
-            if (shouldLog("info"))
-              console.log(
-                "⏱ external duration",
-                dur + "ms",
-                req.method,
-                req.url
-              );
-          });
-          proxy.on("proxyRes", (proxyRes, req, res) => {
-            const urlPath = req.url;
-            if (proxyRes.statusCode === 200) {
-              const filePath = toCachePath("/api/external" + urlPath);
+            const url = req.url || "";
+            const filePath = toCachePath(url);
+            if (req.method === "GET" && proxyRes.statusCode === 200) {
+              if (shouldLog("info"))
+                console.log("💾 [cache] Writing to disk:", url);
               const writeStream = fs.createWriteStream(filePath);
               proxyRes.pipe(writeStream);
             }
@@ -521,8 +172,5 @@ export default defineConfig({
   },
   optimizeDeps: {
     exclude: ["@sqlite.org/sqlite-wasm"],
-  },
-  worker: {
-    plugins: () => [comlink()],
   },
 });
