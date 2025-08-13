@@ -4,6 +4,7 @@ import tailwindcss from '@tailwindcss/vite'
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
+import comlink from 'vite-plugin-comlink'
 
 // Log level for dev server proxy logs
 const LOG_LEVEL = process.env.LOG_LEVEL || 'info'
@@ -24,6 +25,7 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    comlink(),
     {
       name: 'proxy-disk-cache',
       configureServer(server) {
@@ -52,6 +54,9 @@ export default defineConfig({
       }
     }
   ],
+  worker: {
+    format: 'es',
+  },
   server: {
     // Ensure consistent port and enable COOP/COEP for SharedArrayBuffer/OPFS worker support
     headers: {

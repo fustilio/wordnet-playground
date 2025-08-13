@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createWordNetInstance, WebWordnet, DataLoader, extendProjectIndex, extendProjectIndexFromUrl, clearCustomProjectIndex, getAvailableProjects } from 'wn-ts-web';
 import { useWordNetCache } from './useWordNetCache';
+// Optional: Comlink-backed worker (progressive adoption)
+// import WorkerURL from '../workers/wordnetWorker.ts?worker&url'
+// import { wrap } from 'comlink'
+// type RemoteWordnetApi = ReturnType<typeof wrap<any>>
+// let remote: RemoteWordnetApi | null = null
 
 export interface WordNetState {
   wordnet: WebWordnet | null;
@@ -127,6 +132,7 @@ export function useWordNet(): WordNetState & {
       setState(prev => ({ ...prev, loading: true, isInitializing: true, progressStage: 'Loading SQLite WASM...' }));
       
       try {
+        // Progressive: local path; can switch to worker path below
         const { wordnet, dataLoader } = await createWordNetInstance();
         
         setState(prev => ({ 
@@ -136,6 +142,14 @@ export function useWordNet(): WordNetState & {
           isInitializing: false,
           progressStage: 'Initializing cache...'
         }));
+        // Worker path (future):
+        // if (!remote) {
+        //   const url = new URL('../workers/wordnetWorker.ts', import.meta.url) as unknown as string
+        //   // @ts-ignore - vite-plugin-comlink URL syntax
+        //   remote = wrap(new Worker(url, { type: 'module' }))
+        //   const initState = await remote.init()
+        //   // Map initState.available/loaded into our UI
+        // }
 
         // Expose minimal demo API for tests and manual control
         try {
@@ -464,3 +478,7 @@ export function useWordNet(): WordNetState & {
     refreshPackages,
   };
 }
+
+// NOTE: For best UX, heavy operations should run in a worker via Comlink.
+// This hook currently uses direct wn-ts-web instance but can be switched
+// to a Comlink worker-backed client without changing component APIs.
