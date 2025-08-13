@@ -426,4 +426,14 @@ export class WebWordnet extends BaseWordnet {
 
     return exportData;
   }
+
+  /**
+   * Export the underlying SQLite database bytes
+   */
+  exportDataBytes(): Uint8Array {
+    if (typeof (this.database as any).exportBytes === 'function') {
+      return (this.database as any).exportBytes();
+    }
+    throw new Error('Export not supported');
+  }
 } 

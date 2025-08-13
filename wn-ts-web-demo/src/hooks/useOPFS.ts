@@ -42,6 +42,10 @@ export const useOPFS = () => {
         await c.init();
         await c.open('wn-demo.sqlite3');
         setClient(c);
+        try {
+          const info = await getStorageInfo();
+          setStorageInfo(info);
+        } catch {}
       } catch (e) {
         console.warn('OPFS worker setup failed; continuing without worker', e);
         setIsSupported(false);
@@ -49,7 +53,8 @@ export const useOPFS = () => {
     };
     setup();
     return () => {
-      // no-op; worker will be GC'd when component unmounts
+      try { client?.close?.(); } catch {}
+      try { client?.dispose?.(); } catch {}
     };
   }, []);
 
@@ -74,8 +79,10 @@ export const useOPFS = () => {
 
   const exportDatabase = async (wordnet: any) => {
     if (!wordnet) return;
-    const data = await wordnet.export();
-    const blob = new Blob([data], { type: 'application/octet-stream' });
+    // Prefer raw bytes if available
+    const bytes: Uint8Array | undefined = typeof wordnet.exportDataBytes === 'function' ? await wordnet.exportDataBytes() : undefined;
+    const data = bytes ?? (await wordnet.export());
+    const blob = new Blob([bytes ?? new Uint8Array(new TextEncoder().encode(JSON.stringify(data)))], { type: 'application/octet-stream' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -117,7 +124,8 @@ export const useOPFS = () => {
 
   const saveToOPFS = async (wordnet: any) => {
     if (!isSupported || !client || !wordnet) throw new Error('OPFS not available');
-    const data = await wordnet.export();
+    const bytes: Uint8Array | undefined = typeof wordnet.exportDataBytes === 'function' ? await wordnet.exportDataBytes() : undefined;
+    const data = bytes ?? new Uint8Array(new TextEncoder().encode(JSON.stringify(await wordnet.export())));
     const filename = `wordnet-${Date.now()}.db`;
     await client.writeFile(filename, data);
     const info = await getStorageInfo();
