@@ -3,14 +3,23 @@ import { Card } from '../shared/Card';
 
 interface StatisticsWidgetProps {
   stats: any;
+  onRefresh?: () => void;
 }
 
-export const StatisticsWidget: React.FC<StatisticsWidgetProps> = ({ stats }) => {
+export const StatisticsWidget: React.FC<StatisticsWidgetProps> = ({ stats, onRefresh }) => {
   if (!stats) {
     return (
       <Card title="Database Statistics">
         <div data-testid="database-stats">
           <p className="text-sm text-gray-500">No statistics available. Load a lexicon to see statistics.</p>
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              className="mt-2 px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Refresh
+            </button>
+          )}
         </div>
       </Card>
     );
@@ -21,13 +30,22 @@ export const StatisticsWidget: React.FC<StatisticsWidgetProps> = ({ stats }) => 
   return (
     <Card title="Database Statistics">
       <div data-testid="database-stats" className="space-y-4">
-        <div>
+        <div className="flex justify-between items-center">
           <h3 className="text-md font-semibold text-gray-700">Totals</h3>
-          <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
-            <p>Words:</p><p className="font-mono text-right">{statistics.totalWords?.toLocaleString()}</p>
-            <p>Synsets:</p><p className="font-mono text-right">{statistics.totalSynsets?.toLocaleString()}</p>
-            <p>Senses:</p><p className="font-mono text-right">{statistics.totalSenses?.toLocaleString()}</p>
-          </div>
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+              title="Refresh statistics"
+            >
+              🔄
+            </button>
+          )}
+        </div>
+        <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
+          <p>Words:</p><p className="font-mono text-right">{statistics.totalWords?.toLocaleString()}</p>
+          <p>Synsets:</p><p className="font-mono text-right">{statistics.totalSynsets?.toLocaleString()}</p>
+          <p>Senses:</p><p className="font-mono text-right">{statistics.totalSenses?.toLocaleString()}</p>
         </div>
         <div>
           <h3 className="text-md font-semibold text-gray-700">Part of Speech</h3>

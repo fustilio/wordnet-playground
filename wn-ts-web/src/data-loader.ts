@@ -177,6 +177,18 @@ export class DataLoader {
         await this.loadData(data, projectIdWithVersion, progress);
 
         console.log(`✅ Successfully loaded ${projectIdWithVersion}`);
+        
+        // Emit events after successful load
+        if (this.wordnet && typeof (this.wordnet as any).emitDataChanged === 'function') {
+          (this.wordnet as any).emitDataChanged('packageLoaded', { 
+            packageId: projectIdWithVersion,
+            timestamp: new Date().toISOString()
+          });
+          
+          // Emit statistics updated event
+          await (this.wordnet as any).emitStatisticsUpdated();
+        }
+        
         return; // Success, exit early
       } catch (error) {
         console.warn(`⚠️ Failed to download from ${url}:`, error);
@@ -199,13 +211,32 @@ export class DataLoader {
     data: ArrayBuffer,
     projectIdWithVersion: string
   ): Promise<void> {
-    // This will replace the current DB with the one from the buffer
-    await this.database.loadDatabase(new Uint8Array(data));
-    // Recreate Kysely connections after DB swap
     try {
-      this.wordnet.refreshConnections();
-    } catch {}
-    await this.insertLexicon(projectIdWithVersion);
+      // This will replace the current DB with the one from the buffer
+      await this.database.loadDatabase(new Uint8Array(data));
+      // Recreate Kysely connections after DB swap
+      try {
+        this.wordnet.refreshConnections();
+      } catch {}
+      await this.insertLexicon(projectIdWithVersion);
+      
+      // Emit events after successful load
+      if (this.wordnet && typeof (this.wordnet as any).emitDataChanged === 'function') {
+        (this.wordnet as any).emitDataChanged('databaseLoaded', { 
+          packageId: projectIdWithVersion,
+          dataSize: data.byteLength,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Emit statistics updated event
+        await (this.wordnet as any).emitStatisticsUpdated();
+      }
+    } catch (error) {
+      if (this.wordnet && typeof (this.wordnet as any).emitError === 'function') {
+        (this.wordnet as any).emitError('loadDbFromBuffer', error instanceof Error ? error : String(error));
+      }
+      throw error;
+    }
   }
 
   /**
@@ -1007,7 +1038,24 @@ export class DataLoader {
    * Clear all data from the database
    */
   async clearAllData(): Promise<void> {
-    await this.database.clearAllData();
+    try {
+      await this.database.clearAllData();
+      
+      // Emit events after successful clear
+      if (this.wordnet && typeof (this.wordnet as any).emitDataChanged === 'function') {
+        (this.wordnet as any).emitDataChanged('databaseCleared', {
+          timestamp: new Date().toISOString()
+        });
+        
+        // Emit statistics updated event
+        await (this.wordnet as any).emitStatisticsUpdated();
+      }
+    } catch (error) {
+      if (this.wordnet && typeof (this.wordnet as any).emitError === 'function') {
+        (this.wordnet as any).emitError('clearAllData', error instanceof Error ? error : String(error));
+      }
+      throw error;
+    }
   }
 
   /**

@@ -154,6 +154,27 @@ export class WebDatabase {
     };
   }
 
+  /**
+   * Export the current database as a Uint8Array of the SQLite file
+   */
+  exportBytes(): Uint8Array {
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+    if (typeof this.db.export !== 'function') {
+      throw new Error('Underlying sqlite3 database does not support export()');
+    }
+    // Some environments require flushing WAL before export; ignore if not applicable
+    try {
+      if (typeof this.db.exec === 'function') {
+        this.db.exec('PRAGMA wal_checkpoint(FULL);');
+        this.db.exec('PRAGMA journal_mode=DELETE;');
+      }
+    } catch {}
+    const bytes: Uint8Array = this.db.export();
+    return bytes;
+  }
+
   close(): void {
     if (this.db) {
       this.db.close();

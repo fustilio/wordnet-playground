@@ -1,5 +1,2 @@
-export { BackupManager } from './BackupManager';
-export { DataLoader } from './DataLoader';
-export { DataManagement } from './DataManagement';
-export { ExportManager } from './ExportManager';
-export { ProjectDownload } from './ProjectDownload';
+// Only export components that actually exist
+export { default as BackupManager } from './BackupManager';

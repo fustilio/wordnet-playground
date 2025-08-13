@@ -6,7 +6,7 @@ interface ProxyStatusProps {
 }
 
 export const ProxyStatus: React.FC<ProxyStatusProps> = ({ onStatusChange }) => {
-  const [status, setStatus] = useState(getProxyStatus());
+  const [status] = useState(getProxyStatus());
   const [connectivity, setConnectivity] = useState<{
     success: boolean;
     endpoints: Array<{

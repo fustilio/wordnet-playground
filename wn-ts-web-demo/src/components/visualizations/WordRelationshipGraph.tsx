@@ -10,6 +10,7 @@ interface WordNode {
   group?: number;
   size?: number;
   color?: string;
+  type?: 'synonym' | 'antonym' | 'hypernym' | 'hyponym' | 'related';
 }
 
 interface WordLink {
@@ -47,8 +48,8 @@ const WordRelationshipGraph: React.FC<WordRelationshipGraphProps> = ({
   enableDrag = true,
   theme = 'light'
 }) => {
-  const graphRef = useRef<any>();
-  const [graphData, setGraphData] = useState({ nodes: [], links: [] });
+  const graphRef = useRef<any>(null);
+  const [graphData, setGraphData] = useState<{ nodes: WordNode[]; links: WordLink[] }>({ nodes: [], links: [] });
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
 
   // Color schemes for different themes

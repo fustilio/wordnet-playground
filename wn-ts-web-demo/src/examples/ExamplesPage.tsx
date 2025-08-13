@@ -1,29 +1,18 @@
 import React from 'react'
 import { BasicWordNetDemo } from './BasicWordNetDemo'
-import { DemoDataSection } from './DemoDataSection'
+// import { DemoDataSection } from './DemoDataSection'
 import { ProjectList } from './ProjectList'
 import { SequentialRunner } from './SequentialRunner'
+import { useWordNetContext } from '../contexts/WordNetContext'
 
-interface WordNetPackage { id: string; label: string; language: string; version: string }
-interface CacheInfoView { totalFiles: number; totalSizeMB: number; availableSpaceMB: number; isSupported: boolean }
-interface WordNetStateView {
-  availablePackages: WordNetPackage[]
-  loadPackageData: (id: string, progress?: (p: number) => void) => Promise<void>
-  loadDemoData: (progress?: (p: number) => void) => Promise<void>
-  unloadData: () => Promise<void>
-  clearCacheAndUnload: () => Promise<void>
-  getCacheInfo: () => Promise<Record<string, unknown>>
-  isInitializing: boolean
-  loadedPackages?: string[]
-  cacheInfo?: CacheInfoView
-  statistics?: Record<string, unknown>
-}
 
-interface ExamplesPageProps { wordnetState: WordNetStateView }
+
+interface ExamplesPageProps {}
 
 type ExampleId = 'basic' | 'projects' | 'info' | 'sequential'
 
-export const ExamplesPage: React.FC<ExamplesPageProps> = ({ wordnetState }) => {
+export const ExamplesPage: React.FC<ExamplesPageProps> = () => {
+  const wordnetState = useWordNetContext();
   const [selected, setSelected] = React.useState<ExampleId>('basic')
 
   const examples: Array<{ id: ExampleId; label: string; render: () => React.ReactNode }> = [

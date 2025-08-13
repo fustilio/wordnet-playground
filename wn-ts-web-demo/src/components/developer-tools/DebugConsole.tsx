@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { XMarkIcon, TrashIcon, DocumentArrowDownIcon, PlayIcon, PauseIcon } from '@heroicons/react/24/outline';
 
 interface LogEntry {

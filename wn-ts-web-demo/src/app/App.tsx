@@ -1,21 +1,29 @@
-import { useState } from 'react';
-import '../index.css';
-
-import { useWordNet, useOPFS, useSearch, useStatistics } from '../hooks';
-import { Tabs } from '../components/shared';
-import { StatusWidget, StatisticsWidget, OPFSWidget } from '../components/widgets';
-import { BasicDemo, AdvancedDemo, DeveloperDemo } from '../components/demos';
+import { useState, useEffect } from 'react';
+import { StatusWidget } from '../components/widgets/StatusWidget';
+import { StatisticsWidget } from '../components/widgets/StatisticsWidget';
+import { OPFSWidget } from '../components/widgets/OPFSWidget';
+import { Tabs } from '../components/shared/Tabs';
+import { BasicDemo } from '../components/demos/BasicDemo';
+import { BilingualDictionary } from '../components/demos/BilingualDictionary';
+import { AdvancedDemo } from '../components/demos/AdvancedDemo';
+import { DeveloperDemo } from '../components/demos/DeveloperDemo';
 import { ExamplesPage } from '../examples/ExamplesPage';
-
+import { useWordNetContext } from '../contexts/WordNetContext';
+import { useOPFS } from '../hooks';
 
 function App() {
   const [activeTab, setActiveTab] = useState('Basic');
-  const wordnetState = useWordNet();
+  const wordNetState = useWordNetContext();
   const opfsState = useOPFS();
-  const searchState = useSearch(wordnetState.wordnet);
-  const { stats } = useStatistics(wordnetState.wordnet);
 
-  const tabs = ['Basic', 'Advanced', 'Developer', 'Examples'];
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 App: wordNetState:', wordNetState);
+    console.log('🔍 App: StatusWidget loadedPackages:', wordNetState.loadedPackages);
+    console.log('🔍 App: StatusWidget statistics:', wordNetState.statistics);
+  }, [wordNetState]);
+
+  const tabs = ['Basic', 'Bilingual', 'Advanced', 'Developer', 'Examples'];
 
   return (
     <div className="min-h-screen bg-gray-100 text-gray-800 font-sans">
@@ -31,58 +39,83 @@ function App() {
       <main className="container mx-auto p-4 sm:p-6 lg:p-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <aside className="lg:col-span-1 space-y-6">
-            <StatusWidget {...wordnetState} />
+            <StatusWidget 
+              wordnet={wordNetState.wordnet}
+              dataLoader={wordNetState.dataLoader}
+              loading={wordNetState.loading}
+              isInitializing={wordNetState.isInitializing}
+              error={wordNetState.error}
+              statistics={wordNetState.statistics}
+              integrity={wordNetState.integrity}
+              dataSource={wordNetState.dataSource}
+              availablePackages={wordNetState.availablePackages}
+              loadedPackages={wordNetState.loadedPackages}
+              progress={wordNetState.progress}
+              progressStage={wordNetState.progressStage}
+              cacheInfo={wordNetState.cacheInfo}
+            />
             
             {/* Manual Loading Controls */}
             <div className="bg-white rounded-lg shadow p-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Load Packages</h3>
-              <div className="space-y-2">
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-lg font-semibold text-gray-900">Load Packages</h3>
                 <button
-                  onClick={() => wordnetState.loadDemoData()}
-                  disabled={wordnetState.loading || !wordnetState.dataLoader}
-                  className="w-full px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => wordNetState.refreshPackages()}
+                  disabled={wordNetState.loading}
+                  className="px-2 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700 disabled:opacity-50"
+                  title="Refresh packages"
                 >
-                  {wordnetState.loading ? 'Loading...' : 'Load Demo Data'}
-                </button>
-                <button
-                  onClick={() => wordnetState.loadPackageData('oewn:2024')}
-                  disabled={wordnetState.loading || !wordnetState.dataLoader}
-                  className="w-full px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {wordnetState.loading ? 'Loading...' : 'Load English WordNet'}
-                </button>
-                <button
-                  onClick={() => wordnetState.loadPackageData('cili:1.0')}
-                  disabled={wordnetState.loading || !wordnetState.dataLoader}
-                  className="w-full px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {wordnetState.loading ? 'Loading...' : 'Load CILI Index'}
+                  🔄
                 </button>
               </div>
-              {wordnetState.progress > 0 && wordnetState.progress < 1 && (
+              <div className="space-y-2">
+                <button
+                  onClick={() => wordNetState.loadDemoData()}
+                  disabled={wordNetState.loading}
+                  className="w-full px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {wordNetState.loading ? 'Loading...' : 'Load Demo Data'}
+                </button>
+                <button
+                  onClick={() => wordNetState.loadPackageData('oewn:2024')}
+                  disabled={wordNetState.loading}
+                  className="w-full px-3 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {wordNetState.loading ? 'Loading...' : 'Load English WordNet'}
+                </button>
+                <button
+                  onClick={() => wordNetState.loadPackageData('cili:1.0')}
+                  disabled={wordNetState.loading}
+                  className="w-full px-3 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {wordNetState.loading ? 'Loading...' : 'Load CILI Index'}
+                </button>
+              </div>
+              {wordNetState.progress > 0 && wordNetState.progress < 1 && (
                 <div className="mt-3">
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div 
                       className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                      style={{ width: `${wordnetState.progress * 100}%` }}
+                      style={{ width: `${wordNetState.progress * 100}%` }}
                     ></div>
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">{wordnetState.progressStage}</p>
+                  <p className="text-sm text-gray-600 mt-1">{wordNetState.progressStage}</p>
                 </div>
               )}
             </div>
             
-            <StatisticsWidget stats={stats} />
+            <StatisticsWidget stats={wordNetState.statistics} onRefresh={() => wordNetState.refreshPackages()} />
             <OPFSWidget {...opfsState} />
           </aside>
 
           <div className="lg:col-span-3">
             <Tabs tabs={tabs} activeTab={activeTab} setActiveTab={setActiveTab} />
             <div className="mt-6">
-              {activeTab === 'Basic' && <BasicDemo {...wordnetState} {...searchState} />}
-              {activeTab === 'Advanced' && <AdvancedDemo {...wordnetState} {...opfsState} />}
-              {activeTab === 'Developer' && <DeveloperDemo {...wordnetState} {...opfsState} />}
-              {activeTab === 'Examples' && <ExamplesPage wordnetState={wordnetState} />}
+              {activeTab === 'Basic' && <BasicDemo />}
+              {activeTab === 'Bilingual' && <BilingualDictionary />}
+              {activeTab === 'Advanced' && <AdvancedDemo />}
+              {activeTab === 'Developer' && <DeveloperDemo />}
+              {activeTab === 'Examples' && <ExamplesPage />}
             </div>
           </div>
         </div>

@@ -236,7 +236,7 @@ const BackupManager: React.FC<BackupManagerProps> = ({
                       <span className="text-gray-600">Compression: {config.compression ? 'Yes' : 'No'}</span>
                       <span className="text-gray-600">Encryption: {config.encryption ? 'Yes' : 'No'}</span>
                       <span className="text-gray-600">Retention: {config.retention} days</span>
-                      <span className="text-gray-600">Status: {config.status}</span>
+                      <span className="text-gray-600">Created: {config.createdAt.toLocaleDateString()}</span>
                     </div>
                   </div>
                   <div className="flex gap-2 ml-4">
@@ -299,9 +299,8 @@ const BackupManager: React.FC<BackupManagerProps> = ({
                       {backup.compressedSize && (
                         <span className="text-gray-600">Compressed: {formatFileSize(backup.compressedSize)}</span>
                       )}
-                      <span className="text-gray-600">Format: {backup.format}</span>
-                      <span className="text-gray-600">Compression: {backup.compression.algorithm}</span>
-                      <span className="text-gray-600">Encryption: {backup.encryption.algorithm}</span>
+                      <span className="text-gray-600">Size: {backup.size} bytes</span>
+                      <span className="text-gray-600">Created: {backup.timestamp.toLocaleDateString()}</span>
                       <span className={`font-medium ${
                         backup.integrity.isValid ? 'text-green-600' : 'text-red-600'
                       }`}>

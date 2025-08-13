@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useWordNet } from '../hooks/useWordNet';
-import { ProxyStatus } from '../components/ui/ProxyStatus';
+import { ProxyStatus } from '../components/ProxyStatus';
 
 export function FullWordNetDemo() {
   const {
@@ -237,23 +237,23 @@ export function FullWordNetDemo() {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600">{statistics.totalWords}</div>
+              <div className="text-3xl font-bold text-blue-600">{String(statistics?.totalWords || 0)}</div>
               <div className="text-sm text-gray-600">Words</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-green-600">{statistics.totalSynsets}</div>
+              <div className="text-3xl font-bold text-green-600">{String(statistics?.totalSynsets || 0)}</div>
               <div className="text-sm text-gray-600">Synsets</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-purple-600">{statistics.totalSenses}</div>
+              <div className="text-3xl font-bold text-purple-600">{String(statistics?.totalSenses || 0)}</div>
               <div className="text-sm text-gray-600">Senses</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-orange-600">{statistics.totalILIs}</div>
+              <div className="text-3xl font-bold text-orange-600">{String(statistics?.totalILIs || 0)}</div>
               <div className="text-sm text-gray-600">ILIs</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold text-red-600">{statistics.totalLexicons}</div>
+              <div className="text-3xl font-bold text-red-600">{String(statistics?.totalLexicons || 0)}</div>
               <div className="text-sm text-gray-600">Lexicons</div>
             </div>
           </div>
@@ -263,23 +263,23 @@ export function FullWordNetDemo() {
               <h3 className="text-lg font-medium mb-3">🔍 Data Quality Metrics</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">{integrity.synsetsWithILI}</div>
+                  <div className="text-2xl font-bold text-green-600">{(integrity as any)?.synsetsWithILI || 0}</div>
                   <div className="text-sm text-gray-600">With ILI</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-yellow-600">{integrity.synsetsWithoutILI}</div>
+                  <div className="text-2xl font-bold text-yellow-600">{(integrity as any)?.synsetsWithoutILI || 0}</div>
                   <div className="text-sm text-gray-600">Without ILI</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{integrity.iliCoveragePercentage.toFixed(1)}%</div>
+                  <div className="text-2xl font-bold text-blue-600">{((integrity as any)?.iliCoveragePercentage || 0).toFixed(1)}%</div>
                   <div className="text-sm text-gray-600">ILI Coverage</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">{integrity.emptySynsets}</div>
+                  <div className="text-2xl font-bold text-red-600">{(integrity as any)?.emptySynsets || 0}</div>
                   <div className="text-sm text-gray-600">Empty Synsets</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">{integrity.synsetsWithDefinitions}</div>
+                  <div className="text-2xl font-bold text-purple-600">{(integrity as any)?.synsetsWithDefinitions || 0}</div>
                   <div className="text-sm text-gray-600">With Definitions</div>
                 </div>
               </div>

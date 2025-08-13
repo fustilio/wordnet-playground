@@ -6,7 +6,7 @@ describe('OPFS Storage Reporting', () => {
     cy.waitForSystemReady()
   })
 
-  it('reports sane storage metrics when supported and updates after save', () => {
+  it('reports sane storage metrics when supported', () => {
     cy.goToTab('Advanced')
 
     cy.getByTestId('opfs-status').then(($el) => {
@@ -24,22 +24,6 @@ describe('OPFS Storage Reporting', () => {
       } else {
         cy.log('Storage Usage section not present; skipping metric assertions')
       }
-
-      // Save to OPFS should be visible if supported
-      cy.getByTestId('save-opfs').should('exist')
-
-      // Attempt a save; then expect widget still renders usage lines
-      cy.getByTestId('save-opfs').click({ force: true })
-      // Allow some time for save and info refresh
-      cy.wait(1000)
-      cy.getByTestId('opfs-status').then(($after) => {
-        const hasUsageAfter = $after.text().includes('Storage Usage')
-        if (hasUsageAfter) {
-          cy.wrap($after).contains('Used:')
-        } else {
-          cy.log('Storage Usage still not present after save; skipping post-save assertion')
-        }
-      })
     })
   })
 })

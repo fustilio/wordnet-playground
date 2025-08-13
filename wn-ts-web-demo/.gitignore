@@ -41,3 +41,5 @@ public/lexicons/th-en-sample.xml.gz
 .nohup.out
 .nohup.pid
 .orchestrator.log
+
+.tsbuildinfo
