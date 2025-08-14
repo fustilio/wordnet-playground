@@ -41,6 +41,9 @@ export class BrowserXMLParser {
       console.log(`[DEBUG] First 500 chars:`, this.xmlText.substring(0, 500));
     }
 
+    // Use a more efficient yielding strategy
+    const yieldToUI = () => new Promise(resolve => setTimeout(resolve, 1));
+
     while (this.position < this.xmlText.length) {
       // Skip whitespace
       while (
@@ -70,8 +73,13 @@ export class BrowserXMLParser {
           }
 
           elementCount++;
-          if (this.progress && elementCount % 1000 === 0) {
+          if (this.progress && elementCount % 10000 === 0) {
             this.progress(Math.min(elementCount / 100000, 0.95));
+          }
+          
+          // Yield to UI thread every 10000 elements to prevent freezing
+          if (elementCount % 10000 === 0) {
+            await yieldToUI();
           }
         } else if (this.xmlText[this.position + 1] === "!") {
           // Comment or CDATA - skip
@@ -135,8 +143,13 @@ export class BrowserXMLParser {
           this.position = tagEnd + 1;
 
           elementCount++;
-          if (this.progress && elementCount % 1000 === 0) {
+          if (this.progress && elementCount % 10000 === 0) {
             this.progress(Math.min(elementCount / 100000, 0.95));
+          }
+          
+          // Yield to UI thread every 10000 elements to prevent freezing
+          if (elementCount % 10000 === 0) {
+            await yieldToUI();
           }
         }
       } else {

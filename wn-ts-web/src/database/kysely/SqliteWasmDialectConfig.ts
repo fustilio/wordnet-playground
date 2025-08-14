@@ -1,5 +1,6 @@
 import type { DatabaseConnection } from "kysely";
 import type { SqliteWasmDatabase } from "../types/sqlite-wasm.js";
+import type { Sqlite3Static } from "@sqlite.org/sqlite-wasm";
 
 export interface SqliteWasmDialectConfig {
   /**
@@ -16,4 +17,10 @@ export interface SqliteWasmDialectConfig {
    * This is a Kysely specific feature and does not come from the `better-sqlite3` module.
    */
   onCreateConnection?: (connection: DatabaseConnection) => Promise<void>;
+  /**
+   * The sqlite3 module used to create the database.
+   *
+   * Use this API to access the sqlite3 module directly.
+   */
+  sqlModule: Sqlite3Static;
 } 

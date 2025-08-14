@@ -22,7 +22,17 @@ export class SqliteWasmDriver implements Driver {
         ? await this.#config.database()
         : this.#config.database;
 
-    this.#connection = new SqliteWasmConnection(this.#db);
+    this.#connection = new SqliteWasmConnection(
+      this.#db,
+      this.#config.sqlModule,
+      (reason: number, cbArg: number, arg1: number, arg2: number) => {
+        // console.log("reason: " + reason);
+        // console.log("cbArg: " + cbArg);
+        // console.log("arg1: " + arg1);
+        // console.log("arg2: " + arg2);
+        return 0;
+      }
+    );
 
     if (this.#config.onCreateConnection) {
       await this.#config.onCreateConnection(this.#connection);
@@ -55,4 +65,4 @@ export class SqliteWasmDriver implements Driver {
   async destroy(): Promise<void> {
     this.#db?.close();
   }
-} 
+}

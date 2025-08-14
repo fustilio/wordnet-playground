@@ -73,10 +73,14 @@ export class DataLoader {
    */
   protected toProxyUrl(url: string): string {
     // Check if we're in a development environment (localhost)
-    const isDev =
-      typeof window !== "undefined" &&
-      (window.location.hostname === "localhost" ||
-        window.location.hostname === "127.0.0.1");
+    // Use globalThis.location so it also works in Web Workers
+    const globalLocation: any =
+      (typeof globalThis !== "undefined" && (globalThis as any).location) ||
+      (typeof window !== "undefined" && (window as any).location) ||
+      undefined;
+
+    const hostname: string | undefined = globalLocation?.hostname;
+    const isDev = !!hostname && (hostname === "localhost" || hostname === "127.0.0.1");
 
     if (!isDev) {
       return url; // Return original URL in production
@@ -177,6 +181,18 @@ export class DataLoader {
         await this.loadData(data, projectIdWithVersion, progress);
 
         console.log(`✅ Successfully loaded ${projectIdWithVersion}`);
+        
+        // Emit events after successful load
+        if (this.wordnet && typeof (this.wordnet as any).emitDataChanged === 'function') {
+          (this.wordnet as any).emitDataChanged('packageLoaded', { 
+            packageId: projectIdWithVersion,
+            timestamp: new Date().toISOString()
+          });
+          
+          // Emit statistics updated event
+          await (this.wordnet as any).emitStatisticsUpdated();
+        }
+        
         return; // Success, exit early
       } catch (error) {
         console.warn(`⚠️ Failed to download from ${url}:`, error);
@@ -199,13 +215,45 @@ export class DataLoader {
     data: ArrayBuffer,
     projectIdWithVersion: string
   ): Promise<void> {
-    // This will replace the current DB with the one from the buffer
-    await this.database.loadDatabase(new Uint8Array(data));
-    // Recreate Kysely connections after DB swap
     try {
-      this.wordnet.refreshConnections();
-    } catch {}
-    await this.insertLexicon(projectIdWithVersion);
+      // This will replace the current DB with the one from the buffer
+      await this.database.loadDatabase(new Uint8Array(data));
+      // Recreate Kysely connections after DB swap
+      try {
+        this.wordnet.refreshConnections();
+      } catch {}
+      await this.insertLexicon(projectIdWithVersion);
+      
+      // Emit events after successful load
+      if (this.wordnet && typeof (this.wordnet as any).emitDataChanged === 'function') {
+        (this.wordnet as any).emitDataChanged('databaseLoaded', { 
+          packageId: projectIdWithVersion,
+          dataSize: data.byteLength,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Emit statistics updated event
+        await (this.wordnet as any).emitStatisticsUpdated();
+      }
+    } catch (error) {
+      if (this.wordnet && typeof (this.wordnet as any).emitError === 'function') {
+        (this.wordnet as any).emitError('loadDbFromBuffer', error instanceof Error ? error : String(error));
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Public wrapper to load raw downloaded data (gz/xz/xml) into the database.
+   * This uses the same pipeline as network loads, including decompression and XML parsing.
+   */
+  public async loadFromBuffer(
+    data: ArrayBuffer,
+    projectIdWithVersion: string,
+    options: DataLoadOptions = {}
+  ): Promise<void> {
+    const { progress } = options;
+    await this.loadData(data, projectIdWithVersion, progress);
   }
 
   /**
@@ -276,6 +324,11 @@ export class DataLoader {
 
       if (progress && total > 0) {
         progress(receivedLength / total);
+      }
+
+      // Yield to UI thread every 1MB to prevent freezing during download
+      if (receivedLength % 1000000 === 0) {
+        await new Promise(resolve => setTimeout(resolve, 1));
       }
     }
 
@@ -415,6 +468,9 @@ export class DataLoader {
           `🔍 Debug: Last 200 chars after decompression:`,
           xmlText.substring(Math.max(0, xmlText.length - 200))
         );
+
+        // Yield to UI thread after decompression to prevent freezing
+        await new Promise(resolve => setTimeout(resolve, 1));
       } catch (err) {
         console.error("❌ Failed to decompress gzipped data:", err);
         throw err;
@@ -445,10 +501,16 @@ export class DataLoader {
       const iliData = await this.loadILI(xmlText);
       console.log(`📊 Loaded ${iliData.length} ILI records`);
       
+              // Yield to UI thread after ILI parsing to prevent freezing
+        await new Promise(resolve => setTimeout(resolve, 1));
+      
       if (progress) progress(0.5);
       
       // Insert ILI data
       await this.insertILIData(iliData, projectIdWithVersion);
+      
+              // Yield to UI thread after ILI data insertion to prevent freezing
+        await new Promise(resolve => setTimeout(resolve, 1));
       
       if (progress) progress(1.0);
       console.log(`✅ ILI data loaded successfully for ${projectIdWithVersion}`);
@@ -519,12 +581,18 @@ export class DataLoader {
         const parsed = await browserParser.parse();
         console.log(`🔍 Debug: Browser parser completed successfully`);
 
+        // Yield to UI thread after XML parsing to prevent freezing
+        await new Promise(resolve => setTimeout(resolve, 1));
+
         if (progress) progress(0.9);
 
         // Convert browser parser output to LMF format and insert
         console.log(`🔍 Debug: Starting insertBrowserParsedData...`);
         await this.insertBrowserParsedData(parsed, projectIdWithVersion);
         console.log(`🔍 Debug: insertBrowserParsedData completed successfully`);
+
+        // Yield to UI thread after browser parser data insertion to prevent freezing
+        await new Promise(resolve => setTimeout(resolve, 1));
 
         if (progress) progress(1.0);
       } catch (browserError) {
@@ -538,7 +606,15 @@ export class DataLoader {
 
         try {
           const lmfDocument = parseLMFXML(xmlText, { debug: true });
+          
+          // Yield to UI thread after fallback XML parsing to prevent freezing
+          await new Promise(resolve => setTimeout(resolve, 1));
+          
           await this.insertLMFData(lmfDocument, projectIdWithVersion);
+          
+          // Yield to UI thread after fallback parser data insertion to prevent freezing
+          await new Promise(resolve => setTimeout(resolve, 1));
+          
           if (progress) progress(1.0);
         } catch (fallbackError) {
           console.error(`❌ Fallback parser also failed:`, fallbackError);
@@ -557,10 +633,16 @@ export class DataLoader {
       try {
         const lmfDocument = parseLMFXML(xmlText, { debug: true });
 
+          // Yield to UI thread after XML parsing to prevent freezing
+          await new Promise(resolve => setTimeout(resolve, 1));
+
         if (progress) progress(0.5);
 
         // Insert the parsed data into the database
         await this.insertLMFData(lmfDocument, projectIdWithVersion);
+
+        // Yield to UI thread after small file parser data insertion to prevent freezing
+        await new Promise(resolve => setTimeout(resolve, 1));
 
         if (progress) progress(1.0);
       } catch (error) {
@@ -830,6 +912,9 @@ export class DataLoader {
       `📝 Inserting browser-parsed data for ${projectIdWithVersion}...`
     );
 
+    // Use a more efficient yielding strategy
+    const yieldToUI = () => new Promise(resolve => setTimeout(resolve, 1));
+
     try {
       const lexicalResource = parsed.LexicalResource;
       if (!lexicalResource) {
@@ -871,7 +956,75 @@ export class DataLoader {
           `📊 Processing ${entries.length} lexical entries for lexicon ${lexiconId}...`
         );
 
-        for (const entry of entries) {
+          // Process entries in chunks to prevent UI freezing
+          await this.processEntriesInChunks(entries, wordsToInsert, sensesToInsert, lexiconLang, lexiconId);
+
+        // Process synsets
+        const synsetElems =
+          lexiconElem.children?.filter(
+            (child: any) => child.name === "Synset"
+          ) || [];
+        console.log(
+          `📊 Processing ${synsetElems.length} synsets for lexicon ${lexiconId}...`
+        );
+
+        // Process synsets in chunks to prevent UI freezing
+        await this.processSynsetsInChunks(synsetElems, synsetsToInsert, definitionsToInsert, lexiconLang, lexiconId);
+      }
+
+      const queryService = this.getQueryService();
+      if (queryService) {
+        console.log(
+          `📝 Inserting ${lexiconsToInsert.length} lexicons, ${wordsToInsert.length} words, ${sensesToInsert.length} senses, ${synsetsToInsert.length} synsets, and ${definitionsToInsert.length} definitions in batches...`
+        );
+        
+        if (lexiconsToInsert.length > 0) {
+          await queryService.batchInsert("lexicons", lexiconsToInsert);
+        }
+        if (wordsToInsert.length > 0) {
+          await queryService.batchInsert("words", wordsToInsert);
+        }
+        if (synsetsToInsert.length > 0) {
+          await queryService.batchInsert("synsets", synsetsToInsert);
+        }
+        if (sensesToInsert.length > 0) {
+          await queryService.batchInsert("senses", sensesToInsert);
+        }
+        if (definitionsToInsert.length > 0) {
+          await queryService.batchInsert("definitions", definitionsToInsert);
+        }
+      } else {
+        throw new Error("Query service not available for batch insert.");
+      }
+
+      console.log(
+        `✅ Browser-parsed data inserted for ${projectIdWithVersion}`
+      );
+    } catch (error) {
+      console.error(
+        `❌ Failed to insert browser-parsed data for ${projectIdWithVersion}:`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Process entries in chunks to prevent UI freezing
+   */
+  private async processEntriesInChunks(
+    entries: any[],
+    wordsToInsert: any[],
+    sensesToInsert: any[],
+    lexiconLang: string,
+    lexiconId: string
+  ): Promise<void> {
+    const CHUNK_SIZE = 1000;
+    
+    for (let i = 0; i < entries.length; i += CHUNK_SIZE) {
+      const chunk = entries.slice(i, i + CHUNK_SIZE);
+      
+      for (const entry of chunk) {
           const wordId = entry.attributes?.id || "unknown-word";
           const lemmaElem = entry.children?.find(
             (child: any) => child.name === "Lemma"
@@ -901,16 +1054,29 @@ export class DataLoader {
           }
         }
 
-        // Process synsets
-        const synsetElems =
-          lexiconElem.children?.filter(
-            (child: any) => child.name === "Synset"
-          ) || [];
-        console.log(
-          `📊 Processing ${synsetElems.length} synsets for lexicon ${lexiconId}...`
-        );
+      // Yield to UI thread after each chunk
+      if (i + CHUNK_SIZE < entries.length) {
+        await new Promise(resolve => setTimeout(resolve, 1));
+      }
+    }
+  }
 
-        for (const synset of synsetElems) {
+  /**
+   * Process synsets in chunks to prevent UI freezing
+   */
+  private async processSynsetsInChunks(
+    synsetElems: any[],
+    synsetsToInsert: any[],
+    definitionsToInsert: any[],
+    lexiconLang: string,
+    lexiconId: string
+  ): Promise<void> {
+    const CHUNK_SIZE = 1000;
+    
+    for (let i = 0; i < synsetElems.length; i += CHUNK_SIZE) {
+      const chunk = synsetElems.slice(i, i + CHUNK_SIZE);
+      
+      for (const synset of chunk) {
           const synsetId = synset.attributes?.id || "unknown-synset";
           synsetsToInsert.push({
             id: synsetId,
@@ -924,7 +1090,7 @@ export class DataLoader {
             synset.children?.filter(
               (child: any) => child.name === "Definition"
             ) || [];
-          for (const [i, def] of definitions.entries()) {
+        for (const [j, def] of definitions.entries()) {
             const lang = def.attributes?.language || "en";
             const glossElem = def.children?.find(
               (c: any) => c.name === "gloss"
@@ -937,43 +1103,18 @@ export class DataLoader {
             const cleanedText = textContent.replace(/\s+/g, " ").trim();
 
             definitionsToInsert.push({
-              id: `${synsetId}.def.${lang}.${i}`,
+            id: `${synsetId}.def.${lang}.${j}`,
               synset_id: synsetId,
               language: lang,
               text: cleanedText,
             });
-          }
         }
       }
-
-      const queryService = this.getQueryService();
-      if (queryService) {
-        console.log(
-          `📝 Inserting ${lexiconsToInsert.length} lexicons, ${wordsToInsert.length} words, ${sensesToInsert.length} senses, ${synsetsToInsert.length} synsets, and ${definitionsToInsert.length} definitions in batches...`
-        );
-        if (lexiconsToInsert.length > 0)
-          await queryService.batchInsert("lexicons", lexiconsToInsert);
-        if (wordsToInsert.length > 0)
-          await queryService.batchInsert("words", wordsToInsert);
-        if (synsetsToInsert.length > 0)
-          await queryService.batchInsert("synsets", synsetsToInsert);
-        if (sensesToInsert.length > 0)
-          await queryService.batchInsert("senses", sensesToInsert);
-        if (definitionsToInsert.length > 0)
-          await queryService.batchInsert("definitions", definitionsToInsert);
-      } else {
-        throw new Error("Query service not available for batch insert.");
+      
+      // Yield to UI thread after each chunk
+      if (i + CHUNK_SIZE < synsetElems.length) {
+        await new Promise(resolve => setTimeout(resolve, 1));
       }
-
-      console.log(
-        `✅ Browser-parsed data inserted for ${projectIdWithVersion}`
-      );
-    } catch (error) {
-      console.error(
-        `❌ Failed to insert browser-parsed data for ${projectIdWithVersion}:`,
-        error
-      );
-      throw error;
     }
   }
 
@@ -1007,7 +1148,24 @@ export class DataLoader {
    * Clear all data from the database
    */
   async clearAllData(): Promise<void> {
-    await this.database.clearAllData();
+    try {
+      await this.database.clearAllData();
+      
+      // Emit events after successful clear
+      if (this.wordnet && typeof (this.wordnet as any).emitDataChanged === 'function') {
+        (this.wordnet as any).emitDataChanged('databaseCleared', {
+          timestamp: new Date().toISOString()
+        });
+        
+        // Emit statistics updated event
+        await (this.wordnet as any).emitStatisticsUpdated();
+      }
+    } catch (error) {
+      if (this.wordnet && typeof (this.wordnet as any).emitError === 'function') {
+        (this.wordnet as any).emitError('clearAllData', error instanceof Error ? error : String(error));
+      }
+      throw error;
+    }
   }
 
   /**

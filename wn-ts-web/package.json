@@ -58,6 +58,7 @@
     "debug-test": "pnpm with-memory-limit vitest --config=vitest.naked.config.ts --run test/pako.test.ts"
   },
   "dependencies": {
+    "comlink": "^4.4.2",
     "kysely": "^0.28.3",
     "kysely-sqlite-builder": "^1.0.0",
     "kysely-wasm": "^1.2.1",

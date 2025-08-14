@@ -14,6 +14,10 @@ export { createWebWordnet, createDataLoader, createWordNetInstance } from './fac
 export { OPFSManager } from './opfs-manager.js';
 export { DataManager } from './data-manager.js';
 
+// Export event system
+export { WordNetEventEmitter, WordNetEvents } from './event-emitter.js';
+export type { EventCallback, WordNetEventName } from './event-emitter.js';
+
 // Export database types and interfaces
 export type { Database, WordRecord, SynsetRecord, SenseRecord, DefinitionRecord, RelationRecord, ExampleRecord, IliRecord, LexiconRecord } from './types/database.js';
 

@@ -3,9 +3,11 @@
  * Optimized for modern browsers with OPFS support
  */
 
+import type { Sqlite3Static, Database } from "@sqlite.org/sqlite-wasm";
+
 export class WebDatabase {
-  private db: any = null;
-  private sqlModule: any = null;
+  private db: Database | null = null;
+  private sqlModule: Sqlite3Static | null = null;
   private _initialized = false;
   private useOPFS = false;
 
@@ -14,31 +16,33 @@ export class WebDatabase {
   }
 
   // Initialize with @sqlite.org/sqlite-wasm module
-  async initializeWithModule(sqlModule: any): Promise<void> {
+  async initializeWithModule(sqlModule: Sqlite3Static): Promise<void> {
     this.sqlModule = sqlModule;
-    
+
     // Enable OPFS support for persistent storage
-    if ('opfs' in sqlModule && sqlModule.opfs) {
+    if (sqlModule.oo1?.OpfsDb) {
       try {
         // Register OPFS VFS for persistent storage
-        const vfs = new sqlModule.opfs.Vfs();
-        sqlModule.opfs.registerVfs(vfs);
         this.useOPFS = true;
-        console.log('✅ OPFS support enabled for persistent storage');
+        console.log("✅ OPFS support enabled for persistent storage");
       } catch (error) {
         // This is expected in main thread - OPFS requires worker thread
-        console.log('ℹ️ OPFS not available in main thread (requires worker thread)');
+        console.log(
+          "ℹ️ OPFS not available in main thread (requires worker thread)"
+        );
         this.useOPFS = false;
       }
     }
-    
+
     this._initialized = true;
   }
 
   // Interface-compatible initialize method
   async initialize(): Promise<void> {
     if (!this.sqlModule) {
-      throw new Error('SQL module not initialized. Call initializeWithModule() first.');
+      throw new Error(
+        "SQL module not initialized. Call initializeWithModule() first."
+      );
     }
     // Already initialized in initializeWithModule
   }
@@ -49,7 +53,9 @@ export class WebDatabase {
 
   async loadDatabase(data: Uint8Array): Promise<void> {
     if (!this.sqlModule) {
-      throw new Error('SQL module not initialized. Call initializeWithModule() first.');
+      throw new Error(
+        "SQL module not initialized. Call initializeWithModule() first."
+      );
     }
 
     if (this.db) {
@@ -59,50 +65,40 @@ export class WebDatabase {
 
     // Create a new in-memory database from the provided buffer.
     // The data is a Uint8Array representing an SQLite database file.
-    // Try the new API first, fall back to oo1 if needed
-    try {
-      this.db = new this.sqlModule.Database(data);
-    } catch (error) {
-      // Fall back to oo1 API if Database constructor doesn't exist
-      if (this.sqlModule.oo1 && this.sqlModule.oo1.DB) {
-        this.db = new this.sqlModule.oo1.DB(data);
-      } else {
-        throw new Error('No compatible database constructor found in SQLite WASM module');
-      }
+    if (this.sqlModule.oo1 && this.sqlModule.oo1.DB) {
+      this.db = new this.sqlModule.oo1.DB();
+   
+      // TODO: actually load the data into the database
+      
+    } else {
+      throw new Error(
+        "No compatible database constructor found in SQLite WASM module"
+      );
     }
   }
 
   async createDatabase(data?: Uint8Array): Promise<void> {
     if (!this.sqlModule) {
-      throw new Error('SQL module not initialized');
+      throw new Error("SQL module not initialized");
     }
 
-    // Try the new API first, fall back to oo1 if needed
-    try {
-      if (this.useOPFS && 'opfs' in this.sqlModule) {
-        // Use OPFS for persistent storage
-        this.db = new this.sqlModule.Database('/wordnet.sqlite3');
+    // Fall back to oo1 API if Database constructor doesn't exist
+    if (this.sqlModule.oo1 && this.sqlModule.oo1.DB) {
+      if (this.useOPFS && this.sqlModule.oo1.OpfsDb) {
+        this.db = new this.sqlModule.oo1.OpfsDb("/wordnet.sqlite3");
       } else {
-        // Use in-memory database
-        this.db = new this.sqlModule.Database(':memory:');
+        this.db = new this.sqlModule.oo1.DB(":memory:", "ct");
       }
-    } catch (error) {
-      // Fall back to oo1 API if Database constructor doesn't exist
-      if (this.sqlModule.oo1 && this.sqlModule.oo1.DB) {
-        if (this.useOPFS && this.sqlModule.oo1.OpfsDb) {
-          this.db = new this.sqlModule.oo1.OpfsDb('/wordnet.sqlite3');
-        } else {
-          this.db = new this.sqlModule.oo1.DB(':memory:', 'ct');
-        }
-      } else {
-        throw new Error('No compatible database constructor found in SQLite WASM module');
-      }
+    } else {
+      throw new Error(
+        "No compatible database constructor found in SQLite WASM module"
+      );
     }
-    
+
     // Disable SQLite tracing to reduce console noise
     try {
-      this.db.exec('PRAGMA trace = 0');
-      this.db.exec('PRAGMA vdbe_trace = 0');
+      this.db.exec("PRAGMA trace = 0");
+      this.db.exec("PRAGMA vdbe_trace = 0");
     } catch (error) {
       // Ignore if tracing is not available
     }
@@ -110,7 +106,7 @@ export class WebDatabase {
 
   run(sql: string, params: any[] = []): void {
     if (!this.db) {
-      throw new Error('Database not initialized');
+      throw new Error("Database not initialized");
     }
 
     try {
@@ -121,9 +117,7 @@ export class WebDatabase {
         }
         stmt.step(); // Execute the statement
       } finally {
-        if (stmt.free) {
-          stmt.free();
-        }
+        stmt.stepFinalize();
       }
     } catch (e) {
       console.error(`SQL execution failed: ${sql}`, params, e);
@@ -134,8 +128,15 @@ export class WebDatabase {
   async clearAllData(): Promise<void> {
     if (!this.db) return;
     const tables = [
-      'lexicons', 'words', 'forms', 'synsets', 'senses',
-      'definitions', 'relations', 'examples', 'ilis'
+      "lexicons",
+      "words",
+      "forms",
+      "synsets",
+      "senses",
+      "definitions",
+      "relations",
+      "examples",
+      "ilis",
     ];
     for (const table of tables) {
       this.run(`DELETE FROM ${table}`);
@@ -154,6 +155,17 @@ export class WebDatabase {
     };
   }
 
+  /**
+   * Export the current database as a Uint8Array of the SQLite file
+   */
+  exportBytes(): Uint8Array {
+    if (!this.db) {
+      throw new Error("Database not initialized");
+    }
+   
+    throw new Error("Not implemented");
+  }
+
   close(): void {
     if (this.db) {
       this.db.close();
@@ -165,16 +177,19 @@ export class WebDatabase {
    * Get the underlying SQLite WASM database instance
    * This is needed for Kysely integration
    */
-  getDatabase(): any {
+  getDatabase() {
     if (!this.db) {
-      throw new Error('Database not initialized');
+      throw new Error("Database not initialized");
     }
-    
-    // The Kysely dialect expects the `sqlite3` module to be attached.
-    if (!this.db.sqlite3) {
-      this.db.sqlite3 = this.sqlModule;
-    }
-    
+
     return this.db;
+  }
+
+  getSqlModule() {
+    if (!this.sqlModule) {
+      throw new Error("SQL module not initialized");
+    }
+
+    return this.sqlModule;
   }
 }

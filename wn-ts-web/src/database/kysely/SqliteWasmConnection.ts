@@ -1,12 +1,27 @@
 import { CompiledQuery } from "kysely";
 import type { DatabaseConnection, QueryResult } from "kysely";
 import type { SqliteWasmDatabase } from "../types/sqlite-wasm.js";
+import type { Sqlite3Static } from "@sqlite.org/sqlite-wasm";
 
 export class SqliteWasmConnection implements DatabaseConnection {
   readonly #db: SqliteWasmDatabase;
+  readonly #sqlModule: Sqlite3Static;
 
-  constructor(db: SqliteWasmDatabase) {
+  constructor(db: SqliteWasmDatabase, sqlModule: Sqlite3Static, traceCallback?: ((reason: number, cbArg: number, arg1: number, arg2: number) => number) | null) {
     this.#db = db;
+    this.#sqlModule = sqlModule;
+    
+    if (traceCallback) {
+      // #define SQLITE_TRACE_STMT       0x01
+      // #define SQLITE_TRACE_PROFILE    0x02
+      // #define SQLITE_TRACE_ROW        0x04
+      // #define SQLITE_TRACE_CLOSE      0x08
+      // @ts-ignore - sqlite3_trace_v2 requires 4 arguments despite TypeScript expecting 3
+      this.#sqlModule.capi.sqlite3_trace_v2(this.#db, 0x01 | 0x02 | 0x04 | 0x08, traceCallback, null);
+    } else {
+      // @ts-ignore - sqlite3_trace_v2 requires 4 arguments despite TypeScript expecting 3
+      this.#sqlModule.capi.sqlite3_trace_v2(this.#db, 0);
+    }
   }
 
   executeQuery<O>(compiledQuery: CompiledQuery): Promise<QueryResult<O>> {
@@ -31,7 +46,7 @@ export class SqliteWasmConnection implements DatabaseConnection {
       columnNames: statementData.columns,
     });
 
-    const lastInsertId = this.#db.sqlite3.capi.sqlite3_last_insert_rowid(
+    const lastInsertId = this.#sqlModule.capi.sqlite3_last_insert_rowid(
       this.#db
     );
 

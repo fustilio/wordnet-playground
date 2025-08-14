@@ -14,6 +14,7 @@ import {
 } from "kysely";
 import { SqliteWasmDriver } from "./kysely/SqliteWasmDriver.js";
 import type { SqliteWasmDatabase } from "./types/sqlite-wasm.js";
+import type { Sqlite3Static } from "@sqlite.org/sqlite-wasm";
 
 /**
  * Create a Kysely dialect for SQLite WASM
@@ -21,11 +22,18 @@ import type { SqliteWasmDatabase } from "./types/sqlite-wasm.js";
  * @param database - The SQLite WASM database instance
  * @returns A Kysely dialect configuration
  */
-export const createSqliteWasmDialect = (database: SqliteWasmDatabase) => {
+export const createSqliteWasmDialect = ({
+  database,
+  sqlModule
+}: {
+  database: SqliteWasmDatabase;
+  sqlModule: Sqlite3Static;
+}) => {
   return {
     createAdapter: () => new SqliteAdapter(),
     createDriver: () =>
       new SqliteWasmDriver({
+        sqlModule,
         database: database,
         async onCreateConnection(connection) {
           // Enable foreign key support
