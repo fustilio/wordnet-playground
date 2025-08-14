@@ -49,10 +49,29 @@ function createMockSqliteWasm() {
         exec(sqlOrOptions: string | { sql: string; bind?: any[]; returnValue?: string; rowMode?: string; columnNames?: any[] }): void | any[] {
           const sql = typeof sqlOrOptions === 'string' ? sqlOrOptions : sqlOrOptions.sql;
           
+          const lower = sql.toLowerCase();
+          const normalized = lower.replace(/"/g, '');
           if (sql.includes('CREATE TABLE')) return;
 
-          if (sql.toLowerCase().includes('select')) {
-            if (sql.toLowerCase().includes('count')) {
+          if (lower.includes('select')) {
+            // Handle grouped lexicon statistics with COUNT(DISTINCT ...) produced by Kysely
+            if ((normalized.includes(' from lexicons') || normalized.includes(' from  lexicons')) && normalized.includes('count')) {
+              const hasWhereOnLexiconsId = normalized.includes(' where ') && normalized.includes('lexicons.id');
+              const isSpecificLexicon = hasWhereOnLexiconsId || (lower.includes("where") && lower.includes('lexicons.id') && lower.includes("oewn:2024"));
+              const targetLexicons = isSpecificLexicon
+                ? mockData.lexicons.filter(l => l.id === 'oewn:2024')
+                : mockData.lexicons;
+              return targetLexicons.map(lex => ({
+                id: lex.id,
+                label: lex.label,
+                language: lex.language,
+                version: lex.version,
+                word_count: mockData.words.filter(w => w.lexicon === lex.id).length,
+                synset_count: mockData.synsets.filter(s => s.lexicon === lex.id).length,
+              }));
+            }
+
+            if (lower.includes('count')) {
               if (sql.includes('words')) return [{ count: mockData.words.length }];
               if (sql.includes('synsets')) return [{ count: mockData.synsets.length }];
               if (sql.includes('senses')) return [{ count: (mockData as any).senses.length }];
@@ -76,6 +95,24 @@ function createMockSqliteWasm() {
         
         prepare(sql: string): any {
           const getResults = () => {
+            const lower = sql.toLowerCase();
+            const normalized = lower.replace(/"/g, '');
+            // Handle grouped lexicon statistics with COUNT(DISTINCT ...) produced by Kysely
+            if (lower.includes('select') && (normalized.includes(' from lexicons') || normalized.includes(' from  lexicons')) && lower.includes('count')) {
+              const hasWhereOnLexiconsId = normalized.includes(' where ') && normalized.includes('lexicons.id');
+              const isSpecificLexicon = hasWhereOnLexiconsId || (lower.includes("where") && lower.includes('lexicons.id') && lower.includes("oewn:2024"));
+              const targetLexicons = isSpecificLexicon
+                ? mockData.lexicons.filter(l => l.id === 'oewn:2024')
+                : mockData.lexicons;
+              return targetLexicons.map(lex => ({
+                id: lex.id,
+                label: lex.label,
+                language: lex.language,
+                version: lex.version,
+                word_count: mockData.words.filter(w => w.lexicon === lex.id).length,
+                synset_count: mockData.synsets.filter(s => s.lexicon === lex.id).length,
+              }));
+            }
             if (sql.includes('words')) return mockData.words;
             if (sql.includes('synsets')) return mockData.synsets;
             if (sql.includes('lexicons')) return mockData.lexicons;

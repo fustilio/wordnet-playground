@@ -108,7 +108,8 @@
     "vite": "catalog:",
     "vite-plugin-dts": "catalog:",
     "vite-plugin-comlink": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "fast-xml-parser": "^5.2.5"
   },
   "peerDependencies": {
     "@sqlite.org/sqlite-wasm": "catalog:"

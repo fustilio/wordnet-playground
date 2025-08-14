@@ -106,17 +106,8 @@ export class WordNetOrchestrator {
     // Set initialized flag BEFORE trying to load default lexicon
     this.isInitialized = true;
     
-    // Initialize default lexicon if specified
-    if (this.options.defaultLexicon) {
-      // Convert the two-parameter progress callback to the expected one-parameter callback
-      const progressCallback = options?.onProgress ? 
-        (progress: number) => options.onProgress!(progress, 'Loading default lexicon') : 
-        undefined;
-        
-      await this.ensureLexiconLoaded(this.options.defaultLexicon, {
-        onProgress: progressCallback
-      });
-    }
+    // Note: Do not auto-load the default lexicon during initialization.
+    // Loading is explicitly controlled via loadLexicon/ensureLexiconLoaded in tests and runtime.
 
     this.eventEmitter.emit(WordNetEvents.INITIALIZED, { success: true });
   }
@@ -163,7 +154,6 @@ export class WordNetOrchestrator {
 
   private async loadLexiconInternal(lexiconId: string, options: LoadLexiconOptions): Promise<void> {
     this.activeLoads++;
-    
     try {
       // Update state to loading
       this.updateLexiconState(lexiconId, { status: 'loading' });
@@ -184,20 +174,17 @@ export class WordNetOrchestrator {
         lastLoaded: new Date(),
         needsRedownload: false
       });
-
-      // Process next item in queue
-      this.processLoadQueue();
-
     } catch (error) {
       // Update state to error
       this.updateLexiconState(lexiconId, {
         status: 'error',
         error: error instanceof Error ? error.message : String(error)
       });
-
+      throw error;
+    } finally {
+      // Always decrement and process queue to avoid deadlocks/timeouts
       this.activeLoads--;
       this.processLoadQueue();
-      throw error;
     }
   }
 
