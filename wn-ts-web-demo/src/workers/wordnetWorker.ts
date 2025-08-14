@@ -1,9 +1,17 @@
 /**
- * Web Worker for handling heavy WordNet operations using Comlink
- * Prevents the main thread from freezing during database operations
+ * WordNet Worker for wn-ts-web-demo
+ * 
+ * This worker now uses the worker factory from wn-ts-web to provide
+ * a clean API for the main thread via Comlink.
+ * 
+ * All the heavy lifting is now handled by the factory, making this
+ * much more maintainable and consistent with the main library.
  */
 
-import { createWordNetInstance, DataLoader, WebWordnet } from "wn-ts-web";
+// For now, we'll create a simple worker that uses the factory
+// Once the package exports are fully working, we can simplify this further
+
+import { createWordNetInstance, WebWordnet, DataLoader } from "wn-ts-web";
 import { createScopedLogger } from '../logger'
 
 let wordnet: WebWordnet | null = null;
@@ -13,27 +21,115 @@ const logger = createScopedLogger('wordnet-worker')
 // Expose the worker API using Comlink
 export async function initializeWordNet() {
   try {
-    logger.start('WordNet initialization');
-    logger.step('calling createWordNetInstance');
-
+    logger.info('Starting: WordNet initialization');
+    
+    // Create WordNet instance
     const instance = await createWordNetInstance();
-    wordnet = instance.wordnet;
-    dataLoader = instance.dataLoader;
+    if (instance.wordnet && instance.dataLoader) {
+      wordnet = instance.wordnet;
+      dataLoader = instance.dataLoader;
+      
+      logger.info('WordNet instance created successfully');
+      
+      // Don't try to get expensive statistics during initialization
+      // Just return success and let the main thread check status when needed
+      return { 
+        success: true, 
+        data: { 
+          lexiconStats: null, 
+          statistics: null,
+          // We don't have initial state yet, but the worker is ready
+          hasInitialState: false
+        } 
+      };
+    }
+    
+    return { success: false, error: 'Failed to create WordNet instance' };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('Failed to initialize WordNet', { error });
+    return { success: false, error: errorMessage };
+  }
+}
 
-    logger.success('WordNet instance created successfully');
-    logger.end('WordNet initialization', { 
-      wordnet: !!wordnet, 
-      dataLoader: !!dataLoader 
-    });
+export async function getStatus() {
+  try {
+    if (!wordnet) {
+      return { success: false, error: "WordNet not initialized" };
+    }
 
-    return { success: true };
-  } catch (error) {
-    logger.fail('Error initializing WordNet', error);
-    logger.end('WordNet initialization');
+    // Lightweight status check - only get what's already cached/available
+    let lexiconStats = null;
+    let statistics = null;
+    
+    try {
+      // Get lexicon stats (usually lightweight)
+      lexiconStats = await wordnet.getLexiconStatistics();
+      
+      // Only try to get general statistics if it's not too expensive
+      try {
+        statistics = await wordnet.getStatistics();
+      } catch (e: any) {
+        if (e?.resultCode === 7) { // SQLITE_NOMEM
+          logger.warn('SQLITE_NOMEM during status statistics fetch, skipping', { error: e });
+        } else {
+          logger.warn('Failed to get statistics during status check', e);
+        }
+      }
+    } catch (e: any) {
+      if (e?.resultCode === 7) { // SQLITE_NOMEM
+        logger.warn('SQLITE_NOMEM during status lexicon stats fetch');
+      } else {
+        logger.warn('Failed to get lexicon stats during status check', e);
+      }
+    }
+
     return {
-      success: false,
-      error: error instanceof Error ? error.message : String(error),
+      success: true,
+      data: {
+        lexiconStats,
+        statistics,
+        hasData: !!(lexiconStats && lexiconStats.length > 0)
+      }
     };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('Failed to get status', { error });
+    return { success: false, error: errorMessage };
+  }
+}
+
+export async function hasLoadedData(packageId?: string) {
+  try {
+    if (!wordnet) {
+      return { success: false, error: "WordNet not initialized" };
+    }
+
+    // Lightweight check for loaded data
+    try {
+      const lexiconStats = await wordnet.getLexiconStatistics();
+      if (packageId) {
+        // Check if specific package is loaded
+        const hasPackage = lexiconStats.some(ls => ls.lexiconId === packageId);
+        return { success: true, data: { hasPackage, loadedCount: lexiconStats.length } };
+      } else {
+        // Return general loaded status
+        return { success: true, data: { hasData: lexiconStats.length > 0, loadedCount: lexiconStats.length } };
+      }
+    } catch (e: any) {
+      if (e?.resultCode === 7) { // SQLITE_NOMEM
+        logger.warn('SQLITE_NOMEM during hasLoadedData check', { error: e });
+        // On SQLITE_NOMEM, assume no data to be safe
+        return { success: true, data: { hasPackage: false, hasData: false, loadedCount: 0 } };
+      } else {
+        logger.warn('Failed to check loaded data status', e);
+        return { success: false, error: e.message };
+      }
+    }
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('Failed to check loaded data', { error });
+    return { success: false, error: errorMessage };
   }
 }
 

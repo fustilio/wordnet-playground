@@ -6,13 +6,19 @@
 // Project/index utilities
 import { Project } from './project.js';
 
-// Export the main classes and types
+// Core exports
+export { createWebWordnet, createDataLoader, createWordNetInstance } from './factory.js';
 export { WebWordnet } from './web-wordnet.js';
 export { WebDatabase } from './web-database.js';
 export { DataLoader } from './data-loader.js';
-export { createWebWordnet, createDataLoader, createWordNetInstance } from './factory.js';
 export { OPFSManager } from './opfs-manager.js';
 export { DataManager } from './data-manager.js';
+
+// Worker factory exports (framework-agnostic)
+export { createWordNetWorker, type WordNetWorkerAPI } from './worker-factory';
+
+// Note: React hooks are not exported here to keep wn-ts-web framework-agnostic
+// They can be imported separately from './react-hooks' if needed, or moved to a separate package
 
 // Export event system
 export { WordNetEventEmitter, WordNetEvents } from './event-emitter.js';

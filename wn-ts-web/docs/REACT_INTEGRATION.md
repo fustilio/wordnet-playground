@@ -2,6 +2,8 @@
 
 This guide provides comprehensive patterns and examples for integrating `wn-ts-web` into React applications, including OPFS optimization and state management.
 
+> Note: Run `wn-ts-web` inside a Web Worker. This keeps SQLite/OPFS and heavy operations off the UI thread. You can use plain Workers or libraries like Comlink to simplify messaging.
+
 ## Table of Contents
 
 1. [Basic React Hook Pattern](#basic-react-hook-pattern)
@@ -86,6 +88,42 @@ export function useWordNet(lexiconId = 'oewn:2024') {
     initializeWordNet
   };
 }
+```
+
+### Comlink-based worker (concise example)
+
+Main thread:
+
+```ts
+import { wrap } from 'comlink';
+
+const worker = new Worker(new URL('./wordnet.worker.ts', import.meta.url), { type: 'module' });
+const api = wrap<any>(worker);
+
+await api.initialize('oewn:2024');
+const results = await api.synsets('joy', 'n');
+```
+
+Worker (`wordnet.worker.ts`):
+
+```ts
+import { expose } from 'comlink';
+import { createWordNetInstance } from 'wn-ts-web';
+
+let wordnet: any;
+let dataLoader: any;
+
+async function initialize(lexiconId = 'oewn:2024') {
+  const res = await createWordNetInstance(lexiconId);
+  wordnet = res.wordnet;
+  dataLoader = res.dataLoader;
+}
+
+async function synsets(lemma: string, pos?: string) {
+  return wordnet.synsets(lemma, pos);
+}
+
+expose({ initialize, synsets });
 ```
 
 ## React Component Examples

@@ -2,27 +2,27 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   createWordNetInstance, 
   WebWordnet, 
-  DataLoader, 
-  extendProjectIndex, 
-  extendProjectIndexFromUrl, 
-  clearCustomProjectIndex, 
-  getAvailableProjects
+  DataLoader
 } from 'wn-ts-web';
-import { useWordNetCache } from './useWordNetCache';
 // Comlink-backed worker for heavy operations
 import type { Remote } from 'comlink';
-import { createScopedLogger } from '../logger';
+import { createScopedLogger, setGlobalLogLevel } from '../logger';
+setGlobalLogLevel('debug')
+// Worker-first: This hook prefers a Comlink worker for initialization and heavy operations.
+// It automatically falls back to main thread if the worker cannot be created.
 
 // Worker API interface
 interface WordNetWorkerAPI {
   initializeWordNet(): Promise<{ success: boolean; error?: string }>;
   loadPackage(packageId: string): Promise<{ success: boolean; data?: any; error?: string }>;
+  loadPackageFromData(packageId: string, data: ArrayBuffer): Promise<{ success: boolean; data?: any; error?: string }>;
 
   loadDemoData(): Promise<{ success: boolean; data?: any; error?: string }>;
   getStatistics(): Promise<{ success: boolean; data?: any; error?: string }>;
   queryWords(term: string): Promise<{ success: boolean; data?: any; error?: string }>;
   querySynsets(term: string): Promise<{ success: boolean; data?: any; error?: string }>;
   clearData(): Promise<{ success: boolean; error?: string }>;
+  getStatus(): Promise<{ success: boolean; data?: any; error?: string }>;
 }
 
 let remote: Remote<WordNetWorkerAPI> | null = null;
@@ -64,12 +64,6 @@ export interface WordNetState {
   loadedPackages: string[];
   progress: number;
   progressStage: string;
-  cacheInfo: {
-    isSupported: boolean;
-    totalFiles: number;
-    totalSizeMB: number;
-    availableSpaceMB: number;
-  };
 }
 
 export interface ProgressCallback {
@@ -82,14 +76,11 @@ export function useWordNet(): WordNetState & {
   queryWords: (term: string) => Promise<unknown[]>;
   querySynsets: (term: string) => Promise<unknown[]>;
   unloadData: () => Promise<void>;
-  clearCacheAndUnload: () => Promise<void>;
-  getCacheInfo: () => Promise<Record<string, unknown>>;
-  clearCache: () => Promise<boolean>;
-  removeFromCache: (packageId: string) => Promise<boolean>;
   refreshPackages: () => Promise<void>;
 } {
-  const cache = useWordNetCache();
   const logger = createScopedLogger('useWordNet');
+
+  
   
   
   
@@ -114,315 +105,321 @@ export function useWordNet(): WordNetState & {
     }
   });
 
-  const computeAvailablePackages = () => {
+  // Initialize available packages immediately on mount
+  useEffect(() => {
+    logger.debug('Initializing package discovery on mount');
+    
+    // Start with a minimal set of essential packages
+    const essentialPackages = [
+      { id: 'oewn:2024', label: 'Open English WordNet', language: 'en', version: '2024' },
+    ];
+    
+    logger.debug('Setting essential packages initially', { 
+      essentialCount: essentialPackages.length,
+      essentialPackages: essentialPackages.map(p => ({ id: p.id, label: p.label }))
+    });
+    
+    setState(prev => ({
+      ...prev,
+      availablePackages: essentialPackages,
+      progressStage: 'Detecting existing packages...'
+    }));
+    
+    // Don't call detectExistingPackages here - wait for worker to be ready
+    // It will be called after worker initialization completes
+  }, []); // Only run once on mount
+
+  // Detect existing packages on disk without blocking UI
+  const detectExistingPackages = async () => {
     try {
-      const projects = getAvailableProjects();
-      const flat = projects.flatMap(p => p.versions.map(v => ({
-        id: `${p.id}:${v}`,
-        label: p.label,
-        language: p.language || 'unknown',
-        version: v
-      })));
-      return flat;
-    } catch {
-      // Fallback to a minimal list if index isn't available
-      return [
-        { id: 'oewn:2024', label: 'Open English WordNet', language: 'en', version: '2024' },
-        { id: 'cili:1.0', label: 'Collaborative Interlingual Index', language: 'interlingual', version: '1.0' },
-      ];
+      logger.debug('Starting disk status detection');
+      setState(prev => ({ ...prev, progressStage: 'Scanning for existing packages...' }));
+      
+      // Always try to get status from worker if available, regardless of cache status
+      if (remote) {
+        try {
+          logger.debug('Calling worker getStatus()');
+          const status = await remote.getStatus();
+          logger.debug('Worker getStatus() response', status);
+          
+          if (status.success && status.data) {
+            logger.debug('Worker status check successful', status.data);
+            
+            // Update with actual loaded packages
+            const loaded = status.data.lexiconStats?.map((ls: any) => ls.lexiconId) || [];
+            const hasData = status.data.hasData;
+            
+            logger.debug('Detected loaded packages', { loaded, hasData });
+            
+            // Only show packages that are actually relevant
+            const relevantPackages = essentialPackages.filter(pkg => {
+              // Show OEWN if it's not loaded or if we have no data
+              if (pkg.id === 'oewn:2024') {
+                return !hasData || !loaded.includes(pkg.id);
+              }
+              // For other packages, only show if they're loaded
+              return loaded.includes(pkg.id);
+            });
+            
+            setState(prev => ({
+              ...prev,
+              availablePackages: relevantPackages,
+              loadedPackages: loaded,
+              progressStage: hasData ? 'Ready - Packages detected' : 'Ready - No packages loaded'
+            }));
+            
+            logger.debug('Updated state with detected packages', {
+              relevantCount: relevantPackages.length,
+              loadedCount: loaded.length,
+              hasData
+            });
+            
+            return;
+          } else {
+            logger.warn('Worker status check failed', status);
+          }
+        } catch (error) {
+          logger.warn('Worker status check failed with error', { error });
+        }
+      } else {
+        logger.debug('No remote worker available for status check');
+      }
+      
+      // Check cache status as fallback
+      const cacheStats = cache.getCacheStats();
+      logger.debug('Cache status', cacheStats);
+      
+      if (cacheStats.totalFiles > 0) {
+        logger.debug('Cache has files but worker status check failed, using cache info');
+        setState(prev => ({ ...prev, progressStage: 'Ready - Cache detected but status unclear' }));
+      } else {
+        logger.debug('No cache files found');
+        setState(prev => ({ ...prev, progressStage: 'Ready - Essential packages available' }));
+      }
+      
+    } catch (error) {
+      logger.warn('Package detection failed, using essential packages', { error });
+      setState(prev => ({
+        ...prev,
+        progressStage: 'Ready - Essential packages available'
+      }));
     }
   };
 
+  // Essential packages that should always be available
+  const essentialPackages = [
+    { id: 'oewn:2024', label: 'Open English WordNet', language: 'en', version: '2024' },
+  ];
+
+  // Refresh packages (simplified version that just updates status)
   const refreshPackages = useCallback(async () => {
     logger.start('refreshing packages');
-    logger.step('computing available packages');
+    logger.step('detecting existing packages');
     
     try {
-      const available = computeAvailablePackages();
-      let loaded: string[] = [];
-      let statistics = undefined;
-      
-      if (state.wordnet) {
-        try {
-          logger.step('getting lexicon statistics');
-          const lexStats = await state.wordnet.getLexiconStatistics();
-          loaded = (lexStats || []).map(ls => ls.lexiconId);
-          
-          // If we have loaded packages, refresh the statistics
-          if (loaded.length > 0 && state.dataLoader) {
-            try {
-              logger.step('refreshing database statistics');
-              const stats = await state.dataLoader.getStatistics();
-              let posDistribution = undefined;
-              
-              // Try to get part of speech distribution if wordnet is available
-              if (state.wordnet) {
-                try {
-                  posDistribution = await state.wordnet.getPartOfSpeechDistribution();
-                } catch (e) {
-                  logger.warn('Failed to get POS distribution', { error: e });
-                }
-              }
-              
-              statistics = {
-                totalWords: stats.totalWords,
-                totalSynsets: stats.totalSynsets,
-                totalSenses: stats.totalSenses,
-                totalRelations: 0,
-                totalDefinitions: 0,
-                languages: ['en'],
-                partsOfSpeech: ['n', 'v', 'a', 'r'],
-                dataSize: stats.totalWords * 100 + stats.totalSynsets * 200,
-                lastUpdated: new Date().toISOString(),
-                source: 'Database',
-                posDistribution
-              };
-            } catch (e) {
-              logger.warn('Failed to refresh statistics', { error: e });
-            }
-          }
-        } catch {
-          // ignore if not available yet
-        }
-      }
-      
-      logger.step('updating state with package information');
-      setState(prev => ({ 
-        ...prev, 
-        availablePackages: available, 
-        loadedPackages: loaded,
-        statistics: statistics || prev.statistics
-      }));
-      
+      await detectExistingPackages();
       logger.success('Packages refreshed successfully');
-      logger.end('refreshing packages', { 
-        availableCount: available.length, 
-        loadedCount: loaded.length,
-        hasStatistics: !!statistics
-      });
-    } catch (e) {
-      logger.fail('Failed to refresh packages', e);
       logger.end('refreshing packages');
-      // keep previous on failure
+    } catch (error) {
+      logger.fail('Failed to refresh packages', error);
+      logger.end('refreshing packages');
     }
-  }, [state.wordnet, state.dataLoader]);
+  }, []);
 
   // Initialize WordNet instance (run once on mount)
   useEffect(() => {
-    const initializeWordNet = async () => {
-      logger.start('WordNet initialization');
-      logger.step('setting initial state');
-      
-      setState(prev => ({ ...prev, loading: true, isInitializing: true, progressStage: 'Loading SQLite WASM...' }));
-      
-      try {
-        // Initialize Comlink worker for heavy operations
-        if (!remote) {
-          try {
-            logger.step('initializing Comlink worker');
-            remote = new ComlinkWorker<typeof import('../workers/wordnetWorker')>(new URL('../workers/wordnetWorker.ts', import.meta.url));
-            
-            logger.success('Comlink worker initialized');
-          } catch (error) {
-            logger.warn('Failed to initialize Comlink worker, falling back to main thread', { error });
-          }
+    if (state.isInitializing) {
+      console.log("start initializing")
+      initializeWordNet();
+    }
+  }, [state.isInitializing]);
+
+  // Initialize WordNet instance (run once on mount)
+  const initializeWordNet = async () => {
+    logger.start('WordNet initialization');
+    logger.step('setting initial state');
+    
+    setState(prev => ({ ...prev, loading: true, isInitializing: true, progressStage: 'Loading SQLite WASM...' }));
+    
+    try {
+      // Initialize Comlink worker for heavy operations
+      if (!remote) {
+        try {
+          logger.step('initializing Comlink worker');
+          remote = new ComlinkWorker<typeof import('../workers/wordnetWorker')>(new URL('../workers/wordnetWorker.ts', import.meta.url));
+          
+          logger.success('Comlink worker initialized');
+        } catch (error) {
+          logger.warn('Failed to initialize Comlink worker, falling back to main thread', { error });
         }
+      }
 
-        // Try to use worker first, fall back to main thread
-        let wordnet: WebWordnet | null = null;
-        let dataLoader: DataLoader | null = null;
+      // Try to use worker first, fall back to main thread
+      let wordnet: WebWordnet | null = null;
+      let dataLoader: DataLoader | null = null;
 
-        if (remote) {
-          try {
-            logger.step('using Comlink worker for initialization');
-            const result = await remote.initializeWordNet();
-            if (result.success) {
-              logger.success('Worker initialization successful');
-              // For now, still create main thread instance for compatibility
-              logger.step('creating main thread instance for compatibility');
-              const instance = await createWordNetInstance();
-              wordnet = instance.wordnet;
-              dataLoader = instance.dataLoader;
-            } else {
-              logger.warn('Worker initialization failed, using main thread', { error: result.error });
-              logger.step('creating main thread instance as fallback');
-              const instance = await createWordNetInstance();
-              wordnet = instance.wordnet;
-              dataLoader = instance.dataLoader;
+      if (remote) {
+        try {
+          logger.step('using Comlink worker for initialization');
+          const result = await remote.initializeWordNet();
+          if (result.success) {
+            logger.success('Worker initialization successful');
+            logger.debug('Worker result data', result);
+            
+            // Populate loaded packages and minimal stats from worker (if provided)
+            try {
+              const data = (result as any).data || {};
+              const lexStats = data.lexiconStats || [];
+              const loaded = Array.isArray(lexStats) ? lexStats.map((ls: any) => ls.lexiconId) : [];
+              
+              logger.debug('Processing worker data', { 
+                hasData: !!data, 
+                hasLexiconStats: !!data.lexiconStats, 
+                hasStatistics: !!data.statistics,
+                hasInitialState: data.hasInitialState,
+                loadedCount: loaded.length
+              });
+              
+              // Only update state if we have meaningful initial data
+              if (data.hasInitialState || loaded.length > 0) {
+                setState(prev => ({
+                  ...prev,
+                  loadedPackages: loaded,
+                  statistics: data.statistics ? {
+                    totalWords: data.statistics.totalWords ?? 0,
+                    totalSynsets: data.statistics.totalSynsets ?? 0,
+                    totalSenses: data.statistics.totalSenses ?? 0,
+                    totalRelations: 0,
+                    totalDefinitions: 0,
+                    languages: ['en'],
+                    partsOfSpeech: ['n','v','a','r'],
+                    dataSize: (data.statistics.totalWords ?? 0) * 100 + (data.statistics.totalSynsets ?? 0) * 200,
+                    lastUpdated: new Date().toISOString(),
+                    source: 'Database',
+                    posDistribution: undefined
+                  } : prev.statistics
+                }));
+                
+                // If we have initial state, we can skip the main thread initialization
+                if (data.hasInitialState) {
+                  logger.info('Worker has initial state, skipping main thread initialization');
+                  setState(prev => ({ 
+                    ...prev, 
+                    isReady: true, 
+                    loading: false, 
+                    isInitializing: false,
+                    progressStage: 'Ready - Using worker data'
+                  }));
+                  
+                  // Now that worker is ready, detect existing packages
+                  logger.debug('Worker ready, detecting existing packages');
+                  await detectExistingPackages();
+                  return;
+                }
+              }
+              
+              // Even if we don't have initial state, the worker is ready
+              // so we should detect what's available on disk
+              logger.info('Worker ready but no initial state, detecting existing packages');
+              setState(prev => ({ 
+                ...prev, 
+                isReady: true, 
+                loading: false, 
+                isInitializing: false,
+                progressStage: 'Worker ready - Detecting packages...'
+              }));
+              
+              // Now that worker is ready, detect existing packages
+              logger.debug('Worker ready, detecting existing packages');
+              await detectExistingPackages();
+              return;
+              
+            } catch (e) {
+              logger.warn('Failed to process worker initial state', { error: e });
+              
+              // Even if processing fails, the worker is ready
+              logger.info('Worker ready but processing failed, detecting existing packages');
+              setState(prev => ({ 
+                ...prev, 
+                isReady: true, 
+                loading: false, 
+                isInitializing: false,
+                progressStage: 'Worker ready - Detecting packages...'
+              }));
+              
+              // Now that worker is ready, detect existing packages
+              logger.debug('Worker ready, detecting existing packages');
+              await detectExistingPackages();
+              return;
             }
-          } catch (error) {
-            logger.warn('Worker error, falling back to main thread', { error });
-            logger.step('creating main thread instance as fallback');
-            const instance = await createWordNetInstance();
-            wordnet = instance.wordnet;
-            dataLoader = instance.dataLoader;
+          } else {
+            throw new Error(result.error);
           }
-        } else {
-          logger.step('using main thread for initialization');
+        } catch (error) {
+          logger.warn('Worker error, falling back to main thread', { error });
+          logger.step('creating main thread instance as fallback');
           const instance = await createWordNetInstance();
           wordnet = instance.wordnet;
           dataLoader = instance.dataLoader;
         }
-        
-        logger.step('updating state with initialized instances');
-        setState(prev => ({ 
-          ...prev, 
-          wordnet, 
-          dataLoader, 
-          isInitializing: false,
-          progressStage: 'Initializing cache...'
-        }));
-
-        // Expose minimal demo API for tests and manual control
-        try {
-          if (typeof window !== 'undefined') {
-            logger.step('attaching demo API to window');
-            // @ts-expect-error attach demo API for manual/e2e usage
-            window.__wnDemo = {
-              loadProject: async (projectIdWithVersion: string) => {
-                try {
-                  setState(prev => ({ ...prev, loading: true, progressStage: `Loading ${projectIdWithVersion}...` }))
-                  await dataLoader.downloadAndLoad(projectIdWithVersion, {
-                    progress: (p: number) => {
-                      setState(prev => ({ ...prev, progress: p }))
-                    }
-                  })
-                  // Update statistics asynchronously to avoid blocking UI
-                  setState(prev => ({ 
-                    ...prev, 
-                    progressStage: 'Updating statistics...',
-                    progress: 0.95
-                  }));
-                  
-                  try {
-                  const stats = await dataLoader.getStatistics()
-                    let posDistribution = undefined;
-                    
-                    // Try to get part of speech distribution if wordnet is available
-                    if (state.wordnet) {
-                      try {
-                        posDistribution = await state.wordnet.getPartOfSpeechDistribution();
-                      } catch (e) {
-                        logger.warn('Failed to get POS distribution', { error: e });
-                      }
-                    }
-                    
-                  setState(prev => ({
-                    ...prev,
-                    statistics: {
-                      totalWords: stats.totalWords,
-                      totalSynsets: stats.totalSynsets,
-                      totalSenses: stats.totalSenses,
-                      totalRelations: 0,
-                      totalDefinitions: 0,
-                      languages: ['th','en'],
-                      partsOfSpeech: ['n','v','a','r'],
-                      dataSize: stats.totalWords * 100 + stats.totalSynsets * 200,
-                      lastUpdated: new Date().toISOString(),
-                        source: 'Database',
-                        posDistribution
-                    },
-                    loadedPackages: Array.from(new Set([...(prev.loadedPackages||[]), projectIdWithVersion])),
-                    loading: false,
-                    progressStage: 'Ready'
-                  }))
-                  } catch (e) {
-                    logger.warn('Failed to update statistics', { error: e });
-                    // Continue without statistics rather than failing completely
-                    setState(prev => ({
-                      ...prev,
-                      loadedPackages: Array.from(new Set([...(prev.loadedPackages||[]), projectIdWithVersion])),
-                      loading: false,
-                      progressStage: 'Ready'
-                    }));
-                  }
-                  
-                  return true
-                } catch (e: unknown) {
-                  setState(prev => ({ ...prev, error: e instanceof Error ? e.message : String(e), loading: false }))
-                  return false
-                }
-              },
-              extendIndex: (indexLike: Record<string, unknown>) => {
-                try {
-                  extendProjectIndex(indexLike);
-                  return true;
-                } catch (e: unknown) {
-                  logger.error('extendIndex failed', { error: e });
-                  return false;
-                }
-              },
-              extendIndexFromUrl: async (url: string) => {
-                await extendProjectIndexFromUrl(url);
-                return true;
-              },
-              clearIndex: () => {
-                clearCustomProjectIndex();
-                return true;
-              },
-              clear: async () => {
-                try {
-                  await dataLoader.clearAllData()
-                  setState(prev => ({ ...prev, loadedPackages: [], statistics: undefined }))
-                  return true
-                } catch {
-                  return false
-                }
-              }
-            }
-          }
-        } catch (ex) {
-          logger.warn('Failed to attach __wnDemo API', { error: ex });
-        }
-
-        // Initialize cache
-        logger.step('initializing cache');
-        await cache.checkOPFSSupport();
-        const cacheStats = cache.getCacheStats();
-        
-        setState(prev => ({ 
-          ...prev, 
-          cacheInfo: cacheStats,
-          progressStage: 'Ready',
-          loading: false,
-          progress: 0,
-        }));
-
-        // Populate available and loaded packages
-        logger.step('populating available and loaded packages');
-        await refreshPackages();
-
-        logger.success('WordNet initialized successfully');
-        logger.end('WordNet initialization', { 
-          hasWorker: !!remote,
-          hasWordNet: !!wordnet,
-          hasDataLoader: !!dataLoader,
-          cacheStatus: cacheStats
-        });
-        
-      } catch (error) {
-        logger.fail('Failed to initialize WordNet', error);
-        logger.end('WordNet initialization');
-        setState(prev => ({ 
-          ...prev, 
-          error: error instanceof Error ? error.message : 'Unknown error',
-          isInitializing: false,
-          progressStage: 'Initialization failed',
-          loading: false,
-        }));
+      } else {
+        logger.warn('No remote worker available, using main thread for initialization');
+        logger.step('using main thread for initialization');
+        const instance = await createWordNetInstance();
+        wordnet = instance.wordnet;
+        dataLoader = instance.dataLoader;
       }
-    };
+      
+      logger.step('updating state with initialized instances');
+      setState(prev => ({ 
+        ...prev, 
+        wordnet, 
+        dataLoader, 
+        isInitializing: false,
+        progressStage: 'Initializing cache...'
+      }));
 
-    initializeWordNet();
-    // Intentionally run once; cache methods are stable via useCallback
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      // Initialize cache
+      logger.step('initializing cache');
+      await cache.checkOPFSSupport();
+      const cacheStats = cache.getCacheStats();
+      
+      setState(prev => ({ 
+        ...prev, 
+        cacheInfo: cacheStats,
+        progressStage: 'Ready',
+        loading: false,
+        progress: 0,
+      }));
 
+      // Populate available and loaded packages
+      logger.step('populating available and loaded packages');
+      await refreshPackages();
 
+      logger.success('WordNet initialized successfully');
+      logger.end('WordNet initialization', { 
+        hasWorker: !!remote,
+        hasWordNet: !!wordnet,
+        hasDataLoader: !!dataLoader,
+        cacheStatus: cacheStats
+      });
+      
+    } catch (error) {
+      logger.fail('Failed to initialize WordNet', error);
+      logger.end('WordNet initialization');
+      setState(prev => ({ 
+        ...prev, 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        isInitializing: false,
+        progressStage: 'Initialization failed',
+        loading: false,
+      }));
+    }
+  };
 
   // Load package data with caching
   const loadPackageData = useCallback(async (packageId: string, progress?: ProgressCallback) => {
-    if (!state.dataLoader) {
+    if (!remote && !state.dataLoader) {
       throw new Error('DataLoader not initialized');
     }
 
@@ -448,12 +445,19 @@ export function useWordNet(): WordNetState & {
         });
         
         if (cachedData && cachedData.byteLength >= 100) {
-          // Load the cached database
+          // Load the cached database (prefer worker if available)
           logger.step('loading database from cached buffer', { 
             packageId, 
             bufferSize: cachedData.byteLength 
           });
-          await state.dataLoader.loadDbFromBuffer(cachedData, packageId);
+          if (remote && !state.dataLoader) {
+            const resp = await remote.loadPackageFromData(packageId, cachedData);
+            if (!resp.success) throw new Error(resp.error || 'Worker failed to load cached data');
+          } else if (state.dataLoader) {
+            await state.dataLoader.loadDbFromBuffer(cachedData, packageId);
+          } else {
+            throw new Error('No loader available');
+          }
           logger.success(`Loaded ${packageId} from cache successfully`);
           logger.end(`loading package ${packageId}`, { 
             source: 'cache', 
@@ -550,46 +554,64 @@ export function useWordNet(): WordNetState & {
       }));
       
       try {
-        const stats = await state.dataLoader.getStatistics();
-        let posDistribution = undefined;
-        
-        // Try to get part of speech distribution if wordnet is available
-        if (state.wordnet) {
-          try {
-            posDistribution = await state.wordnet.getPartOfSpeechDistribution();
-          } catch (e) {
-            logger.warn('Failed to get POS distribution', { error: e });
+        let totalWords = 0;
+        let totalSynsets = 0;
+        let totalSenses = 0;
+        let posDistribution: any = undefined;
+
+        if (remote && !state.dataLoader) {
+          const resp = await remote.getStatistics();
+          if (resp.success && resp.data) {
+            totalWords = resp.data.statistics.totalWords;
+            totalSynsets = resp.data.statistics.totalSynsets;
+            totalSenses = resp.data.statistics.totalSenses;
+            posDistribution = resp.data.posDistribution;
+          } else {
+            throw new Error(resp.error || 'Failed to fetch worker statistics');
+          }
+        } else if (state.dataLoader) {
+          const stats = await state.dataLoader.getStatistics();
+          totalWords = stats.totalWords;
+          totalSynsets = stats.totalSynsets;
+          totalSenses = stats.totalSenses;
+          // Try to get part of speech distribution if wordnet is available
+          if (state.wordnet) {
+            try {
+              posDistribution = await state.wordnet.getPartOfSpeechDistribution();
+            } catch (e) {
+              logger.warn('Failed to get POS distribution', { error: e });
+            }
           }
         }
-        
+
         const uiStatistics = {
-          totalWords: stats.totalWords,
-          totalSynsets: stats.totalSynsets,
-          totalSenses: stats.totalSenses,
+          totalWords,
+          totalSynsets,
+          totalSenses,
           totalRelations: 0,
           totalDefinitions: 0,
           languages: ['en'],
           partsOfSpeech: ['n', 'v', 'a', 'r'],
-          dataSize: stats.totalWords * 100 + stats.totalSynsets * 200,
+          dataSize: totalWords * 100 + totalSynsets * 200,
           lastUpdated: new Date().toISOString(),
-            source: 'Database',
-            posDistribution
+          source: 'Database',
+          posDistribution
         };
-        
-      setState(prev => ({ 
-        ...prev, 
-        statistics: uiStatistics,
-        integrity: null,
-        dataSource: {
-          id: packageId,
-          name: packageId,
-          version: 'N/A',
-          url: 'N/A',
-          description: `Loaded package: ${packageId}`,
-          lastChecked: new Date().toISOString(),
-          status: 'available'
-        }
-      }));
+
+        setState(prev => ({ 
+          ...prev, 
+          statistics: uiStatistics,
+          integrity: null,
+          dataSource: {
+            id: packageId,
+            name: packageId,
+            version: 'N/A',
+            url: 'N/A',
+            description: `Loaded package: ${packageId}`,
+            lastChecked: new Date().toISOString(),
+            status: 'available'
+          }
+        }));
       } catch (e) {
         console.warn('Failed to update statistics:', e);
         // Continue without statistics rather than failing completely
@@ -659,57 +681,44 @@ export function useWordNet(): WordNetState & {
 
   // Query words
   const queryWords = useCallback(async (term: string) => {
-    if (!state.wordnet) {
-      throw new Error('WordNet not initialized');
-    }
-    
-    // Try to use Comlink worker for queries
+    // Prefer worker if available
     if (remote) {
       try {
         const result = await remote.queryWords(term);
-        if (result.success) {
-          return result.data;
-        } else {
-          console.warn('⚠️ Worker query failed, using main thread:', result.error);
-        }
+        if (result.success) return result.data;
+        console.warn('⚠️ Worker query failed, using main thread:', result.error);
       } catch (error) {
         console.warn('⚠️ Worker error, falling back to main thread:', error);
       }
     }
-    
-    // Fall back to main thread
+
+    if (!state.wordnet) {
+      throw new Error('WordNet not initialized');
+    }
     return await state.wordnet.words(term);
   }, [state.wordnet]);
 
   // Query synsets
   const querySynsets = useCallback(async (term: string) => {
-    if (!state.wordnet) {
-      throw new Error('WordNet not initialized');
-    }
-    
-    // Try to use Comlink worker for queries
+    // Prefer worker if available
     if (remote) {
       try {
         const result = await remote.querySynsets(term);
-        if (result.success) {
-          return result.data;
-        } else {
-          console.warn('⚠️ Worker query failed, using main thread:', result.error);
-        }
+        if (result.success) return result.data;
+        console.warn('⚠️ Worker query failed, using main thread:', result.error);
       } catch (error) {
         console.warn('⚠️ Worker error, falling back to main thread:', error);
       }
     }
-    
-    // Fall back to main thread
+
+    if (!state.wordnet) {
+      throw new Error('WordNet not initialized');
+    }
     return await state.wordnet.synsets(term);
   }, [state.wordnet]);
 
   // Unload data
   const unloadData = useCallback(async () => {
-    if (!state.dataLoader) {
-      return;
-    }
     try {
       setState(prev => ({ ...prev, loading: true }));
       
@@ -727,8 +736,10 @@ export function useWordNet(): WordNetState & {
         }
       }
       
-      // Always clear main thread data
-      await state.dataLoader.clearAllData();
+      // Clear main thread data if available
+      if (state.dataLoader) {
+        await state.dataLoader.clearAllData();
+      }
       setState(prev => ({
         ...prev,
         loadedPackages: [],

@@ -9,20 +9,17 @@ import { vi } from 'vitest';
 
 // Create mock SQLite WASM for browser tests
 export const mockSqliteWasm = {
+  capi: {
+    sqlite3_trace_v2: vi.fn(),
+    sqlite3_last_insert_rowid: vi.fn(() => 1),
+  },
   oo1: {
     DB: class MockDB {
-      public sqlite3: any;
       private data: Record<string, any[]> = {};
       private totalChangesCount = 0;
       private lastOpChangesCount = 0;
 
-      constructor(path: string, mode: string) {
-        this.sqlite3 = {
-          capi: {
-            sqlite3_last_insert_rowid: (db: any) => this.totalChangesCount,
-          },
-        };
-      }
+      constructor(path: string, mode: string) {}
 
       exec(sqlOptions: any): any[] {
         this.lastOpChangesCount = 0;
@@ -141,7 +138,8 @@ export const mockSqliteWasm = {
           get: () => ({}),
           all: () => [],
           getAsObject: () => ({}),
-          free: vi.fn()
+          free: vi.fn(),
+          stepFinalize: vi.fn()
         };
       }
       
@@ -165,34 +163,37 @@ export const mockSqliteWasm = {
 };
 
 // Mock SQLite WASM for browser tests
-vi.mock('@sqlite.org/sqlite-wasm', () => {
+vi.mock('@sqlite.org/sqlite-wasm', async (importOriginal) => {
+  // E2E tests run in a real browser and need the original module, not a mock.
+  // We can detect E2E tests by checking the URL path.
+  const isE2E = window.location.pathname.includes('/e2e/');
+
+  if (isE2E) {
+    // For E2E tests, we need to load the original module. Because of how Vitest
+    // handles modules, we need to import it, initialize it once, and then
+    // return a mock that provides the initialized module.
+    try {
+      const original = await importOriginal<typeof import('@sqlite.org/sqlite-wasm')>();
+      const sqlite3 = await original.default();
+      return {
+        default: () => Promise.resolve(sqlite3),
+      };
+    } catch (e) {
+      console.error('Failed to load original @sqlite.org/sqlite-wasm for E2E test', e);
+      // Return a dummy mock to avoid crashing the test runner completely
+      return {
+        default: () => Promise.reject(new Error('Failed to load SQLite WASM for E2E')),
+      };
+    }
+  }
+  
+  // For browser unit tests, use the mock.
   return {
     ...mockSqliteWasm,
     default: vi.fn().mockResolvedValue(mockSqliteWasm)
   };
 });
 
-// Mock fetch for @sqlite.org/sqlite-wasm loading
-(window as any).fetch = vi.fn().mockResolvedValue({
-  ok: true,
-  headers: {
-    get: vi.fn((name: string) => {
-      if (name === 'content-length') {
-        return '1024';
-      }
-      return null;
-    })
-  },
-  body: {
-    getReader: vi.fn(() => ({
-      read: vi.fn().mockResolvedValue({
-        done: true,
-        value: new Uint8Array([1, 2, 3, 4])
-      })
-    }))
-  },
-  arrayBuffer: () => Promise.resolve(new ArrayBuffer(8))
-});
 
 // Mock console methods (but don't override if they exist)
 if (!window.console.log) {
@@ -288,15 +289,4 @@ if (typeof WebAssembly === 'undefined') {
       }
     })
   };
-} else {
-  // Ensure WebAssembly is properly typed for tests
-  const originalWebAssembly = window.WebAssembly;
-  // Create a function constructor to ensure typeof returns 'function'
-  const MockWebAssembly = function() {} as any;
-  MockWebAssembly.instantiate = vi.fn().mockResolvedValue({
-    instance: {
-      exports: {}
-    }
-  });
-  (window as any).WebAssembly = MockWebAssembly;
-} 
+}

@@ -4,6 +4,8 @@
 
 This directory contains the complete source code for the WordNet Web Demo application. The application demonstrates various WordNet functionalities through an interactive web interface, showcasing features like word search, synset exploration, data management, and visualization.
 
+> Worker-first: The demo runs `wn-ts-web` inside a dedicated Web Worker (Comlink) to keep SQLite/OPFS operations off the main thread. See `src/workers/wordnetWorker.ts` and `src/hooks/useWordNetWorker.ts`.
+
 ## Directory Structure
 
 ```
@@ -79,7 +81,16 @@ pnpm typecheck
 pnpm test
 ```
 
-### Key Concepts
+### Worker usage (concise example)
+
+```ts
+// Comlink-backed worker usage (provided by vite-plugin-comlink)
+const worker = new ComlinkWorker(new URL('../workers/wordnetWorker.ts', import.meta.url));
+await worker.initializeWordNet();
+const synsets = await worker.querySynsets('joy');
+```
+
+## Key Concepts
 
 #### 1. Context-Based Architecture
 The application uses React Context for state management, eliminating prop drilling:

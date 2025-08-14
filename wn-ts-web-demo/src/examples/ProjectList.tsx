@@ -16,7 +16,7 @@ interface Project {
 }
 
 export const ProjectList: React.FC = () => {
-  const { availablePackages, refreshPackages, loading } = useWordNetContext();
+  const { availablePackages, refreshPackages } = useWordNetContext();
   const [projects, setProjects] = useState<Project[]>([]);
   const [popularProjects, setPopularProjects] = useState<Project[]>([]);
   const [filter, setFilter] = useState<string>('');
@@ -34,9 +34,9 @@ export const ProjectList: React.FC = () => {
           label: pkg.label || pkg.id,
           language: pkg.language || 'unknown',
           version: pkg.version || 'unknown',
-          description: pkg.description,
-          license: pkg.license,
-          url: pkg.url
+          description: `${pkg.language || 'Unknown'} WordNet ${pkg.version || 'Unknown'}`,
+          license: 'Unknown',
+          url: `https://wordnet.princeton.edu/`
         }));
         
         setProjects(projectList);

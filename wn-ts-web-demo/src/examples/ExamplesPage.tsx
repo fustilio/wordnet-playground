@@ -20,28 +20,7 @@ export const ExamplesPage: React.FC<ExamplesPageProps> = () => {
       id: 'basic',
       label: 'Basic WordNet Demo',
       render: () => (
-        <BasicWordNetDemo
-          wordNetState={wordnetState as any}
-          storageInfo={null as any}
-          availablePackages={(wordnetState as any).availablePackages}
-          onLoadPackage={async (packageId: string, version: string, onProgress?: (p: number) => void) => {
-            const id = `${packageId}:${version}`
-            await (wordnetState as any).loadPackageData(id, onProgress)
-          }}
-          onLoadDemo={async () => {
-            await (wordnetState as any).loadDemoData()
-          }}
-          onUnloadData={async () => {
-            await (wordnetState as any).unloadData()
-          }}
-          onClearCacheAndUnload={async () => {
-            await (wordnetState as any).clearCacheAndUnload()
-          }}
-          getCacheInfo={async () => {
-            return await (wordnetState as any).getCacheInfo()
-          }}
-          isInitializing={(wordnetState as any).isInitializing}
-        />
+        <BasicWordNetDemo />
       )
     },
     // Simple sequential run card (like a notebook)
@@ -69,7 +48,7 @@ export const ExamplesPage: React.FC<ExamplesPageProps> = () => {
     {
       id: 'sequential',
       label: 'Sequential Runner',
-      render: () => <SequentialRunner wordnetState={wordnetState as any} />
+              render: () => <SequentialRunner />
     },
     // Removed duplicate 'info' to avoid key conflicts
   ]

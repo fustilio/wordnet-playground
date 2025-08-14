@@ -100,6 +100,8 @@ const words = await wordnet.words('computer');
 ### **wn-ts-web**
 Browser implementation using @sqlite.org/sqlite-wasm for modern web optimization.
 
+> Note: Run `wn-ts-web` inside a Web Worker. SQLite/OPFS interactions and heavy operations should not block the main thread. See `wn-ts-web/docs/USAGE.md` for worker setup examples.
+
 ```typescript
 import { createWordNetInstance } from 'wn-ts-web';
 

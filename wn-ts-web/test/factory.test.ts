@@ -1,11 +1,44 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createWebWordnet, createWordNetInstance, createDataLoader } from '../src/factory';
 
+function createMockSqliteWasm() {
+  return {
+    capi: {
+      sqlite3_trace_v2: vi.fn(),
+      sqlite3_last_insert_rowid: vi.fn(() => 1),
+    },
+    oo1: {
+      DB: class MockDB {
+        constructor(path?: string, mode?: string) {}
+        exec(sql: any) {
+          return [];
+        }
+        close() {}
+        prepare(sql: string) {
+          return {
+            run: vi.fn(),
+            bind: vi.fn(),
+            step: vi.fn(() => false),
+            get: vi.fn(() => undefined),
+            getAsObject: vi.fn(() => ({})),
+            free: vi.fn(),
+            stepFinalize: vi.fn(),
+          };
+        }
+        changes() {
+          return 0;
+        }
+      },
+    },
+  };
+}
+
 // Mock dynamic import
 vi.mock('@sqlite.org/sqlite-wasm', async () => {
-  const { mockSqliteWasm } = (await vi.importActual('./setup.ts')) as any;
+  const mock = createMockSqliteWasm();
   return {
-    default: vi.fn().mockResolvedValue(mockSqliteWasm)
+    ...mock,
+    default: vi.fn().mockResolvedValue(mock),
   };
 });
 
@@ -14,9 +47,7 @@ describe('Factory Functions', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    // Dynamically import the mock to avoid polluting the browser test environment
-    const setup = await vi.importActual('./setup.ts') as any;
-    mockSqliteWasm = setup.mockSqliteWasm;
+    mockSqliteWasm = createMockSqliteWasm();
   });
 
   describe('createWebWordnet', () => {

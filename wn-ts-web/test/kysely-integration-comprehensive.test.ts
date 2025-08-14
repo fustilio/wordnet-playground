@@ -13,17 +13,8 @@ import { createWordNetInstance } from '../src/factory.js';
 import type { Database } from '../src/types/database.js';
 import { MockDataLoader } from './mock-data-loader.js';
 
-// Mock dynamic import
-vi.mock('@sqlite.org/sqlite-wasm', async () => {
-  const mock = createMockSqliteWasm();
-  return {
-    ...mock,
-    default: vi.fn().mockResolvedValue(mock),
-  };
-});
-
 // Mock SQLite WASM for testing
-const createMockSqliteWasm = () => {
+function createMockSqliteWasm() {
   const mockData = {
     words: [
       { id: 'word1', lemma: 'test', part_of_speech: 'n', language: 'en', lexicon: 'oewn' },
@@ -47,17 +38,13 @@ const createMockSqliteWasm = () => {
   };
 
   return {
+    capi: {
+      sqlite3_trace_v2: vi.fn(),
+      sqlite3_last_insert_rowid: (db: any) => 1,
+    },
     oo1: {
       DB: class MockDB {
-        public sqlite3: any;
-
-        constructor(path: string, mode: string) {
-          this.sqlite3 = {
-            capi: {
-              sqlite3_last_insert_rowid: (db: any) => 1,
-            },
-          };
-        }
+        constructor(path: string, mode: string) {}
         
         exec(sqlOrOptions: string | { sql: string; bind?: any[]; returnValue?: string; rowMode?: string; columnNames?: any[] }): void | any[] {
           const sql = typeof sqlOrOptions === 'string' ? sqlOrOptions : sqlOrOptions.sql;
@@ -117,7 +104,8 @@ const createMockSqliteWasm = () => {
             getAsObject(): any {
               return results[stepIndex];
             },
-            free(): void {}
+            free(): void {},
+            stepFinalize: vi.fn()
           };
         }
         
@@ -127,7 +115,16 @@ const createMockSqliteWasm = () => {
       }
     }
   };
-};
+}
+
+// Mock dynamic import
+vi.mock('@sqlite.org/sqlite-wasm', async () => {
+  const mock = createMockSqliteWasm();
+  return {
+    ...mock,
+    default: vi.fn().mockResolvedValue(mock),
+  };
+});
 
 describe('Comprehensive Kysely Integration', () => {
   let wordnet: WebWordnet;

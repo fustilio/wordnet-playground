@@ -29,6 +29,16 @@
       "types": "./dist/wn-ts-web.d.ts",
       "import": "./dist/wn-ts-web.mjs",
       "default": "./dist/wn-ts-web.mjs"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.mjs",
+      "default": "./dist/react/index.mjs"
+    },
+    "./worker": {
+      "types": "./dist/worker-factory.d.ts",
+      "import": "./dist/worker-factory.mjs",
+      "default": "./dist/worker-factory.mjs"
     }
   },
   "scripts": {
@@ -70,6 +80,10 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
     "@changesets/cli": "^2.27.7",
     "@sqlite.org/sqlite-wasm": "catalog:",
     "@types/lzma": "^2.3.0",

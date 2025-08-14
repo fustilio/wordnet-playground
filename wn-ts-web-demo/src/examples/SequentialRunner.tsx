@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card } from '../components/shared/Card';
 import { useWordNetContext } from '../contexts/WordNetContext';
 import { createScopedLogger } from '../logger';
@@ -21,7 +21,7 @@ interface TestResult {
 }
 
 export const SequentialRunner: React.FC = () => {
-  const { wordnet, dataLoader, availablePackages, loadedPackages, loadPackageData, refreshPackages, loading } = useWordNetContext();
+  const { wordnet } = useWordNetContext();
   const [results, setResults] = useState<TestResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [currentStep, setCurrentStep] = useState<string | null>(null);
@@ -50,7 +50,7 @@ export const SequentialRunner: React.FC = () => {
       name: 'Search for "water"',
       fn: async () => {
         if (!wordnet) throw new Error('WordNet not initialized');
-        const results = await wordnet.getQueryService().getWords({ form: 'water', searchAllForms: true });
+        const results = await wordnet?.getQueryService()?.getWords({ form: 'water', searchAllForms: true }) || [];
         return results;
       }
     }
