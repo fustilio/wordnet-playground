@@ -6,7 +6,7 @@ import { createScopedLogger } from '../logger';
 const logger = createScopedLogger('FullWordNetDemo');
 
 export const FullWordNetDemo: React.FC = () => {
-  const { wordnet, dataLoader, availablePackages, loadedPackages, loadPackageData, refreshPackages, loading, progress, progressStage } = useWordNetContext();
+  const { wordnet, availablePackages, loadPackageData, loading, progress, progressStage, loadedPackages } = useWordNetContext();
   const [searchTerm, setSearchTerm] = useState('water');
   const [searchResults, setSearchResults] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'words' | 'synsets' | 'senses'>('words');
@@ -21,16 +21,16 @@ export const FullWordNetDemo: React.FC = () => {
       let results;
       switch (activeTab) {
         case 'words':
-          results = await wordnet.getQueryService().getWords({ form: searchTerm, searchAllForms: true });
+          results = await wordnet?.getQueryService()?.getWords({ form: searchTerm, searchAllForms: true }) || [];
           break;
         case 'synsets':
-          results = await wordnet.getQueryService().getSynsets({ form: searchTerm });
+          results = await wordnet?.getQueryService()?.getSynsets({ form: searchTerm }) || [];
           break;
         case 'senses':
-          results = await wordnet.getQueryService().getSenses({ form: searchTerm });
+          results = await wordnet?.getQueryService()?.getSenses({ wordIdOrForm: searchTerm }) || [];
           break;
         default:
-          results = await wordnet.getQueryService().getWords({ form: searchTerm, searchAllForms: true });
+          results = await wordnet?.getQueryService()?.getWords({ form: searchTerm, searchAllForms: true }) || [];
       }
 
       const resultCount = Array.isArray(results) ? results.length : 0;
@@ -125,7 +125,7 @@ export const FullWordNetDemo: React.FC = () => {
     try {
       if (!wordnet) throw new Error('WordNet not initialized');
       
-      const results = await wordnet.getQueryService().getWords({ form: 'water', searchAllForms: true });
+      const results = await wordnet?.getQueryService()?.getWords({ form: 'water', searchAllForms: true }) || [];
       const resultCount = Array.isArray(results) ? results.length : 0;
       
       logger.success('Test search completed successfully', { resultCount });

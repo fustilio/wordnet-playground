@@ -4,6 +4,8 @@
 
 The `workers/` directory contains Web Worker implementations that handle background processing, heavy computations, and non-blocking operations. These workers enable the main thread to remain responsive while performing intensive tasks like WordNet data processing and database operations.
 
+> Worker-first: `wn-ts-web` runs inside a dedicated worker in this demo. The worker initializes `createWordNetInstance()` and exposes methods for queries and data loading.
+
 ## 2. Implementation Status
 
 - [x] **WordNet Worker**: Background WordNet data processing
@@ -32,31 +34,14 @@ workers/
 - **Query Processing**: Execute WordNet queries in background
 - **Progress Tracking**: Track operation progress and status
 
-**Worker Interface**:
-```typescript
-interface WordNetWorkerMessage {
-  id: number;
-  type: 'loadPackage' | 'queryWords' | 'querySynsets' | 'unloadData';
-  payload: any;
-}
+**Integration Example (Comlink)**:
+```ts
+// Main thread (requires vite-plugin-comlink)
+const worker = new ComlinkWorker(new URL('../workers/wordnetWorker.ts', import.meta.url));
+await worker.initializeWordNet();
 
-interface WordNetWorkerResponse {
-  id: number;
-  type: 'success' | 'error' | 'progress';
-  payload: any;
-  error?: string;
-}
-```
-
-**Usage Example**:
-```typescript
-import { createWordNetWorker } from './workers/wordnetWorker';
-
-const worker = createWordNetWorker();
-const response = await worker.postMessage({
-  type: 'loadPackage',
-  payload: { packageId: 'english-wordnet' }
-});
+// Query data in the worker
+const synsets = await worker.querySynsets('joy');
 ```
 
 ### 4.2 SQLite Worker (`sqliteWorker.ts`)
@@ -83,17 +68,6 @@ interface SQLiteWorkerResponse {
   payload: any;
   error?: string;
 }
-```
-
-**Usage Example**:
-```typescript
-import { createSQLiteWorker } from './workers/sqliteWorker';
-
-const worker = createSQLiteWorker();
-const result = await worker.postMessage({
-  type: 'exec',
-  payload: { sql: 'SELECT * FROM words LIMIT 10' }
-});
 ```
 
 ## 5. Worker Design Patterns

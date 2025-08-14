@@ -18,6 +18,48 @@ An interactive demo for exploring the WordNet API in the browser using SQLite WA
 - **[Hooks Documentation](./src/hooks/SPEC.md)** - Custom React hooks guide
 - **[Utils Documentation](./src/utils/SPEC.md)** - Utility functions reference
 
+## 🧵 Using Web Workers with `wn-ts-web`
+
+This demo runs `wn-ts-web` inside a dedicated Web Worker to keep SQLite/OPFS and heavy processing off the main thread. We use `vite-plugin-comlink` for ergonomic worker RPC.
+
+- Worker implementation: `src/workers/wordnetWorker.ts`
+- Hook integration: `src/hooks/useWordNet.ts`, `src/hooks/useWordNetWorker.ts`
+- Vite setup: `vite.config.mjs` (includes Comlink plugin and COOP/COEP headers for OPFS)
+
+### Quick example (Comlink worker)
+
+```ts
+// Create Comlink-backed worker (plugin provides ComlinkWorker)
+const worker = new ComlinkWorker(new URL('./src/workers/wordnetWorker.ts', import.meta.url));
+
+// Initialize and run queries without blocking the UI
+await worker.initializeWordNet();
+const results = await worker.querySynsets('joy');
+console.log(results);
+```
+
+### Vite configuration (excerpt)
+
+```js
+// vite.config.mjs
+import comlink from 'vite-plugin-comlink';
+
+export default defineConfig({
+  plugins: [comlink(), react(), tailwindcss()],
+  server: {
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
+  },
+  worker: {
+    server: { headers: { 'Cross-Origin-Opener-Policy': 'same-origin', 'Cross-Origin-Embedder-Policy': 'require-corp' } },
+    format: 'es',
+    plugins: () => [comlink()],
+  },
+});
+```
+
 ## 🛠️ Development
 
 ### Prerequisites

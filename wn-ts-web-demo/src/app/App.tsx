@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { StatusWidget } from '../components/widgets/StatusWidget';
 import { StatisticsWidget } from '../components/widgets/StatisticsWidget';
-import { OPFSWidget } from '../components/widgets/OPFSWidget';
 import { Tabs } from '../components/shared/Tabs';
 import { BasicDemo } from '../components/demos/BasicDemo';
 import { BilingualDictionary } from '../components/demos/BilingualDictionary';
@@ -9,7 +8,6 @@ import { AdvancedDemo } from '../components/demos/AdvancedDemo';
 import { DeveloperDemo } from '../components/demos/DeveloperDemo';
 import { ExamplesPage } from '../examples/ExamplesPage';
 import { useWordNetContext } from '../contexts/WordNetContext';
-import { useOPFS } from '../hooks';
 import { createScopedLogger } from '../logger';
 
 const logger = createScopedLogger('App');
@@ -17,7 +15,6 @@ const logger = createScopedLogger('App');
 function App() {
   const [activeTab, setActiveTab] = useState('Basic');
   const wordNetState = useWordNetContext();
-  const opfsState = useOPFS();
 
   // Debug logging
   useEffect(() => {
@@ -63,7 +60,6 @@ function App() {
               loadedPackages={wordNetState.loadedPackages}
               progress={wordNetState.progress}
               progressStage={wordNetState.progressStage}
-              cacheInfo={wordNetState.cacheInfo}
             />
             
             {/* Manual Loading Controls */}
@@ -128,7 +124,6 @@ function App() {
             </div>
             
             <StatisticsWidget stats={wordNetState.statistics} onRefresh={() => wordNetState.refreshPackages()} />
-            <OPFSWidget {...opfsState} />
           </aside>
 
           <div className="lg:col-span-3">

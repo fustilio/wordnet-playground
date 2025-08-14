@@ -257,7 +257,7 @@ export const LexiconRequirements: React.FC<LexiconRequirementsProps> = React.mem
                     <h4 className="font-medium text-gray-900">{requirement.label}</h4>
                     {isLoaded && <span className="text-green-600">✅ Loaded</span>}
                     {!isLoaded && isAvailable && <span className="text-yellow-600">⚠️ Available</span>}
-                    {!isLoaded && !isAvailable && <span className="text-red-600">❌ Missing</span>}
+                    {!isLoaded && !isAvailable && <span className="text-red-600">❌ Unavailable</span>}
                   </div>
                   <p className="text-sm text-gray-600">{requirement.description}</p>
                 </div>

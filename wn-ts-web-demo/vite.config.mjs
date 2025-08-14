@@ -6,6 +6,9 @@ import path from "node:path";
 import crypto from "node:crypto";
 import comlink from "vite-plugin-comlink";
 
+// Worker + OPFS setup: COOP/COEP headers enable SharedArrayBuffer/OPFS in workers,
+// and vite-plugin-comlink provides ComlinkWorker for ergonomic RPC.
+
 // Log level for dev server proxy logs
 const LOG_LEVEL = process.env.LOG_LEVEL || "info";
 const LOG_WEIGHT = { silent: 0, error: 1, warn: 2, info: 3, debug: 4 };

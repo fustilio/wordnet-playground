@@ -3,6 +3,7 @@ import { useWordNetContext } from '../../contexts/WordNetContext';
 import { Card } from '../shared/Card';
 import { LexiconRequirements } from '../shared/LexiconRequirements';
 import { createScopedLogger } from '../../logger';
+import { getAvailableProjects } from '../../utils/project-list';
 
 const logger = createScopedLogger('BilingualDictionary');
 
@@ -34,13 +35,13 @@ export const BilingualDictionary: React.FC = () => {
       priority: 'high' as const
     },
     {
-      id: 'omw-fra:1.4',
+      id: 'omw-fr:1.4',
       label: 'French WordNet 1.4',
       description: 'Required for French target language support',
       priority: 'medium' as const
     },
     {
-      id: 'omw-tha:1.4',
+      id: 'omw-th:1.4',
       label: 'Thai WordNet 1.4',
       description: 'Required for Thai target language support',
       priority: 'low' as const
@@ -48,24 +49,30 @@ export const BilingualDictionary: React.FC = () => {
   ];
 
   const findLatestByPrefix = (prefix: string, filter?: (v: string) => boolean) => {
-    const candidates = availablePackages
-      .filter(p => p.id.startsWith(prefix + ':'))
-      .map(p => ({ id: p.id, version: p.id.split(':')[1] }))
-      .filter(x => (filter ? filter(x.version) : true));
+    // Use full catalog so we don’t depend on context.availablePackages filtering
+    const catalog = getAvailableProjects();
+    const proj = catalog.find(p => p.id === prefix);
+    if (!proj) return undefined;
+    // Prefer explicit versions array; fallback to single version
+    const versions = (proj as any).versions && (proj as any).versions.length > 0
+      ? (proj as any).versions as string[]
+      : (proj as any).version ? [String((proj as any).version)] : [];
+    const filtered = versions.filter(v => (filter ? filter(v) : true));
     const toNum = (v: string) => {
       const n = parseFloat(v.replace(/[^0-9.]/g, ''));
       return isNaN(n) ? -Infinity : n;
     };
-    candidates.sort((a, b) => toNum(b.version) - toNum(a.version));
-    return candidates[0]?.id;
+    filtered.sort((a, b) => toNum(b) - toNum(a));
+    const latest = filtered[0];
+    return latest ? `${proj.id}:${latest}` : undefined;
   };
 
   const requiredProjects = useMemo(() => {
     // English: prefer 'oewn:>=2021', else 'ewn:<2021'
     const en = findLatestByPrefix('oewn', v => toInt(v) >= 2021) || findLatestByPrefix('ewn', v => toInt(v) < 2021);
     // French/Thai from OMW where available
-    const fr = findLatestByPrefix('omw-fra') || findLatestByPrefix('wn-fra') || findLatestByPrefix('fra');
-    const th = findLatestByPrefix('omw-tha') || findLatestByPrefix('wn-tha') || findLatestByPrefix('th');
+    const fr = findLatestByPrefix('omw-fr');
+    const th = findLatestByPrefix('omw-th');
     return { en, fr, th };
     function toInt(v: string) {
       const n = parseInt(v.replace(/[^0-9]/g, ''), 10);
@@ -81,10 +88,10 @@ export const BilingualDictionary: React.FC = () => {
     if (pair.from === 'en' && !loadedPackages.some(id => id.startsWith('oewn') || id.startsWith('ewn') || id.startsWith('omw-en'))) {
       if (requiredProjects.en) need.push(requiredProjects.en);
     }
-    if ((pair.from === 'fr' || pair.to === 'fr') && !loadedPackages.some(id => id.startsWith('omw-fra') || id.startsWith('wn-fra') || id.startsWith('fra'))) {
+    if ((pair.from === 'fr' || pair.to === 'fr') && !loadedPackages.some(id => id.startsWith('omw-fr') || id.startsWith('wn-fra') || id.startsWith('fra'))) {
       if (requiredProjects.fr) need.push(requiredProjects.fr);
     }
-    if (pair.to === 'th' && !loadedPackages.some(id => id.startsWith('omw-tha') || id.startsWith('wn-tha') || id.startsWith('th'))) {
+    if (pair.to === 'th' && !loadedPackages.some(id => id.startsWith('omw-th') || id.startsWith('wn-tha') || id.startsWith('th'))) {
       if (requiredProjects.th) need.push(requiredProjects.th);
     }
     

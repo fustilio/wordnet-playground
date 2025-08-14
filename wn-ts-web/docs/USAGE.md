@@ -6,18 +6,19 @@ This guide provides a comprehensive overview of how to install, configure, and u
 
 1.  [Installation](#installation)
 2.  [Quick Start](#quick-start)
-3.  [React Integration](#react-integration)
-4.  [Core Concepts](#core-concepts)
-5.  [API Reference](#api-reference)
+3.  [Worker Thread (assumed)](#worker-thread-assumed)
+4.  [React Integration](#react-integration)
+5.  [Core Concepts](#core-concepts)
+6.  [API Reference](#api-reference)
     -   [Initialization](#initialization)
     -   [Data Loading](#data-loading)
     -   [Querying Data](#querying-data)
     -   [Statistics & Data Quality](#statistics--data-quality)
-6.  [Advanced Usage](#advanced-usage)
+7.  [Advanced Usage](#advanced-usage)
     -   [Cross-Origin Isolation for OPFS](#cross-origin-isolation-for-opfs)
     -   [Loading a Custom Database](#loading-a-custom-database)
     -   [Error Handling](#error-handling)
-7.  [Browser Environment](#browser-environment)
+8.  [Browser Environment](#browser-environment)
 
 ---
 
@@ -67,6 +68,55 @@ async function main() {
 }
 
 main();
+```
+
+## Worker Thread (assumed)
+
+Run `wn-ts-web` inside a Web Worker. SQLite/OPFS access and heavy operations should not block the UI thread. Below is a minimal setup.
+
+- Enable cross-origin isolation headers for OPFS persistence (see [Cross-Origin Isolation for OPFS](#cross-origin-isolation-for-opfs)).
+
+Minimal main thread (`main.ts`):
+
+```ts
+const worker = new Worker(new URL('./wordnet.worker.ts', import.meta.url), { type: 'module' });
+
+worker.postMessage({ type: 'init', lexiconId: 'oewn:2024' });
+
+worker.onmessage = (ev) => {
+  const { type, payload } = ev.data || {};
+  if (type === 'ready') {
+    worker.postMessage({ type: 'query', payload: { lemma: 'joy', pos: 'n' } });
+  } else if (type === 'query:result') {
+    console.log('Synsets:', payload);
+  }
+};
+```
+
+Minimal worker (`wordnet.worker.ts`):
+
+```ts
+import { createWordNetInstance } from 'wn-ts-web';
+
+let wordnet: any;
+let dataLoader: any;
+
+self.onmessage = async (ev: MessageEvent) => {
+  const { type, payload } = (ev.data || {}) as any;
+
+  if (type === 'init') {
+    const { wordnet: wn, dataLoader: dl } = await createWordNetInstance(payload?.lexiconId ?? 'oewn:2024');
+    wordnet = wn;
+    dataLoader = dl;
+    self.postMessage({ type: 'ready' });
+  }
+
+  if (type === 'query') {
+    const { lemma, pos } = payload || {};
+    const synsets = await wordnet.synsets(lemma, pos);
+    self.postMessage({ type: 'query:result', payload: synsets });
+  }
+};
 ```
 
 ## React Integration
@@ -262,7 +312,7 @@ try {
 -   **SQLite WASM**: The SQLite database engine is compiled to WebAssembly, allowing it to run efficiently in the browser.
 -   **OPFS**: The Origin Private File System is used for persistent storage, which is much faster than IndexedDB for this use case.
 -   **In-Memory Fallback**: If OPFS is not available (e.g., due to missing headers or an older browser), the database runs entirely in memory.
--   **Web Workers**: The library is designed to work efficiently with web workers, though direct worker management is handled internally.
+-   **Web Workers**: This library is intended to run inside a dedicated Web Worker that you manage in your app.
 
 ### Browser Compatibility
 

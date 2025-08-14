@@ -20,28 +20,7 @@ export const ExamplesPage: React.FC<ExamplesPageProps> = () => {
       id: 'basic',
       label: 'Basic WordNet Demo',
       render: () => (
-        <BasicWordNetDemo
-          wordNetState={wordnetState as any}
-          storageInfo={null as any}
-          availablePackages={(wordnetState as any).availablePackages}
-          onLoadPackage={async (packageId: string, version: string, onProgress?: (p: number) => void) => {
-            const id = `${packageId}:${version}`
-            await (wordnetState as any).loadPackageData(id, onProgress)
-          }}
-          onLoadDemo={async () => {
-            await (wordnetState as any).loadDemoData()
-          }}
-          onUnloadData={async () => {
-            await (wordnetState as any).unloadData()
-          }}
-          onClearCacheAndUnload={async () => {
-            await (wordnetState as any).clearCacheAndUnload()
-          }}
-          getCacheInfo={async () => {
-            return await (wordnetState as any).getCacheInfo()
-          }}
-          isInitializing={(wordnetState as any).isInitializing}
-        />
+        <BasicWordNetDemo />
       )
     },
     // Simple sequential run card (like a notebook)
@@ -53,9 +32,8 @@ export const ExamplesPage: React.FC<ExamplesPageProps> = () => {
           <div className="bg-white rounded-lg border p-4">
             <div className="text-sm text-gray-700">Statistics</div>
             <pre className="text-xs bg-gray-50 p-2 rounded overflow-auto">{JSON.stringify({
-              loadedPackages: (wordnetState as any).loadedPackages,
-              cacheInfo: (wordnetState as any).cacheInfo,
-              stats: (wordnetState as any).statistics
+              loadedPackages: wordnetState.loadedPackages,
+              stats: wordnetState.statistics
             }, null, 2)}</pre>
           </div>
         </div>
@@ -69,7 +47,7 @@ export const ExamplesPage: React.FC<ExamplesPageProps> = () => {
     {
       id: 'sequential',
       label: 'Sequential Runner',
-      render: () => <SequentialRunner wordnetState={wordnetState as any} />
+              render: () => <SequentialRunner />
     },
     // Removed duplicate 'info' to avoid key conflicts
   ]
@@ -83,8 +61,8 @@ export const ExamplesPage: React.FC<ExamplesPageProps> = () => {
         <div className="flex flex-wrap items-center gap-3 bg-white rounded-lg shadow-sm p-3 border border-gray-200">
           <span className="text-sm text-gray-600">Shared State:</span>
           <span className="px-2 py-1 text-xs rounded bg-blue-50 text-blue-800 border border-blue-200">Loaded Packages: {wordnetState.loadedPackages?.length ?? 0}</span>
-          <span className="px-2 py-1 text-xs rounded bg-green-50 text-green-800 border border-green-200">Cache Files: {wordnetState.cacheInfo?.totalFiles ?? 0}</span>
-          <span className="px-2 py-1 text-xs rounded bg-purple-50 text-purple-800 border border-purple-200">Cache Size: {Math.round((wordnetState.cacheInfo?.totalSizeMB ?? 0) * 100)/100} MB</span>
+          <span className="px-2 py-1 text-xs rounded bg-green-50 text-green-800 border border-green-200">Statistics: {wordnetState.statistics ? 'Available' : 'None'}</span>
+          <span className="px-2 py-1 text-xs rounded bg-purple-50 text-purple-800 border border-purple-200">Status: {wordnetState.progressStage}</span>
         </div>
       </div>
 

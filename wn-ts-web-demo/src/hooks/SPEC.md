@@ -4,6 +4,8 @@
 
 The `hooks/` directory contains custom React hooks that encapsulate complex logic, state management, and external service integrations. These hooks provide a clean interface for components to access application functionality while maintaining separation of concerns.
 
+> Worker-first: Hooks prefer running `wn-ts-web` in a dedicated Web Worker to keep SQLite/OPFS off the main thread. Fallback to main thread is automatic when workers are unavailable.
+
 ## 2. Implementation Status
 
 - [x] **Core Service Hooks**: WordNet, OPFS, and data management
@@ -45,6 +47,7 @@ hooks/
 - Query execution and result handling
 - Progress tracking and error handling
 - Statistics calculation and integrity checking
+- Worker-first: Uses a Comlink worker when available, falls back to main thread
 
 **Usage Example**:
 ```typescript
@@ -169,6 +172,13 @@ const { statistics, integrity, refreshStats } = useStatistics();
 **Usage Example**:
 ```typescript
 const { isReady, loading, progress, loadDemoData } = useWordNetWorker();
+```
+
+**Direct Comlink usage (without hooks)**:
+```ts
+const worker = new ComlinkWorker(new URL('../workers/wordnetWorker.ts', import.meta.url));
+await worker.initializeWordNet();
+const synsets = await worker.querySynsets('joy');
 ```
 
 ## 5. Hook Design Patterns

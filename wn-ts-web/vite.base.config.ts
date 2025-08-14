@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import path from "node:path";
 import dts from "vite-plugin-dts";
+import { comlink } from "vite-plugin-comlink";
 
 export default defineConfig({
   build: {
@@ -14,7 +15,7 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
     rollupOptions: {
-      external: ["wn-ts-core", "@sqlite.org/sqlite-wasm", 'lzma'],
+      external: ["wn-ts-core", "@sqlite.org/sqlite-wasm", "lzma"],
       output: {
         globals: {
           "wn-ts-core": "WnTsCore",
@@ -23,7 +24,7 @@ export default defineConfig({
       },
       onwarn(warning, warn) {
         // Suppress warnings about externalized modules
-        if (warning.code === 'MODULE_LEVEL_DIRECTIVE') return;
+        if (warning.code === "MODULE_LEVEL_DIRECTIVE") return;
         warn(warning);
       },
     },
@@ -43,9 +44,16 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    exclude: ["@sqlite.org/sqlite-wasm", "pako"]
+    exclude: ["@sqlite.org/sqlite-wasm", "pako"],
   },
-  plugins: [dts({
-    insertTypesEntry: true,
-  })],
+  plugins: [
+    comlink(),
+    dts({
+      insertTypesEntry: true,
+    }),
+  ],
+  worker: {
+    format: "es",
+    plugins: () => [comlink()],
+  },
 });

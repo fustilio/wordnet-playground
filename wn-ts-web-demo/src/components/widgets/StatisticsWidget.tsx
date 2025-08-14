@@ -1,8 +1,11 @@
 import React from 'react';
 import { Card } from '../shared/Card';
+import type { StatisticsBundle, WordNetTotals } from '../../types';
+
+type StatsProp = StatisticsBundle | WordNetTotals | null | undefined;
 
 interface StatisticsWidgetProps {
-  stats: any;
+  stats: StatsProp;
   onRefresh?: () => void;
 }
 
@@ -25,10 +28,15 @@ export const StatisticsWidget: React.FC<StatisticsWidgetProps> = ({ stats, onRef
     );
   }
 
-  const { statistics, posDistribution } = stats;
+  // Normalize to a totals object and optional POS distribution
+  const isBundle = (s: StatsProp): s is StatisticsBundle =>
+    !!s && typeof s === 'object' && 'statistics' in s && 'posDistribution' in s;
+
+  const totals: WordNetTotals | null = isBundle(stats) ? stats.statistics : (stats ?? null as WordNetTotals | null);
+  const posDistribution: Record<string, number> | undefined = isBundle(stats) ? stats.posDistribution : (stats as WordNetTotals | null)?.posDistribution;
 
   // Add defensive check for statistics
-  if (!statistics) {
+  if (!totals) {
     return (
       <Card title="Database Statistics">
         <div data-testid="database-stats">
@@ -62,9 +70,9 @@ export const StatisticsWidget: React.FC<StatisticsWidgetProps> = ({ stats, onRef
           )}
         </div>
         <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
-          <p>Words:</p><p className="font-mono text-right">{statistics.totalWords?.toLocaleString() || '0'}</p>
-          <p>Synsets:</p><p className="font-mono text-right">{statistics.totalSynsets?.toLocaleString() || '0'}</p>
-          <p>Senses:</p><p className="font-mono text-right">{statistics.totalSenses?.toLocaleString() || '0'}</p>
+          <p>Words:</p><p className="font-mono text-right">{(totals.totalWords ?? 0).toLocaleString()}</p>
+          <p>Synsets:</p><p className="font-mono text-right">{(totals.totalSynsets ?? 0).toLocaleString()}</p>
+          <p>Senses:</p><p className="font-mono text-right">{(totals.totalSenses ?? 0).toLocaleString()}</p>
         </div>
         <div>
           <h3 className="text-md font-semibold text-gray-700">Part of Speech</h3>

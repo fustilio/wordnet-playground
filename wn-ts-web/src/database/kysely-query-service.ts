@@ -113,7 +113,7 @@ export class KyselyQueryService {
     pos?: PartOfSpeech;
     exact?: boolean;
     caseSensitive?: boolean;
-  } = {}): Promise<any[]> {
+  } = {}): Promise<Word[]> {
     const { 
       language = 'en', 
       lexicon, 
@@ -170,7 +170,7 @@ export class KyselyQueryService {
     language?: string;
     searchAllForms?: boolean;
   } = {}): Promise<Synset[]> {
-    let query: any = this.db
+    let query = this.db
       .selectFrom('synsets')
       .distinct()
       .selectAll('synsets')
@@ -302,7 +302,7 @@ export class KyselyQueryService {
       this.db.selectFrom('lexicons').select(this.db.fn.countAll().as('count')).execute(),
     ]);
 
-    const getCount = (result: any) => Number(result?.[0]?.count ?? 0);
+    const getCount = (result: Array<{ count: number | string }> | undefined) => Number(result?.[0]?.count ?? 0);
 
     return {
       totalWords: getCount(results[0]),
@@ -321,34 +321,39 @@ export class KyselyQueryService {
     wordCount: number;
     synsetCount: number;
   }[]> {
+    // Use correlated subqueries to avoid large join expansions and DISTINCT
     let query = this.db
       .selectFrom('lexicons')
-      .leftJoin('words', 'lexicons.id', 'words.lexicon')
-      .leftJoin('synsets', 'lexicons.id', 'synsets.lexicon')
-      .select([
+      .select((eb) => [
         'lexicons.id',
         'lexicons.label',
         'lexicons.language',
         'lexicons.version',
-        (eb: ExpressionBuilder<Database, 'lexicons' | 'words' | 'synsets'>) => eb.fn.count('words.id').distinct().as('word_count'),
-        (eb: ExpressionBuilder<Database, 'lexicons' | 'words' | 'synsets'>) => eb.fn.count('synsets.id').distinct().as('synset_count'),
+        eb
+          .selectFrom('words')
+          .select(eb.fn.countAll().as('wc'))
+          .whereRef('words.lexicon', '=', 'lexicons.id')
+          .as('word_count'),
+        eb
+          .selectFrom('synsets')
+          .select(eb.fn.countAll().as('sc'))
+          .whereRef('synsets.lexicon', '=', 'lexicons.id')
+          .as('synset_count'),
       ]);
 
     if (lexiconId) {
       query = query.where('lexicons.id', '=', lexiconId);
     }
 
-    const results = await query
-      .groupBy(['lexicons.id', 'lexicons.label', 'lexicons.language', 'lexicons.version'])
-      .execute();
-      
-    return results.map(row => ({
+    const results = await query.execute();
+
+    return results.map((row: any) => ({
       lexiconId: row.id,
       label: row.label,
       language: row.language,
       version: row.version ?? '',
-      wordCount: Number(row.word_count),
-      synsetCount: Number(row.synset_count),
+      wordCount: Number(row.word_count ?? 0),
+      synsetCount: Number(row.synset_count ?? 0),
     }));
   }
 
@@ -562,8 +567,8 @@ export class KyselyQueryService {
    * @param tableName The name of the table.
    * @param data The data to insert.
    */
-  async batchInsert<T extends keyof Database>(tableName: T, data: any[]): Promise<void> {
-    return batchInsertWithKysely(this.db, tableName, data);
+  async batchInsert<T extends keyof Database>(tableName: T, data: Database[T][]): Promise<void> {
+    return batchInsertWithKysely(this.db, tableName, data as any[]);
   }
 
   // Clear operations
@@ -739,7 +744,7 @@ export class KyselyQueryService {
     for (const row of rows) {
       if (!seen.has(row.id)) {
         seen.add(row.id);
-        out.push(this.transformWordRecord(row as any));
+        out.push(this.transformWordRecord(row as Database['words']));
       }
     }
     return out;

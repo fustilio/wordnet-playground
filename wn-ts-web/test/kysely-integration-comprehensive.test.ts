@@ -12,29 +12,21 @@ import { KyselyQueryService } from '../src/database/kysely-query-service.js';
 import { createWordNetInstance } from '../src/factory.js';
 import type { Database } from '../src/types/database.js';
 import { MockDataLoader } from './mock-data-loader.js';
-
-// Mock dynamic import
-vi.mock('@sqlite.org/sqlite-wasm', async () => {
-  const mock = createMockSqliteWasm();
-  return {
-    ...mock,
-    default: vi.fn().mockResolvedValue(mock),
-  };
-});
+import type { Sqlite3Static } from '@sqlite.org/sqlite-wasm';
 
 // Mock SQLite WASM for testing
-const createMockSqliteWasm = () => {
+function createMockSqliteWasm() {
   const mockData = {
     words: [
-      { id: 'word1', lemma: 'test', part_of_speech: 'n', language: 'en', lexicon: 'oewn' },
-      { id: 'word2', lemma: 'example', part_of_speech: 'n', language: 'en', lexicon: 'oewn' }
+      { id: 'word1', lemma: 'test', pos: 'n', language: 'en', lexicon: 'oewn:2024' },
+      { id: 'word2', lemma: 'example', pos: 'n', language: 'en', lexicon: 'oewn:2024' }
     ],
     synsets: [
-      { id: 'synset1', ili: 'i1', part_of_speech: 'n', language: 'en', lexicon: 'oewn' },
-      { id: 'synset2', ili: 'i2', part_of_speech: 'n', language: 'en', lexicon: 'oewn' }
+      { id: 'synset1', ili: 'i1', pos: 'n', language: 'en', lexicon: 'oewn:2024' },
+      { id: 'synset2', ili: 'i2', pos: 'n', language: 'en', lexicon: 'oewn:2024' }
     ],
     lexicons: [
-      { id: 'oewn', label: 'Open English WordNet', language: 'en', version: '2024' }
+      { id: 'oewn:2024', label: 'Open English WordNet', language: 'en', version: '2024' }
     ],
     senses: [
       { id: 's1', word_id: 'word1', synset_id: 'synset1' },
@@ -47,25 +39,40 @@ const createMockSqliteWasm = () => {
   };
 
   return {
+    capi: {
+      sqlite3_trace_v2: vi.fn(),
+      sqlite3_last_insert_rowid: (db: any) => 1,
+    },
     oo1: {
       DB: class MockDB {
-        public sqlite3: any;
-
-        constructor(path: string, mode: string) {
-          this.sqlite3 = {
-            capi: {
-              sqlite3_last_insert_rowid: (db: any) => 1,
-            },
-          };
-        }
+        constructor(path: string, mode: string) {}
         
         exec(sqlOrOptions: string | { sql: string; bind?: any[]; returnValue?: string; rowMode?: string; columnNames?: any[] }): void | any[] {
           const sql = typeof sqlOrOptions === 'string' ? sqlOrOptions : sqlOrOptions.sql;
           
+          const lower = sql.toLowerCase();
+          const normalized = lower.replace(/"/g, '');
           if (sql.includes('CREATE TABLE')) return;
 
-          if (sql.toLowerCase().includes('select')) {
-            if (sql.toLowerCase().includes('count')) {
+          if (lower.includes('select')) {
+            // Handle grouped lexicon statistics with COUNT(DISTINCT ...) produced by Kysely
+            if ((normalized.includes(' from lexicons') || normalized.includes(' from  lexicons')) && normalized.includes('count')) {
+              const hasWhereOnLexiconsId = normalized.includes(' where ') && normalized.includes('lexicons.id');
+              const isSpecificLexicon = hasWhereOnLexiconsId || (lower.includes("where") && lower.includes('lexicons.id') && lower.includes("oewn:2024"));
+              const targetLexicons = isSpecificLexicon
+                ? mockData.lexicons.filter(l => l.id === 'oewn:2024')
+                : mockData.lexicons;
+              return targetLexicons.map(lex => ({
+                id: lex.id,
+                label: lex.label,
+                language: lex.language,
+                version: lex.version,
+                word_count: mockData.words.filter(w => w.lexicon === lex.id).length,
+                synset_count: mockData.synsets.filter(s => s.lexicon === lex.id).length,
+              }));
+            }
+
+            if (lower.includes('count')) {
               if (sql.includes('words')) return [{ count: mockData.words.length }];
               if (sql.includes('synsets')) return [{ count: mockData.synsets.length }];
               if (sql.includes('senses')) return [{ count: (mockData as any).senses.length }];
@@ -89,6 +96,24 @@ const createMockSqliteWasm = () => {
         
         prepare(sql: string): any {
           const getResults = () => {
+            const lower = sql.toLowerCase();
+            const normalized = lower.replace(/"/g, '');
+            // Handle grouped lexicon statistics with COUNT(DISTINCT ...) produced by Kysely
+            if (lower.includes('select') && (normalized.includes(' from lexicons') || normalized.includes(' from  lexicons')) && lower.includes('count')) {
+              const hasWhereOnLexiconsId = normalized.includes(' where ') && normalized.includes('lexicons.id');
+              const isSpecificLexicon = hasWhereOnLexiconsId || (lower.includes("where") && lower.includes('lexicons.id') && lower.includes("oewn:2024"));
+              const targetLexicons = isSpecificLexicon
+                ? mockData.lexicons.filter(l => l.id === 'oewn:2024')
+                : mockData.lexicons;
+              return targetLexicons.map(lex => ({
+                id: lex.id,
+                label: lex.label,
+                language: lex.language,
+                version: lex.version,
+                word_count: mockData.words.filter(w => w.lexicon === lex.id).length,
+                synset_count: mockData.synsets.filter(s => s.lexicon === lex.id).length,
+              }));
+            }
             if (sql.includes('words')) return mockData.words;
             if (sql.includes('synsets')) return mockData.synsets;
             if (sql.includes('lexicons')) return mockData.lexicons;
@@ -117,7 +142,8 @@ const createMockSqliteWasm = () => {
             getAsObject(): any {
               return results[stepIndex];
             },
-            free(): void {}
+            free(): void {},
+            stepFinalize: vi.fn()
           };
         }
         
@@ -127,7 +153,16 @@ const createMockSqliteWasm = () => {
       }
     }
   };
-};
+}
+
+// Mock dynamic import
+vi.mock('@sqlite.org/sqlite-wasm', async () => {
+  const mock = createMockSqliteWasm();
+  return {
+    ...mock,
+    default: vi.fn().mockResolvedValue(mock),
+  };
+});
 
 describe('Comprehensive Kysely Integration', () => {
   let wordnet: WebWordnet;
@@ -135,12 +170,11 @@ describe('Comprehensive Kysely Integration', () => {
   let queryService: KyselyQueryService;
 
   beforeAll(async () => {
-    // Create mock SQLite WASM
     const mockSqliteWasm = createMockSqliteWasm();
     
     // Create WebWordnet instance
     wordnet = new WebWordnet('oewn:2024');
-    await wordnet.initialize(mockSqliteWasm);
+    await wordnet.initialize(mockSqliteWasm as unknown as Sqlite3Static);
     
     // Get the database and query service
     database = (wordnet as any).database;
@@ -173,7 +207,7 @@ describe('Comprehensive Kysely Integration', () => {
     it('should get words through query service', async () => {
       const words = await queryService.getWords({
         form: 'test',
-        lexicon: 'oewn',
+        lexicon: 'oewn:2024',
         language: 'en'
       });
       
@@ -183,7 +217,7 @@ describe('Comprehensive Kysely Integration', () => {
     it('should get synsets through query service', async () => {
       const synsets = await queryService.getSynsets({
         form: 'test',
-        lexicon: 'oewn',
+        lexicon: 'oewn:2024',
         language: 'en'
       });
       
@@ -198,6 +232,44 @@ describe('Comprehensive Kysely Integration', () => {
       expect(stats).toHaveProperty('totalSenses');
       expect(stats).toHaveProperty('totalILIs');
       expect(stats).toHaveProperty('totalLexicons');
+    });
+
+    it('should get lexicon statistics through query service', async () => {
+      const lexiconStats = await queryService.getLexiconStatistics();
+      
+      console.log('🔍 Debug: getLexiconStatistics result:', JSON.stringify(lexiconStats, null, 2));
+      
+      expect(Array.isArray(lexiconStats)).toBe(true);
+      
+      if (lexiconStats.length > 0) {
+        const firstStat = lexiconStats[0];
+        console.log('🔍 Debug: firstStat:', JSON.stringify(firstStat, null, 2));
+        expect(firstStat).toHaveProperty('lexiconId');
+        expect(firstStat).toHaveProperty('label');
+        expect(firstStat).toHaveProperty('language');
+        expect(firstStat).toHaveProperty('version');
+        expect(firstStat).toHaveProperty('wordCount');
+        expect(firstStat).toHaveProperty('synsetCount');
+        
+        // Ensure numeric values are reasonable
+        expect(typeof firstStat.wordCount).toBe('number');
+        expect(typeof firstStat.synsetCount).toBe('number');
+        expect(firstStat.wordCount).toBeGreaterThanOrEqual(0);
+        expect(firstStat.synsetCount).toBeGreaterThanOrEqual(0);
+      }
+    });
+
+    it('should get lexicon statistics for specific lexicon', async () => {
+      const lexiconStats = await queryService.getLexiconStatistics('oewn:2024');
+      
+      expect(Array.isArray(lexiconStats)).toBe(true);
+      
+      if (lexiconStats.length > 0) {
+        // Should only return stats for the specified lexicon
+        lexiconStats.forEach(stat => {
+          expect(stat.lexiconId).toBe('oewn:2024');
+        });
+      }
     });
   });
 
@@ -225,6 +297,41 @@ describe('Comprehensive Kysely Integration', () => {
       const lexicons = await wordnet.lexicons();
       expect(Array.isArray(lexicons)).toBe(true);
     });
+
+    it('should get lexicon statistics through WebWordnet', async () => {
+      const lexiconStats = await wordnet.getLexiconStatistics();
+      
+      expect(Array.isArray(lexiconStats)).toBe(true);
+      
+      if (lexiconStats.length > 0) {
+        const firstStat = lexiconStats[0];
+        expect(firstStat).toHaveProperty('lexiconId');
+        expect(firstStat).toHaveProperty('label');
+        expect(firstStat).toHaveProperty('language');
+        expect(firstStat).toHaveProperty('version');
+        expect(firstStat).toHaveProperty('wordCount');
+        expect(firstStat).toHaveProperty('synsetCount');
+        
+        // Ensure numeric values are reasonable
+        expect(typeof firstStat.wordCount).toBe('number');
+        expect(typeof firstStat.synsetCount).toBe('number');
+        expect(firstStat.wordCount).toBeGreaterThanOrEqual(0);
+        expect(firstStat.synsetCount).toBeGreaterThanOrEqual(0);
+      }
+    });
+
+    it('should get lexicon statistics for specific lexicon through WebWordnet', async () => {
+      const lexiconStats = await wordnet.getLexiconStatistics('oewn:2024');
+      
+      expect(Array.isArray(lexiconStats)).toBe(true);
+      
+      if (lexiconStats.length > 0) {
+        // Should only return stats for the specified lexicon
+        lexiconStats.forEach(stat => {
+          expect(stat.lexiconId).toBe('oewn:2024');
+        });
+      }
+    });
   });
 
   describe('Factory Integration', () => {
@@ -249,7 +356,7 @@ describe('Comprehensive Kysely Integration', () => {
       // Create a wordnet without query service
       const wordnetWithoutQuery = new WebWordnet('oewn:2024');
       const mockSqliteWasm = createMockSqliteWasm();
-      await wordnetWithoutQuery.initialize(mockSqliteWasm);
+      await wordnetWithoutQuery.initialize(mockSqliteWasm as unknown as Sqlite3Static);
       
       // Manually remove query service
       (wordnetWithoutQuery as any).queryService = undefined;

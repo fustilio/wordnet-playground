@@ -6,7 +6,7 @@ import { createScopedLogger } from '../logger';
 const logger = createScopedLogger('BasicWordNetDemo');
 
 export const BasicWordNetDemo: React.FC = () => {
-  const { wordnet, dataLoader, availablePackages, loadedPackages, loadPackageData, refreshPackages, loading } = useWordNetContext();
+  const { wordnet, availablePackages, loadPackageData, loading } = useWordNetContext();
   const [searchTerm, setSearchTerm] = useState('water');
   const [searchResults, setSearchResults] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'words' | 'synsets'>('words');
@@ -20,9 +20,9 @@ export const BasicWordNetDemo: React.FC = () => {
     try {
       let results;
       if (activeTab === 'words') {
-        results = await wordnet.getQueryService().getWords({ form: searchTerm, searchAllForms: true });
+        results = await wordnet?.getQueryService()?.getWords({ form: searchTerm, searchAllForms: true }) || [];
       } else {
-        results = await wordnet.getQueryService().getSynsets({ form: searchTerm });
+        results = await wordnet?.getQueryService()?.getSynsets({ form: searchTerm }) || [];
       }
 
       const resultCount = Array.isArray(results) ? results.length : 0;
@@ -68,7 +68,7 @@ export const BasicWordNetDemo: React.FC = () => {
     
     try {
       if (!wordnet) return [];
-      const results = await wordnet.getQueryService().getSynsets({ form: query });
+      const results = await wordnet?.getQueryService()?.getSynsets({ form: query }) || [];
       const resultCount = Array.isArray(results) ? results.length : 0;
       logger.success('CILI search completed successfully', { resultCount });
       logger.end(`CILI search for "${query}"`, { resultCount });

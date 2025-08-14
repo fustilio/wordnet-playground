@@ -24,6 +24,20 @@ export interface StatisticsBundle {
   lexiconStats: WordNetLexiconStats;
 }
 
+export interface WordNetTotals {
+  totalWords: number;
+  totalSynsets: number;
+  totalSenses: number;
+  totalRelations?: number;
+  totalDefinitions?: number;
+  languages?: string[];
+  partsOfSpeech?: string[];
+  dataSize?: number;
+  lastUpdated?: string;
+  source?: string;
+  posDistribution?: Record<string, number>;
+}
+
 export interface WordNetIntegrityInfo {
   isValid: boolean;
   checksum?: string;

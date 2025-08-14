@@ -29,6 +29,16 @@
       "types": "./dist/wn-ts-web.d.ts",
       "import": "./dist/wn-ts-web.mjs",
       "default": "./dist/wn-ts-web.mjs"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.mjs",
+      "default": "./dist/react/index.mjs"
+    },
+    "./worker": {
+      "types": "./dist/worker-factory.d.ts",
+      "import": "./dist/worker-factory.mjs",
+      "default": "./dist/worker-factory.mjs"
     }
   },
   "scripts": {
@@ -46,6 +56,9 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "pnpm with-memory-limit vitest --config=vitest.e2e.config.ts --run",
     "test:e2e:batch-insert": "pnpx --node-options=--max-old-space-size=8192 vitest --config=vitest.e2e.config.ts --run batch-insert",
+    "test:e2e:orchestration": "pnpm with-memory-limit vitest --config=vitest.e2e.config.ts --run test/e2e/orchestrator.e2e.test.ts test/e2e/worker-client.e2e.test.ts",
+    "test:e2e:orchestrator": "pnpm with-memory-limit vitest --config=vitest.e2e.config.ts --run test/e2e/orchestrator.e2e.test.ts",
+    "test:e2e:worker-client": "pnpm with-memory-limit vitest --config=vitest.e2e.config.ts --run test/e2e/worker-client.e2e.test.ts",
     "test:node": "pnpm with-memory-limit vitest run",
     "test:node:all": "pnpm with-memory-limit vitest run",
     "test:node:core": "pnpx --node-options=--max-old-space-size=8192 vitest run test/factory.test.ts test/kysely-integration.test.ts test/demo-utils.test.ts test/web-database-simple.test.ts",
@@ -55,9 +68,11 @@
     "type-check": "tsc --noEmit",
     "vitest": "pnpm with-memory-limit vitest run",
     "with-memory-limit": "cross-env NODE_OPTIONS=--max-old-space-size=16384",
+    "test:e2e:stats": "pnpm with-memory-limit vitest --config=vitest.e2e.config.ts --run statistics-stress.test.ts",
     "debug-test": "pnpm with-memory-limit vitest --config=vitest.naked.config.ts --run test/pako.test.ts"
   },
   "dependencies": {
+    "utils": "workspace:*",
     "comlink": "^4.4.2",
     "kysely": "^0.28.3",
     "kysely-sqlite-builder": "^1.0.0",
@@ -70,6 +85,10 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
     "@changesets/cli": "^2.27.7",
     "@sqlite.org/sqlite-wasm": "catalog:",
     "@types/lzma": "^2.3.0",
@@ -88,7 +107,9 @@
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plugin-dts": "catalog:",
-    "vitest": "catalog:"
+    "vite-plugin-comlink": "catalog:",
+    "vitest": "catalog:",
+    "fast-xml-parser": "^5.2.5"
   },
   "peerDependencies": {
     "@sqlite.org/sqlite-wasm": "catalog:"

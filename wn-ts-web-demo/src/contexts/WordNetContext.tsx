@@ -8,11 +8,10 @@ interface WordNetContextValue extends WordNetState {
   queryWords: (term: string) => Promise<unknown[]>;
   querySynsets: (term: string) => Promise<unknown[]>;
   unloadData: () => Promise<void>;
-  clearCacheAndUnload: () => Promise<void>;
-  getCacheInfo: () => Promise<Record<string, unknown>>;
-  clearCache: () => Promise<boolean>;
-  removeFromCache: (packageId: string) => Promise<boolean>;
   refreshPackages: () => Promise<void>;
+  getLexiconInfo: (id?: string) => any[] | undefined;
+  getCurrentLexicons: () => any[];
+  testMemoryQueries: () => Promise<any>;
 }
 
 const WordNetContext = createContext<WordNetContextValue | null>(null);

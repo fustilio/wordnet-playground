@@ -30,14 +30,14 @@ export const LexiconRequirementsWidget: React.FC = () => {
       priority: 'medium'
     },
     {
-      id: 'omw-fra:1.4',
+      id: 'omw-fr:1.4',
       label: 'French WordNet 1.4',
       description: 'French language WordNet for bilingual features',
       requiredFor: ['Bilingual Dictionary (EN→FR)', 'French Search'],
       priority: 'medium'
     },
     {
-      id: 'omw-tha:1.4',
+      id: 'omw-th:1.4',
       label: 'Thai WordNet 1.4',
       description: 'Thai language WordNet for bilingual features',
       requiredFor: ['Bilingual Dictionary (EN→TH)', 'Thai Search'],
