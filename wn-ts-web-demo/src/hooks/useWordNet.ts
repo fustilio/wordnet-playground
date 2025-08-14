@@ -96,13 +96,7 @@ export function useWordNet(): WordNetState & {
     availablePackages: [],
     loadedPackages: [],
     progress: 0,
-    progressStage: 'Ready - No packages loaded', // Clear message that no packages are loaded
-    cacheInfo: {
-      isSupported: false,
-      totalFiles: 0,
-      totalSizeMB: 0,
-      availableSpaceMB: 0
-    }
+    progressStage: 'Ready - No packages loaded' // Clear message that no packages are loaded
   });
 
   // Initialize available packages immediately on mount
@@ -185,17 +179,9 @@ export function useWordNet(): WordNetState & {
         logger.debug('No remote worker available for status check');
       }
       
-      // Check cache status as fallback
-      const cacheStats = cache.getCacheStats();
-      logger.debug('Cache status', cacheStats);
-      
-      if (cacheStats.totalFiles > 0) {
-        logger.debug('Cache has files but worker status check failed, using cache info');
-        setState(prev => ({ ...prev, progressStage: 'Ready - Cache detected but status unclear' }));
-      } else {
-        logger.debug('No cache files found');
-        setState(prev => ({ ...prev, progressStage: 'Ready - Essential packages available' }));
-      }
+      // No cache fallback needed since worker handles everything
+      logger.debug('No cache files found');
+      setState(prev => ({ ...prev, progressStage: 'Ready - Essential packages available' }));
       
     } catch (error) {
       logger.warn('Package detection failed, using essential packages', { error });
@@ -376,17 +362,11 @@ export function useWordNet(): WordNetState & {
         wordnet, 
         dataLoader, 
         isInitializing: false,
-        progressStage: 'Initializing cache...'
+        progressStage: 'Initializing...'
       }));
 
-      // Initialize cache
-      logger.step('initializing cache');
-      await cache.checkOPFSSupport();
-      const cacheStats = cache.getCacheStats();
-      
       setState(prev => ({ 
         ...prev, 
-        cacheInfo: cacheStats,
         progressStage: 'Ready',
         loading: false,
         progress: 0,
@@ -400,8 +380,7 @@ export function useWordNet(): WordNetState & {
       logger.end('WordNet initialization', { 
         hasWorker: !!remote,
         hasWordNet: !!wordnet,
-        hasDataLoader: !!dataLoader,
-        cacheStatus: cacheStats
+        hasDataLoader: !!dataLoader
       });
       
     } catch (error) {
@@ -434,80 +413,25 @@ export function useWordNet(): WordNetState & {
     }));
 
     try {
-      // First, check if the package is cached
-      if (cache.isPackageCached(packageId)) {
-        logger.step('loading from cache', { packageId });
-        setState(prev => ({ ...prev, progressStage: `Loading ${packageId} from cache...` }));
-        
-        const cachedData = await cache.loadFromCache(packageId, (p) => {
-          setState(prev => ({ ...prev, progress: p }));
-          progress?.(p);
-        });
-        
-        if (cachedData && cachedData.byteLength >= 100) {
-          // Load the cached database (prefer worker if available)
-          logger.step('loading database from cached buffer', { 
-            packageId, 
-            bufferSize: cachedData.byteLength 
-          });
-          if (remote && !state.dataLoader) {
-            const resp = await remote.loadPackageFromData(packageId, cachedData);
-            if (!resp.success) throw new Error(resp.error || 'Worker failed to load cached data');
-          } else if (state.dataLoader) {
-            await state.dataLoader.loadDbFromBuffer(cachedData, packageId);
+      logger.step('downloading from server', { packageId });
+      setState(prev => ({ ...prev, progressStage: `Downloading ${packageId}...` }));
+      
+      // Try to use Comlink worker for heavy operations
+      if (remote) {
+        try {
+          logger.step('using Comlink worker for package loading', { packageId });
+          const result = await remote.loadPackage(packageId);
+          if (result.success) {
+            logger.success('Worker package loading successful');
+            logger.end(`loading package ${packageId}`, { 
+              source: 'worker', 
+              method: 'comlink' 
+            });
+            // No redundant main-thread reload here
           } else {
-            throw new Error('No loader available');
-          }
-          logger.success(`Loaded ${packageId} from cache successfully`);
-          logger.end(`loading package ${packageId}`, { 
-            source: 'cache', 
-            bufferSize: cachedData.byteLength 
-          });
-        } else {
-          logger.warn(`Cache entry for ${packageId} is invalid or empty`, { 
-            packageId, 
-            bufferSize: cachedData?.byteLength ?? 0 
-          });
-          try { await cache.removeFromCache(packageId); } catch {}
-          throw new Error('Failed to load from cache');
-        }
-      } else {
-        logger.step('downloading from server', { packageId });
-        setState(prev => ({ ...prev, progressStage: `Downloading ${packageId}...` }));
-        
-        // Try to use Comlink worker for heavy operations
-        if (remote) {
-          try {
-            logger.step('using Comlink worker for package loading', { packageId });
-            const result = await remote.loadPackage(packageId);
-            if (result.success) {
-              logger.success('Worker package loading successful');
-              logger.end(`loading package ${packageId}`, { 
-                source: 'worker', 
-                method: 'comlink' 
-              });
-              // No redundant main-thread reload here
-            } else {
-              logger.warn('Worker package loading failed, using main thread', { 
-                packageId, 
-                error: result.error 
-              });
-              if (!state.dataLoader) throw new Error('DataLoader not initialized');
-              await state.dataLoader.downloadAndLoad(packageId, {
-                progress: (p: number) => {
-                  setState(prev => ({ ...prev, progress: p }));
-                  progress?.(p);
-                }
-              });
-              logger.end(`loading package ${packageId}`, { 
-                source: 'main-thread', 
-                method: 'fallback' 
-              });
-            }
-          } catch (error) {
-            logger.warn('Worker error, falling back to main thread', { 
+            logger.warn('Worker package loading failed, using main thread', { 
               packageId, 
-              error: error instanceof Error ? error.message : String(error) 
+              error: result.error 
             });
             if (!state.dataLoader) throw new Error('DataLoader not initialized');
             await state.dataLoader.downloadAndLoad(packageId, {
@@ -518,11 +442,14 @@ export function useWordNet(): WordNetState & {
             });
             logger.end(`loading package ${packageId}`, { 
               source: 'main-thread', 
-              method: 'fallback-error' 
+              method: 'fallback' 
             });
           }
-        } else {
-          logger.step('using main thread for package loading', { packageId });
+        } catch (error) {
+          logger.warn('Worker error, falling back to main thread', { 
+            packageId, 
+            error: error instanceof Error ? error.message : String(error) 
+          });
           if (!state.dataLoader) throw new Error('DataLoader not initialized');
           await state.dataLoader.downloadAndLoad(packageId, {
             progress: (p: number) => {
@@ -532,9 +459,22 @@ export function useWordNet(): WordNetState & {
           });
           logger.end(`loading package ${packageId}`, { 
             source: 'main-thread', 
-            method: 'direct' 
+            method: 'fallback-error' 
           });
         }
+      } else {
+        logger.step('using main thread for package loading', { packageId });
+        if (!state.dataLoader) throw new Error('DataLoader not initialized');
+        await state.dataLoader.downloadAndLoad(packageId, {
+          progress: (p: number) => {
+            setState(prev => ({ ...prev, progress: p }));
+            progress?.(p);
+          }
+        });
+        logger.end(`loading package ${packageId}`, { 
+          source: 'main-thread', 
+          method: 'direct' 
+        });
       }
 
       setState(prev => ({
@@ -626,7 +566,7 @@ export function useWordNet(): WordNetState & {
         progressStage: 'Failed to load package'
       }));
     }
-  }, [state.dataLoader, cache]);
+  }, [state.dataLoader]);
 
   // Load demo data with caching
   const loadDemoData = useCallback(async (progress?: ProgressCallback) => {
@@ -756,45 +696,7 @@ export function useWordNet(): WordNetState & {
     }
   }, [state.dataLoader]);
 
-  // Clear cache and unload
-  const clearCacheAndUnload = useCallback(async () => {
-    try {
-      await unloadData();
-      const success = await cache.clearCache();
-      if (success) {
-        console.log('✅ Cache cleared successfully');
-        const cacheStats = cache.getCacheStats();
-        setState(prev => ({ ...prev, cacheInfo: cacheStats }));
-      }
-    } catch (error) {
-      console.error('❌ Failed to clear cache:', error);
-    }
-  }, [unloadData, cache]);
 
-  // Get cache info
-  const getCacheInfo = useCallback(async () => {
-    return cache.getCacheStats();
-  }, [cache]);
-
-  // Clear cache
-  const clearCache = useCallback(async () => {
-    const success = await cache.clearCache();
-    if (success) {
-      const cacheStats = cache.getCacheStats();
-      setState(prev => ({ ...prev, cacheInfo: cacheStats }));
-    }
-    return success;
-  }, [cache]);
-
-  // Remove from cache
-  const removeFromCache = useCallback(async (packageId: string) => {
-    const success = await cache.removeFromCache(packageId);
-    if (success) {
-      const cacheStats = cache.getCacheStats();
-      setState(prev => ({ ...prev, cacheInfo: cacheStats }));
-    }
-    return success;
-  }, [cache]);
 
   return {
     ...state,
@@ -803,10 +705,6 @@ export function useWordNet(): WordNetState & {
     queryWords,
     querySynsets,
     unloadData,
-    clearCacheAndUnload,
-    getCacheInfo,
-    clearCache,
-    removeFromCache,
     refreshPackages,
   };
 }
