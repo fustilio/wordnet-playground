@@ -3,6 +3,7 @@
 // https://sqlite.org/wasm/doc/trunk/persistence.md
 
 import { default as init } from '@sqlite.org/sqlite-wasm'
+import { createScopedLogger } from '../logger'
 
 import type { Sqlite3Static as SqliteWasm, Database as SqliteDb } from '@sqlite.org/sqlite-wasm'
 
@@ -24,12 +25,13 @@ let db: SqliteDb | null = null
 let persistent = false
 let opfsSupported = false
 let storage: 'opfs' | 'jsstorage' | 'memory' = 'memory'
+const logger = createScopedLogger('sqlite-worker')
 
 async function initSqlite() {
   if (sqlite3) return sqlite3
   sqlite3 = await init({ print: () => {}, printErr: () => {} })
   opfsSupported = !!sqlite3?.oo1?.OpfsDb
-  try { console.log('[sqlite-worker] init ok. opfsSupported=', opfsSupported) } catch {}
+  try { logger.info('init ok', { opfsSupported }) } catch {}
   return sqlite3
 }
 
@@ -47,7 +49,7 @@ async function openDb(filename: string) {
       persistent = true
       storage = 'opfs'
       try { db.exec('PRAGMA journal_mode=WAL;') } catch {}
-      try { console.log('[sqlite-worker] open: OpfsDb', filename) } catch {}
+      try { logger.info('open OpfsDb', { filename }) } catch {}
       return
     } catch {}
   }
@@ -56,7 +58,7 @@ async function openDb(filename: string) {
     persistent = true
     storage = 'opfs'
     try { db.exec('PRAGMA journal_mode=WAL;') } catch {}
-    try { console.log('[sqlite-worker] open: vfs=opfs', filename) } catch {}
+    try { logger.info('open vfs=opfs', { filename }) } catch {}
     return
   } catch {}
   if (sqlite3?.oo1?.JsStorageDb) {
@@ -64,13 +66,13 @@ async function openDb(filename: string) {
       db = new sqlite3.oo1.JsStorageDb('local')
       persistent = true
       storage = 'jsstorage'
-      try { console.log('[sqlite-worker] open: JsStorageDb local') } catch {}
+      try { logger.info('open JsStorageDb local') } catch {}
       return
     } catch {}
   }
   db = new sqlite3!.oo1.DB(filename, 'ct')
   persistent = false
-  try { console.warn('[sqlite-worker] open: fallback non-persistent', filename) } catch {}
+  try { logger.warn('open fallback non-persistent', { filename }) } catch {}
 }
 
 function closeDb() {
@@ -172,7 +174,12 @@ async function writeFile(filename: string, data: Uint8Array) {
 
 self.onmessage = async (ev: MessageEvent<RpcMessage>) => {
   const { id, type, payload } = ev.data
-  const respond = (resp: RpcResponse) => (self as any).postMessage({ id, ...resp })
+  const start = performance.now()
+  const respond = (resp: RpcResponse) => {
+    const durationMs = performance.now() - start
+    try { logger.info('➡️ handled', { id, type, ok: resp.ok, durationMs }) } catch {}
+    ;(self as any).postMessage({ id, ...resp, durationMs })
+  }
   try {
     switch (type) {
       case 'init': {
@@ -224,6 +231,7 @@ self.onmessage = async (ev: MessageEvent<RpcMessage>) => {
         respond({ ok: false, error: `Unknown message type: ${type}` })
     }
   } catch (e) {
+    try { logger.error('handler error', { id, type, error: e instanceof Error ? e.message : String(e) }) } catch {}
     respond({ ok: false, error: e instanceof Error ? e.message : String(e) })
   }
 }

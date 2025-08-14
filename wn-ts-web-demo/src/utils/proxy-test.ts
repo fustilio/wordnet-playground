@@ -52,7 +52,7 @@ export async function runProxyTests(): Promise<{
         
         return {
           url,
-          status: response.ok ? 'success' : 'error' as const,
+          status: response.ok ? 'success' as const : 'error' as const,
           responseTime,
           error: response.ok ? undefined : `HTTP ${response.status}`,
         };

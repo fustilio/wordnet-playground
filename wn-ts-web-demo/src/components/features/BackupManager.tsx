@@ -1,6 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { useBackup } from '../../hooks/useBackup';
 import type { BackupMetadata } from '../../hooks/useBackup';
+import { createScopedLogger } from '../../logger';
+
+const logger = createScopedLogger('BackupManager');
 
 interface BackupManagerProps {
   onBackupCreated?: (backup: BackupMetadata) => void;
@@ -45,12 +48,22 @@ const BackupManager: React.FC<BackupManagerProps> = ({
   // Create new backup configuration
   const handleCreateConfig = useCallback(() => {
     if (!newConfig.name.trim()) {
+      logger.warn('Backup config creation attempted without name');
       setMessage({ type: 'error', text: 'Backup name is required' });
       return;
     }
 
+    logger.start('Creating backup configuration');
+    
     try {
       createBackupConfig(newConfig);
+      logger.success('Backup configuration created', { 
+        name: newConfig.name, 
+        schedule: newConfig.schedule,
+        compression: newConfig.compression,
+        encryption: newConfig.encryption
+      });
+      
       setNewConfig({
         name: '',
         description: '',
@@ -63,17 +76,23 @@ const BackupManager: React.FC<BackupManagerProps> = ({
       setShowCreateConfig(false);
       setMessage({ type: 'success', text: 'Backup configuration created successfully' });
     } catch (error) {
+      logger.fail('Failed to create backup config', error);
       setMessage({ type: 'error', text: `Failed to create backup config: ${error instanceof Error ? error.message : 'Unknown error'}` });
+    } finally {
+      logger.end('Creating backup configuration');
     }
   }, [newConfig, createBackupConfig]);
 
   // Create backup
   const handleCreateBackup = useCallback(async () => {
     if (!selectedConfig) {
+      logger.warn('Backup creation attempted without config selection');
       setMessage({ type: 'error', text: 'Please select a backup configuration' });
       return;
     }
 
+    logger.start('Creating backup');
+    
     setIsProcessing(true);
     try {
       // Create a sample data buffer for demo purposes
@@ -83,58 +102,112 @@ const BackupManager: React.FC<BackupManagerProps> = ({
         version: '1.0.0'
       }));
 
+      logger.step('creating sample data', { configId: selectedConfig, dataSize: sampleData.length });
+      
       const backup = await createBackup(selectedConfig, sampleData.buffer);
+      
+      logger.success('Backup created successfully', { 
+        backupId: backup.id, 
+        configId: selectedConfig,
+        size: backup.size,
+        timestamp: backup.timestamp
+      });
+      
       setShowCreateBackup(false);
       setMessage({ type: 'success', text: `Backup created successfully: ${backup.id}` });
       onBackupCreated?.(backup);
     } catch (error) {
+      logger.fail('Failed to create backup', error);
       setMessage({ type: 'error', text: `Failed to create backup: ${error instanceof Error ? error.message : 'Unknown error'}` });
     } finally {
       setIsProcessing(false);
+      logger.end('Creating backup');
     }
   }, [selectedConfig, createBackup, onBackupCreated]);
 
   // Restore backup
   const handleRestoreBackup = useCallback(async () => {
     if (!selectedBackup) {
+      logger.warn('Backup restore attempted without selection');
       setMessage({ type: 'error', text: 'Please select a backup to restore' });
       return;
     }
 
+    logger.start('Restoring backup');
+    
     setIsProcessing(true);
     try {
+      logger.step('starting restore process', { backupId: selectedBackup });
+      
       const data = await restoreBackup(selectedBackup);
+      
+      logger.success('Backup restored successfully', { 
+        backupId: selectedBackup,
+        dataSize: data.byteLength
+      });
+      
       setMessage({ type: 'success', text: `Backup restored successfully: ${selectedBackup}` });
       onBackupRestored?.(data);
     } catch (error) {
+      logger.fail('Failed to restore backup', error);
       setMessage({ type: 'error', text: `Failed to restore backup: ${error instanceof Error ? error.message : 'Unknown error'}` });
     } finally {
       setIsProcessing(false);
+      logger.end('Restoring backup');
     }
   }, [selectedBackup, restoreBackup, onBackupRestored]);
 
   // Verify backup
   const handleVerifyBackup = useCallback(async (backupId: string) => {
+    logger.start('Verifying backup');
+    
     try {
+      logger.step('starting verification', { backupId });
+      
       const isValid = await verifyBackup(backupId);
+      
+      if (isValid) {
+        logger.success('Backup verification completed', { 
+          backupId, 
+          result: 'valid'
+        });
+      } else {
+        logger.warn('Backup verification completed', { 
+          backupId, 
+          result: 'corrupted'
+        });
+      }
+      
       setMessage({ 
         type: isValid ? 'success' : 'error', 
         text: `Backup ${backupId} is ${isValid ? 'valid' : 'corrupted'}` 
       });
     } catch (error) {
+      logger.fail('Backup verification failed', error);
       setMessage({ type: 'error', text: `Failed to verify backup: ${error instanceof Error ? error.message : 'Unknown error'}` });
+    } finally {
+      logger.end('Verifying backup');
     }
   }, [verifyBackup]);
 
   // Delete backup
   const handleDeleteBackup = useCallback(async (backupId: string) => {
     if (window.confirm('Are you sure you want to delete this backup?')) {
+      logger.start('Deleting backup');
+      
       try {
+        logger.step('deleting backup file', { backupId });
+        
         await deleteBackup(backupId);
+        
+        logger.success('Backup deleted successfully', { backupId });
         setMessage({ type: 'success', text: `Backup ${backupId} deleted successfully` });
-          } catch (error) {
-      setMessage({ type: 'error', text: `Failed to delete backup: ${error instanceof Error ? error.message : 'Unknown error'}` });
-    }
+      } catch (error) {
+        logger.fail('Failed to delete backup', error);
+        setMessage({ type: 'error', text: `Failed to delete backup: ${error instanceof Error ? error.message : 'Unknown error'}` });
+      } finally {
+        logger.end('Deleting backup');
+      }
     }
   }, [deleteBackup]);
 
@@ -236,7 +309,7 @@ const BackupManager: React.FC<BackupManagerProps> = ({
                       <span className="text-gray-600">Compression: {config.compression ? 'Yes' : 'No'}</span>
                       <span className="text-gray-600">Encryption: {config.encryption ? 'Yes' : 'No'}</span>
                       <span className="text-gray-600">Retention: {config.retention} days</span>
-                      <span className="text-gray-600">Status: {config.status}</span>
+                      <span className="text-gray-600">Created: {config.createdAt.toLocaleDateString()}</span>
                     </div>
                   </div>
                   <div className="flex gap-2 ml-4">
@@ -299,9 +372,8 @@ const BackupManager: React.FC<BackupManagerProps> = ({
                       {backup.compressedSize && (
                         <span className="text-gray-600">Compressed: {formatFileSize(backup.compressedSize)}</span>
                       )}
-                      <span className="text-gray-600">Format: {backup.format}</span>
-                      <span className="text-gray-600">Compression: {backup.compression.algorithm}</span>
-                      <span className="text-gray-600">Encryption: {backup.encryption.algorithm}</span>
+                      <span className="text-gray-600">Size: {backup.size} bytes</span>
+                      <span className="text-gray-600">Created: {backup.timestamp.toLocaleDateString()}</span>
                       <span className={`font-medium ${
                         backup.integrity.isValid ? 'text-green-600' : 'text-red-600'
                       }`}>

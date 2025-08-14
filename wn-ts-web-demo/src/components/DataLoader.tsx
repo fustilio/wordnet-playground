@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { createScopedLogger } from '../logger';
+
+const logger = createScopedLogger('DataLoader');
 
 interface WordNetPackage {
   id: string;
@@ -32,15 +35,19 @@ export const DataLoader: React.FC<DataLoaderProps> = ({
   const [progressStage, setProgressStage] = useState<string>('');
 
   const handlePackageChange = (packageId: string) => {
+    logger.debug('Package selection changed', { from: selectedPackage, to: packageId });
     setSelectedPackage(packageId);
     setSelectedVersion(''); // Reset version when package changes
   };
 
   const handleLoadPackage = async () => {
     if (!selectedPackage || !selectedVersion) {
+      logger.warn('Package load attempted without selection', { selectedPackage, selectedVersion });
       alert('Please select both a package and version');
       return;
     }
+    
+    logger.start('Loading package');
     
     setProgress(0);
     setProgressStage('Starting download...');
@@ -48,12 +55,35 @@ export const DataLoader: React.FC<DataLoaderProps> = ({
     const handleProgress = (progressValue: number) => {
       setProgress(progressValue);
       setProgressStage(`Loading ${selectedPackage}:${selectedVersion}...`);
+      logger.step('download progress', { packageId: selectedPackage, version: selectedVersion, progress: progressValue });
     };
     
-    await onLoadPackage(selectedPackage, selectedVersion, handleProgress);
+    try {
+      await onLoadPackage(selectedPackage, selectedVersion, handleProgress);
+      logger.success('Package loaded successfully', { 
+        packageId: selectedPackage, 
+        version: selectedVersion
+      });
+    } catch (error) {
+      logger.fail('Package load failed', error);
+    } finally {
+      setProgress(0);
+      setProgressStage('');
+      logger.end('Loading package');
+    }
+  };
+
+  const handleLoadDemo = async () => {
+    logger.start('Loading demo data');
     
-    setProgress(0);
-    setProgressStage('');
+    try {
+      await onLoadDemo();
+      logger.success('Demo data loaded successfully');
+    } catch (error) {
+      logger.fail('Demo data load failed', error);
+    } finally {
+      logger.end('Loading demo data');
+    }
   };
 
   const selectedPackageInfo = availablePackages.find(pkg => pkg.id === selectedPackage);
@@ -130,7 +160,7 @@ export const DataLoader: React.FC<DataLoaderProps> = ({
           </button>
           
           <button
-            onClick={onLoadDemo}
+            onClick={handleLoadDemo}
             disabled={loading || isInitializing}
             className="flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >

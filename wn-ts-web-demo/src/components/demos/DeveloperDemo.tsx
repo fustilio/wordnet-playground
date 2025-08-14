@@ -1,24 +1,61 @@
 import React from 'react';
 import { Card } from '../shared/Card';
-import type { useWordNet } from '../../hooks/useWordNet';
-import type { useOPFS } from '../../hooks/useOPFS';
+import { useWordNetContext } from '../../contexts/WordNetContext';
+import { LexiconRequirements } from '../shared/LexiconRequirements';
+import { createScopedLogger } from '../../logger';
 
-type DeveloperDemoProps = ReturnType<typeof useWordNet> & ReturnType<typeof useOPFS>;
+const logger = createScopedLogger('DeveloperDemo');
 
-export const DeveloperDemo: React.FC<DeveloperDemoProps> = ({ wordnet, saveToOPFS, clearAllOPFS, unloadData, getCacheInfo }) => {
+export const DeveloperDemo: React.FC = () => {
+  const { unloadData, getCacheInfo } = useWordNetContext();
   const [cacheInfo, setCacheInfo] = React.useState<any>(null);
   
+  // Define lexicon requirements for this demo
+  const lexiconRequirements = [
+    {
+      id: 'oewn:2024',
+      label: 'Open English WordNet 2024',
+      description: 'Recommended for testing and development features',
+      priority: 'medium' as const
+    }
+  ];
+  
   const handleGetCacheInfo = async () => {
-    const info = await getCacheInfo();
-    setCacheInfo(info);
+    logger.start('getting cache info');
+    
+    try {
+      const info = await getCacheInfo();
+      logger.success('Cache info retrieved successfully');
+      setCacheInfo(info);
+      logger.end('getting cache info', info);
+    } catch (error) {
+      logger.fail('Failed to get cache info', error);
+      logger.end('getting cache info');
+    }
+  };
+
+  const handleUnloadData = async () => {
+    logger.start('unloading data');
+    
+    try {
+      await unloadData();
+      logger.success('Data unloaded successfully');
+      logger.end('unloading data');
+    } catch (error) {
+      logger.fail('Failed to unload data', error);
+      logger.end('unloading data');
+    }
   };
 
   return (
     <Card title="Developer Tools">
        <div className="space-y-6">
+        {/* Lexicon Requirements */}
+        <LexiconRequirements requirements={lexiconRequirements} />
+        
         <div>
           <h3 className="font-semibold text-gray-700">Cache & Storage</h3>
-          <p className="text-sm text-gray-600 mb-2">Manage browser cache and OPFS storage.</p>
+          <p className="text-sm text-gray-600 mb-2">Inspect browser cache and storage.</p>
           <div className="flex flex-wrap gap-2">
              <button
               onClick={handleGetCacheInfo}
@@ -27,16 +64,10 @@ export const DeveloperDemo: React.FC<DeveloperDemoProps> = ({ wordnet, saveToOPF
               Inspect Cache
             </button>
              <button
-              onClick={unloadData}
+              onClick={handleUnloadData}
               className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
             >
               Clear DB Data
-            </button>
-             <button
-              onClick={clearAllOPFS}
-              className="bg-red-800 text-white px-4 py-2 rounded-md hover:bg-red-900 transition-colors"
-            >
-              Clear All OPFS
             </button>
           </div>
           {cacheInfo && (
@@ -46,20 +77,6 @@ export const DeveloperDemo: React.FC<DeveloperDemoProps> = ({ wordnet, saveToOPF
               </pre>
             </div>
           )}
-        </div>
-
-        <div>
-          <h3 className="font-semibold text-gray-700">OPFS Operations</h3>
-          <p className="text-sm text-gray-600 mb-2">Save the current database state to a new file in OPFS.</p>
-          <div className="flex space-x-2">
-             <button
-              onClick={() => saveToOPFS(wordnet)}
-              disabled={!wordnet}
-              className="bg-teal-600 text-white px-4 py-2 rounded-md hover:bg-teal-700 transition-colors disabled:bg-gray-400"
-            >
-              Save Snapshot to OPFS
-            </button>
-          </div>
         </div>
       </div>
     </Card>

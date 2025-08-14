@@ -1,4 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { createScopedLogger } from '../logger';
+
+const logger = createScopedLogger('DataManager');
 
 interface DataManagerProps {
   onUnloadData: () => Promise<void>;
@@ -23,23 +26,53 @@ export const DataManager: React.FC<DataManagerProps> = ({
 
   const handleUnloadData = async () => {
     if (window.confirm('Are you sure you want to unload the current data? (Cache will be preserved)')) {
-      await onUnloadData();
+      logger.start('data unload');
+      logger.step('confirming user action', { loadedPackage, loadedVersion });
+      
+      try {
+        await onUnloadData();
+        logger.success('Data unload completed successfully');
+        logger.end('data unload');
+      } catch (error) {
+        logger.fail('Data unload failed', error);
+        logger.end('data unload');
+      }
     }
   };
 
   const handleClearCacheAndUnload = async () => {
     if (window.confirm('Are you sure you want to clear all cache and unload data? This will perform a full reset.')) {
-      await onClearCacheAndUnload();
+      logger.start('cache clear and data unload');
+      logger.step('confirming user action', { loadedPackage, loadedVersion });
+      
+      try {
+        await onClearCacheAndUnload();
+        logger.success('Cache clear and data unload completed successfully');
+        logger.end('cache clear and data unload');
+      } catch (error) {
+        logger.fail('Cache clear and data unload failed', error);
+        logger.end('cache clear and data unload');
+      }
     }
   };
 
   const refreshCacheInfo = async () => {
     setRefreshingCache(true);
+    logger.start('refreshing cache info');
+    
     try {
       const info = await getCacheInfo();
+      logger.success('Cache info refreshed successfully');
+      logger.end('refreshing cache info', { 
+        hasStorageQuota: !!info.storageQuota,
+        hasIndexedDB: !!info.indexedDB,
+        hasLocalStorage: !!info.localStorage,
+        hasSessionStorage: !!info.sessionStorage
+      });
       setCacheInfo(info);
     } catch (error) {
-      console.error('Failed to get cache info:', error);
+      logger.fail('Failed to get cache info', error);
+      logger.end('refreshing cache info');
     } finally {
       setRefreshingCache(false);
     }

@@ -1,5 +1,6 @@
 // Lightweight client wrapper around the sqlite worker RPC
 // Provides a simple API for init/open/close/exec/seed/flush/list/delete and writeFile
+import { createScopedLogger } from '../logger'
 
 export type QueryResult = { columns: string[]; rows: Array<Record<string, unknown>> }
 
@@ -10,6 +11,8 @@ export class SqliteWorkerClient {
   private worker: Worker
   private nextId = 0
   private pending = new Map<number, (resp: WorkerResponse) => void>()
+  private logger = createScopedLogger('sqlite-client')
+  private inFlightStart = new Map<number, number>()
 
   public opfsSupported = false
   public persistent = false
@@ -22,6 +25,10 @@ export class SqliteWorkerClient {
       if (id != null && this.pending.has(id)) {
         const resolve = this.pending.get(id)!
         this.pending.delete(id)
+        const start = this.inFlightStart.get(id) || 0
+        const rttMs = start ? performance.now() - start : undefined
+        this.inFlightStart.delete(id)
+        this.logger.info('⬅️ worker response', { id, ok: ev.data.ok, hasError: !!ev.data.error, hasData: ev.data.data != null, durationMs: (ev.data as any).durationMs, rttMs })
         resolve(ev.data)
       }
     })
@@ -37,6 +44,15 @@ export class SqliteWorkerClient {
       const id = ++this.nextId
       this.pending.set(id, resolve)
       const msg: WorkerRequest = { id, type, payload }
+      const payloadSize = payload == null
+        ? 0
+        : typeof payload === 'string'
+          ? payload.length
+          : ArrayBuffer.isView(payload?.data)
+            ? (payload.data as ArrayBufferView).byteLength
+            : JSON.stringify(payload).length
+      this.logger.info('➡️ rpc send', { id, type, payloadSize })
+      this.inFlightStart.set(id, performance.now())
       this.worker.postMessage(msg)
     }) as Promise<WorkerResponse & { data?: T }>
   }

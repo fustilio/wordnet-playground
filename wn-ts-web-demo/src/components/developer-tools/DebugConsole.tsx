@@ -1,5 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { XMarkIcon, TrashIcon, DocumentArrowDownIcon, PlayIcon, PauseIcon } from '@heroicons/react/24/outline';
+import { createScopedLogger } from '../../logger';
+
+const logger = createScopedLogger('DebugConsole');
 
 interface LogEntry {
   id: string;
@@ -125,6 +128,26 @@ const DebugConsole: React.FC<DebugConsoleProps> = ({
     return `${(duration / 1000).toFixed(2)}s`;
   };
 
+  const handleClearLogs = () => {
+    logger.info('Clearing debug console logs', { logCount: logs.length });
+    onClearLogs();
+  };
+
+  const handleExportLogs = () => {
+    logger.info('Exporting debug console logs', { logCount: logs.length });
+    onExportLogs();
+  };
+
+  const handleTogglePause = () => {
+    logger.debug('Toggling debug console pause state', { currentState: isPaused });
+    onTogglePause();
+  };
+
+  const handleClose = () => {
+    logger.debug('Closing debug console');
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -152,7 +175,7 @@ const DebugConsole: React.FC<DebugConsoleProps> = ({
         
         <div className="flex items-center gap-2">
           <button
-            onClick={onTogglePause}
+            onClick={handleTogglePause}
             className={`p-2 rounded ${currentTheme.button} transition-colors`}
             title={isPaused ? 'Resume logging' : 'Pause logging'}
           >
@@ -163,21 +186,21 @@ const DebugConsole: React.FC<DebugConsoleProps> = ({
             )}
           </button>
           <button
-            onClick={onExportLogs}
+            onClick={handleExportLogs}
             className={`p-2 rounded ${currentTheme.button} transition-colors`}
             title="Export logs"
           >
             <DocumentArrowDownIcon className="w-4 h-4" />
           </button>
           <button
-            onClick={onClearLogs}
+            onClick={handleClearLogs}
             className={`p-2 rounded ${currentTheme.buttonDanger} transition-colors`}
             title="Clear logs"
           >
             <TrashIcon className="w-4 h-4" />
           </button>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className={`p-2 rounded ${currentTheme.button} transition-colors`}
             title="Close console"
           >

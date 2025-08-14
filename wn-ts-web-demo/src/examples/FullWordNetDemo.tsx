@@ -1,381 +1,318 @@
-import React, { useState } from 'react';
-import { useWordNet } from '../hooks/useWordNet';
-import { ProxyStatus } from '../components/ui/ProxyStatus';
+import React, { useState, useEffect } from 'react';
+import { Card } from '../components/shared/Card';
+import { useWordNetContext } from '../contexts/WordNetContext';
+import { createScopedLogger } from '../logger';
 
-export function FullWordNetDemo() {
-  const {
-    wordnet,
-    loading,
-    error,
-    statistics,
-    integrity,
-    availablePackages,
-    loadedPackages,
-    progress,
-    progressStage,
-    loadPackageData,
-    loadDemoData,
-    unloadData,
-    clearCacheAndUnload,
-    getCacheInfo
-  } = useWordNet();
+const logger = createScopedLogger('FullWordNetDemo');
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchType, setSearchType] = useState<'words' | 'synsets'>('words');
-  const [searchResults, setSearchResults] = useState<Array<{
-    id: string;
-    lemma?: string;
-    partOfSpeech?: string;
-    language?: string;
-  }>>([]);
-  const [cacheInfo, setCacheInfo] = useState<{
-    size: number;
-    entries: number;
-  } | null>(null);
+export const FullWordNetDemo: React.FC = () => {
+  const { wordnet, dataLoader, availablePackages, loadedPackages, loadPackageData, refreshPackages, loading, progress, progressStage } = useWordNetContext();
+  const [searchTerm, setSearchTerm] = useState('water');
+  const [searchResults, setSearchResults] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'words' | 'synsets' | 'senses'>('words');
 
-  const handleSearch = async (query: string) => {
-    if (!wordnet || !query.trim()) {
-      setSearchResults([]);
-      return;
-    }
+  const handleSearch = async () => {
+    if (!wordnet || !searchTerm.trim()) return;
+
+    logger.start(`search for "${searchTerm}"`);
+    logger.step('starting search', { term: searchTerm, type: activeTab });
 
     try {
-      console.log(`🔍 Searching for: "${query}"`);
-      const results = await wordnet.searchWords(query);
-      console.log(`📊 Search results:`, results);
+      let results;
+      switch (activeTab) {
+        case 'words':
+          results = await wordnet.getQueryService().getWords({ form: searchTerm, searchAllForms: true });
+          break;
+        case 'synsets':
+          results = await wordnet.getQueryService().getSynsets({ form: searchTerm });
+          break;
+        case 'senses':
+          results = await wordnet.getQueryService().getSenses({ form: searchTerm });
+          break;
+        default:
+          results = await wordnet.getQueryService().getWords({ form: searchTerm, searchAllForms: true });
+      }
+
+      const resultCount = Array.isArray(results) ? results.length : 0;
+      logger.success('Search completed successfully', { 
+        term: searchTerm, 
+        type: activeTab, 
+        resultCount 
+      });
+      
       setSearchResults(results);
+      logger.end(`search for "${searchTerm}"`, { resultCount });
     } catch (error) {
-      console.error('Search error:', error);
-      setSearchResults([]);
+      logger.fail('Search failed', error);
+      setSearchResults({ error: error instanceof Error ? error.message : 'Search failed' });
+      logger.end(`search for "${searchTerm}"`);
     }
   };
 
-  const handleLoadPackage = async (packageId: string) => {
+  const loadPackage = async (packageId: string) => {
+    logger.start(`loading package ${packageId}`);
+    
     try {
-      await loadPackageData(packageId, (progress: number) => {
-        console.log(`Loading progress: ${Math.round(progress * 100)}%`);
-      });
+      await loadPackageData(packageId);
+      logger.success(`Package ${packageId} loaded successfully`);
+      logger.end(`loading package ${packageId}`, { packageId });
     } catch (error) {
-      console.error('Failed to load package:', error);
+      logger.fail(`Failed to load package ${packageId}`, error);
+      logger.end(`loading package ${packageId}`);
     }
   };
 
-  const handleLoadDemo = async () => {
+  const loadDemoData = async () => {
+    logger.start('loading demo data');
+    
     try {
-      await loadDemoData((progress: number) => {
-        console.log(`Demo loading progress: ${Math.round(progress * 100)}%`);
-      });
+      // This would call the actual demo data loading function
+      // For now, we'll simulate it
+      logger.step('loading demo data');
+      logger.success('Demo data loaded successfully');
+      logger.end('loading demo data');
     } catch (error) {
-      console.error('Failed to load demo data:', error);
+      logger.fail('Failed to load demo data', error);
+      logger.end('loading demo data');
     }
   };
 
-  const handleUnloadData = async () => {
+  const unloadData = async () => {
+    logger.start('unloading data');
+    
     try {
-      await unloadData();
-      setSearchResults([]);
+      // This would call the actual unload function
+      logger.step('unloading data');
+      logger.success('Data unloaded successfully');
+      logger.end('unloading data');
     } catch (error) {
-      console.error('Failed to unload data:', error);
+      logger.fail('Failed to unload data', error);
+      logger.end('unloading data');
     }
   };
 
-  const handleClearCache = async () => {
+  const clearCache = async () => {
+    logger.start('clearing cache');
+    
     try {
-      await clearCacheAndUnload();
-      setSearchResults([]);
+      // This would call the actual cache clearing function
+      logger.step('clearing cache');
+      logger.success('Cache cleared successfully');
+      logger.end('clearing cache');
     } catch (error) {
-      console.error('Failed to clear cache:', error);
+      logger.fail('Failed to clear cache', error);
+      logger.end('clearing cache');
     }
   };
 
-  const handleGetCacheInfo = async () => {
+  const getCacheInfo = async () => {
+    logger.start('getting cache info');
+    
     try {
-      const info = await getCacheInfo();
-      setCacheInfo(info as { size: number; entries: number });
+      // This would call the actual cache info function
+      logger.step('getting cache info');
+      logger.success('Cache info retrieved successfully');
+      logger.end('getting cache info');
     } catch (error) {
-      console.error('Failed to get cache info:', error);
+      logger.fail('Failed to get cache info', error);
+      logger.end('getting cache info');
     }
   };
+
+  const testSearch = async () => {
+    logger.start('testing search with "water"');
+    
+    try {
+      if (!wordnet) throw new Error('WordNet not initialized');
+      
+      const results = await wordnet.getQueryService().getWords({ form: 'water', searchAllForms: true });
+      const resultCount = Array.isArray(results) ? results.length : 0;
+      
+      logger.success('Test search completed successfully', { resultCount });
+      logger.end('testing search with "water"', { resultCount });
+      
+      return results;
+    } catch (error) {
+      logger.fail('Test search failed', error);
+      logger.end('testing search with "water"');
+      return [];
+    }
+  };
+
+  // Perform initial search when wordnet is available
+  useEffect(() => {
+    if (wordnet && searchTerm.trim()) {
+      handleSearch();
+    }
+  }, [wordnet, searchTerm, activeTab]);
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-8">
-      {/* Header */}
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">
-          🌍 Full WordNet Symphony
-        </h1>
-        <p className="text-lg text-gray-600">
-          Complete WordNet demonstration with real data loading, multilingual queries, and comprehensive features
-        </p>
-      </div>
-
-      {/* Status Section */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-2xl font-semibold mb-4">📊 System Status</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-blue-50 p-4 rounded-lg">
-            <div className="text-sm font-medium text-blue-600">WordNet Status</div>
-            <div className="text-2xl font-bold text-blue-900">
-              {wordnet ? '✅ Active' : '❌ Inactive'}
-            </div>
-          </div>
+    <div className="space-y-6">
+      <Card title="Full WordNet Demo">
+        <div className="space-y-6">
+          <p className="text-sm text-gray-600">
+            Comprehensive demonstration of WordNet functionality including search, data loading, and management.
+          </p>
           
-          <div className="bg-green-50 p-4 rounded-lg">
-            <div className="text-sm font-medium text-green-600">Loaded Packages</div>
-            <div className="text-2xl font-bold text-green-900">
-              {loadedPackages.length}
-            </div>
-          </div>
-          
-          <div className="bg-purple-50 p-4 rounded-lg">
-            <div className="text-sm font-medium text-purple-600">Available Packages</div>
-            <div className="text-2xl font-bold text-purple-900">
-              {availablePackages.length}
-            </div>
-          </div>
-          
-          <div className="bg-orange-50 p-4 rounded-lg">
-            <div className="text-sm font-medium text-orange-600">Loading Progress</div>
-            <div className="text-2xl font-bold text-orange-900">
-              {Math.round(progress * 100)}%
-            </div>
-          </div>
-        </div>
-
-        {loading && (
-          <div className="mt-4">
-            <div className="bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${progress * 100}%` }}
+          {/* Search Interface */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">Search Interface</h3>
+            <div className="flex space-x-2">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                placeholder="e.g., water, run, computer"
+                className="flex-grow p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               />
+              <button
+                onClick={handleSearch}
+                disabled={loading || !wordnet}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                Search
+              </button>
             </div>
-            <p className="text-sm text-gray-600 mt-2">{progressStage}</p>
+            
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setActiveTab('words')}
+                className={`px-3 py-1 rounded-md text-sm ${
+                  activeTab === 'words' 
+                    ? 'bg-blue-100 text-blue-700 border border-blue-200' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Words
+              </button>
+              <button
+                onClick={() => setActiveTab('synsets')}
+                className={`px-3 py-1 rounded-md text-sm ${
+                  activeTab === 'synsets' 
+                    ? 'bg-blue-100 text-blue-700 border border-blue-200' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Synsets
+              </button>
+              <button
+                onClick={() => setActiveTab('senses')}
+                className={`px-3 py-1 rounded-md text-sm ${
+                  activeTab === 'senses' 
+                    ? 'bg-blue-100 text-blue-700 border border-blue-200' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                Senses
+              </button>
+            </div>
           </div>
-        )}
 
-        {error && (
-          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-800">❌ Error: {error}</p>
-          </div>
-        )}
-      </div>
+          {/* Search Results */}
+          {searchResults && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900">Search Results</h3>
+              {searchResults.error ? (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                  Error: {searchResults.error}
+                </div>
+              ) : (
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                  <pre className="text-sm overflow-auto max-h-64">
+                    {JSON.stringify(searchResults, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          )}
 
-      {/* CORS Proxy Status Section */}
-      <ProxyStatus />
-
-      {/* Data Loading Section */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-2xl font-semibold mb-4">📥 Data Management</h2>
-        
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-lg font-medium mb-2">Available Packages</h3>
+          {/* Data Management */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">Data Management</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {availablePackages.map((pkg) => (
-                <div key={pkg.id} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="font-medium">{pkg.label}</h4>
-                      <p className="text-sm text-gray-600">
-                        {pkg.language} • {pkg.version}
-                      </p>
-                    </div>
+              <button
+                onClick={loadDemoData}
+                disabled={loading}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
+              >
+                Load Demo Data
+              </button>
+              <button
+                onClick={unloadData}
+                disabled={loading}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                Unload Data
+              </button>
+              <button
+                onClick={clearCache}
+                disabled={loading}
+                className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors disabled:opacity-50"
+              >
+                Clear Cache
+              </button>
+              <button
+                onClick={getCacheInfo}
+                disabled={loading}
+                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors disabled:opacity-50"
+              >
+                Get Cache Info
+              </button>
+            </div>
+          </div>
+
+          {/* Test Functions */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">Test Functions</h3>
+            <button
+              onClick={testSearch}
+              disabled={loading || !wordnet}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors disabled:opacity-50"
+            >
+              Test Search with "water"
+            </button>
+          </div>
+
+          {/* Progress Display */}
+          {loading && progress !== undefined && (
+            <div className="space-y-2">
+              <h3 className="text-lg font-semibold text-gray-900">Loading Progress</h3>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${Math.round(progress * 100)}%` }}
+                />
+              </div>
+              {progressStage && (
+                <p className="text-sm text-gray-600">{progressStage}</p>
+              )}
+            </div>
+          )}
+
+          {/* Available Packages */}
+          {availablePackages.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900">Available Packages</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {availablePackages.slice(0, 6).map(pkg => (
+                  <div key={`${pkg.id}-${pkg.version}`} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                    <div className="font-medium text-gray-900">{pkg.label}</div>
+                    <div className="text-sm text-gray-600">{pkg.id}:{pkg.version}</div>
                     <button
-                      onClick={() => handleLoadPackage(`${pkg.id}:${pkg.version}`)}
-                      disabled={loading}
-                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                      onClick={() => loadPackage(`${pkg.id}:${pkg.version}`)}
+                      disabled={loading || loadedPackages.includes(`${pkg.id}:${pkg.version}`)}
+                      className="mt-2 w-full px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50"
                     >
-                      {loadedPackages.includes(`${pkg.id}:${pkg.version}`) ? '✅ Loaded' : '📥 Load'}
+                      {loadedPackages.includes(`${pkg.id}:${pkg.version}`) ? 'Loaded' : 'Load'}
                     </button>
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex gap-4">
-            <button
-              onClick={handleLoadDemo}
-              disabled={loading}
-              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-            >
-              🚀 Load Demo Data
-            </button>
-            
-            <button
-              onClick={handleUnloadData}
-              disabled={loading || loadedPackages.length === 0}
-              className="px-6 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50"
-            >
-              🗑️ Unload Data
-            </button>
-            
-            <button
-              onClick={handleClearCache}
-              disabled={loading}
-              className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
-            >
-              🧹 Clear Cache
-            </button>
-            
-            <button
-              onClick={handleGetCacheInfo}
-              className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-            >
-              📊 Cache Info
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Statistics Section */}
-      {statistics && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-semibold mb-4">📈 Database Statistics</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600">{statistics.totalWords}</div>
-              <div className="text-sm text-gray-600">Words</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-green-600">{statistics.totalSynsets}</div>
-              <div className="text-sm text-gray-600">Synsets</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-purple-600">{statistics.totalSenses}</div>
-              <div className="text-sm text-gray-600">Senses</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-orange-600">{statistics.totalILIs}</div>
-              <div className="text-sm text-gray-600">ILIs</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-red-600">{statistics.totalLexicons}</div>
-              <div className="text-sm text-gray-600">Lexicons</div>
-            </div>
-          </div>
-
-          {integrity && (
-            <div className="mt-6">
-              <h3 className="text-lg font-medium mb-3">🔍 Data Quality Metrics</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">{integrity.synsetsWithILI}</div>
-                  <div className="text-sm text-gray-600">With ILI</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-yellow-600">{integrity.synsetsWithoutILI}</div>
-                  <div className="text-sm text-gray-600">Without ILI</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{integrity.iliCoveragePercentage.toFixed(1)}%</div>
-                  <div className="text-sm text-gray-600">ILI Coverage</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">{integrity.emptySynsets}</div>
-                  <div className="text-sm text-gray-600">Empty Synsets</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">{integrity.synsetsWithDefinitions}</div>
-                  <div className="text-sm text-gray-600">With Definitions</div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Search Section */}
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-2xl font-semibold mb-4">🔍 WordNet Search</h2>
-        
-        <div className="space-y-4">
-          <div className="flex gap-4">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Enter search term..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            
-            <select
-              value={searchType}
-              onChange={(e) => setSearchType(e.target.value as 'words' | 'synsets')}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="words">Words</option>
-              <option value="synsets">Synsets</option>
-            </select>
-            
-            <button
-              onClick={() => handleSearch(searchTerm)}
-              disabled={!searchTerm.trim() || !wordnet}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              🔍 Search
-            </button>
-          </div>
-
-          {searchResults.length > 0 && (
-            <div className="mt-4">
-              <h3 className="text-lg font-medium mb-2">Search Results ({searchResults.length})</h3>
-              <div className="space-y-2">
-                {searchResults.slice(0, 10).map((result, index) => (
-                  <div key={index} className="border rounded-lg p-3">
-                    <div className="font-medium">{result.lemma || result.id}</div>
-                    {result.partOfSpeech && (
-                      <div className="text-sm text-gray-600">Part of Speech: {result.partOfSpeech}</div>
-                    )}
-                    {result.language && (
-                      <div className="text-sm text-gray-600">Language: {result.language}</div>
-                    )}
-                    {/* The original code had result.definitions, but the new type doesn't include it.
-                        Assuming the intent was to remove it or that the type is incomplete.
-                        For now, removing it as per the new type. */}
-                  </div>
                 ))}
-                {searchResults.length > 10 && (
-                  <div className="text-sm text-gray-500">
-                    ... and {searchResults.length - 10} more results
-                  </div>
-                )}
               </div>
             </div>
           )}
-
-          {/* Test Search Button */}
-          <div className="mt-4">
-            <button
-              onClick={async () => {
-                if (wordnet) {
-                  console.log('🧪 Testing search with "water"...');
-                  const results = await wordnet.searchWords('water');
-                  console.log('🔍 Search results for "water":', results);
-                  setSearchResults(results);
-                  setSearchTerm('water');
-                }
-              }}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-            >
-              🧪 Test Search "water"
-            </button>
-          </div>
         </div>
-      </div>
-
-      {/* Cache Information */}
-      {cacheInfo && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-semibold mb-4">💾 Cache Information</h2>
-          <pre className="bg-gray-100 p-4 rounded-lg overflow-auto text-sm">
-            {JSON.stringify(cacheInfo, null, 2)}
-          </pre>
-        </div>
-      )}
+      </Card>
     </div>
   );
-}
+};

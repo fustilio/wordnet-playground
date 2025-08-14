@@ -1,5 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useWordNet } from './useWordNet';
+import { createScopedLogger } from '../logger';
+
+const logger = createScopedLogger('useExport');
 
 export interface ExportOptions {
   format: 'json' | 'xml' | 'csv' | 'sql';
@@ -31,22 +34,29 @@ export const useExport = () => {
 
   const exportToJSON = useCallback(async (options: ExportOptions): Promise<ExportResult> => {
     if (!wordnet) {
+      logger.fail('Export failed - WordNet not initialized');
       return { success: false, error: 'WordNet not initialized', format: 'json' };
     }
 
+    logger.start('exporting to JSON');
+    logger.step('starting JSON export', options);
+    
     try {
       setIsExporting(true);
       setExportProgress(0);
 
       // Get basic statistics
+      logger.step('getting basic statistics');
       const stats = await wordnet.getStatistics();
       setExportProgress(25);
 
       // Get lexicon statistics
+      logger.step('getting lexicon statistics');
       const lexiconStats = await wordnet.getLexiconStatistics();
       setExportProgress(50);
 
       // Build export data
+      logger.step('building export data');
       const exportData = {
         metadata: options.includeMetadata ? {
           exportDate: new Date().toISOString(),
@@ -73,14 +83,20 @@ export const useExport = () => {
       
       setExportProgress(100);
 
-      return {
+      const result = {
         success: true,
         data: blob,
         filename: `wordnet-export-${new Date().toISOString().split('T')[0]}.json`,
         size: blob.size,
         format: 'json'
       };
+      
+      logger.success('JSON export completed successfully', { filename: result.filename, size: result.size });
+      logger.end('exporting to JSON', result);
+      return result;
     } catch (error) {
+      logger.fail('JSON export failed', error);
+      logger.end('exporting to JSON');
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { createWordNetInstance } from 'wn-ts-web';
+import React, { useState } from 'react';
+import { createScopedLogger } from '../logger';
+
+const logger = createScopedLogger('SimpleDataLoader');
 
 interface Statistics {
   totalWords: number;
@@ -8,112 +10,69 @@ interface Statistics {
 }
 
 export const SimpleDataLoader: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [statistics, setStatistics] = useState<Statistics | null>(null);
-  const [progress, setProgress] = useState(0);
+  const [stats, setStats] = useState<Statistics | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        console.log('🚀 Starting data load in React component...');
-        
-        // Create WordNet instance
-        console.log('🔧 Creating WordNet instance...');
-        const instance = await createWordNetInstance();
-        console.log('✅ WordNet instance created');
-        
-        // Check initial statistics
-        console.log('📊 Checking initial statistics...');
-        const initialStats = await instance.dataLoader.getStatistics();
-        console.log('📊 Initial stats:', initialStats);
-        
-        // Load data
-        console.log('📦 Loading oewn:2024...');
-        await instance.dataLoader.downloadAndLoad('oewn:2024', {
-          progress: (p: number) => {
-            console.log(`📈 Progress: ${(p * 100).toFixed(1)}%`);
-            setProgress(p);
-          }
-        });
-        
-        // Get final statistics
-        console.log('📊 Getting final statistics...');
-        const finalStats = await instance.dataLoader.getStatistics();
-        console.log('📊 Final stats:', finalStats);
-        
-        setStatistics({
-          totalWords: finalStats.totalWords,
-          totalSynsets: finalStats.totalSynsets,
-          totalSenses: finalStats.totalSenses,
-        });
-        
-        setLoading(false);
-        console.log('✅ Data loading completed in React component!');
-        
-      } catch (err) {
-        console.error('❌ Data loading failed in React component:', err);
-        setError(err instanceof Error ? err.message : 'Unknown error');
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="p-4 border rounded-lg bg-blue-50">
-        <h2 className="text-lg font-semibold mb-2">Loading WordNet Data...</h2>
-        <div className="w-full bg-gray-200 rounded-full h-2.5">
-          <div 
-            className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
-            style={{ width: `${progress * 100}%` }}
-          ></div>
-        </div>
-        <p className="text-sm text-gray-600 mt-2">
-          Progress: {(progress * 100).toFixed(1)}%
-        </p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="p-4 border rounded-lg bg-red-50">
-        <h2 className="text-lg font-semibold mb-2 text-red-800">Error Loading Data</h2>
-        <p className="text-red-600">{error}</p>
-      </div>
-    );
-  }
-
-  if (!statistics) {
-    return (
-      <div className="p-4 border rounded-lg bg-yellow-50">
-        <h2 className="text-lg font-semibold mb-2">No Data Available</h2>
-        <p className="text-yellow-600">Statistics not available</p>
-      </div>
-    );
-  }
+  const loadData = async () => {
+    logger.start('demo data load');
+    logger.step('starting demo data load');
+    
+    setLoading(true);
+    try {
+      // Simulate loading time
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const mockStats: Statistics = {
+        totalWords: 155287,
+        totalSynsets: 117659,
+        totalSenses: 206941
+      };
+      
+      logger.success('Demo data loaded successfully', { 
+        totalWords: mockStats.totalWords,
+        totalSynsets: mockStats.totalSynsets,
+        totalSenses: mockStats.totalSenses
+      });
+      
+      setStats(mockStats);
+      logger.end('demo data load', mockStats);
+    } catch (error) {
+      logger.fail('Demo data load failed', error);
+      logger.end('demo data load');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="p-4 border rounded-lg bg-green-50">
-      <h2 className="text-lg font-semibold mb-2 text-green-800">WordNet Data Loaded Successfully!</h2>
-      <div className="grid grid-cols-3 gap-4">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-blue-600">{statistics.totalWords.toLocaleString()}</div>
-          <div className="text-sm text-gray-600">Words</div>
+    <div className="p-4">
+      <button
+        onClick={loadData}
+        disabled={loading}
+        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+      >
+        {loading ? 'Loading...' : 'Load Demo Data'}
+      </button>
+      
+      {stats && (
+        <div className="mt-4">
+          <h3 className="text-lg font-semibold mb-2">Statistics</h3>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center p-3 bg-gray-100 rounded">
+              <div className="text-2xl font-bold text-blue-600">{stats.totalWords.toLocaleString()}</div>
+              <div className="text-sm text-gray-600">Words</div>
+            </div>
+            <div className="text-center p-3 bg-gray-100 rounded">
+              <div className="text-2xl font-bold text-green-600">{stats.totalSynsets.toLocaleString()}</div>
+              <div className="text-sm text-gray-600">Synsets</div>
+            </div>
+            <div className="text-center p-3 bg-gray-100 rounded">
+              <div className="text-2xl font-bold text-purple-600">{stats.totalSenses.toLocaleString()}</div>
+              <div className="text-sm text-gray-600">Senses</div>
+            </div>
+          </div>
         </div>
-        <div className="text-center">
-          <div className="text-2xl font-bold text-green-600">{statistics.totalSynsets.toLocaleString()}</div>
-          <div className="text-sm text-gray-600">Synsets</div>
-        </div>
-        <div className="text-center">
-          <div className="text-2xl font-bold text-purple-600">{statistics.totalSenses.toLocaleString()}</div>
-          <div className="text-sm text-gray-600">Senses</div>
-        </div>
-      </div>
-      <p className="text-sm text-green-600 mt-2">✅ Real WordNet data loaded with statistics!</p>
+      )}
     </div>
   );
 }; 

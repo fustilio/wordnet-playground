@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { getProxyStatus, testProxyConnectivity } from '../utils/cors-proxy';
+import { createScopedLogger } from '../logger';
+
+const logger = createScopedLogger('ProxyStatus');
 
 interface ProxyStatusProps {
   onStatusChange?: (status: { enabled: boolean; isDev: boolean }) => void;
 }
 
 export const ProxyStatus: React.FC<ProxyStatusProps> = ({ onStatusChange }) => {
-  const [status, setStatus] = useState(getProxyStatus());
+  const [status] = useState(getProxyStatus());
   const [connectivity, setConnectivity] = useState<{
     success: boolean;
     endpoints: Array<{
@@ -20,19 +23,48 @@ export const ProxyStatus: React.FC<ProxyStatusProps> = ({ onStatusChange }) => {
 
   useEffect(() => {
     onStatusChange?.(status);
+    logger.debug('Proxy status initialized', { status });
   }, [status, onStatusChange]);
 
   const handleTestConnectivity = async () => {
+    logger.start('proxy connectivity test');
+    logger.step('starting proxy connectivity test');
+    
     setIsTesting(true);
     try {
       const result = await testProxyConnectivity();
+      
+      logger.success('Proxy connectivity test completed', { 
+        success: result.success,
+        endpointCount: result.endpoints.length,
+        successfulEndpoints: result.endpoints.filter(e => e.status === 'success').length
+      });
+      
+      // Log detailed endpoint results
+      result.endpoints.forEach(endpoint => {
+        if (endpoint.status === 'success') {
+          logger.step('endpoint test successful', { 
+            name: endpoint.name, 
+            responseTime: endpoint.responseTime 
+          });
+        } else {
+          logger.step('endpoint test failed', { 
+            name: endpoint.name, 
+            status: endpoint.status, 
+            error: endpoint.error 
+          });
+        }
+      });
+      
       setConnectivity(result);
+      logger.end('proxy connectivity test', result);
     } catch (error) {
-      console.error('Failed to test proxy connectivity:', error);
+      logger.fail('Proxy connectivity test failed', error);
       setConnectivity({
         success: false,
         endpoints: [],
       });
+      logger.end('proxy connectivity test');
     } finally {
       setIsTesting(false);
     }

@@ -1,4 +1,7 @@
 import { useState, useCallback } from 'react';
+import { createScopedLogger } from '../logger';
+
+const logger = createScopedLogger('useWordNetCache');
 
 interface CacheInfo {
   filename: string;
@@ -38,13 +41,15 @@ export const useWordNetCache = () => {
       
       return supported;
     } catch (error) {
-      console.error('Error checking OPFS support:', error);
+      logger.fail('Error checking OPFS support', error);
       return false;
     }
   }, []);
 
   // Update cache information
   const updateCacheInfo = useCallback(async () => {
+    logger.start('updating cache information');
+    
     try {
       const root = await navigator.storage.getDirectory();
       const files: CacheInfo[] = [];
@@ -75,8 +80,16 @@ export const useWordNetCache = () => {
         totalSize,
         availableSpace
       }));
+      
+      logger.success('Cache information updated successfully', { 
+        fileCount: files.length, 
+        totalSize, 
+        availableSpace 
+      });
+      logger.end('updating cache information', { fileCount: files.length, totalSize, availableSpace });
     } catch (error) {
-      console.error('Error updating cache info:', error);
+      logger.fail('Error updating cache info', error);
+      logger.end('updating cache information');
     }
   }, []);
 

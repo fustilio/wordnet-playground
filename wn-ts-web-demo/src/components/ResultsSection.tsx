@@ -1,10 +1,14 @@
 import React from 'react';
+import type { StatisticsBundle } from '../types';
+import { createScopedLogger } from '../logger';
+
+const logger = createScopedLogger('ResultsSection');
 
 interface ResultsSectionProps {
   activeTab: string;
   searchTerm: string;
-  searchResults: any;
-  stats: any;
+  searchResults: unknown;
+  stats: StatisticsBundle | null;
 }
 
 export const ResultsSection: React.FC<ResultsSectionProps> = ({
@@ -13,6 +17,25 @@ export const ResultsSection: React.FC<ResultsSectionProps> = ({
   searchResults,
   stats
 }) => {
+  // Log when results change
+  React.useEffect(() => {
+    if (activeTab === 'stats' && stats) {
+      logger.debug('Statistics results updated', { 
+        activeTab,
+        hasStatistics: !!stats.statistics,
+        hasPosDistribution: !!stats.posDistribution,
+        hasLexiconStats: !!stats.lexiconStats
+      });
+    } else if (searchResults) {
+      logger.debug('Search results updated', { 
+        activeTab,
+        searchTerm,
+        hasResults: !!searchResults,
+        isError: searchResults && typeof searchResults === 'object' && 'error' in (searchResults as any)
+      });
+    }
+  }, [activeTab, searchTerm, searchResults, stats]);
+
   return (
     <div className="results-section">
       {activeTab === 'stats' ? (
@@ -42,9 +65,9 @@ export const ResultsSection: React.FC<ResultsSectionProps> = ({
           <h3>Search Results for "{searchTerm}"</h3>
           {searchResults ? (
             <div className="results">
-              {searchResults.error ? (
+              {typeof searchResults === 'object' && searchResults !== null && 'error' in (searchResults as any) ? (
                 <div className="error-message">
-                  <p>Error: {searchResults.error}</p>
+                  <p>Error: {(searchResults as any).error}</p>
                 </div>
               ) : (
                 <pre className="results-json">
