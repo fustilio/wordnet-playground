@@ -26,7 +26,7 @@ describe.skipIf(isNode)('batchInsert E2E', () => {
     await webDb.initializeWithModule(sqlModule);
     await webDb.createDatabase();
     
-    const dialect = createSqliteWasmDialect(webDb.getDatabase());
+    const dialect = createSqliteWasmDialect({ database: webDb.getDatabase(), sqlModule });
     kyselyDb = new Kysely<Database>({ dialect });
     queryService = new KyselyQueryService(kyselyDb);
     

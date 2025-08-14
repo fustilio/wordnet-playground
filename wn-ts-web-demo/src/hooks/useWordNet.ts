@@ -1,31 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   createWordNetInstance, 
   WebWordnet, 
   DataLoader
 } from 'wn-ts-web';
-// Comlink-backed worker for heavy operations
-import type { Remote } from 'comlink';
+import { WordNetWorkerClient } from '../lib/wordnetWorkerClient';
 import { createScopedLogger, setGlobalLogLevel } from '../logger';
 setGlobalLogLevel('debug')
+
 // Worker-first: This hook prefers a Comlink worker for initialization and heavy operations.
 // It automatically falls back to main thread if the worker cannot be created.
-
-// Worker API interface
-interface WordNetWorkerAPI {
-  initializeWordNet(): Promise<{ success: boolean; error?: string }>;
-  loadPackage(packageId: string): Promise<{ success: boolean; data?: any; error?: string }>;
-  loadPackageFromData(packageId: string, data: ArrayBuffer): Promise<{ success: boolean; data?: any; error?: string }>;
-
-  loadDemoData(): Promise<{ success: boolean; data?: any; error?: string }>;
-  getStatistics(): Promise<{ success: boolean; data?: any; error?: string }>;
-  queryWords(term: string): Promise<{ success: boolean; data?: any; error?: string }>;
-  querySynsets(term: string): Promise<{ success: boolean; data?: any; error?: string }>;
-  clearData(): Promise<{ success: boolean; error?: string }>;
-  getStatus(): Promise<{ success: boolean; data?: any; error?: string }>;
-}
-
-let remote: Remote<WordNetWorkerAPI> | null = null;
 
 
 
@@ -77,8 +61,23 @@ export function useWordNet(): WordNetState & {
   querySynsets: (term: string) => Promise<unknown[]>;
   unloadData: () => Promise<void>;
   refreshPackages: () => Promise<void>;
+  getLexiconInfo: (id?: string) => any[] | undefined;
+  getCurrentLexicons: () => any[];
+  testMemoryQueries: () => Promise<any>;
 } {
   const logger = createScopedLogger('useWordNet');
+  
+  // Store the worker client in a ref to maintain it across renders
+  const workerClientRef = useRef<WordNetWorkerClient | null>(null);
+  
+  // Initialize the worker client only once
+  useEffect(() => {
+    if (!workerClientRef.current) {
+      workerClientRef.current = new WordNetWorkerClient();
+    }
+  }, []); // Empty dependency array ensures this only runs once
+  
+  const workerClient = workerClientRef.current;
 
   
   
@@ -130,10 +129,10 @@ export function useWordNet(): WordNetState & {
       setState(prev => ({ ...prev, progressStage: 'Scanning for existing packages...' }));
       
       // Always try to get status from worker if available, regardless of cache status
-      if (remote) {
+      if (workerClient) {
         try {
           logger.debug('Calling worker getStatus()');
-          const status = await remote.getStatus();
+          const status = await workerClient.getStatus();
           logger.debug('Worker getStatus() response', status);
           
           if (status.success && status.data) {
@@ -175,9 +174,9 @@ export function useWordNet(): WordNetState & {
         } catch (error) {
           logger.warn('Worker status check failed with error', { error });
         }
-      } else {
-        logger.debug('No remote worker available for status check');
-      }
+              } else {
+          logger.debug('No worker client available for status check');
+        }
       
       // No cache fallback needed since worker handles everything
       logger.debug('No cache files found');
@@ -212,6 +211,41 @@ export function useWordNet(): WordNetState & {
     }
   }, []);
 
+  // Get lexicon information from the worker client
+  const getLexiconInfo = useCallback((id?: string) => {
+    if (!workerClient) return undefined;
+    
+    if (id) {
+      const lexicon = workerClient.getLexicon(id);
+      return lexicon ? [lexicon] : [];
+    }
+    return workerClient.lexicons;
+  }, [workerClient]);
+
+  // Get current lexicons from the worker client
+  const getCurrentLexicons = useCallback(() => {
+    if (!workerClient) return [];
+    return workerClient.lexicons;
+  }, [workerClient]);
+
+  // Test memory queries for debugging
+  const testMemoryQueries = useCallback(async () => {
+    if (!workerClient) {
+      logger.warn('No worker client available for memory testing');
+      return null;
+    }
+    
+    try {
+      logger.debug('Running memory query tests');
+      const results = await workerClient.testMemoryQueries();
+      logger.debug('Memory test results', { results });
+      return results;
+    } catch (error) {
+      logger.error('Memory test failed', { error });
+      throw error;
+    }
+  }, [workerClient, logger]);
+
   // Initialize WordNet instance (run once on mount)
   useEffect(() => {
     if (state.isInitializing) {
@@ -219,6 +253,95 @@ export function useWordNet(): WordNetState & {
       initializeWordNet();
     }
   }, [state.isInitializing]);
+
+  // Cleanup effect to dispose the worker client when the component unmounts
+  useEffect(() => {
+    return () => {
+      if (workerClientRef.current) {
+        workerClientRef.current.dispose();
+        workerClientRef.current = null;
+      }
+    };
+  }, []);
+
+  // Set up event listeners for the worker client
+  useEffect(() => {
+    if (!workerClient) {
+      logger.debug('No worker client available for event listeners');
+      return;
+    }
+
+    // Handle lexicon changes
+    const handleLexiconsChanged = (event: { lexicons: any[]; added?: any[]; removed?: string[] }) => {
+      logger.debug('Lexicons changed event received', event);
+      
+      setState(prev => ({
+        ...prev,
+        loadedPackages: event.lexicons.map(l => l.id),
+        availablePackages: prev.availablePackages.filter(pkg => 
+          event.lexicons.some(l => l.id === pkg.id) || pkg.id === 'oewn:2024'
+        )
+      }));
+    };
+
+    // Handle package loaded events
+    const handlePackageLoaded = (event: { packageId: string; success: boolean; error?: string; lexiconInfo?: any }) => {
+      logger.debug('Package loaded event received', event);
+      
+      if (event.success && event.lexiconInfo) {
+        setState(prev => ({
+          ...prev,
+          loadedPackages: [...new Set([...prev.loadedPackages, event.packageId])],
+          progressStage: `Package ${event.packageId} loaded successfully`
+        }));
+      } else if (event.error) {
+        setState(prev => ({
+          ...prev,
+          error: `Failed to load package ${event.packageId}: ${event.error}`,
+          progressStage: `Failed to load ${event.packageId}`
+        }));
+      }
+    };
+
+    // Handle status updates
+    const handleStatusUpdated = (status: any) => {
+      logger.debug('Status updated event received', status);
+      
+      if (status.lexiconStats) {
+        const loadedPackages = status.lexiconStats.map((ls: any) => ls.lexiconId);
+        setState(prev => ({
+          ...prev,
+          loadedPackages,
+          statistics: status.statistics,
+          progressStage: loadedPackages.length > 0 ? 'Ready - Packages loaded' : 'Ready - No packages loaded'
+        }));
+      }
+    };
+
+    // Handle errors
+    const handleError = (event: { error: string; context: string }) => {
+      logger.warn('Worker error event received', event);
+      setState(prev => ({
+        ...prev,
+        error: `Worker error (${event.context}): ${event.error}`,
+        progressStage: 'Error occurred'
+      }));
+    };
+
+    // Add event listeners
+    workerClient.addEventListener('lexiconsChanged', handleLexiconsChanged);
+    workerClient.addEventListener('packageLoaded', handlePackageLoaded);
+    workerClient.addEventListener('statusUpdated', handleStatusUpdated);
+    workerClient.addEventListener('error', handleError);
+
+    // Cleanup event listeners
+    return () => {
+      workerClient.removeEventListener('lexiconsChanged', handleLexiconsChanged);
+      workerClient.removeEventListener('packageLoaded', handlePackageLoaded);
+      workerClient.removeEventListener('statusUpdated', handleStatusUpdated);
+      workerClient.removeEventListener('error', handleError);
+    };
+  }, [workerClient, logger]);
 
   // Initialize WordNet instance (run once on mount)
   const initializeWordNet = async () => {
@@ -228,26 +351,26 @@ export function useWordNet(): WordNetState & {
     setState(prev => ({ ...prev, loading: true, isInitializing: true, progressStage: 'Loading SQLite WASM...' }));
     
     try {
-      // Initialize Comlink worker for heavy operations
-      if (!remote) {
+      // Initialize worker client for heavy operations
+      if (workerClient && !workerClient.initialized) {
         try {
-          logger.step('initializing Comlink worker');
-          remote = new ComlinkWorker<typeof import('../workers/wordnetWorker')>(new URL('../workers/wordnetWorker.ts', import.meta.url));
+          logger.step('initializing worker client');
+          await workerClient.initialize();
           
-          logger.success('Comlink worker initialized');
+          logger.success('Worker client initialized');
         } catch (error) {
-          logger.warn('Failed to initialize Comlink worker, falling back to main thread', { error });
+          logger.warn('Failed to initialize worker client, falling back to main thread', { error });
         }
       }
 
-      // Try to use worker first, fall back to main thread
-      let wordnet: WebWordnet | null = null;
-      let dataLoader: DataLoader | null = null;
+              // Try to use worker first, fall back to main thread
+        let wordnet: WebWordnet | null = null;
+        let dataLoader: DataLoader | null = null;
 
-      if (remote) {
-        try {
-          logger.step('using Comlink worker for initialization');
-          const result = await remote.initializeWordNet();
+        if (workerClient) {
+          try {
+            logger.step('using worker client for initialization');
+            const result = await workerClient.getStatus();
           if (result.success) {
             logger.success('Worker initialization successful');
             logger.debug('Worker result data', result);
@@ -378,7 +501,7 @@ export function useWordNet(): WordNetState & {
 
       logger.success('WordNet initialized successfully');
       logger.end('WordNet initialization', { 
-        hasWorker: !!remote,
+        hasWorker: !!workerClient?.initialized,
         hasWordNet: !!wordnet,
         hasDataLoader: !!dataLoader
       });
@@ -398,7 +521,7 @@ export function useWordNet(): WordNetState & {
 
   // Load package data with caching
   const loadPackageData = useCallback(async (packageId: string, progress?: ProgressCallback) => {
-    if (!remote && !state.dataLoader) {
+    if (!workerClient?.initialized && !state.dataLoader) {
       throw new Error('DataLoader not initialized');
     }
 
@@ -416,23 +539,23 @@ export function useWordNet(): WordNetState & {
       logger.step('downloading from server', { packageId });
       setState(prev => ({ ...prev, progressStage: `Downloading ${packageId}...` }));
       
-      // Try to use Comlink worker for heavy operations
-      if (remote) {
-        try {
-          logger.step('using Comlink worker for package loading', { packageId });
-          const result = await remote.loadPackage(packageId);
-          if (result.success) {
-            logger.success('Worker package loading successful');
-            logger.end(`loading package ${packageId}`, { 
-              source: 'worker', 
-              method: 'comlink' 
-            });
-            // No redundant main-thread reload here
-          } else {
-            logger.warn('Worker package loading failed, using main thread', { 
-              packageId, 
-              error: result.error 
-            });
+              // Try to use worker client for heavy operations
+        if (workerClient) {
+          try {
+            logger.step('using worker client for package loading', { packageId });
+            const result = await workerClient.loadPackage(packageId);
+                      if (result) {
+              logger.success('Worker package loading successful');
+              logger.end(`loading package ${packageId}`, { 
+                source: 'worker', 
+                method: 'client' 
+              });
+              // No redundant main-thread reload here
+            } else {
+              logger.warn('Worker package loading failed, using main thread', { 
+                packageId, 
+                error: 'Worker returned false' 
+              });
             if (!state.dataLoader) throw new Error('DataLoader not initialized');
             await state.dataLoader.downloadAndLoad(packageId, {
               progress: (p: number) => {
@@ -499,15 +622,15 @@ export function useWordNet(): WordNetState & {
         let totalSenses = 0;
         let posDistribution: any = undefined;
 
-        if (remote && !state.dataLoader) {
-          const resp = await remote.getStatistics();
-          if (resp.success && resp.data) {
-            totalWords = resp.data.statistics.totalWords;
-            totalSynsets = resp.data.statistics.totalSynsets;
-            totalSenses = resp.data.statistics.totalSenses;
-            posDistribution = resp.data.posDistribution;
+        if (workerClient && !state.dataLoader) {
+          const resp = await workerClient.getStatus();
+          if (resp && resp.statistics) {
+            totalWords = resp.statistics.totalWords;
+            totalSynsets = resp.statistics.totalSynsets;
+            totalSenses = resp.statistics.totalSenses;
+            posDistribution = resp.posDistribution;
           } else {
-            throw new Error(resp.error || 'Failed to fetch worker statistics');
+            throw new Error('Failed to fetch worker statistics');
           }
         } else if (state.dataLoader) {
           const stats = await state.dataLoader.getStatistics();
@@ -585,17 +708,17 @@ export function useWordNet(): WordNetState & {
     try {
       console.log('📦 Attempting to load oewn:2024...');
       
-      // Try to use Comlink worker for demo data loading
-      if (remote) {
+      // Try to use worker client for demo data loading
+      if (workerClient) {
         try {
-          console.log('🔧 Using Comlink worker for demo data loading...');
-          const result = await remote.loadDemoData();
-          if (result.success) {
+          console.log('🔧 Using worker client for demo data loading...');
+          const result = await workerClient.loadDemoData();
+          if (result) {
             console.log('✅ Worker demo data loading successful');
             // Still need to load the database into main thread for queries
             await loadPackageData('oewn:2024', progress);
           } else {
-            console.warn('⚠️ Worker demo data loading failed, using main thread:', result.error);
+            console.warn('⚠️ Worker demo data loading failed, using main thread');
             await loadPackageData('oewn:2024', progress);
           }
         } catch (error) {
@@ -622,11 +745,11 @@ export function useWordNet(): WordNetState & {
   // Query words
   const queryWords = useCallback(async (term: string) => {
     // Prefer worker if available
-    if (remote) {
+    if (workerClient) {
       try {
-        const result = await remote.queryWords(term);
-        if (result.success) return result.data;
-        console.warn('⚠️ Worker query failed, using main thread:', result.error);
+        const result = await workerClient.queryWords(term);
+        if (result && result.length > 0) return result;
+        console.warn('⚠️ Worker query failed, using main thread');
       } catch (error) {
         console.warn('⚠️ Worker error, falling back to main thread:', error);
       }
@@ -641,11 +764,11 @@ export function useWordNet(): WordNetState & {
   // Query synsets
   const querySynsets = useCallback(async (term: string) => {
     // Prefer worker if available
-    if (remote) {
+    if (workerClient) {
       try {
-        const result = await remote.querySynsets(term);
-        if (result.success) return result.data;
-        console.warn('⚠️ Worker query failed, using main thread:', result.error);
+        const result = await workerClient.querySynsets(term);
+        if (result && result.length > 0) return result;
+        console.warn('⚠️ Worker query failed, using main thread');
       } catch (error) {
         console.warn('⚠️ Worker error, falling back to main thread:', error);
       }
@@ -662,14 +785,14 @@ export function useWordNet(): WordNetState & {
     try {
       setState(prev => ({ ...prev, loading: true }));
       
-      // Try to use Comlink worker for clearing data
-      if (remote) {
+      // Try to use worker client for clearing data
+      if (workerClient) {
         try {
-          const result = await remote.clearData();
-          if (result.success) {
+          const result = await workerClient.clearData();
+          if (result) {
             console.log('✅ Worker data clearing successful');
           } else {
-            console.warn('⚠️ Worker data clearing failed, using main thread:', result.error);
+            console.warn('⚠️ Worker data clearing failed, using main thread');
           }
         } catch (error) {
           console.warn('⚠️ Worker error, falling back to main thread:', error);
@@ -706,6 +829,9 @@ export function useWordNet(): WordNetState & {
     querySynsets,
     unloadData,
     refreshPackages,
+    getLexiconInfo,
+    getCurrentLexicons,
+    testMemoryQueries,
   };
 }
 

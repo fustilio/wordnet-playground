@@ -7,7 +7,7 @@ import { createScopedLogger } from '../../logger';
 const logger = createScopedLogger('DeveloperDemo');
 
 export const DeveloperDemo: React.FC = () => {
-  const { unloadData } = useWordNetContext();
+  const { unloadData, testMemoryQueries } = useWordNetContext();
   
   // Define lexicon requirements for this demo
   const lexiconRequirements = [
@@ -34,6 +34,22 @@ export const DeveloperDemo: React.FC = () => {
     }
   };
 
+  const handleTestMemoryQueries = async () => {
+    logger.start('testing memory queries');
+    
+    try {
+      const results = await testMemoryQueries();
+      logger.success('Memory test completed', { results });
+      logger.end('testing memory queries');
+      
+      // Log results to console for debugging
+      console.log('🔍 Memory Test Results:', results);
+    } catch (error) {
+      logger.fail('Memory test failed', error);
+      logger.end('testing memory queries');
+    }
+  };
+
   return (
     <Card title="Developer Tools">
        <div className="space-y-6">
@@ -49,6 +65,12 @@ export const DeveloperDemo: React.FC = () => {
               className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
             >
               Clear DB Data
+            </button>
+            <button
+              onClick={handleTestMemoryQueries}
+              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+            >
+              Test Memory Queries
             </button>
           </div>
         </div>

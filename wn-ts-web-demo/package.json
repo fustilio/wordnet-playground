@@ -22,6 +22,7 @@
     "with-server": "start-server-and-test \"pnpm run dev:e2e\" http://localhost:5174"
   },
   "dependencies": {
+    "utils": "workspace:*",
     "@heroicons/react": "^2.2.0",
     "@sqlite.org/sqlite-wasm": "catalog:",
     "@tailwindcss/vite": "^4.1.11",
@@ -50,6 +51,6 @@
     "ts-node": "^10.9.2",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vite-plugin-comlink": "^5.3.0"
+    "vite-plugin-comlink": "catalog:"
   }
 }

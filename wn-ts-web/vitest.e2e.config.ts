@@ -1,28 +1,33 @@
 import { defineConfig } from "vitest/config";
 import path from "path";
 
-// This config is for end-to-end browser tests that require a live network.
-// It does NOT use the setup file with mocks.
+// This config is for end-to-end browser tests that use the actual browser environment
+// and real dependencies like SQLite WASM
 export default defineConfig({
   test: {
     browser: {
       enabled: true,
       provider: "playwright",
       instances: [{ browser: "chromium" }],
+      headless: false, // Set to true in CI
     },
     fileParallelism: false,
-    // NO setupFiles here to avoid mocking fetch
     globals: true,
-    include: ["test/browser/e2e/**/*.{test,spec}.{js,ts,jsx,tsx}"],
+    include: [
+      "test/browser/e2e/**/*.{test,spec}.{js,ts,jsx,tsx}",
+      "test/e2e/**/*.{test,spec}.{js,ts,jsx,tsx}"
+    ],
     pool: "forks",
     poolOptions: {
       forks: {
         singleFork: true,
       },
     },
-    testTimeout: 300000, // 60 seconds for E2E tests
-    hookTimeout: 300000, // 60 seconds for E2E hooks
-    silent: true
+    testTimeout: 300000, // 5 minutes for E2E tests
+    hookTimeout: 300000, // 5 minutes for E2E hooks
+    silent: false, // Enable logging for debugging
+    environment: "jsdom", // Use jsdom for browser-like environment
+    setupFiles: ["test/e2e/setup.ts"], // Setup file for e2e tests
   },
   server: {
     proxy: {

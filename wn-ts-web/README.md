@@ -1,10 +1,10 @@
 # wn-ts-web
 
-Browser-compatible WordNet TypeScript implementation using SQLite WASM.
+Browser-compatible WordNet TypeScript implementation using SQLite WASM with advanced orchestration capabilities.
 
 ## Status: ✅ PRODUCTION READY
 
-This package provides a fully functional browser-based WordNet implementation using [@sqlite.org/sqlite-wasm](https://github.com/sqlite/sqlite-wasm) for optimal performance and persistence.
+This package provides a fully functional browser-based WordNet implementation using [@sqlite.org/sqlite-wasm](https://github.com/sqlite/sqlite-wasm) for optimal performance and persistence, now with enhanced orchestration for managing multiple lexicons.
 
 ## Features
 
@@ -17,6 +17,62 @@ This package provides a fully functional browser-based WordNet implementation us
 - ✅ **Performance Optimized**: Fast queries and efficient memory usage.
 - ✅ **Framework Agnostic**: Core library works with any JavaScript framework.
 - ✅ **Worker-First Architecture**: Designed to run in Web Workers for optimal performance.
+- ✅ **Multi-Lexicon Orchestration**: Advanced management of multiple lexicons with state tracking.
+- ✅ **Cross-Lexicon Queries**: Efficient queries across multiple lexicons in a single database.
+- ✅ **Lexicon Lifecycle Management**: Automatic update detection and redownload management.
+
+## Architecture
+
+The library now provides three levels of abstraction for different use cases:
+
+### 1. WordNetOrchestrator (High-level)
+For applications that need to manage multiple lexicons with cross-lexicon operations:
+
+```typescript
+import { WordNetOrchestrator } from 'wn-ts-web';
+
+const orchestrator = new WordNetOrchestrator({
+  defaultLexicon: 'oewn:2024',
+  autoCheckUpdates: true
+});
+
+await orchestrator.initialize(sqlModule);
+await orchestrator.loadLexicon('oewn:2024');
+await orchestrator.loadLexicon('wn31:3.1');
+
+// Query across all lexicons efficiently
+const words = await orchestrator.queryWords('run');
+const synsets = await orchestrator.querySynsets('happy');
+```
+
+### 2. WordNetWorkerClient (Mid-level)
+For worker-based operations and lexicon state tracking:
+
+```typescript
+import { WordNetWorkerClient } from 'wn-ts-web';
+
+const client = new WordNetWorkerClient();
+await client.initialize('/workers/wordnet.worker.js');
+
+await client.loadPackage('oewn:2024', (progress, stage) => {
+  console.log(`Loading: ${stage} - ${progress * 100}%`);
+});
+
+const words = await client.queryWords('example');
+```
+
+### 3. WebWordnet (Low-level)
+For direct lexicon operations (existing API):
+
+```typescript
+import { WebWordnet } from 'wn-ts-web';
+
+const wordnet = new WebWordnet('oewn:2024');
+await wordnet.initialize(sqlModule);
+const words = await wordnet.words('example');
+```
+
+For detailed architecture information, see [ORCHESTRATION_ARCHITECTURE.md](./ORCHESTRATION_ARCHITECTURE.md).
 
 ## Run in a Web Worker (assumed)
 

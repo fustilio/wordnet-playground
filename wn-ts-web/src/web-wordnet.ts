@@ -475,6 +475,29 @@ export class WebWordnet extends BaseWordnet {
   }
 
   /**
+   * Check if any lexicons are currently loaded in the database.
+   * This is a lightweight check that doesn't fetch full statistics.
+   */
+  async hasLoadedLexicons(): Promise<boolean> {
+    if (!this.initialized || !this.queryService)
+      throw new Error("WebWordnet not initialized");
+
+    try {
+      const lexiconStats = await this.getLexiconStatistics();
+      return lexiconStats.length > 0;
+    } catch (error) {
+      // If we can't get lexicon stats, try a simpler approach
+      try {
+        const lexicons = await this.lexicons();
+        return lexicons.length > 0;
+      } catch {
+        // If all else fails, return false
+        return false;
+      }
+    }
+  }
+
+  /**
    * Get a quick status snapshot for rehydration after initialization.
    * By default this only fetches lightweight information to avoid
    * memory spikes on large datasets.

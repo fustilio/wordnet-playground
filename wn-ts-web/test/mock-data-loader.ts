@@ -143,13 +143,13 @@ export class MockDataLoader extends DataLoader {
           // Insert word
           const wordId = `${lemma}.${pos}.01`;
           this.database.run(
-            "INSERT OR REPLACE INTO words (id, lemma, part_of_speech, language, lexicon) VALUES (?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO words (id, lemma, pos, language, lexicon) VALUES (?, ?, ?, ?, ?)",
             [wordId, lemma, pos, "en", projectIdWithVersion]
           );
 
           // Insert synset
           this.database.run(
-            "INSERT OR REPLACE INTO synsets (id, part_of_speech, language, lexicon) VALUES (?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO synsets (id, pos, language, lexicon) VALUES (?, ?, ?, ?)",
             [synsetId, pos, "en", projectIdWithVersion]
           );
 
@@ -180,7 +180,7 @@ export class MockDataLoader extends DataLoader {
 
       for (const [synsetId, pos] of sampleSynsets) {
         this.database.run(
-          "INSERT OR REPLACE INTO synsets (id, part_of_speech, language, lexicon) VALUES (?, ?, ?, ?)",
+          "INSERT OR REPLACE INTO synsets (id, pos, language, lexicon) VALUES (?, ?, ?, ?)",
           [synsetId, pos, "en", projectIdWithVersion]
         );
       }
@@ -278,7 +278,7 @@ export class MockDataLoader extends DataLoader {
 
         if (queryService) {
           await queryService.insertLexicon({
-            id: project.id,
+            id: project.projectIdWithVersion,
             label: label,
             language: language,
             license: license,
@@ -286,7 +286,7 @@ export class MockDataLoader extends DataLoader {
         } else {
           this.database.run(
             "INSERT OR REPLACE INTO lexicons (id, label, language, license) VALUES (?, ?, ?, ?)",
-            [project.id, label, language, license]
+            [project.projectIdWithVersion, label, language, license]
           );
         }
       } catch (error) {
@@ -348,8 +348,8 @@ export class MockDataLoader extends DataLoader {
         const wordId = `${word}.${pos}.${Math.floor(i / commonWords.length) + 1}`;
 
         this.database.run(
-          "INSERT OR REPLACE INTO words (id, lemma, part_of_speech, language, lexicon) VALUES (?, ?, ?, ?, ?)",
-          [wordId, word, pos, "en", project.id]
+          "INSERT OR REPLACE INTO words (id, lemma, pos, language, lexicon) VALUES (?, ?, ?, ?, ?)",
+          [wordId, word, pos, "en", project.projectIdWithVersion]
         );
       }
 
@@ -359,8 +359,8 @@ export class MockDataLoader extends DataLoader {
         const synsetId = `synset.${pos}.${i + 1}`;
 
         this.database.run(
-          "INSERT OR REPLACE INTO synsets (id, part_of_speech, language, lexicon) VALUES (?, ?, ?, ?)",
-          [synsetId, pos, "en", project.id]
+          "INSERT OR REPLACE INTO synsets (id, pos, language, lexicon) VALUES (?, ?, ?, ?)",
+          [synsetId, pos, "en", project.projectIdWithVersion]
         );
       }
 

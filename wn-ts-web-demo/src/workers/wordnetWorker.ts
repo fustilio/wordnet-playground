@@ -16,6 +16,8 @@ import { createScopedLogger } from '../logger'
 
 let wordnet: WebWordnet | null = null;
 let dataLoader: DataLoader | null = null;
+let isInitialized = false;
+let isDisposing = false; // Flag to prevent multiple disposal operations
 const logger = createScopedLogger('wordnet-worker')
 
 // Expose the worker API using Comlink
@@ -23,11 +25,39 @@ export async function initializeWordNet() {
   try {
     logger.info('Starting: WordNet initialization');
     
+    // Check if we're already initialized
+    if (isInitialized && wordnet && dataLoader) {
+      logger.debug('WordNet already initialized, returning existing instance');
+      return { 
+        success: true, 
+        data: { 
+          lexiconStats: null, 
+          statistics: null,
+          hasInitialState: true
+        } 
+      };
+    }
+    
+    // Check if we're in the middle of disposing
+    if (isDisposing) {
+      logger.warn('WordNet is currently being disposed, waiting...');
+      // Wait a bit for disposal to complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+      isDisposing = false;
+    }
+    
+    // If we have existing instances, dispose them first to avoid conflicts
+    if (wordnet || dataLoader) {
+      logger.debug('Disposing existing instances before reinitializing');
+      await disposeWordNet();
+    }
+    
     // Create WordNet instance
     const instance = await createWordNetInstance();
     if (instance.wordnet && instance.dataLoader) {
       wordnet = instance.wordnet;
       dataLoader = instance.dataLoader;
+      isInitialized = true;
       
       logger.info('WordNet instance created successfully');
       
@@ -38,7 +68,6 @@ export async function initializeWordNet() {
         data: { 
           lexiconStats: null, 
           statistics: null,
-          // We don't have initial state yet, but the worker is ready
           hasInitialState: false
         } 
       };
@@ -53,22 +82,67 @@ export async function initializeWordNet() {
 }
 
 export async function getStatus() {
+  logger.debug('Getting status from worker');
   try {
     if (!wordnet) {
+      logger.error('WordNet not initialized');
       return { success: false, error: "WordNet not initialized" };
     }
 
-    // Lightweight status check - only get what's already cached/available
+    // Lightweight status check - try simple queries first, then fall back to complex ones
     let lexiconStats = null;
     let statistics = null;
     
     try {
-      // Get lexicon stats (usually lightweight)
-      lexiconStats = await wordnet.getLexiconStatistics();
+      logger.debug('Getting lexicon stats from worker');
+      
+      // Try to get lexicon stats efficiently, with fallbacks for memory issues
+      try {
+        // First try the lightweight getQuickStatus method
+        logger.debug('Trying lightweight status check');
+        const quickStatus = await wordnet.getQuickStatus({ includeExpensive: false });
+        lexiconStats = quickStatus.lexiconStats;
+        logger.debug('Got lexicon stats via getQuickStatus', { lexiconStats });
+      } catch (e: any) {
+        logger.warn('getQuickStatus failed, trying direct method', { error: e });
+        
+        try {
+          // Fallback to direct method
+          lexiconStats = await wordnet.getLexiconStatistics();
+          logger.debug('Got lexicon stats via direct method', { lexiconStats });
+        } catch (e2: any) {
+          if (e2?.resultCode === 7) { // SQLITE_NOMEM
+            logger.warn('SQLITE_NOMEM during lexicon stats fetch, using minimal fallback');
+            
+            // Create minimal lexicon info - just check if lexicons table has data
+            try {
+              // Try to get basic lexicon info without expensive JOINs
+              const basicLexicons = await wordnet.lexicons();
+              if (basicLexicons && basicLexicons.length > 0) {
+                lexiconStats = basicLexicons.map(l => ({
+                  lexiconId: l.id,
+                  label: l.label || l.id,
+                  language: l.language || 'en',
+                  version: l.version || 'unknown',
+                  wordCount: 0, // We can't get these without expensive queries
+                  synsetCount: 0
+                }));
+                logger.debug('Created minimal lexicon stats from lexicons()', { lexiconStats });
+              }
+            } catch (fallbackError: any) {
+              logger.warn('All fallback approaches failed', { error: fallbackError });
+            }
+          } else {
+            logger.warn('Failed to get lexicon stats via direct method', { error: e2 });
+          }
+        }
+      }
       
       // Only try to get general statistics if it's not too expensive
       try {
+        logger.debug('Getting statistics from worker');
         statistics = await wordnet.getStatistics();
+        logger.debug('Statistics from worker', statistics);
       } catch (e: any) {
         if (e?.resultCode === 7) { // SQLITE_NOMEM
           logger.warn('SQLITE_NOMEM during status statistics fetch, skipping', { error: e });
@@ -77,11 +151,7 @@ export async function getStatus() {
         }
       }
     } catch (e: any) {
-      if (e?.resultCode === 7) { // SQLITE_NOMEM
-        logger.warn('SQLITE_NOMEM during status lexicon stats fetch');
-      } else {
-        logger.warn('Failed to get lexicon stats during status check', e);
-      }
+      logger.warn('Unexpected error during status check', e);
     }
 
     return {
@@ -96,6 +166,67 @@ export async function getStatus() {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error('Failed to get status', { error });
     return { success: false, error: errorMessage };
+  }
+}
+
+// Test function to debug memory issues
+// Test function to debug memory issues - exposed for debugging
+export async function testMemoryQueries() {
+  logger.debug('Testing memory-efficient queries');
+  
+  if (!wordnet) {
+    return { success: false, error: "WordNet not initialized" };
+  }
+
+  const results: any = {};
+  
+  try {
+    // Test 1: Simple lexicons query
+    logger.debug('Test 1: Simple lexicons query');
+    try {
+      const lexicons = await wordnet.lexicons();
+      results.lexicons = { success: true, count: lexicons.length, data: lexicons };
+      logger.debug('Lexicons query successful', { count: lexicons.length });
+    } catch (e: any) {
+      results.lexicons = { success: false, error: e.message, code: e.resultCode };
+      logger.warn('Lexicons query failed', { error: e });
+    }
+
+    // Test 2: Try to get basic lexicon info
+    logger.debug('Test 2: Basic lexicon info via public methods');
+    try {
+      // Try to get basic info without expensive operations
+      const basicLexicons = await wordnet.lexicons();
+      if (basicLexicons && basicLexicons.length > 0) {
+        results.basicInfo = { 
+          success: true, 
+          count: basicLexicons.length, 
+          data: basicLexicons.map(l => ({ id: l.id, label: l.label, language: l.language, version: l.version }))
+        };
+        logger.debug('Basic lexicon info successful', { count: basicLexicons.length });
+      } else {
+        results.basicInfo = { success: true, count: 0, data: [] };
+      }
+    } catch (e: any) {
+      results.basicInfo = { success: false, error: e.message, code: e.resultCode };
+      logger.warn('Basic lexicon info failed', { error: e });
+    }
+
+    // Test 3: Try the expensive method with error handling
+    logger.debug('Test 3: Expensive getLexiconStatistics method');
+    try {
+      const expensiveResult = await wordnet.getLexiconStatistics();
+      results.expensiveQuery = { success: true, count: expensiveResult.length, data: expensiveResult };
+      logger.debug('Expensive query successful', { count: expensiveResult.length });
+    } catch (e: any) {
+      results.expensiveQuery = { success: false, error: e.message, code: e.resultCode };
+      logger.warn('Expensive query failed', { error: e });
+    }
+
+    return { success: true, data: results };
+  } catch (error: any) {
+    logger.error('Memory test failed', { error });
+    return { success: false, error: error.message };
   }
 }
 
@@ -484,14 +615,48 @@ export async function querySynsets(term: string) {
   }
 }
 
+// Helper function to properly dispose WordNet instances
+async function disposeWordNet() {
+  try {
+    logger.debug('Disposing WordNet instances');
+    isDisposing = true;
+    
+    if (wordnet) {
+      try {
+        await wordnet.close();
+        logger.debug('WordNet instance closed');
+      } catch (e) {
+        logger.warn('Error closing WordNet instance', { error: e });
+      }
+      wordnet = null;
+    }
+    
+    if (dataLoader) {
+      try {
+        // Clear any cached data
+        await dataLoader.clearAllData();
+        logger.debug('DataLoader cleared');
+      } catch (e) {
+        logger.warn('Error clearing DataLoader', { error: e });
+      }
+      dataLoader = null;
+    }
+    
+    isInitialized = false;
+    isDisposing = false;
+    logger.debug('WordNet instances disposed successfully');
+  } catch (error) {
+    logger.error('Error disposing WordNet instances', { error });
+    isDisposing = false;
+  }
+}
+
 export async function clearData() {
   try {
-    if (!dataLoader) {
-      return { success: false, error: "DataLoader not initialized" };
-    }
-
     logger.start('clearing all data');
-    await dataLoader.clearAllData();
+    
+    // Use the dispose helper to properly clean up everything
+    await disposeWordNet();
 
     logger.success('All data cleared successfully');
     logger.end('clearing all data');

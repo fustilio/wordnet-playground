@@ -9,6 +9,9 @@ interface WordNetContextValue extends WordNetState {
   querySynsets: (term: string) => Promise<unknown[]>;
   unloadData: () => Promise<void>;
   refreshPackages: () => Promise<void>;
+  getLexiconInfo: (id?: string) => any[] | undefined;
+  getCurrentLexicons: () => any[];
+  testMemoryQueries: () => Promise<any>;
 }
 
 const WordNetContext = createContext<WordNetContextValue | null>(null);

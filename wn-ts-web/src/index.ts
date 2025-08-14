@@ -14,8 +14,24 @@ export { DataLoader } from './data-loader.js';
 export { OPFSManager } from './opfs-manager.js';
 export { DataManager } from './data-manager.js';
 
+// Orchestration and worker exports
+export { WordNetOrchestrator } from './wordnet-orchestrator.js';
+export { WordNetWorkerClient } from './wordnet-worker-client.js';
+export type { 
+  LexiconState, 
+  OrchestratorOptions, 
+  LoadLexiconOptions, 
+  QueryOptions
+} from './wordnet-orchestrator.js';
+export type {
+  WordNetWorkerAPI,
+  LexiconInfo,
+  WordNetEventMap,
+  WordNetEventListener
+} from './wordnet-worker-client.js';
+
 // Worker factory exports (framework-agnostic)
-export { createWordNetWorker, type WordNetWorkerAPI } from './worker-factory';
+export { createWordNetWorker } from './worker-factory';
 
 // Note: React hooks are not exported here to keep wn-ts-web framework-agnostic
 // They can be imported separately from './react-hooks' if needed, or moved to a separate package
@@ -101,7 +117,6 @@ export type {
 } from './opfs-manager.js';
 
 export type {
-  LexiconInfo,
   DatabaseStatistics,
   ExportOptions,
   CleanupOptions

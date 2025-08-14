@@ -17,15 +17,15 @@ import { MockDataLoader } from './mock-data-loader.js';
 function createMockSqliteWasm() {
   const mockData = {
     words: [
-      { id: 'word1', lemma: 'test', part_of_speech: 'n', language: 'en', lexicon: 'oewn' },
-      { id: 'word2', lemma: 'example', part_of_speech: 'n', language: 'en', lexicon: 'oewn' }
+      { id: 'word1', lemma: 'test', pos: 'n', language: 'en', lexicon: 'oewn:2024' },
+      { id: 'word2', lemma: 'example', pos: 'n', language: 'en', lexicon: 'oewn:2024' }
     ],
     synsets: [
-      { id: 'synset1', ili: 'i1', part_of_speech: 'n', language: 'en', lexicon: 'oewn' },
-      { id: 'synset2', ili: 'i2', part_of_speech: 'n', language: 'en', lexicon: 'oewn' }
+      { id: 'synset1', ili: 'i1', pos: 'n', language: 'en', lexicon: 'oewn:2024' },
+      { id: 'synset2', ili: 'i2', pos: 'n', language: 'en', lexicon: 'oewn:2024' }
     ],
     lexicons: [
-      { id: 'oewn', label: 'Open English WordNet', language: 'en', version: '2024' }
+      { id: 'oewn:2024', label: 'Open English WordNet', language: 'en', version: '2024' }
     ],
     senses: [
       { id: 's1', word_id: 'word1', synset_id: 'synset1' },
@@ -170,7 +170,7 @@ describe('Comprehensive Kysely Integration', () => {
     it('should get words through query service', async () => {
       const words = await queryService.getWords({
         form: 'test',
-        lexicon: 'oewn',
+        lexicon: 'oewn:2024',
         language: 'en'
       });
       
@@ -180,7 +180,7 @@ describe('Comprehensive Kysely Integration', () => {
     it('should get synsets through query service', async () => {
       const synsets = await queryService.getSynsets({
         form: 'test',
-        lexicon: 'oewn',
+        lexicon: 'oewn:2024',
         language: 'en'
       });
       
@@ -195,6 +195,44 @@ describe('Comprehensive Kysely Integration', () => {
       expect(stats).toHaveProperty('totalSenses');
       expect(stats).toHaveProperty('totalILIs');
       expect(stats).toHaveProperty('totalLexicons');
+    });
+
+    it('should get lexicon statistics through query service', async () => {
+      const lexiconStats = await queryService.getLexiconStatistics();
+      
+      console.log('🔍 Debug: getLexiconStatistics result:', JSON.stringify(lexiconStats, null, 2));
+      
+      expect(Array.isArray(lexiconStats)).toBe(true);
+      
+      if (lexiconStats.length > 0) {
+        const firstStat = lexiconStats[0];
+        console.log('🔍 Debug: firstStat:', JSON.stringify(firstStat, null, 2));
+        expect(firstStat).toHaveProperty('lexiconId');
+        expect(firstStat).toHaveProperty('label');
+        expect(firstStat).toHaveProperty('language');
+        expect(firstStat).toHaveProperty('version');
+        expect(firstStat).toHaveProperty('wordCount');
+        expect(firstStat).toHaveProperty('synsetCount');
+        
+        // Ensure numeric values are reasonable
+        expect(typeof firstStat.wordCount).toBe('number');
+        expect(typeof firstStat.synsetCount).toBe('number');
+        expect(firstStat.wordCount).toBeGreaterThanOrEqual(0);
+        expect(firstStat.synsetCount).toBeGreaterThanOrEqual(0);
+      }
+    });
+
+    it('should get lexicon statistics for specific lexicon', async () => {
+      const lexiconStats = await queryService.getLexiconStatistics('oewn:2024');
+      
+      expect(Array.isArray(lexiconStats)).toBe(true);
+      
+      if (lexiconStats.length > 0) {
+        // Should only return stats for the specified lexicon
+        lexiconStats.forEach(stat => {
+          expect(stat.lexiconId).toBe('oewn:2024');
+        });
+      }
     });
   });
 
@@ -221,6 +259,41 @@ describe('Comprehensive Kysely Integration', () => {
     it('should get lexicons through WebWordnet', async () => {
       const lexicons = await wordnet.lexicons();
       expect(Array.isArray(lexicons)).toBe(true);
+    });
+
+    it('should get lexicon statistics through WebWordnet', async () => {
+      const lexiconStats = await wordnet.getLexiconStatistics();
+      
+      expect(Array.isArray(lexiconStats)).toBe(true);
+      
+      if (lexiconStats.length > 0) {
+        const firstStat = lexiconStats[0];
+        expect(firstStat).toHaveProperty('lexiconId');
+        expect(firstStat).toHaveProperty('label');
+        expect(firstStat).toHaveProperty('language');
+        expect(firstStat).toHaveProperty('version');
+        expect(firstStat).toHaveProperty('wordCount');
+        expect(firstStat).toHaveProperty('synsetCount');
+        
+        // Ensure numeric values are reasonable
+        expect(typeof firstStat.wordCount).toBe('number');
+        expect(typeof firstStat.synsetCount).toBe('number');
+        expect(firstStat.wordCount).toBeGreaterThanOrEqual(0);
+        expect(firstStat.synsetCount).toBeGreaterThanOrEqual(0);
+      }
+    });
+
+    it('should get lexicon statistics for specific lexicon through WebWordnet', async () => {
+      const lexiconStats = await wordnet.getLexiconStatistics('oewn:2024');
+      
+      expect(Array.isArray(lexiconStats)).toBe(true);
+      
+      if (lexiconStats.length > 0) {
+        // Should only return stats for the specified lexicon
+        lexiconStats.forEach(stat => {
+          expect(stat.lexiconId).toBe('oewn:2024');
+        });
+      }
     });
   });
 
