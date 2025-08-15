@@ -26,28 +26,31 @@ describe("load data", () => {
       const inflated = pako.inflate(deflated, { to: "string" });
       console.log("inflated:", inflated);
       expect(inflated).toBe(testData);
-
-    } catch (e) {
-      console.error("Test failed:", e);
-      throw e; // Re-throw to fail the test properly
+    } catch (error) {
+      console.error("Pako test failed:", error);
+      throw error;
     }
   });
 
-  test("pako with larger data", async () => {
+  test("pako handles large data efficiently", async () => {
     try {
-      // Test with larger data to ensure pako handles it properly
-      const largeData = "This is a larger test string with more content to compress and decompress using pako library. It should handle various data sizes correctly.";
+      // Create a larger test dataset
+      const largeData = "a".repeat(10000) + "b".repeat(10000) + "c".repeat(10000);
       
-      // Compress and decompress
+      // Test compression ratio
       const compressed = pako.gzip(largeData);
+      const compressionRatio = compressed.length / largeData.length;
+      
+      console.log("Large data compression ratio:", compressionRatio);
+      expect(compressionRatio).toBeLessThan(1); // Should compress
+      expect(compressionRatio).toBeGreaterThan(0.001); // But not too much (adjusted for repetitive data)
+      
+      // Test round-trip
       const decompressed = pako.ungzip(compressed, { to: "string" });
-      
       expect(decompressed).toBe(largeData);
-      expect(compressed.length).toBeLessThan(largeData.length); // Compression should reduce size
-      
-    } catch (e) {
-      console.error("Large data test failed:", e);
-      throw e;
+    } catch (error) {
+      console.error("Large data test failed:", error);
+      throw error;
     }
   });
 });

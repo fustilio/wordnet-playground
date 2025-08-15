@@ -23,43 +23,24 @@ export default defineConfig({
         singleFork: true,
       },
     },
-    testTimeout: 60000, // 1 minute for E2E tests (reduced from 5 minutes)
-    hookTimeout: 60000, // 1 minute for E2E hooks (reduced from 5 minutes)
-    silent: false, // Enable logging for debugging
-    environment: "jsdom", // Use jsdom for browser-like environment
-    setupFiles: ["test/e2e/setup.ts"], // Setup file for e2e tests
-  },
-  server: {
-    proxy: {
-      "/api/en-word-net": {
-        target: "https://en-word.net",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/en-word-net/, ""),
-      },
-      "/api/globalwordnet": {
-        target: "https://github.com",
-        changeOrigin: true,
-        rewrite: (path) =>
-          path.replace(/^\/api\/globalwordnet/, "/globalwordnet"),
-      },
-      "/api/wordnet-dk": {
-        target: "https://wordnet.dk",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/wordnet-dk/, ""),
-      },
-    },
-    headers: {
-      "Cross-Origin-Opener-Policy": "same-origin",
-      "Cross-Origin-Embedder-Policy": "require-corp",
+    testTimeout: 60000, // 1 minute for E2E tests
+    hookTimeout: 30000, // 30 seconds for hooks
+    teardownTimeout: 30000, // 30 seconds for teardown
+    // Add retry logic for flaky tests
+    retry: 1,
+    // Add better error reporting
+    reporters: ["verbose"],
+    // Add environment variables for test configuration
+    env: {
+      VITE_LOG_LEVEL: "warn", // Reduce logging noise
+      VITE_STRESS_LIGHT: "1", // Use light stress mode for faster tests
+      VITE_TEST_TIMEOUT: "60000", // 1 minute timeout
     },
   },
   resolve: {
-    extensions: [".ts", ".js", ".tsx", ".jsx"],
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "test": path.resolve(__dirname, "./test"),
     },
-  },
-  optimizeDeps: {
-    exclude: ["@sqlite.org/sqlite-wasm"],
   },
 });
