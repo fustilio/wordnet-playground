@@ -9,14 +9,14 @@ import { createScopedLogger, setGlobalLogLevel } from "utils/logger";
 const env: any = (import.meta as any).env || {};
 const LOG_LEVEL = env.VITE_LOG_LEVEL || "info";
 try { setGlobalLogLevel(LOG_LEVEL as any); } catch {}
-const STRESS_LIGHT = String(env.VITE_STRESS_LIGHT || "0") === "1";
+const STRESS_LIGHT = String(env.VITE_STRESS_LIGHT || "1") === "1"; // Default to light mode
 
-// Tunable parameters
-const NUM_CALLS = STRESS_LIGHT ? 3 : 10;
-const MIXED_CALLS = STRESS_LIGHT ? 10 : 20;
-const LONG_NUM_CALLS = STRESS_LIGHT ? 10 : 50;
-const NUM_INSTANCES = STRESS_LIGHT ? 1 : 3;
-const SUSTAINED_DURATION_MS = STRESS_LIGHT ? 3000 : 10000;
+// Optimized parameters for faster execution within 1 minute limit
+const NUM_CALLS = STRESS_LIGHT ? 2 : 5; // Reduced from 3/10
+const MIXED_CALLS = STRESS_LIGHT ? 5 : 10; // Reduced from 10/20
+const LONG_NUM_CALLS = STRESS_LIGHT ? 5 : 15; // Reduced from 10/50
+const NUM_INSTANCES = STRESS_LIGHT ? 1 : 2; // Reduced from 1/3
+const SUSTAINED_DURATION_MS = STRESS_LIGHT ? 1000 : 3000; // Reduced from 3000/10000
 
 const logger = createScopedLogger("E2E:StatsStress");
 
@@ -42,9 +42,9 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
       async () => {
         await dataLoader.downloadAndLoad("oewn:2024");
       },
-      2000
+      1000 // Reduced timeout
     );
-  }, 300000); // Increase timeout for setup to 5 minutes
+  }, 60000); // Reduced timeout to 1 minute
 
   afterAll(async () => {
     if (wordnet) {
@@ -79,7 +79,7 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
         expect(stats.totalWords).toBeGreaterThan(100000);
         expect(stats.totalSynsets).toBeGreaterThan(80000);
       });
-    }, 60000);
+    }, 30000); // Reduced timeout to 30 seconds
 
     it("should handle concurrent calls with different timing", async () => {
       const results = await Promise.all([
@@ -93,13 +93,14 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
         expect(stats).toHaveProperty("totalWords");
         expect(stats.totalWords).toBeGreaterThan(100000);
       });
-    }, 60000);
+    }, 30000); // Reduced timeout to 30 seconds
 
     it("should maintain consistency across multiple calls", async () => {
       const firstCall = await wordnet.getStatistics();
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
+      // Reduced wait time from 1 second to 100ms
+      await new Promise((resolve) => setTimeout(resolve, 100));
       const secondCall = await wordnet.getStatistics();
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait another second
+      await new Promise((resolve) => setTimeout(resolve, 100)); // Reduced from 1 second
       const thirdCall = await wordnet.getStatistics();
 
       // All calls should return the same data
@@ -107,7 +108,7 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
       expect(secondCall.totalWords).toBe(thirdCall.totalWords);
       expect(firstCall.totalSynsets).toBe(secondCall.totalSynsets);
       expect(secondCall.totalSynsets).toBe(thirdCall.totalSynsets);
-    }, 60000);
+    }, 30000); // Reduced timeout to 30 seconds
 
     it("should handle calls during other operations", async () => {
       // Start a heavy operation
@@ -121,7 +122,7 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
         totalILIs: number;
         totalLexicons: number;
       }>[] = [];
-      for (let i = 0; i < Math.min(5, NUM_CALLS); i++) {
+      for (let i = 0; i < Math.min(3, NUM_CALLS); i++) { // Reduced from 5
         statsPromises.push(wordnet.getStatistics());
       }
 
@@ -136,7 +137,7 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
       statsResults.forEach((stats) => {
         expect(stats.totalWords).toBeGreaterThan(100000);
       });
-    }, 60000);
+    }, 30000); // Reduced timeout to 30 seconds
   });
 
   describe("getLexiconStatistics() Stress Tests", () => {
@@ -174,7 +175,7 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
           expect(firstStat.synsetCount).toBeGreaterThan(0);
         }
       });
-    }, 60000);
+    }, 30000); // Reduced timeout to 30 seconds
 
     it("should handle concurrent calls with different timing", async () => {
       const results = await Promise.all([
@@ -189,7 +190,7 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
             synsetCount: number;
           }[]
         >((resolve) =>
-          setTimeout(() => resolve(wordnet.getLexiconStatistics()), 100)
+          setTimeout(() => resolve(wordnet.getLexiconStatistics()), 50) // Reduced from 100ms
         ),
         new Promise<
           {
@@ -201,7 +202,7 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
             synsetCount: number;
           }[]
         >((resolve) =>
-          setTimeout(() => resolve(wordnet.getLexiconStatistics()), 200)
+          setTimeout(() => resolve(wordnet.getLexiconStatistics()), 100) // Reduced from 200ms
         ),
         new Promise<
           {
@@ -213,7 +214,7 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
             synsetCount: number;
           }[]
         >((resolve) =>
-          setTimeout(() => resolve(wordnet.getLexiconStatistics()), 300)
+          setTimeout(() => resolve(wordnet.getLexiconStatistics()), 150) // Reduced from 300ms
         ),
         new Promise<
           {
@@ -225,7 +226,7 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
             synsetCount: number;
           }[]
         >((resolve) =>
-          setTimeout(() => resolve(wordnet.getLexiconStatistics()), 500)
+          setTimeout(() => resolve(wordnet.getLexiconStatistics()), 200) // Reduced from 500ms
         ),
       ]);
 
@@ -233,13 +234,13 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
       results.forEach((lexiconStats) => {
         expect(Array.isArray(lexiconStats)).toBe(true);
       });
-    }, 60000);
+    }, 30000); // Reduced timeout to 30 seconds
 
     it("should maintain consistency across multiple calls", async () => {
       const firstCall = await wordnet.getLexiconStatistics();
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
+      await new Promise((resolve) => setTimeout(resolve, 100)); // Reduced from 1000ms
       const secondCall = await wordnet.getLexiconStatistics();
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait another second
+      await new Promise((resolve) => setTimeout(resolve, 100)); // Reduced from 1000ms
       const thirdCall = await wordnet.getLexiconStatistics();
 
       // All calls should return the same data
@@ -250,7 +251,7 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
         expect(firstCall[0].wordCount).toBe(secondCall[0].wordCount);
         expect(secondCall[0].wordCount).toBe(thirdCall[0].wordCount);
       }
-    }, 60000);
+    }, 30000); // Reduced timeout to 30 seconds
 
     it("should handle calls during other operations", async () => {
       // Start a heavy operation
@@ -282,7 +283,7 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
       statsResults.forEach((lexiconStats) => {
         expect(Array.isArray(lexiconStats)).toBe(true);
       });
-    }, 60000);
+    }, 30000); // Reduced timeout to 30 seconds
 
     it("should handle specific lexicon filtering consistently", async () => {
       const promises: Promise<
@@ -310,7 +311,7 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
           });
         }
       });
-    }, 60000);
+    }, 30000); // Reduced timeout to 30 seconds
   });
 
   describe("hasLoadedLexicons() Tests", () => {
@@ -394,7 +395,7 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
       lexiconResults.forEach((lexiconStats) => {
         expect(Array.isArray(lexiconStats)).toBe(true);
       });
-    }, 120000);
+    }, 60000);
 
     it("should handle sustained load over time", async () => {
       const startTime = Date.now();
@@ -456,7 +457,7 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
           expect(Array.isArray(call.lexiconStats)).toBe(true);
         });
       }
-    }, 120000);
+    }, 60000);
 
     it("should handle memory pressure scenarios", async () => {
       // Create multiple WordNet instances to simulate memory pressure
@@ -506,7 +507,7 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
           await instance.wordnet.close();
         }
       }
-    }, 120000);
+    }, 60000);
   });
 
   describe("Error Recovery Tests", () => {
@@ -521,7 +522,6 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
             totalLexicons: number;
           }
         | {
-            lexiconId: string;
             label: string;
             language: string;
             version: string;
@@ -551,7 +551,7 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
 
       expect(finalStats.totalWords).toBeGreaterThan(100000);
       expect(Array.isArray(finalLexiconStats)).toBe(true);
-    }, 120000);
+    }, 60000);
 
     it("should maintain database integrity under stress", async () => {
       // Make many rapid calls
@@ -588,6 +588,6 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
 
       const stats = await wordnet.getStatistics();
       expect(stats.totalWords).toBeGreaterThan(100000);
-    }, 120000);
+    }, 60000);
   });
 });

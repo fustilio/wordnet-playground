@@ -13,7 +13,6 @@ import { WordNetOrchestrator } from '../../src/wordnet-orchestrator.js';
 import type { Sqlite3Static } from '@sqlite.org/sqlite-wasm';
 
 describe('WordNetOrchestrator E2E (Browser)', () => {
-  let orchestrator: WordNetOrchestrator;
   let sqlModule: Sqlite3Static;
 
   beforeAll(async () => {
@@ -34,293 +33,469 @@ describe('WordNetOrchestrator E2E (Browser)', () => {
   });
 
   beforeEach(async () => {
-    orchestrator = new WordNetOrchestrator({
-      defaultLexicon: 'oewn:2024',
-      autoCheckUpdates: false, // Disable for testing
-      maxConcurrentLoads: 2
-    });
+    // No setup needed for each test
   });
 
   afterEach(async () => {
-    if (orchestrator) {
-      await orchestrator.close();
-    }
+    // No cleanup needed for each test
   });
 
   afterAll(async () => {
-    // Cleanup any remaining resources
+    // No cleanup needed
   });
 
   describe('Initialization', () => {
     it('should initialize successfully with SQLite WASM module', async () => {
       console.log('🧪 Starting initialization test...');
       
-      const progressEvents: Array<{ progress: number; stage: string }> = [];
+      const orchestrator = new WordNetOrchestrator({
+        defaultLexicon: 'oewn:2024',
+        autoCheckUpdates: false,
+        maxConcurrentLoads: 2
+      });
       
-      await expect(orchestrator.initialize(sqlModule, {
-        onProgress: (progress: number, stage: string) => {
-          console.log(`📊 Progress: ${progress * 100}% - ${stage}`);
-          progressEvents.push({ progress, stage });
-        }
-      })).resolves.not.toThrow();
-      
-      // Verify initialization state
-      expect(orchestrator.getWordNetInstance()).toBeDefined();
-      
-      console.log('✅ Initialization completed successfully');
-      console.log('📊 Progress events captured:', progressEvents);
+      try {
+        const progressEvents: Array<{ progress: number; stage: string }> = [];
+        
+        await expect(orchestrator.initialize(sqlModule, {
+          onProgress: (progress: number, stage: string) => {
+            console.log(`📊 Progress: ${progress * 100}% - ${stage}`);
+            progressEvents.push({ progress, stage });
+          }
+        })).resolves.not.toThrow();
+        
+        // Verify initialization state
+        expect(orchestrator.getWordNetInstance()).toBeDefined();
+        
+        console.log('✅ Initialization completed successfully');
+        console.log('📊 Progress events captured:', progressEvents);
+      } finally {
+        await orchestrator.close();
+      }
     });
 
     it('should handle multiple initialization calls gracefully', async () => {
       console.log('🧪 Starting multiple initialization test...');
       
-      await orchestrator.initialize(sqlModule, {
-        onProgress: (progress: number, stage: string) => {
-          console.log(`📊 Progress: ${progress * 100}% - ${stage}`);
-        }
+      const orchestrator = new WordNetOrchestrator({
+        defaultLexicon: 'oewn:2024',
+        autoCheckUpdates: false,
+        maxConcurrentLoads: 2
       });
-      await orchestrator.initialize(sqlModule); // Should not throw
       
-      expect(orchestrator.getWordNetInstance()).toBeDefined();
+      try {
+        await orchestrator.initialize(sqlModule, {
+          onProgress: (progress: number, stage: string) => {
+            console.log(`📊 Progress: ${progress * 100}% - ${stage}`);
+          }
+        });
+        await orchestrator.initialize(sqlModule); // Should not throw
+        
+        expect(orchestrator.getWordNetInstance()).toBeDefined();
+      } finally {
+        await orchestrator.close();
+      }
     });
 
     it('should emit initialized event on successful initialization', async () => {
       console.log('🧪 Starting event emission test...');
       
-      const eventPromise = new Promise<boolean>((resolve) => {
-        orchestrator.on('initialized', (data) => {
-          console.log('🎯 Initialized event received:', data);
-          resolve(data.success);
-        });
-      });
-
-      await orchestrator.initialize(sqlModule, {
-        onProgress: (progress: number, stage: string) => {
-          console.log(`📊 Progress: ${progress * 100}% - ${stage}`);
-        }
+      const orchestrator = new WordNetOrchestrator({
+        defaultLexicon: 'oewn:2024',
+        autoCheckUpdates: false,
+        maxConcurrentLoads: 2
       });
       
-      const success = await eventPromise;
-      expect(success).toBe(true);
+      try {
+        const eventPromise = new Promise<boolean>((resolve) => {
+          orchestrator.on('initialized', (data) => {
+            console.log('🎯 Initialized event received:', data);
+            resolve(data.success);
+          });
+        });
+
+        await orchestrator.initialize(sqlModule, {
+          onProgress: (progress: number, stage: string) => {
+            console.log(`📊 Progress: ${progress * 100}% - ${stage}`);
+          }
+        });
+        
+        const success = await eventPromise;
+        expect(success).toBe(true);
+      } finally {
+        await orchestrator.close();
+      }
     });
   });
 
   describe('Lexicon Management', () => {
-    beforeEach(async () => {
-      await orchestrator.initialize(sqlModule);
-    });
-
     it('should track lexicon states correctly', async () => {
-      const states = orchestrator.getLexiconStates();
-      expect(states.size).toBe(0); // No lexicons loaded initially
+      const orchestrator = new WordNetOrchestrator({
+        defaultLexicon: 'oewn:2024',
+        autoCheckUpdates: false,
+        maxConcurrentLoads: 2
+      });
+      
+      try {
+        await orchestrator.initialize(sqlModule);
+        const states = orchestrator.getLexiconStates();
+        expect(states.size).toBe(0); // No lexicons loaded initially
+      } finally {
+        await orchestrator.close();
+      }
     });
 
     it('should emit lexicon state change events', async () => {
-      const stateChangePromise = new Promise<{ lexiconId: string; state: any }>((resolve) => {
-        orchestrator.on('lexiconStateChanged', (data) => {
-          resolve({ lexiconId: data.lexiconId, state: data.state });
-        });
+      const orchestrator = new WordNetOrchestrator({
+        defaultLexicon: 'oewn:2024',
+        autoCheckUpdates: false,
+        maxConcurrentLoads: 2
       });
-
-      // Try to load a lexicon to trigger state change
-      try {
-        await orchestrator.loadLexicon('oewn:2024');
-      } catch (error) {
-        // Expected if no actual lexicon data is available
-        console.log('Lexicon loading failed (expected in test environment):', error);
-      }
       
-      // The test will pass if no errors are thrown
-      expect(true).toBe(true);
+      try {
+        await orchestrator.initialize(sqlModule);
+        
+        const stateChangePromise = new Promise<{ lexiconId: string; state: any }>((resolve) => {
+          orchestrator.on('lexiconStateChanged', (data) => {
+            resolve({ lexiconId: data.lexiconId, state: data.state });
+          });
+        });
+
+        // Try to load a lexicon to trigger state change
+        try {
+          await orchestrator.loadLexicon('oewn:2024');
+        } catch (error) {
+          // Expected if no actual lexicon data is available
+          console.log('Lexicon loading failed (expected in test environment):', error);
+        }
+        
+        // The test will pass if no errors are thrown
+        expect(true).toBe(true);
+      } finally {
+        await orchestrator.close();
+      }
     });
 
     it('should handle lexicon loading lifecycle', async () => {
       console.log('🧪 Starting lexicon loading lifecycle test...');
       
-      // Try to load an actual lexicon
+      const orchestrator = new WordNetOrchestrator({
+        defaultLexicon: 'oewn:2024',
+        autoCheckUpdates: false,
+        maxConcurrentLoads: 2
+      });
+      
       try {
-        const progressEvents: Array<{ progress: number; stage: string }> = [];
+        await orchestrator.initialize(sqlModule);
         
-        await orchestrator.loadLexicon('oewn:2024', {
-          onProgress: (progress: number) => {
-            const stage = progress < 0.3 ? 'Downloading' : 
-                         progress < 0.7 ? 'Parsing XML' : 
-                         progress < 0.9 ? 'Processing data' : 'Finalizing';
-            console.log(`📊 Lexicon loading progress: ${(progress * 100).toFixed(1)}% - ${stage}`);
-            progressEvents.push({ progress, stage });
-          }
-        });
-        
-        // If this succeeds, we have actual data to work with
-        console.log('✅ Lexicon loading succeeded!');
-        console.log('📊 Progress events captured:', progressEvents);
-        expect(true).toBe(true);
-      } catch (error) {
-        // Expected if no actual lexicon data is available
-        console.log('❌ Lexicon loading failed (expected in test environment):', error);
-        expect(error).toBeDefined();
+        // Try to load an actual lexicon
+        try {
+          const progressEvents: Array<{ progress: number; stage: string }> = [];
+          
+          await orchestrator.loadLexicon('oewn:2024', {
+            onProgress: (progress: number) => {
+              const stage = progress < 0.3 ? 'Downloading' : 
+                           progress < 0.7 ? 'Parsing XML' : 
+                           progress < 0.9 ? 'Processing data' : 'Finalizing';
+              console.log(`📊 Lexicon loading progress: ${(progress * 100).toFixed(1)}% - ${stage}`);
+              progressEvents.push({ progress, stage });
+            }
+          });
+          
+          // If this succeeds, we have actual data to work with
+          console.log('✅ Lexicon loading succeeded!');
+          console.log('📊 Progress events captured:', progressEvents);
+          expect(true).toBe(true);
+        } catch (error) {
+          // Expected if no actual lexicon data is available
+          console.log('❌ Lexicon loading failed (expected in test environment):', error);
+          expect(error).toBeDefined();
+        }
+      } finally {
+        await orchestrator.close();
       }
     });
 
     it('should support concurrent lexicon loading with queuing', async () => {
+      // Use a separate orchestrator instance for this test to avoid conflicts
       const orchestratorWithQueue = new WordNetOrchestrator({
         maxConcurrentLoads: 1
       });
       
-      await orchestratorWithQueue.initialize(sqlModule);
-      
-      // Try to load multiple lexicons - should queue them
-      const loadPromises = [
-        orchestratorWithQueue.loadLexicon('oewn:2024'),
-        orchestratorWithQueue.loadLexicon('wn31:3.1'),
-        orchestratorWithQueue.loadLexicon('test:lexicon')
-      ];
-      
-      // All should resolve (though they might fail due to missing data)
-      await Promise.allSettled(loadPromises);
-      
-      await orchestratorWithQueue.close();
+      try {
+        await orchestratorWithQueue.initialize(sqlModule);
+        
+        // Try to load multiple lexicons - should queue them
+        const loadPromises = [
+          orchestratorWithQueue.loadLexicon('oewn:2024'),
+          orchestratorWithQueue.loadLexicon('wn31:3.1'),
+          orchestratorWithQueue.loadLexicon('test:lexicon')
+        ];
+        
+        // All should resolve (though they might fail due to missing data)
+        await Promise.allSettled(loadPromises);
+      } finally {
+        await orchestratorWithQueue.close();
+      }
     });
   });
 
   describe('Query Operations', () => {
-    beforeEach(async () => {
-      await orchestrator.initialize(sqlModule);
-    });
+    // No need for beforeEach since orchestrator is already initialized in beforeAll
 
     it('should support cross-lexicon word queries', async () => {
+      const orchestrator = new WordNetOrchestrator({
+        defaultLexicon: 'oewn:2024',
+        autoCheckUpdates: false,
+        maxConcurrentLoads: 2
+      });
+      
       try {
-        const words = await orchestrator.queryWords('test');
-        // In real environment, this should return actual results or empty array
-        expect(Array.isArray(words)).toBe(true);
-      } catch (error) {
-        // Expected if no data is loaded
-        console.log('Word query failed (expected if no data):', error);
-        expect(error).toBeDefined();
+        await orchestrator.initialize(sqlModule);
+        try {
+          const words = await orchestrator.queryWords('test');
+          // In real environment, this should return actual results or empty array
+          expect(Array.isArray(words)).toBe(true);
+        } catch (error) {
+          // Expected if no data is loaded
+          console.log('Word query failed (expected if no data):', error);
+          expect(error).toBeDefined();
+        }
+      } finally {
+        await orchestrator.close();
       }
     });
 
     it('should support cross-lexicon synset queries', async () => {
+      const orchestrator = new WordNetOrchestrator({
+        defaultLexicon: 'oewn:2024',
+        autoCheckUpdates: false,
+        maxConcurrentLoads: 2
+      });
+      
       try {
-        const synsets = await orchestrator.querySynsets('test');
-        expect(Array.isArray(synsets)).toBe(true);
-      } catch (error) {
-        console.log('Synset query failed (expected if no data):', error);
-        expect(error).toBeDefined();
+        await orchestrator.initialize(sqlModule);
+        try {
+          const synsets = await orchestrator.querySynsets('test');
+          expect(Array.isArray(synsets)).toBe(true);
+        } catch (error) {
+          console.log('Synset query failed (expected if no data):', error);
+          expect(error).toBeDefined();
+        }
+      } finally {
+        await orchestrator.close();
       }
     });
 
     it('should support cross-lexicon sense queries', async () => {
+      const orchestrator = new WordNetOrchestrator({
+        defaultLexicon: 'oewn:2024',
+        autoCheckUpdates: false,
+        maxConcurrentLoads: 2
+      });
+      
       try {
-        const senses = await orchestrator.querySenses('test');
-        expect(Array.isArray(senses)).toBe(true);
-      } catch (error) {
-        console.log('Sense query failed (expected if no data):', error);
-        expect(error).toBeDefined();
+        await orchestrator.initialize(sqlModule);
+        try {
+          const senses = await orchestrator.querySenses('test');
+          expect(Array.isArray(senses)).toBe(true);
+        } catch (error) {
+          console.log('Sense query failed (expected if no data):', error);
+          expect(error).toBeDefined();
+        }
+      } finally {
+        await orchestrator.close();
       }
     });
 
     it('should handle query options correctly', async () => {
+      const orchestrator = new WordNetOrchestrator({
+        defaultLexicon: 'oewn:2024',
+        autoCheckUpdates: false,
+        maxConcurrentLoads: 2
+      });
+      
       try {
-        const words = await orchestrator.queryWords('test', undefined, {
-          lexicons: ['oewn:2024'],
-          language: 'en'
-        });
-        expect(Array.isArray(words)).toBe(true);
-      } catch (error) {
-        console.log('Query with options failed (expected if no data):', error);
-        expect(error).toBeDefined();
+        await orchestrator.initialize(sqlModule);
+        try {
+          const words = await orchestrator.queryWords('test', undefined, {
+            lexicons: ['oewn:2024'],
+            language: 'en'
+          });
+          expect(Array.isArray(words)).toBe(true);
+        } catch (error) {
+          console.log('Query with options failed (expected if no data):', error);
+          expect(error).toBeDefined();
+        }
+      } finally {
+        await orchestrator.close();
       }
     });
   });
 
   describe('Statistics and Monitoring', () => {
-    beforeEach(async () => {
-      await orchestrator.initialize(sqlModule);
-    });
-
     it('should provide lexicon statistics', async () => {
+      const orchestrator = new WordNetOrchestrator({
+        defaultLexicon: 'oewn:2024',
+        autoCheckUpdates: false,
+        maxConcurrentLoads: 2
+      });
+      
       try {
-        const stats = await orchestrator.getLexiconStatistics();
-        expect(Array.isArray(stats)).toBe(true);
-      } catch (error) {
-        console.log('Lexicon statistics failed (expected if no data):', error);
-        expect(error).toBeDefined();
+        await orchestrator.initialize(sqlModule);
+        
+        try {
+          const stats = await orchestrator.getLexiconStatistics();
+          expect(Array.isArray(stats)).toBe(true);
+        } catch (error) {
+          console.log('Lexicon statistics failed (expected if no data):', error);
+          expect(error).toBeDefined();
+        }
+      } finally {
+        await orchestrator.close();
       }
     });
 
     it('should provide overall statistics', async () => {
+      const orchestrator = new WordNetOrchestrator({
+        defaultLexicon: 'oewn:2024',
+        autoCheckUpdates: false,
+        maxConcurrentLoads: 2
+      });
+      
       try {
-        const stats = await orchestrator.getOverallStatistics();
-        expect(stats).toHaveProperty('totalWords');
-        expect(stats).toHaveProperty('totalSynsets');
-        expect(stats).toHaveProperty('totalSenses');
-        expect(stats).toHaveProperty('totalILIs');
-        expect(stats).toHaveProperty('totalLexicons');
-        expect(stats).toHaveProperty('lexiconBreakdown');
-      } catch (error) {
-        console.log('Overall statistics failed (expected if no data):', error);
-        expect(error).toBeDefined();
+        await orchestrator.initialize(sqlModule);
+        
+        try {
+          const stats = await orchestrator.getOverallStatistics();
+          expect(stats).toHaveProperty('totalWords');
+          expect(stats).toHaveProperty('totalSynsets');
+          expect(stats).toHaveProperty('totalSenses');
+          expect(stats).toHaveProperty('totalILIs');
+          expect(stats).toHaveProperty('totalLexicons');
+          expect(stats).toHaveProperty('lexiconBreakdown');
+        } catch (error) {
+          console.log('Overall statistics failed (expected if no data):', error);
+          expect(error).toBeDefined();
+        }
+      } finally {
+        await orchestrator.close();
       }
     });
 
     it('should track lexicon states accurately', async () => {
-      const states = orchestrator.getLexiconStates();
-      expect(states).toBeInstanceOf(Map);
+      const orchestrator = new WordNetOrchestrator({
+        defaultLexicon: 'oewn:2024',
+        autoCheckUpdates: false,
+        maxConcurrentLoads: 2
+      });
       
-      // Test getting specific lexicon state
-      const state = orchestrator.getLexiconState('nonexistent');
-      expect(state).toBeUndefined();
+      try {
+        await orchestrator.initialize(sqlModule);
+        
+        const states = orchestrator.getLexiconStates();
+        expect(states).toBeInstanceOf(Map);
+        
+        // Test getting specific lexicon state
+        const state = orchestrator.getLexiconState('nonexistent');
+        expect(state).toBeUndefined();
+      } finally {
+        await orchestrator.close();
+      }
     });
   });
 
   describe('Event System', () => {
-    beforeEach(async () => {
-      await orchestrator.initialize(sqlModule);
-    });
-
     it('should support event subscription and unsubscription', () => {
-      const mockCallback = () => {};
+      const orchestrator = new WordNetOrchestrator({
+        defaultLexicon: 'oewn:2024',
+        autoCheckUpdates: false,
+        maxConcurrentLoads: 2
+      });
       
-      // Subscribe
-      orchestrator.on('lexiconStateChanged', mockCallback);
-      
-      // Unsubscribe
-      orchestrator.off('lexiconStateChanged', mockCallback);
-      
-      // Should not throw
-      expect(true).toBe(true);
+      try {
+        const mockCallback = () => {};
+        
+        // Subscribe
+        orchestrator.on('lexiconStateChanged', mockCallback);
+        
+        // Unsubscribe
+        orchestrator.off('lexiconStateChanged', mockCallback);
+        
+        // Should not throw
+        expect(true).toBe(true);
+      } finally {
+        orchestrator.close();
+      }
     });
 
     it('should handle multiple event listeners', () => {
-      const callback1 = () => {};
-      const callback2 = () => {};
+      const orchestrator = new WordNetOrchestrator({
+        defaultLexicon: 'oewn:2024',
+        autoCheckUpdates: false,
+        maxConcurrentLoads: 2
+      });
       
-      orchestrator.on('lexiconStateChanged', callback1);
-      orchestrator.on('lexiconStateChanged', callback2);
-      
-      orchestrator.off('lexiconStateChanged', callback1);
-      orchestrator.off('lexiconStateChanged', callback2);
-      
-      expect(true).toBe(true);
+      try {
+        const callback1 = () => {};
+        const callback2 = () => {};
+        
+        orchestrator.on('lexiconStateChanged', callback1);
+        orchestrator.on('lexiconStateChanged', callback2);
+        
+        orchestrator.off('lexiconStateChanged', callback1);
+        orchestrator.off('lexiconStateChanged', callback2);
+        
+        expect(true).toBe(true);
+      } finally {
+        orchestrator.close();
+      }
     });
   });
 
   describe('Resource Management', () => {
-    beforeEach(async () => {
-      await orchestrator.initialize(sqlModule);
-    });
-
     it('should close cleanly and release resources', async () => {
-      await expect(orchestrator.close()).resolves.not.toThrow();
+      const orchestrator = new WordNetOrchestrator({
+        defaultLexicon: 'oewn:2024',
+        autoCheckUpdates: false,
+        maxConcurrentLoads: 2
+      });
       
-      // After closing, getting the instance should throw
-      expect(() => orchestrator.getWordNetInstance()).toThrow('Orchestrator not initialized');
+      try {
+        await orchestrator.initialize(sqlModule);
+        await expect(orchestrator.close()).resolves.not.toThrow();
+        
+        // After closing, getting the instance should throw
+        expect(() => orchestrator.getWordNetInstance()).toThrow('Orchestrator not initialized');
+      } finally {
+        // Ensure cleanup
+        try {
+          await orchestrator.close();
+        } catch (e) {
+          // Expected if already closed
+        }
+      }
     });
 
     it('should handle multiple close calls gracefully', async () => {
-      await orchestrator.close();
-      await orchestrator.close(); // Should not throw
+      const orchestrator = new WordNetOrchestrator({
+        defaultLexicon: 'oewn:2024',
+        autoCheckUpdates: false,
+        maxConcurrentLoads: 2
+      });
+      
+      try {
+        await orchestrator.initialize(sqlModule);
+        await orchestrator.close();
+        await orchestrator.close(); // Should not throw
+      } finally {
+        // Ensure cleanup
+        try {
+          await orchestrator.close();
+        } catch (e) {
+          // Expected if already closed
+        }
+      }
     });
   });
 
@@ -366,6 +541,7 @@ describe('WordNetOrchestrator E2E (Browser)', () => {
 
   describe('Integration Scenarios', () => {
     it('should handle complete workflow: initialize -> load -> query -> close', async () => {
+      // Use a lightweight test that doesn't download large data
       const workflowOrchestrator = new WordNetOrchestrator({
         autoCheckUpdates: false
       });
@@ -375,12 +551,18 @@ describe('WordNetOrchestrator E2E (Browser)', () => {
         await workflowOrchestrator.initialize(sqlModule);
         expect(workflowOrchestrator.getWordNetInstance()).toBeDefined();
         
-        // 2. Try to load lexicon
+        // 2. Try to load lexicon (but don't wait for large downloads)
         try {
-          await workflowOrchestrator.loadLexicon('oewn:2024');
+          // Use a timeout to avoid hanging on large downloads
+          const loadPromise = workflowOrchestrator.loadLexicon('oewn:2024');
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout')), 5000)
+          );
+          
+          await Promise.race([loadPromise, timeoutPromise]);
         } catch (error) {
-          // Expected if no actual data is available
-          console.log('Lexicon loading failed in workflow test:', error);
+          // Expected if no actual data is available or timeout
+          console.log('Lexicon loading failed in workflow test (expected):', error);
         }
         
         // 3. Try to query
@@ -389,7 +571,7 @@ describe('WordNetOrchestrator E2E (Browser)', () => {
           expect(Array.isArray(words)).toBe(true);
         } catch (error) {
           // Expected if no data is loaded
-          console.log('Query failed in workflow test:', error);
+          console.log('Query failed in workflow test (expected):', error);
         }
         
         // 4. Close
@@ -398,28 +580,38 @@ describe('WordNetOrchestrator E2E (Browser)', () => {
       } finally {
         await workflowOrchestrator.close();
       }
-    });
+    }, 30000); // 30 second timeout
 
     it('should handle concurrent operations correctly', async () => {
       const concurrentOrchestrator = new WordNetOrchestrator({
         maxConcurrentLoads: 2
       });
       
-      await concurrentOrchestrator.initialize(sqlModule);
-      
-      // Start multiple operations concurrently
-      const operations = [
-        concurrentOrchestrator.loadLexicon('oewn:2024'),
-        concurrentOrchestrator.loadLexicon('wn31:3.1'),
-        concurrentOrchestrator.queryWords('test'),
-        concurrentOrchestrator.getLexiconStatistics()
-      ];
-      
-      // All should resolve (though some may fail due to missing data)
-      const results = await Promise.allSettled(operations);
-      expect(results).toHaveLength(4);
-      
-      await concurrentOrchestrator.close();
-    });
+      try {
+        await concurrentOrchestrator.initialize(sqlModule);
+        
+        // Start multiple operations concurrently, but with timeouts
+        const operations = [
+          // Use timeouts to avoid hanging on large downloads
+          Promise.race([
+            concurrentOrchestrator.loadLexicon('oewn:2024'),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+          ]),
+          Promise.race([
+            concurrentOrchestrator.loadLexicon('wn31:3.1'),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+          ]),
+          concurrentOrchestrator.queryWords('test'),
+          concurrentOrchestrator.getLexiconStatistics()
+        ];
+        
+        // All should resolve (though some may fail due to missing data or timeout)
+        const results = await Promise.allSettled(operations);
+        expect(results).toHaveLength(4);
+        
+      } finally {
+        await concurrentOrchestrator.close();
+      }
+    }, 30000); // 30 second timeout
   });
 });

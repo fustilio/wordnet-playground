@@ -9,7 +9,7 @@ export default defineConfig({
       enabled: true,
       provider: "playwright",
       instances: [{ browser: "chromium" }],
-      headless: false, // Set to true in CI
+      headless: true, // Set to true for CI and faster execution
     },
     fileParallelism: false,
     globals: true,
@@ -23,8 +23,8 @@ export default defineConfig({
         singleFork: true,
       },
     },
-    testTimeout: 300000, // 5 minutes for E2E tests
-    hookTimeout: 300000, // 5 minutes for E2E hooks
+    testTimeout: 60000, // 1 minute for E2E tests (reduced from 5 minutes)
+    hookTimeout: 60000, // 1 minute for E2E hooks (reduced from 5 minutes)
     silent: false, // Enable logging for debugging
     environment: "jsdom", // Use jsdom for browser-like environment
     setupFiles: ["test/e2e/setup.ts"], // Setup file for e2e tests
