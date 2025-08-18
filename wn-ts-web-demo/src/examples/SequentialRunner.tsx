@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card } from '../components/shared/Card';
-import { useWordNetContext } from '../contexts/WordNetContext';
-import { createScopedLogger } from '../logger';
+import { useWordNetContext } from "wn-ts-web/react";
+import { createScopedLogger } from 'utils/logger';
 
 const logger = createScopedLogger('SequentialRunner');
 

@@ -69,7 +69,7 @@ async function _initialize(wordnet: BaseWordnet, smoothing: number): Promise<Fre
   
   for (const pos of IC_PARTS_OF_SPEECH) {
     freq[pos] = {};
-    const synsets = await wordnet.synsets('', pos);
+    const synsets = await wordnet.synsets({ pos });
     for (const synset of synsets) {
       freq[pos][synset.id] = smoothing;
     }
@@ -78,7 +78,7 @@ async function _initialize(wordnet: BaseWordnet, smoothing: number): Promise<Fre
   }
   
   // Handle ADJ_SAT as just ADJ
-  const adjSatSynsets = await wordnet.synsets('', 's');
+  const adjSatSynsets = await wordnet.synsets({ pos: 's' });
   for (const synset of adjSatSynsets) {
     const posFreq = freq['a'];
     if (posFreq) {
@@ -115,7 +115,7 @@ export async function compute(
   const hypernymCache = new Map<Synset, Synset[]>();
   
   for (const [word, count] of counts) {
-    const synsets = await wordnet.synsets(word);
+    const synsets = await wordnet.synsets({ form: word });
     const num = synsets.length;
     if (num === 0) {
       continue;

@@ -125,7 +125,7 @@ export class Morphy {
       // Get words for all parts of speech
       const posList: PartOfSpeech[] = ['n', 'v', 'a', 'r'];
       for (const pos of posList) {
-        const words = await this.wordnet.words('', pos) as import('./types.js').Word[];
+        const words = await this.wordnet.words({ pos }) as import('./types.js').Word[];
         for (const word of words) {
           const wordPos = word.pos;
           if (!wordPos || !this._exceptions[wordPos]) continue;

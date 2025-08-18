@@ -3,7 +3,7 @@
  */
 
 import type { WordnetOptions } from 'wn-ts-core';
-import { WebWordnet } from './web-wordnet.js';
+import { WebWordnet } from './client/submodules/web-wordnet.js';
 import { DataLoader } from './data-loader.js';
 import sqlite3InitModule, { type Sqlite3Static }  from '@sqlite.org/sqlite-wasm';
  
@@ -89,8 +89,3 @@ export async function createWordNetInstance(
 
   return { wordnet, dataLoader };
 }
-
-// Export the main classes for direct use
-export { WebWordnet } from './web-wordnet.js';
-export { WebDatabase } from './web-database.js';
-export { DataLoader } from './data-loader.js'; 

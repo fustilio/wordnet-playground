@@ -22,15 +22,15 @@
     "with-server": "start-server-and-test \"pnpm run dev:e2e\" http://localhost:5174"
   },
   "dependencies": {
-    "utils": "workspace:*",
     "@heroicons/react": "^2.2.0",
     "@sqlite.org/sqlite-wasm": "catalog:",
     "@tailwindcss/vite": "^4.1.11",
     "pako": "^2.1.0",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "react-force-graph": "^1.48.0",
+    "react-force-graph-2d": "^1.28.0",
     "tailwindcss": "^4.1.11",
+    "utils": "workspace:*",
     "wn-ts-web": "workspace:*"
   },
   "devDependencies": {
@@ -40,7 +40,7 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "^4.6.0",
-    "comlink": "^4.4.2",
+    "comlink": "catalog:",
     "cross-env": "catalog:",
     "cypress": "^14.5.3",
     "eslint": "catalog:",

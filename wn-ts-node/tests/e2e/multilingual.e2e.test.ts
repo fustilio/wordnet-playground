@@ -49,7 +49,7 @@ describe.skip('Multilingual End-to-End Integration Tests', () => {
     config.dataDirectory = e2eDataDir;
     
     // Initialize by creating a Wordnet instance - this will handle database initialization
-    const tempWn = new Wordnet('*');
+    new Wordnet('*');
 
     // Download and add CILI (Interlingual Index) first
     const ciliDownloadProgress = new ProgressLogger('Download CILI');
@@ -89,7 +89,7 @@ describe.skip('Multilingual End-to-End Integration Tests', () => {
     config.dataDirectory = e2eDataDir;
     
     // Initialize by creating a Wordnet instance - this will handle database initialization
-    const tempWn = new Wordnet('*');
+    new Wordnet('*');
   });
 
   describe('Multilingual Project Discovery', () => {
@@ -159,19 +159,19 @@ describe.skip('Multilingual End-to-End Integration Tests', () => {
       logger.info('🔍 Testing word queries across languages...');
       
       // Test English words
-      const enWords = await words('computer', undefined, { lang: 'en' });
+      const enWords = await words('computer', undefined, { lexicon: 'omw-en' });
       logger.data(`Found ${enWords.length} English words for 'computer'`);
       expect(enWords.length).toBeGreaterThan(0);
       expect(enWords.every(w => w.language === 'en')).toBe(true);
       
       // Test French words
-      const frWords = await words('ordinateur', undefined, { lang: 'fr' });
+      const frWords = await words('ordinateur', undefined, { lexicon: 'omw-fr' });
       logger.data(`Found ${frWords.length} French words for 'ordinateur'`);
       expect(frWords.length).toBeGreaterThan(0);
       expect(frWords.every(w => w.language === 'fr')).toBe(true);
       
       // Test Spanish words
-      const esWords = await words('computadora', undefined, { lang: 'es' });
+      const esWords = await words('computadora', undefined, { lexicon: 'omw-es' });
       logger.data(`Found ${esWords.length} Spanish words for 'computadora'`);
       expect(esWords.length).toBeGreaterThan(0);
       expect(esWords.every(w => w.language === 'es')).toBe(true);
@@ -183,13 +183,13 @@ describe.skip('Multilingual End-to-End Integration Tests', () => {
       logger.info('🔍 Testing synset queries across languages...');
       
       // Test English synsets
-      const enSynsets = await synsets('computer', undefined, { lang: 'en' });
+      const enSynsets = await synsets('computer', undefined, { lexicon: 'omw-en' });
       logger.synset(`Found ${enSynsets.length} English synsets for 'computer'`);
       expect(enSynsets.length).toBeGreaterThan(0);
       expect(enSynsets.every(s => s.language === 'en')).toBe(true);
       
       // Test French synsets
-      const frSynsets = await synsets('ordinateur', undefined, { lang: 'fr' });
+      const frSynsets = await synsets('ordinateur', undefined, { lexicon: 'omw-fr' });
       logger.synset(`Found ${frSynsets.length} French synsets for 'ordinateur'`);
       expect(frSynsets.length).toBeGreaterThan(0);
       expect(frSynsets.every(s => s.language === 'fr')).toBe(true);
@@ -202,21 +202,21 @@ describe.skip('Multilingual End-to-End Integration Tests', () => {
       
       // Test English Wordnet instance
       const enWordnet = new Wordnet('omw-en:1.4', { lang: 'en' });
-      const enResults = await enWordnet.words('computer');
+      const enResults = await enWordnet.words({ form: 'computer' });
       expect(enResults.length).toBeGreaterThan(0);
       expect(enResults.every(w => w.language === 'en')).toBe(true);
       logger.success(`Found ${enResults.length} English words via class instance`);
       
       // Test French Wordnet instance
       const frWordnet = new Wordnet('omw-fr:1.4', { lang: 'fr' });
-      const frResults = await frWordnet.words('ordinateur');
+      const frResults = await frWordnet.words({ form: 'ordinateur' });
       expect(frResults.length).toBeGreaterThan(0);
       expect(frResults.every(w => w.language === 'fr')).toBe(true);
       logger.success(`Found ${frResults.length} French words via class instance`);
       
       // Test Spanish Wordnet instance
       const esWordnet = new Wordnet('omw-es:1.4', { lang: 'es' });
-      const esResults = await esWordnet.words('computadora');
+      const esResults = await esWordnet.words({ form: 'computadora' });
       expect(esResults.length).toBeGreaterThan(0);
       expect(esResults.every(w => w.language === 'es')).toBe(true);
       logger.success(`Found ${esResults.length} Spanish words via class instance`);
@@ -293,12 +293,14 @@ describe.skip('Multilingual End-to-End Integration Tests', () => {
       // Test getting a specific ILI by ID
       if (allILIs.length > 0) {
         const firstILI = allILIs[0];
-        const iliId = firstILI.id;
-        
-        const specificILI = await ili(iliId);
-        expect(specificILI).toBeDefined();
-        expect(specificILI.id).toBe(iliId);
-        logger.success(`Successfully retrieved ILI ${iliId}`);
+        if (firstILI) {
+          const iliId = firstILI.id;
+          
+          const specificILI = await ili(iliId);
+          expect(specificILI).toBeDefined();
+          expect(specificILI.id).toBe(iliId);
+          logger.success(`Successfully retrieved ILI ${iliId}`);
+        }
       }
       
       // Test filtering ILIs by status - note: may be empty depending on data
@@ -318,24 +320,26 @@ describe.skip('Multilingual End-to-End Integration Tests', () => {
       logger.info('🔗 Testing cross-language synset mappings...');
       
       // Get some synsets from different languages
-      const enSynsets = await synsets('computer', undefined, { lang: 'en' });
-      const frSynsets = await synsets('ordinateur', undefined, { lang: 'fr' });
+      const enSynsets = await synsets('computer', undefined, { lexicon: 'omw-en' });
+      const frSynsets = await synsets('ordinateur', undefined, { lexicon: 'omw-fr' });
       
       if (enSynsets.length > 0 && frSynsets.length > 0) {
         const enSynset = enSynsets[0];
         const frSynset = frSynsets[0];
         
-        // Check if they have ILI mappings
-        if (enSynset.ili) {
-          logger.data(`English synset ${enSynset.id} has ILI: ${enSynset.ili}`);
-        }
-        if (frSynset.ili) {
-          logger.data(`French synset ${frSynset.id} has ILI: ${frSynset.ili}`);
-        }
-        
-        // If both have ILIs, they might be the same concept
-        if (enSynset.ili && frSynset.ili && enSynset.ili === frSynset.ili) {
-          logger.success(`Found matching ILI ${enSynset.ili} for computer/ordinateur`);
+        if (enSynset && frSynset) {
+          // Check if they have ILI mappings
+          if (enSynset.ili) {
+            logger.data(`English synset ${enSynset.id} has ILI: ${enSynset.ili}`);
+          }
+          if (frSynset.ili) {
+            logger.data(`French synset ${frSynset.id} has ILI: ${frSynset.ili}`);
+          }
+          
+          // If both have ILIs, they might be the same concept
+          if (enSynset.ili && frSynset.ili && enSynset.ili === frSynset.ili) {
+            logger.success(`Found matching ILI ${enSynset.ili} for computer/ordinateur`);
+          }
         }
       }
       
@@ -348,7 +352,7 @@ describe.skip('Multilingual End-to-End Integration Tests', () => {
       logger.info('❌ Testing invalid language code handling...');
       
       // Test with invalid language code
-      const results = await words('computer', undefined, { lang: 'invalid-lang' });
+      const results = await words('computer', undefined, { lexicon: 'invalid-lexicon' });
       expect(results).toBeInstanceOf(Array);
       expect(results.length).toBe(0);
       logger.success('Invalid language code handled correctly');
@@ -368,7 +372,7 @@ describe.skip('Multilingual End-to-End Integration Tests', () => {
       logger.info('❌ Testing invalid language project handling...');
       
       // Test with non-existent language project
-      expect(() => config.getProjectInfo('nonexistent-lang:1.0')).toThrow();
+      expect(() => config.getProjectInfo('nonexistent-lexicon:1.0')).toThrow();
       logger.success('Invalid language project handled correctly');
     });
   });
@@ -378,14 +382,14 @@ describe.skip('Multilingual End-to-End Integration Tests', () => {
       logger.info('⚡ Testing concurrent multilingual queries...');
       
       const queries = [
-        words('computer', undefined, { lang: 'en' }),
-        words('ordinateur', undefined, { lang: 'fr' }),
-        words('computadora', undefined, { lang: 'es' }),
-        words('Computer', undefined, { lang: 'de' }),
-        words('computer', undefined, { lang: 'it' }),
-        synsets('computer', undefined, { lang: 'en' }),
-        synsets('ordinateur', undefined, { lang: 'fr' }),
-        synsets('computadora', undefined, { lang: 'es' })
+        words('computer', undefined, { lexicon: 'omw-en' }),
+        words('ordinateur', undefined, { lexicon: 'omw-fr' }),
+        words('computadora', undefined, { lexicon: 'omw-es' }),
+        words('Computer', undefined, { lexicon: 'omw-de' }),
+        words('computer', undefined, { lexicon: 'omw-it' }),
+        synsets('computer', undefined, { lexicon: 'omw-en' }),
+        synsets('ordinateur', undefined, { lexicon: 'omw-fr' }),
+        synsets('computadora', undefined, { lexicon: 'omw-es' })
       ];
       
       const results = await Promise.all(queries);
@@ -430,8 +434,8 @@ describe.skip('Multilingual End-to-End Integration Tests', () => {
       logger.info('🔄 Testing multilingual data consistency...');
       
       // Query the same word multiple times
-      const words1 = await words('computer', undefined, { lang: 'en' });
-      const words2 = await words('computer', undefined, { lang: 'en' });
+      const words1 = await words('computer', undefined, { lexicon: 'omw-en' });
+      const words2 = await words('computer', undefined, { lexicon: 'omw-en' });
       
       // Same query should return same results
       expect(words1).toEqual(words2);
@@ -452,17 +456,19 @@ describe.skip('Multilingual End-to-End Integration Tests', () => {
       const languages = ['en', 'fr', 'es'];
       
       for (const lang of languages) {
-        const wordResults = await words('computer', undefined, { lang });
+        const wordResults = await words('computer', undefined, { lexicon: `omw-${lang}` });
         
         if (wordResults.length > 0) {
           const word = wordResults[0];
-          expect(typeof word.id).toBe('string');
-          expect(typeof word.lemma).toBe('string');
-          expect(typeof word.partOfSpeech).toBe('string');
-          expect(typeof word.language).toBe('string');
-          expect(typeof word.lexicon).toBe('string');
-          expect(word.language).toBe(lang);
-          logger.success(`${lang} word data types verified`);
+          if (word) {
+            expect(typeof word.id).toBe('string');
+            expect(typeof word.lemma).toBe('string');
+            expect(typeof word.pos).toBe('string');
+            expect(typeof word.language).toBe('string');
+            expect(typeof word.lexicon).toBe('string');
+            expect(word.language).toBe(lang);
+            logger.success(`${lang} word data types verified`);
+          }
         }
       }
       
@@ -484,7 +490,7 @@ describe.skip('Multilingual End-to-End Integration Tests', () => {
       ];
       
       for (const { code, word } of languages) {
-        const wordResults = await words(word, undefined, { lang: code });
+        const wordResults = await words(word, undefined, { lexicon: `omw-${code}` });
         if (wordResults.length > 0) {
           translations.set(code, wordResults.map(w => w.lemma));
         }

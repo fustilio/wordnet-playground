@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { createScopedLogger } from '../../logger';
+import React, { useState, useEffect, useRef } from 'react';
+import { createScopedLogger } from 'utils/logger';
 
 const logger = createScopedLogger('PerformanceMonitor');
 
@@ -17,33 +17,42 @@ interface PerformanceMetrics {
 
 export const PerformanceMonitor: React.FC = () => {
   const [metrics, setMetrics] = useState<PerformanceMetrics | null>(null);
+  const previousMetricsRef = useRef<PerformanceMetrics | null>(null);
 
   useEffect(() => {
     const updateMetrics = () => {
-      if ('performance' in window && 'memory' in performance) {
-        const memory = (performance as any).memory;
-        const newMetrics = {
-          memory: {
-            used: Math.round(memory.usedJSHeapSize / 1024 / 1024),
-            total: Math.round(memory.totalJSHeapSize / 1024 / 1024),
-            limit: Math.round(memory.jsHeapSizeLimit / 1024 / 1024),
-          },
-          timing: {
-            loadTime: performance.timing.loadEventEnd - performance.timing.navigationStart,
-            renderTime: Date.now() - performance.timing.loadEventEnd,
-          },
-        };
-        
-        setMetrics(newMetrics);
-        
-        // Log significant memory usage changes
-        if (metrics && Math.abs(newMetrics.memory.used - metrics.memory.used) > 10) {
-          logger.debug('Significant memory usage change detected', {
-            previous: metrics.memory.used,
-            current: newMetrics.memory.used,
-            change: newMetrics.memory.used - metrics.memory.used
-          });
+      try {
+        if ('performance' in window && 'memory' in performance) {
+          const memory = (performance as any).memory;
+          const newMetrics = {
+            memory: {
+              used: Math.round(memory.usedJSHeapSize / 1024 / 1024),
+              total: Math.round(memory.totalJSHeapSize / 1024 / 1024),
+              limit: Math.round(memory.jsHeapSizeLimit / 1024 / 1024),
+            },
+            timing: {
+              loadTime: performance.timing.loadEventEnd - performance.timing.navigationStart,
+              renderTime: Date.now() - performance.timing.loadEventEnd,
+            },
+          };
+          
+          setMetrics(newMetrics);
+          
+          // Log significant memory usage changes using ref instead of state
+          const previous = previousMetricsRef.current;
+          if (previous && Math.abs(newMetrics.memory.used - previous.memory.used) > 10) {
+            logger.debug('Significant memory usage change detected', {
+              previous: previous.memory.used,
+              current: newMetrics.memory.used,
+              change: newMetrics.memory.used - previous.memory.used
+            });
+          }
+          
+          // Update ref for next comparison
+          previousMetricsRef.current = newMetrics;
         }
+      } catch (error) {
+        logger.warn('Error updating performance metrics', error);
       }
     };
 
@@ -56,10 +65,9 @@ export const PerformanceMonitor: React.FC = () => {
       clearInterval(interval);
       logger.debug('Performance monitoring stopped');
     };
-  }, [metrics]);
+  }, []); // Empty dependency array - no dependencies needed
 
   if (!metrics) {
-    logger.debug('Performance metrics unavailable');
     return <div className="text-gray-500">Performance metrics unavailable</div>;
   }
 

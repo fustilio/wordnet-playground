@@ -1,13 +1,15 @@
 import { BrowserXMLParser } from "./parsers/xml/browser-xml-parser.js";
+import { parseLMFXML, diagnoseDownloadIssue, analyzeXMLContent } from "./parsers/lmf/lmf-parser.js";
 import { Project } from "./project.js";
 import type { ProgressCallback } from "./types/progress.js";
-import { WebDatabase } from "./web-database.js";
-import { WebWordnet } from "./web-wordnet.js";
+import { WebDatabase } from "./client/submodules/web-database.js";
+import { WebWordnet } from "./client/submodules/web-wordnet.js";
 import pako from "pako";
 import { XzReadableStream } from "xz-decompress";
-import { createScopedLogger } from 'utils/logger';
+import { createScopedLogger } from "utils/logger";
 import type { KyselyQueryService } from "./database/kysely-query-service.js";
 import type { Database } from "./types/database.js";
+import type { LMFDocument, Synset, Word, Sense, Lexicon } from "wn-ts-core";
 
 // Minimal types to describe parsed XML structure
 interface ParsedNode {
@@ -17,21 +19,11 @@ interface ParsedNode {
   text?: string;
 }
 
-// Minimal LMF data types we consume for inserts
-interface LmfLexicon { id: string; label: string; language: string; version?: string; license?: string }
-interface LmfWord { id: string; lemma: string; partOfSpeech?: string; language?: string; lexicon?: string }
-interface LmfSense { id: string; word: string; synset: string }
-interface LmfSynsetDefinition { gloss?: string; language?: string }
-interface LmfSynset { id: string; ili?: string; partOfSpeech: string; language?: string; lexicon?: string; definitions?: LmfSynsetDefinition[] }
-interface LmfDocument {
-  lexicons?: LmfLexicon[];
-  lexicon?: LmfLexicon;
-  words?: LmfWord[];
-  senses?: LmfSense[];
-  synsets?: LmfSynset[];
+interface IliCsvRecord {
+  id: string;
+  definition?: string;
+  status?: string;
 }
-
-interface IliCsvRecord { id: string; definition?: string; status?: string }
 
 export interface DataLoadOptions {
   force?: boolean;
@@ -45,7 +37,7 @@ export interface DataLoadOptions {
 export class DataLoader {
   protected database: WebDatabase;
   protected wordnet: WebWordnet;
-  private logger = createScopedLogger('DataLoader');
+  private logger = createScopedLogger("DataLoader");
 
   constructor(database: WebDatabase, wordnet: WebWordnet) {
     this.database = database;
@@ -85,14 +77,61 @@ export class DataLoader {
   }
 
   /**
+   * Validate that downloaded content appears to be XML
+   */
+  private validateXMLContent(content: string, projectIdWithVersion: string): void {
+    // Check if content starts with XML declaration or root element
+    const trimmedContent = content.trim();
+    
+    if (!trimmedContent) {
+      throw new Error(`Empty content received for ${projectIdWithVersion}`);
+    }
+    
+    // Check for common XML indicators
+    const hasXMLDeclaration = trimmedContent.startsWith('<?xml');
+    const hasRootElement = /^<[a-zA-Z][a-zA-Z0-9_:]*/.test(trimmedContent);
+    const hasClosingTag = trimmedContent.includes('</');
+    
+    // Check for HTML error indicators
+    const hasHTMLTags = /<html|<head|<body|<title/i.test(trimmedContent);
+    const hasErrorKeywords = /error|not found|forbidden|unauthorized|server error/i.test(trimmedContent);
+    
+    if (hasHTMLTags || hasErrorKeywords) {
+      this.logger.warn(`⚠️ Content appears to be HTML/error page for ${projectIdWithVersion}`, {
+        hasHTMLTags,
+        hasErrorKeywords,
+        firstChars: trimmedContent.substring(0, 200),
+        lastChars: trimmedContent.substring(Math.max(0, trimmedContent.length - 200))
+      });
+      
+      // Don't throw here, just warn - let the parser handle it
+    }
+    
+    if (!hasRootElement && !hasXMLDeclaration) {
+      this.logger.warn(`⚠️ Content doesn't appear to be valid XML for ${projectIdWithVersion}`, {
+        hasXMLDeclaration,
+        hasRootElement,
+        hasClosingTag,
+        firstChars: trimmedContent.substring(0, 200)
+      });
+    }
+    
+    this.logger.debug(`✅ Content validation passed for ${projectIdWithVersion}`, {
+      length: content.length,
+      hasXMLDeclaration,
+      hasRootElement,
+      hasClosingTag
+    });
+  }
+
+  /**
    * Get the query service lazily (only when needed)
    */
   protected getQueryService(): KyselyQueryService | undefined {
     const queryService = this.wordnet.getQueryService();
-    this.logger.debug(
-      "🔍 DataLoader.getQueryService() called, queryService:",
-      { status: queryService ? "available" : "undefined" }
-    );
+    this.logger.debug("🔍 DataLoader.getQueryService() called, queryService:", {
+      status: queryService ? "available" : "undefined",
+    });
     return queryService;
   }
 
@@ -108,7 +147,8 @@ export class DataLoader {
       undefined;
 
     const hostname: string | undefined = globalLocation?.hostname;
-    const isDev = !!hostname && (hostname === "localhost" || hostname === "127.0.0.1");
+    const isDev =
+      !!hostname && (hostname === "localhost" || hostname === "127.0.0.1");
 
     if (!isDev) {
       return url; // Return original URL in production
@@ -136,6 +176,15 @@ export class DataLoader {
       const proxyUrl = url.replace(
         "https://github.com/globalwordnet",
         "/api/globalwordnet"
+      );
+      this.logger.debug(`🔍 Proxied to: ${proxyUrl}`);
+      return proxyUrl;
+    }
+
+    if (url.includes("release-assets.githubusercontent.com")) {
+      const proxyUrl = url.replace(
+        "https://release-assets.githubusercontent.com",
+        "/api/release-assets"
       );
       this.logger.debug(`🔍 Proxied to: ${proxyUrl}`);
       return proxyUrl;
@@ -169,7 +218,25 @@ export class DataLoader {
 
     this.logger.info(`📥 Downloading project: ${projectIdWithVersion}`);
 
-    const project = Project.from(projectIdWithVersion);
+    // Try to create a project from the given ID
+    let project;
+    try {
+      project = Project.from(projectIdWithVersion);
+    } catch (error) {
+      // If Project.from() fails, it might be a package ID (e.g., "oewn:2019")
+      // We need to find the corresponding lexicon ID (e.g., "oewn:2024") for data insertion
+      this.logger.warn(`⚠️ Project.from(${projectIdWithVersion}) failed, trying to find lexicon mapping:`, error);
+      
+      // For now, let's try to extract a lexicon ID from the package ID
+      // This is a temporary fix - we need a proper mapping mechanism
+      if (projectIdWithVersion === 'oewn:2019') {
+        // Map oewn:2019 package to oewn:2024 lexicon
+        project = Project.from('oewn:2024');
+        this.logger.info(`🔄 Mapped package ID ${projectIdWithVersion} to lexicon ID oewn:2024 for data insertion`);
+      } else {
+        throw new Error(`Failed to create project from ${projectIdWithVersion} and no lexicon mapping found`);
+      }
+    }
 
     // Check for project version errors
     const versionError = project.getError();
@@ -191,7 +258,9 @@ export class DataLoader {
     for (const url of urls) {
       try {
         const proxyUrl = this.toProxyUrl(url);
-        this.logger.info(`🌐 Downloading from ${url} (proxied as ${proxyUrl})...`);
+        this.logger.info(
+          `🌐 Downloading from ${url} (proxied as ${proxyUrl})...`
+        );
         const data = await this.downloadFile(proxyUrl, progress);
 
         // Additional check: verify we actually got data
@@ -206,24 +275,41 @@ export class DataLoader {
         this.logger.info(
           `📊 Loading data (${data.byteLength} bytes) into database...`
         );
-        await this.loadData(data, projectIdWithVersion, progress);
+        
+        this.logger.debug(`🔍 Debug: About to call loadData with ${data.byteLength} bytes`);
+        this.logger.debug(`🔍 Debug: Data type: ${typeof data}, constructor: ${data.constructor.name}`);
+
+        this.logger.info(`🚀 Starting loadData for ${projectIdWithVersion}...`);
+        const startTime = Date.now();
+        
+        try {
+          await this.loadData(data, projectIdWithVersion, progress);
+          
+          const endTime = Date.now();
+          this.logger.info(`✅ loadData completed successfully in ${endTime - startTime}ms`);
+        } catch (error) {
+          this.logger.error(`❌ loadData failed:`, error);
+          throw error;
+        }
 
         this.logger.info(`✅ Successfully loaded ${projectIdWithVersion}`);
-        
+
         // Emit events after successful load
-        if (this.wordnet && typeof (this.wordnet as any).emitDataChanged === 'function') {
-          (this.wordnet as any).emitDataChanged('packageLoaded', { 
+        if (this.wordnet.emitDataChanged) {
+          this.wordnet.emitDataChanged("packageLoaded", {
             packageId: projectIdWithVersion,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           });
-          
+
           // Emit statistics updated event
-          await (this.wordnet as any).emitStatisticsUpdated();
+          await this.wordnet.emitStatisticsUpdated();
         }
-        
+
         return; // Success, exit early
       } catch (error) {
-        this.logger.warn(`⚠️ Failed to download from ${url}:`, { error: error instanceof Error ? error.message : String(error) });
+        this.logger.warn(`⚠️ Failed to download from ${url}:`, {
+          error: error instanceof Error ? error.message : String(error),
+        });
         lastError = error as Error;
         // Continue to next URL
       }
@@ -251,22 +337,22 @@ export class DataLoader {
         this.wordnet.refreshConnections();
       } catch {}
       await this.insertLexicon(projectIdWithVersion);
-      
+
       // Emit events after successful load
-      if (this.wordnet && typeof (this.wordnet as any).emitDataChanged === 'function') {
-        (this.wordnet as any).emitDataChanged('databaseLoaded', { 
-          packageId: projectIdWithVersion,
-          dataSize: data.byteLength,
-          timestamp: new Date().toISOString()
-        });
-        
-        // Emit statistics updated event
-        await (this.wordnet as any).emitStatisticsUpdated();
-      }
+
+      this.wordnet.emitDataChanged("databaseLoaded", {
+        packageId: projectIdWithVersion,
+        dataSize: data.byteLength,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Emit statistics updated event
+      await this.wordnet.emitStatisticsUpdated();
     } catch (error) {
-      if (this.wordnet && typeof (this.wordnet as any).emitError === 'function') {
-        (this.wordnet as any).emitError('loadDbFromBuffer', error instanceof Error ? error : String(error));
-      }
+      this.wordnet.emitError(
+        "loadDbFromBuffer",
+        error instanceof Error ? error : String(error)
+      );
       throw error;
     }
   }
@@ -306,7 +392,9 @@ export class DataLoader {
         server: response.headers.get("server"),
         date: response.headers.get("date"),
       });
-      this.logger.error(`❌ Error response body:`, { errorText: errorText.substring(0, 500) });
+      this.logger.error(`❌ Error response body:`, {
+        errorText: errorText.substring(0, 500),
+      });
       throw new Error(
         `HTTP ${response.status}: ${response.statusText}. Response: ${errorText.substring(0, 200)}`
       );
@@ -356,7 +444,7 @@ export class DataLoader {
 
       // Yield to UI thread every 1MB to prevent freezing during download
       if (receivedLength % 1000000 === 0) {
-        await new Promise(resolve => setTimeout(resolve, 1));
+        await new Promise((resolve) => setTimeout(resolve, 1));
       }
     }
 
@@ -384,10 +472,9 @@ export class DataLoader {
       firstChars.toLowerCase().includes("<!doctype html>") ||
       firstChars.toLowerCase().includes("<html")
     ) {
-      this.logger.error(
-        `❌ Downloaded content appears to be HTML, not XML:`,
-        { firstChars: firstChars.substring(0, 200) }
-      );
+      this.logger.error(`❌ Downloaded content appears to be HTML, not XML:`, {
+        firstChars: firstChars.substring(0, 200),
+      });
       throw new Error(
         "Downloaded content is HTML, not XML. This usually indicates a server error page."
       );
@@ -408,12 +495,11 @@ export class DataLoader {
     const view = new Uint8Array(data);
 
     this.logger.debug(`🔍 Debug loadData: Received ${data.byteLength} bytes`);
-    this.logger.debug(
-      `🔍 Debug loadData: First 16 bytes:`,
-      { bytes: Array.from(view.slice(0, 16))
+    this.logger.debug(`🔍 Debug loadData: First 16 bytes:`, {
+      bytes: Array.from(view.slice(0, 16))
         .map((b) => b.toString(16).padStart(2, "0"))
-        .join(" ") }
-    );
+        .join(" "),
+    });
 
     // Check for XZ magic numbers: 0xfd 0x37 0x7a 0x58 0x5a 0x00
     if (
@@ -452,16 +538,16 @@ export class DataLoader {
         this.logger.debug(
           `📊 Decompressed XZ data: ${view.length} bytes -> ${xmlText.length} characters`
         );
-        this.logger.debug(
-          `🔍 Debug: First 200 chars after XZ decompression:`,
-          { chars: xmlText.substring(0, 200) }
-        );
-        this.logger.debug(
-          `🔍 Debug: Last 200 chars after XZ decompression:`,
-          { chars: xmlText.substring(Math.max(0, xmlText.length - 200)) }
-        );
+        this.logger.debug(`🔍 Debug: First 200 chars after XZ decompression:`, {
+          chars: xmlText.substring(0, 200),
+        });
+        this.logger.debug(`🔍 Debug: Last 200 chars after XZ decompression:`, {
+          chars: xmlText.substring(Math.max(0, xmlText.length - 200)),
+        });
       } catch (err) {
-        this.logger.error("❌ Failed to decompress XZ data:", { error: err instanceof Error ? err.message : String(err) });
+        this.logger.error("❌ Failed to decompress XZ data:", {
+          error: err instanceof Error ? err.message : String(err),
+        });
         throw err;
       }
     }
@@ -473,79 +559,118 @@ export class DataLoader {
       this.logger.debug(`🔍 Debug: Starting gzip decompression with pako...`);
       this.logger.debug(`🔍 Debug: Input data length: ${view.length} bytes`);
       this.logger.debug(`🔍 Debug: Input data type: ${typeof view}`);
-      this.logger.debug(`🔍 Debug: Input data constructor: ${view.constructor.name}`);
-      
+      this.logger.debug(
+        `🔍 Debug: Input data constructor: ${view.constructor.name}`
+      );
+
       try {
         // Use pako for gzip decompression
         let workingView = view;
         this.logger.debug(`🔍 Debug: Checking for trailing byte...`);
-        
+
         if (view[view.length - 1] === 0x3b) {
           this.logger.warn("🔍 Debug: Removing last byte (0x3b)");
           workingView = view.slice(0, -1);
-          this.logger.debug(`🔍 Debug: Working view length after slice: ${workingView.length} bytes`);
+          this.logger.debug(
+            `🔍 Debug: Working view length after slice: ${workingView.length} bytes`
+          );
         } else {
-          this.logger.debug(`🔍 Debug: No trailing byte removal needed, last byte: 0x${view[view.length - 1].toString(16).padStart(2, "0")}`);
+          this.logger.debug(
+            `🔍 Debug: No trailing byte removal needed, last byte: 0x${view[view.length - 1].toString(16).padStart(2, "0")}`
+          );
         }
 
         this.logger.debug(`🔍 Debug: About to call pako.inflate()...`);
-        this.logger.debug(`🔍 Debug: Working view first 16 bytes:`, { bytes: Array.from(workingView.slice(0, 16)).map(b => b.toString(16).padStart(2, "0")).join(" ") });
-        this.logger.debug(`🔍 Debug: Working view last 16 bytes:`, { bytes: Array.from(workingView.slice(-16)).map(b => b.toString(16).padStart(2, "0")).join(" ") });
-        
-        const startTime = Date.now();
-        this.logger.debug(`🔍 Debug: pako.inflate() call started at ${startTime}`);
-        
-        // 🚨 TIMEOUT PROTECTION: Prevent hanging during decompression
-        const decompressed = await this.logger.withTimeout('pako.inflate()', async () => {
-          return pako.inflate(workingView);
-        }, 30000, 2000); // 30 second timeout, progress every 2 seconds
-        
-        const endTime = Date.now();
-        this.logger.debug(`🔍 Debug: pako.inflate() completed in ${endTime - startTime}ms`);
-        this.logger.debug(`🔍 Debug: Decompression result type: ${typeof decompressed}`);
-        this.logger.debug(`🔍 Debug: Decompression result constructor: ${decompressed.constructor.name}`);
-        this.logger.debug(`🔍 Debug: Decompression result length: ${decompressed.length} bytes`);
+        this.logger.debug(`🔍 Debug: Working view first 16 bytes:`, {
+          bytes: Array.from(workingView.slice(0, 16))
+            .map((b) => b.toString(16).padStart(2, "0"))
+            .join(" "),
+        });
+        this.logger.debug(`🔍 Debug: Working view last 16 bytes:`, {
+          bytes: Array.from(workingView.slice(-16))
+            .map((b) => b.toString(16).padStart(2, "0"))
+            .join(" "),
+        });
 
-        this.logger.debug("🔍 Debug: Decompressed data sample:", { sample: Array.from(decompressed.slice(0, 100)) });
+        const startTime = Date.now();
+        this.logger.debug(
+          `🔍 Debug: pako.inflate() call started at ${startTime}`
+        );
+
+        // 🚨 TIMEOUT PROTECTION: Prevent hanging during decompression
+        const decompressed = await this.logger.withTimeout(
+          "pako.inflate()",
+          async () => {
+            return pako.inflate(workingView);
+          },
+          30000,
+          2000
+        ); // 30 second timeout, progress every 2 seconds
+
+        const endTime = Date.now();
+        this.logger.debug(
+          `🔍 Debug: pako.inflate() completed in ${endTime - startTime}ms`
+        );
+        this.logger.debug(
+          `🔍 Debug: Decompression result type: ${typeof decompressed}`
+        );
+        this.logger.debug(
+          `🔍 Debug: Decompression result constructor: ${decompressed.constructor.name}`
+        );
+        this.logger.debug(
+          `🔍 Debug: Decompression result length: ${decompressed.length} bytes`
+        );
+
+        this.logger.debug("🔍 Debug: Decompressed data sample:", {
+          sample: Array.from(decompressed.slice(0, 100)),
+        });
         this.logger.debug(
           `🔍 Debug: Decompression completed: ${decompressed.length} bytes`
         );
-        
+
         this.logger.debug(`🔍 Debug: About to decode with TextDecoder...`);
         const decodeStartTime = Date.now();
-        
+
         // 🚨 TIMEOUT PROTECTION: Prevent hanging during TextDecoder
-        xmlText = await this.logger.withTimeout('TextDecoder.decode()', async () => {
-          return new TextDecoder().decode(decompressed);
-        }, 15000, 1000); // 15 second timeout, progress every 1 second
-        
+        xmlText = await this.logger.withTimeout(
+          "TextDecoder.decode()",
+          async () => {
+            return new TextDecoder().decode(decompressed);
+          },
+          15000,
+          1000
+        ); // 15 second timeout, progress every 1 second
+
         const decodeEndTime = Date.now();
-        this.logger.debug(`🔍 Debug: TextDecoder completed in ${decodeEndTime - decodeStartTime}ms`);
-        this.logger.debug(`🔍 Debug: Decoded text length: ${xmlText.length} characters`);
-        
+        this.logger.debug(
+          `🔍 Debug: TextDecoder completed in ${decodeEndTime - decodeStartTime}ms`
+        );
+        this.logger.debug(
+          `🔍 Debug: Decoded text length: ${xmlText.length} characters`
+        );
+
         this.logger.debug(
           `📊 Decompressed gzipped data: ${decompressed.length} bytes -> ${xmlText.length} characters`
         );
-        this.logger.debug(
-          `🔍 Debug: First 200 chars after decompression:`,
-          { chars: xmlText.substring(0, 200) }
-        );
-        this.logger.debug(
-          `🔍 Debug: Last 200 chars after decompression:`,
-          { chars: xmlText.substring(Math.max(0, xmlText.length - 200)) }
-        );
+        this.logger.debug(`🔍 Debug: First 200 chars after decompression:`, {
+          chars: xmlText.substring(0, 200),
+        });
+        this.logger.debug(`🔍 Debug: Last 200 chars after decompression:`, {
+          chars: xmlText.substring(Math.max(0, xmlText.length - 200)),
+        });
 
         // Yield to UI thread after decompression to prevent freezing
         this.logger.debug(`🔍 Debug: Yielding to UI thread...`);
-        await new Promise(resolve => setTimeout(resolve, 1));
+        await new Promise((resolve) => setTimeout(resolve, 1));
         this.logger.debug(`🔍 Debug: UI thread yield completed`);
-        
       } catch (err) {
-        this.logger.error("❌ Failed to decompress gzipped data:", { error: err instanceof Error ? err.message : String(err) });
+        this.logger.error("❌ Failed to decompress gzipped data:", {
+          error: err instanceof Error ? err.message : String(err),
+        });
         this.logger.error("❌ Error details:", {
-          name: err instanceof Error ? err.name : 'Unknown',
+          name: err instanceof Error ? err.name : "Unknown",
           message: err instanceof Error ? err.message : String(err),
-          stack: err instanceof Error ? err.stack : 'No stack trace'
+          stack: err instanceof Error ? err.stack : "No stack trace",
         });
         throw err;
       }
@@ -555,51 +680,69 @@ export class DataLoader {
       this.logger.debug(
         `📊 Data is not compressed: ${data.byteLength} bytes -> ${xmlText.length} characters`
       );
-      this.logger.debug(`🔍 Debug: First 200 chars:`, { chars: xmlText.substring(0, 200) });
+      this.logger.debug(`🔍 Debug: First 200 chars:`, {
+        chars: xmlText.substring(0, 200),
+      });
     }
 
     if (progress) progress(0.1);
 
     // Get project metadata to determine file type
-    const project = Project.from(projectIdWithVersion);
-    const projectType = (project as any).projectData?.type;
-    
+    // Handle mapping from package ID to lexicon ID for Project.from()
+    let project;
+    try {
+      project = Project.from(projectIdWithVersion);
+    } catch (error) {
+      this.logger.warn(`⚠️ Project.from(${projectIdWithVersion}) failed in loadData, trying lexicon mapping:`, error);
+      if (projectIdWithVersion === 'oewn:2019') {
+        project = Project.from('oewn:2024');
+        this.logger.info(`🔄 Mapped package ID ${projectIdWithVersion} to lexicon ID oewn:2024 for data insertion in loadData`);
+      } else {
+        throw new Error(`Failed to create project from ${projectIdWithVersion} in loadData and no lexicon mapping found`);
+      }
+    }
+    const projectType = project.type;
+
     this.logger.debug(`🔍 Debug: Project type from metadata: ${projectType}`);
-    this.logger.debug(`🔍 Debug: Project data:`, (project as any).projectData);
+    this.logger.debug(`🔍 Debug: Project data:`, project.projectData);
 
     // Handle different file types based on project metadata
-    if (projectType === 'ili') {
+    if (projectType === "ili") {
       this.logger.debug(`📝 Detected ILI file type from project metadata`);
-      
+
       // Parse ILI TSV data
       const iliData = await this.loadILI(xmlText);
       this.logger.debug(`📊 Loaded ${iliData.length} ILI records`);
-      
-              // Yield to UI thread after ILI parsing to prevent freezing
-        await new Promise(resolve => setTimeout(resolve, 1));
-      
+
+      // Yield to UI thread after ILI parsing to prevent freezing
+      await new Promise((resolve) => setTimeout(resolve, 1));
+
       if (progress) progress(0.5);
-      
+
       // Insert ILI data
       await this.insertILIData(iliData, projectIdWithVersion);
-      
-              // Yield to UI thread after ILI data insertion to prevent freezing
-        await new Promise(resolve => setTimeout(resolve, 1));
-      
+
+      // Yield to UI thread after ILI data insertion to prevent freezing
+      await new Promise((resolve) => setTimeout(resolve, 1));
+
       if (progress) progress(1.0);
-      this.logger.debug(`✅ ILI data loaded successfully for ${projectIdWithVersion}`);
+      this.logger.debug(
+        `✅ ILI data loaded successfully for ${projectIdWithVersion}`
+      );
       return;
     }
 
     // Default to LMF XML processing
     this.logger.debug(`📝 Processing as LMF XML file`);
-    
+
     // Verify that we have valid LMF XML content
     this.logger.debug(`🔍 Debug: Verifying XML content...`);
 
     // Check for empty content first
     if (xmlText.length === 0) {
-      this.logger.error(`❌ CRITICAL: Decompressed XML is empty (0 characters)!`);
+      this.logger.error(
+        `❌ CRITICAL: Decompressed XML is empty (0 characters)!`
+      );
       throw new Error(
         "Decompressed XML is empty - file may be corrupted or download failed"
       );
@@ -632,51 +775,107 @@ export class DataLoader {
       `🔍 Debug: XML size check - xmlText.length: ${xmlText.length}, threshold: 1000000, isLarge: ${xmlText.length > 1000000}`
     );
 
+    this.logger.info(`📊 Processing ${projectIdWithVersion}: XML size is ${(xmlText.length / 1024 / 1024).toFixed(2)}MB`);
+
     if (xmlText.length > 1000000) {
-      this.logger.debug(
+      this.logger.info(
         `📊 Large XML file detected (${(xmlText.length / 1024 / 1024).toFixed(
           2
         )}MB), using browser-compatible parser...`
       );
 
       try {
-        // Use browser-compatible parser for large files
-        const browserParser = new BrowserXMLParser(xmlText, {
-          debug: true,
-          progress: (p) => {
-            if (progress) {
-              // Map parser progress to our progress range (0.2-0.9)
-              progress(0.2 + p * 0.7);
+        // Create browser-compatible parser for large XML files
+        const browserParser = new BrowserXMLParser(xmlText, false); // Set debug to false for now
+        this.logger.debug(
+          `🔍 Debug: Browser parser created, starting parse...`
+        );
+
+        // 🚨 TIMEOUT PROTECTION: Prevent hanging during XML parsing
+        const parsed = await this.logger.withTimeout(
+          "Browser XML parsing",
+          async () => {
+            this.logger.info(`🚀 Starting browser XML parsing for ${projectIdWithVersion}...`);
+            this.logger.info(`📊 XML size: ${(xmlText.length / 1024 / 1024).toFixed(2)}MB (${xmlText.length} characters)`);
+            this.logger.info(`🔍 First 100 chars: ${xmlText.substring(0, 100)}`);
+            this.logger.info(`🔍 Last 100 chars: ${xmlText.substring(Math.max(0, xmlText.length - 100))}`);
+            
+            try {
+              const result = await browserParser.parse();
+              
+              this.logger.info(`✅ Browser XML parsing completed successfully`);
+              
+              // Handle the actual structure returned by BrowserXMLParser
+              // BrowserXMLParser returns: { data: { elementName: { name, attributes, children, text }, ... }, elementCount, rootElements }
+              // We need to extract root elements for logging and future validation
+              const rootElements = result.rootElements;
+              const elementCount = result.elementCount;
+              
+              this.logger.info(`📊 Parsed result summary:`, {
+                rootElements,
+                elementCount,
+                hasLexicalResource: rootElements.includes('LexicalResource')
+              });
+              
+              return result;
+            } catch (browserError) {
+              this.logger.warn(`⚠️ Browser parser failed, will fall back to regular parser`, { 
+                error: browserError instanceof Error ? browserError.message : String(browserError) 
+              });
+              throw browserError; // Re-throw to trigger fallback
             }
           },
-        });
+          300000 // 5 minutes timeout
+        );
 
-        this.logger.debug(`🔍 Debug: Browser parser created, starting parse...`);
-        
-        // 🚨 TIMEOUT PROTECTION: Prevent hanging during XML parsing
-        const parsed = await this.logger.withTimeout('Browser XML parsing', async () => {
-          return await browserParser.parse();
-        }, 120000, 5000); // 2 minute timeout, progress every 5 seconds
-        
         this.logger.debug(`🔍 Debug: Browser parser completed successfully`);
-
-        // Yield to UI thread after XML parsing to prevent freezing
-        await new Promise(resolve => setTimeout(resolve, 1));
-
-        if (progress) progress(0.9);
 
         // Convert browser parser output to LMF format and insert
         this.logger.debug(`🔍 Debug: Starting insertBrowserParsedData...`);
-        
+
         // 🚨 TIMEOUT PROTECTION: Prevent hanging during data insertion
-        await this.logger.withTimeout('Browser parsed data insertion', async () => {
-          return await this.insertBrowserParsedData(parsed, projectIdWithVersion);
-        }, 60000, 3000); // 1 minute timeout, progress every 3 seconds
-        
-        this.logger.debug(`🔍 Debug: insertBrowserParsedData completed successfully`);
+        await this.logger.withTimeout(
+          "Browser parsed data insertion",
+          async () => {
+            this.logger.info(`🚀 Starting data insertion for ${projectIdWithVersion}...`);
+            
+            // Handle the actual structure returned by BrowserXMLParser
+            // BrowserXMLParser returns: { data: { elementName: { name, attributes, children, text }, ... }, elementCount, rootElements }
+            // We need to extract root elements and prepare for validation
+            const rootElements = parsed.rootElements;
+            const elementCount = parsed.elementCount;
+            
+            this.logger.info(`📊 Parsed data summary:`, {
+              elementCount,
+              rootElements,
+              hasLexicalResource: rootElements.includes('LexicalResource')
+            });
+            
+            // Convert the parsed data to the expected format for insertBrowserParsedData
+            // We need to extract the LexicalResource element from the parsed data
+            const lexicalResourceData = parsed.data.LexicalResource;
+            if (!lexicalResourceData) {
+              throw new Error(`No LexicalResource found in parsed XML for ${projectIdWithVersion}`);
+            }
+            
+            const result = await this.insertBrowserParsedData(
+              { LexicalResource: lexicalResourceData },
+              projectIdWithVersion
+            );
+            
+            this.logger.info(`✅ Data insertion completed successfully for ${projectIdWithVersion}`);
+            return result;
+          },
+          60000,
+          3000
+        ); // 1 minute timeout, progress every 3 seconds
+
+        this.logger.debug(
+          `🔍 Debug: insertBrowserParsedData completed successfully`
+        );
 
         // Yield to UI thread after browser parser data insertion to prevent freezing
-        await new Promise(resolve => setTimeout(resolve, 1));
+        await new Promise((resolve) => setTimeout(resolve, 1));
 
         if (progress) progress(1.0);
       } catch (browserError) {
@@ -684,21 +883,17 @@ export class DataLoader {
         this.logger.error(`❌ Falling back to regular parser...`);
 
         // Fallback to regular parser if browser parser fails
-        const { parseLMFXML, diagnoseDownloadIssue } = await import(
-          "wn-ts-core"
-        );
-
         try {
-          const lmfDocument = parseLMFXML(xmlText, { debug: true });
-          
+          const lmfDocument = await parseLMFXML(xmlText, { debug: true });
+
           // Yield to UI thread after fallback XML parsing to prevent freezing
-          await new Promise(resolve => setTimeout(resolve, 1));
-          
+          await new Promise((resolve) => setTimeout(resolve, 1));
+
           await this.insertLMFData(lmfDocument, projectIdWithVersion);
-          
+
           // Yield to UI thread after fallback parser data insertion to prevent freezing
-          await new Promise(resolve => setTimeout(resolve, 1));
-          
+          await new Promise((resolve) => setTimeout(resolve, 1));
+
           if (progress) progress(1.0);
         } catch (fallbackError) {
           this.logger.error(`❌ Fallback parser also failed:`, fallbackError);
@@ -712,13 +907,11 @@ export class DataLoader {
           2
         )}KB), using regular parser...`
       );
-      const { parseLMFXML, diagnoseDownloadIssue } = await import("wn-ts-core");
-
       try {
-        const lmfDocument = parseLMFXML(xmlText, { debug: true });
+        const lmfDocument = await parseLMFXML(xmlText, { debug: true });
 
-          // Yield to UI thread after XML parsing to prevent freezing
-          await new Promise(resolve => setTimeout(resolve, 1));
+        // Yield to UI thread after XML parsing to prevent freezing
+        await new Promise((resolve) => setTimeout(resolve, 1));
 
         if (progress) progress(0.5);
 
@@ -726,14 +919,11 @@ export class DataLoader {
         await this.insertLMFData(lmfDocument, projectIdWithVersion);
 
         // Yield to UI thread after small file parser data insertion to prevent freezing
-        await new Promise(resolve => setTimeout(resolve, 1));
+        await new Promise((resolve) => setTimeout(resolve, 1));
 
         if (progress) progress(1.0);
       } catch (error) {
         // Provide better error diagnosis
-        const { diagnoseDownloadIssue, analyzeXMLContent } = await import(
-          "wn-ts-core"
-        );
         const diagnosis = diagnoseDownloadIssue(xmlText);
         const analysis = analyzeXMLContent(xmlText);
 
@@ -743,7 +933,10 @@ export class DataLoader {
 
         // Log additional debugging information
         this.logger.error(`❌ XML content length: ${xmlText.length}`);
-        this.logger.error(`❌ First 500 characters:`, xmlText.substring(0, 500));
+        this.logger.error(
+          `❌ First 500 characters:`,
+          xmlText.substring(0, 500)
+        );
         this.logger.error(
           `❌ Last 500 characters:`,
           xmlText.substring(Math.max(0, xmlText.length - 500))
@@ -756,9 +949,10 @@ export class DataLoader {
         );
       }
     }
+    
+    this.logger.info(`🎉 loadData method completed successfully for ${projectIdWithVersion}`);
+    this.logger.info(`📊 Final status: XML processed and inserted into database`);
   }
-
-
 
   /**
    * Load ILI data from TSV content
@@ -766,53 +960,61 @@ export class DataLoader {
   private async loadILI(content: string): Promise<IliCsvRecord[]> {
     const lines = content.split(/\r?\n/);
     const records: IliCsvRecord[] = [];
-    
+
     // CILI data file typically doesn't have a header, but some might
-    const dataLines = lines.filter(line => line.trim());
-    
+    const dataLines = lines.filter((line) => line.trim());
+
     for (const line of dataLines) {
       if (!line.trim()) continue;
-      const values = line.split('\t');
+      const values = line.split("\t");
       if (values.length >= 2) {
         const record = {
           id: values[0]?.trim(),
           definition: values[1]?.trim(),
-          status: values[2]?.trim() || 'active'
+          status: values[2]?.trim() || "active",
         };
-        
+
         // Skip records with empty IDs or definitions, and skip header-like lines
-        if (record.id && record.definition && 
-            !record.id.toLowerCase().includes('ili') && 
-            !record.id.toLowerCase().includes('definition')) {
+        if (
+          record.id &&
+          record.definition &&
+          !record.id.toLowerCase().includes("ili") &&
+          !record.id.toLowerCase().includes("definition")
+        ) {
           records.push(record);
         }
       }
     }
-    
-    this.logger.debug(`📊 Parsed ${records.length} valid ILI records from ${dataLines.length} total lines`);
+
+    this.logger.debug(
+      `📊 Parsed ${records.length} valid ILI records from ${dataLines.length} total lines`
+    );
     return records;
   }
 
   /**
    * Insert ILI data into the database
    */
-  private async insertILIData(iliData: IliCsvRecord[], projectIdWithVersion: string): Promise<void> {
+  private async insertILIData(
+    iliData: IliCsvRecord[],
+    projectIdWithVersion: string
+  ): Promise<void> {
     this.logger.debug(`📝 Inserting ILI data for ${projectIdWithVersion}...`);
-    
+
     try {
       // Insert lexicon information first
       await this.insertLexicon(projectIdWithVersion);
-      
+
       // Insert ILI records
-      const iliRecords: Database['ilis'][] = iliData.map(record => ({
+      const iliRecords: Database["ilis"][] = iliData.map((record) => ({
         id: record.id,
         definition: record.definition,
-        status: record.status || 'active',
+        status: record.status || "active",
         superseded_by: undefined,
         note: undefined,
-        meta: undefined
+        meta: undefined,
       }));
-      
+
       const queryService = this.getQueryService();
       if (queryService) {
         this.logger.debug(`📝 Inserting ${iliRecords.length} ILI records...`);
@@ -820,17 +1022,29 @@ export class DataLoader {
         this.logger.debug(`✅ ILI data inserted for ${projectIdWithVersion}`);
       } else {
         // Fall back to raw SQL if query service is not available
-        this.logger.debug(`📝 Inserting ${iliRecords.length} ILI records using raw SQL...`);
+        this.logger.debug(
+          `📝 Inserting ${iliRecords.length} ILI records using raw SQL...`
+        );
         for (const record of iliRecords) {
           this.database.run(
             `INSERT OR REPLACE INTO ilis (id, definition, status, superseded_by, note, meta) VALUES (?, ?, ?, ?, ?, ?)`,
-            [record.id, record.definition, record.status, record.superseded_by, record.note, record.meta]
+            [
+              record.id,
+              record.definition,
+              record.status,
+              record.superseded_by,
+              record.note,
+              record.meta,
+            ]
           );
         }
         this.logger.debug(`✅ ILI data inserted for ${projectIdWithVersion}`);
       }
     } catch (error) {
-      this.logger.error(`❌ Failed to insert ILI data for ${projectIdWithVersion}:`, error);
+      this.logger.error(
+        `❌ Failed to insert ILI data for ${projectIdWithVersion}:`,
+        error
+      );
       throw error;
     }
   }
@@ -898,7 +1112,7 @@ export class DataLoader {
    * Insert parsed LMF data into the database
    */
   private async insertLMFData(
-    lmfDocument: LmfDocument,
+    lmfDocument: LMFDocument,
     projectIdWithVersion: string
   ): Promise<void> {
     this.logger.debug(`📝 Inserting LMF data for ${projectIdWithVersion}...`);
@@ -908,59 +1122,65 @@ export class DataLoader {
     }
     try {
       const lexicons =
-        lmfDocument.lexicons ||
-        (lmfDocument.lexicon ? [lmfDocument.lexicon] : []);
-      const lexiconsToInsert: Database['lexicons'][] = lexicons.map((lexicon) => ({
-        id: lexicon.id,
-        label: lexicon.label,
-        language: lexicon.language,
-        version: lexicon.version,
-        license: lexicon.license,
-      }));
-
-      const wordsToInsert: Database['words'][] = (lmfDocument.words || []).map((word) => ({
-        id: word.id,
-        lemma: word.lemma,
-        pos: word.partOfSpeech,
-        language: word.language || lexicons[0]?.language || "en",
-        lexicon: word.lexicon || lexicons[0]?.id || projectIdWithVersion,
-      }));
-
-      const synsetsToInsert: Database['synsets'][] = (lmfDocument.synsets || []).map(
-        (synset) => ({
-          id: synset.id,
-          ili: synset.ili || undefined,
-          pos: synset.partOfSpeech,
-          language: synset.language || lexicons[0]?.language || "en",
-          lexicon: synset.lexicon || lexicons[0]?.id || projectIdWithVersion,
+        lmfDocument.lexicons || [];
+      const lexiconsToInsert: Database["lexicons"][] = lexicons.map(
+        (lexicon) => ({
+          id: lexicon.id,
+          label: lexicon.label,
+          language: lexicon.language,
+          version: lexicon.version,
+          license: lexicon.license,
         })
       );
 
-      const sensesToInsert: Database['senses'][] = (lmfDocument.senses || []).map((sense) => ({
+      const wordsToInsert: Database["words"][] = (lmfDocument.words || []).map(
+        (word) => ({
+          id: word.id,
+          lemma: word.lemma,
+          pos: word.pos ?? "n",
+          language: word.language || lexicons[0]?.language || "en",
+          lexicon: word.lexicon || lexicons[0]?.id || projectIdWithVersion,
+        })
+      );
+
+      const synsetsToInsert: Database["synsets"][] = (
+        lmfDocument.synsets || []
+      ).map((synset) => ({
+        id: synset.id,
+        ili: synset.ili || undefined,
+        pos: synset.pos ?? "n",
+        language: synset.language || lexicons[0]?.language || "en",
+        lexicon: synset.lexicon || lexicons[0]?.id || projectIdWithVersion,
+      }));
+
+      const sensesToInsert: Database["senses"][] = (
+        lmfDocument.senses || []
+      ).map((sense) => ({
         id: sense.id,
         word_id: sense.word,
         synset_id: sense.synset,
       }));
 
-      const definitionsToInsert: Database['definitions'][] = (lmfDocument.synsets || []).flatMap(
-        (synset) =>
-          (synset.definitions || []).map((def, i: number) => {
-            const gloss = def.gloss || "";
-            // The gloss can be a string with embedded markup. Strip it for plain text.
-            const text =
-              typeof gloss === "string"
-                ? gloss
-                    .replace(/<[^>]*>/g, "")
-                    .replace(/\s+/g, " ")
-                    .trim()
-                : "";
-            return {
-              id: `${synset.id}.def.${def.language || "en"}.${i}`,
-              synset_id: synset.id,
-              language: def.language || "en",
-              text,
-            } as Database['definitions'];
-          })
+      const definitionsToInsert: Database["definitions"][] = (
+        lmfDocument.synsets || []
+      ).flatMap((synset) =>
+        (synset.definitions || []).map((def, i: number) => {
+          const text = def.text || "";
+          // The text can be a string with embedded markup. Strip it for plain text.
+          const cleanedText =
+            typeof text === "string"
+              ? text
+                  .replace(/<[^>]*>/g, "")
+                  .replace(/\s+/g, " ")
+                  .trim()
+              : "";
+          return {
+            id: `${synset.id}.def.${def.language || "en"}.${i}`,
+            synset_id: synset.id,
+            language: def.language || "en",
+            text: cleanedText,
+          } as Database["definitions"];
+        })
       );
 
       // Batch insert all data
@@ -997,7 +1217,7 @@ export class DataLoader {
     );
 
     // Use a more efficient yielding strategy
-    const yieldToUI = () => new Promise(resolve => setTimeout(resolve, 1));
+    const yieldToUI = () => new Promise((resolve) => setTimeout(resolve, 1));
 
     try {
       const lexicalResource = parsed.LexicalResource;
@@ -1008,46 +1228,72 @@ export class DataLoader {
       const lrChildren: ParsedNode[] = Array.isArray(lexicalResource.children)
         ? (lexicalResource.children as ParsedNode[])
         : lexicalResource.children
-        ? [lexicalResource.children as ParsedNode]
-        : [];
+          ? [lexicalResource.children as ParsedNode]
+          : [];
       const lexicons = lrChildren.filter((child) => child.name === "Lexicon");
 
-      const lexiconsToInsert: Database['lexicons'][] = [];
-      const wordsToInsert: Database['words'][] = [];
-      const sensesToInsert: Database['senses'][] = [];
-      const synsetsToInsert: Database['synsets'][] = [];
-      const definitionsToInsert: Database['definitions'][] = [];
+      const lexiconsToInsert: Database["lexicons"][] = [];
+      const wordsToInsert: Database["words"][] = [];
+      const sensesToInsert: Database["senses"][] = [];
+      const synsetsToInsert: Database["synsets"][] = [];
+      const definitionsToInsert: Database["definitions"][] = [];
 
       for (const lexiconElem of lexicons) {
-        const lexiconId = String((lexiconElem.attributes as any)?.id ?? projectIdWithVersion);
-        const lexiconLang = String((lexiconElem.attributes as any)?.language ?? "en");
+        const lexiconId = String(
+          (lexiconElem.attributes as any)?.id ?? projectIdWithVersion
+        );
+        const lexiconLang = String(
+          (lexiconElem.attributes as any)?.language ?? "en"
+        );
 
         lexiconsToInsert.push({
           id: lexiconId,
-          label: String((lexiconElem.attributes as any)?.label ?? "Unknown Lexicon"),
+          label: String(
+            (lexiconElem.attributes as any)?.label ?? "Unknown Lexicon"
+          ),
           language: lexiconLang,
-          version: (lexiconElem.attributes as any)?.version as string | undefined,
-          license: (lexiconElem.attributes as any)?.license as string | undefined,
+          version: (lexiconElem.attributes as any)?.version as
+            | string
+            | undefined,
+          license: (lexiconElem.attributes as any)?.license as
+            | string
+            | undefined,
         });
 
         // Process lexical entries
         const entries =
-          lexiconElem.children?.filter((child) => child.name === "LexicalEntry") || [];
+          lexiconElem.children?.filter(
+            (child) => child.name === "LexicalEntry"
+          ) || [];
         this.logger.debug(
           `📊 Processing ${entries.length} lexical entries for lexicon ${lexiconId}...`
         );
 
-          // Process entries in chunks to prevent UI freezing
-          await this.processEntriesInChunks(entries, wordsToInsert, sensesToInsert, lexiconLang, lexiconId);
+        // Process entries in chunks to prevent UI freezing
+        await this.processEntriesInChunks(
+          entries,
+          wordsToInsert,
+          sensesToInsert,
+          lexiconLang,
+          lexiconId
+        );
 
         // Process synsets
-        const synsetElems = lexiconElem.children?.filter((child) => child.name === "Synset") || [];
+        const synsetElems =
+          lexiconElem.children?.filter((child) => child.name === "Synset") ||
+          [];
         this.logger.debug(
           `📊 Processing ${synsetElems.length} synsets for lexicon ${lexiconId}...`
         );
 
         // Process synsets in chunks to prevent UI freezing
-        await this.processSynsetsInChunks(synsetElems, synsetsToInsert, definitionsToInsert, lexiconLang, lexiconId);
+        await this.processSynsetsInChunks(
+          synsetElems,
+          synsetsToInsert,
+          definitionsToInsert,
+          lexiconLang,
+          lexiconId
+        );
       }
 
       const queryService = this.getQueryService();
@@ -1055,7 +1301,7 @@ export class DataLoader {
         this.logger.debug(
           `📝 Inserting ${lexiconsToInsert.length} lexicons, ${wordsToInsert.length} words, ${sensesToInsert.length} senses, ${synsetsToInsert.length} synsets, and ${definitionsToInsert.length} definitions in batches...`
         );
-        
+
         if (lexiconsToInsert.length > 0) {
           await queryService.batchInsert("lexicons", lexiconsToInsert);
         }
@@ -1092,49 +1338,56 @@ export class DataLoader {
    */
   private async processEntriesInChunks(
     entries: ParsedNode[],
-    wordsToInsert: Database['words'][],
-    sensesToInsert: Database['senses'][],
+    wordsToInsert: Database["words"][],
+    sensesToInsert: Database["senses"][],
     lexiconLang: string,
     lexiconId: string
   ): Promise<void> {
     const CHUNK_SIZE = 1000;
-    
+
     for (let i = 0; i < entries.length; i += CHUNK_SIZE) {
       const chunk = entries.slice(i, i + CHUNK_SIZE);
-      
+
       for (const entry of chunk) {
-          const wordId = (entry.attributes as any)?.id || "unknown-word";
-          const lemmaElem = entry.children?.find(
-            (child) => child.name === "Lemma"
+        const wordId = (entry.attributes as any)?.id || "unknown-word";
+        const lemmaElem = entry.children?.find(
+          (child) => child.name === "Lemma"
+        );
+        const lemma = String(
+          (lemmaElem?.attributes as any)?.writtenForm ?? wordId
+        );
+        const partOfSpeech = String(
+          (lemmaElem?.attributes as any)?.partOfSpeech ?? "n"
+        );
+
+        wordsToInsert.push({
+          id: wordId,
+          lemma: lemma,
+          pos: partOfSpeech,
+          language: lexiconLang,
+          lexicon: lexiconId,
+        });
+
+        const senses =
+          entry.children?.filter((child) => child.name === "Sense") || [];
+        for (const sense of senses) {
+          const senseId = String(
+            (sense.attributes as any)?.id ?? `${wordId}.sense`
           );
-          const lemma = String((lemmaElem?.attributes as any)?.writtenForm ?? wordId);
-          const partOfSpeech = String((lemmaElem?.attributes as any)?.partOfSpeech ?? "n");
-
-          wordsToInsert.push({
-            id: wordId,
-            lemma: lemma,
-            pos: partOfSpeech,
-            language: lexiconLang,
-            lexicon: lexiconId,
+          const synsetId = String(
+            (sense.attributes as any)?.synset ?? `${wordId}.synset`
+          );
+          sensesToInsert.push({
+            id: senseId,
+            word_id: wordId,
+            synset_id: synsetId,
           });
-
-          const senses =
-            entry.children?.filter((child) => child.name === "Sense") ||
-            [];
-          for (const sense of senses) {
-            const senseId = String((sense.attributes as any)?.id ?? `${wordId}.sense`);
-            const synsetId = String((sense.attributes as any)?.synset ?? `${wordId}.synset`);
-            sensesToInsert.push({
-              id: senseId,
-              word_id: wordId,
-              synset_id: synsetId,
-            });
-          }
         }
+      }
 
       // Yield to UI thread after each chunk
       if (i + CHUNK_SIZE < entries.length) {
-        await new Promise(resolve => setTimeout(resolve, 1));
+        await new Promise((resolve) => setTimeout(resolve, 1));
       }
     }
   }
@@ -1144,52 +1397,54 @@ export class DataLoader {
    */
   private async processSynsetsInChunks(
     synsetElems: ParsedNode[],
-    synsetsToInsert: Database['synsets'][],
-    definitionsToInsert: Database['definitions'][],
+    synsetsToInsert: Database["synsets"][],
+    definitionsToInsert: Database["definitions"][],
     lexiconLang: string,
     lexiconId: string
   ): Promise<void> {
     const CHUNK_SIZE = 1000;
-    
+
     for (let i = 0; i < synsetElems.length; i += CHUNK_SIZE) {
       const chunk = synsetElems.slice(i, i + CHUNK_SIZE);
-      
+
       for (const synset of chunk) {
-          const synsetId = String((synset.attributes as any)?.id ?? "unknown-synset");
-          synsetsToInsert.push({
-            id: synsetId,
-            ili: ((synset.attributes as any)?.ili as string | undefined) ?? undefined,
-            pos: String((synset.attributes as any)?.partOfSpeech ?? "n"),
-            language: lexiconLang,
-            lexicon: lexiconId,
-          });
+        const synsetId = String(
+          (synset.attributes as any)?.id ?? "unknown-synset"
+        );
+        synsetsToInsert.push({
+          id: synsetId,
+          ili:
+            ((synset.attributes as any)?.ili as string | undefined) ??
+            undefined,
+          pos: String((synset.attributes as any)?.partOfSpeech ?? "n"),
+          language: lexiconLang,
+          lexicon: lexiconId,
+        });
 
-          const definitions =
-            synset.children?.filter((child) => child.name === "Definition") || [];
+        const definitions =
+          synset.children?.filter((child) => child.name === "Definition") || [];
         for (const [j, def] of definitions.entries()) {
-            const lang = String((def.attributes as any)?.language ?? "en");
-            const glossElem = def.children?.find(
-              (c) => c.name === "gloss"
-            );
+          const lang = String((def.attributes as any)?.language ?? "en");
+          const glossElem = def.children?.find((c) => c.name === "gloss");
 
-            // Use the recursive text extractor
-            const textContent = glossElem
-              ? this.extractTextFromNode(glossElem)
-              : this.extractTextFromNode(def);
-            const cleanedText = textContent.replace(/\s+/g, " ").trim();
+          // Use the recursive text extractor
+          const textContent = glossElem
+            ? this.extractTextFromNode(glossElem)
+            : this.extractTextFromNode(def);
+          const cleanedText = textContent.replace(/\s+/g, " ").trim();
 
-            definitionsToInsert.push({
+          definitionsToInsert.push({
             id: `${synsetId}.def.${lang}.${j}`,
-              synset_id: synsetId,
-              language: lang,
-              text: cleanedText,
-            });
+            synset_id: synsetId,
+            language: lang,
+            text: cleanedText,
+          });
         }
       }
-      
+
       // Yield to UI thread after each chunk
       if (i + CHUNK_SIZE < synsetElems.length) {
-        await new Promise(resolve => setTimeout(resolve, 1));
+        await new Promise((resolve) => setTimeout(resolve, 1));
       }
     }
   }
@@ -1226,20 +1481,18 @@ export class DataLoader {
   async clearAllData(): Promise<void> {
     try {
       await this.database.clearAllData();
-      
+
       // Emit events after successful clear
-      if (this.wordnet && typeof (this.wordnet as any).emitDataChanged === 'function') {
-        (this.wordnet as any).emitDataChanged('databaseCleared', {
-          timestamp: new Date().toISOString()
+      if (this.wordnet.emitDataChanged) {
+        this.wordnet.emitDataChanged("databaseCleared", {
+          timestamp: new Date().toISOString(),
         });
-        
+
         // Emit statistics updated event
-        await (this.wordnet as any).emitStatisticsUpdated();
+        await this.wordnet.emitStatisticsUpdated();
       }
     } catch (error) {
-      if (this.wordnet && typeof (this.wordnet as any).emitError === 'function') {
-        (this.wordnet as any).emitError('clearAllData', error instanceof Error ? error : String(error));
-      }
+      this.wordnet.emitError("clearAllData", error as Error);
       throw error;
     }
   }

@@ -6,7 +6,7 @@
  * and depth calculations.
  */
 
-import type { Synset, PartOfSpeech } from './types.js';
+import type { Synset, PartOfSpeech, SynsetQuery } from './types.js';
 import { WnError } from './types.js';
 import { BaseWordnet } from './wordnet.js';
 import { hypernyms, shortestPath, maxDepth } from './synset-utils.js';
@@ -22,7 +22,9 @@ export async function roots(
   wordnet: BaseWordnet,
   pos?: PartOfSpeech
 ): Promise<Synset[]> {
-  const synsets = await wordnet.synsets('', pos);
+  const query: SynsetQuery = {};
+  if (pos) query.pos = pos;
+  const synsets = await wordnet.synsets(query);
   const rootSynsets: Synset[] = [];
 
   for (const synset of synsets) {
@@ -46,7 +48,9 @@ export async function leaves(
   wordnet: BaseWordnet,
   pos?: PartOfSpeech
 ): Promise<Synset[]> {
-  const synsets = await wordnet.synsets('', pos);
+  const query: SynsetQuery = {};
+  if (pos) query.pos = pos;
+  const synsets = await wordnet.synsets(query);
   const leafSynsets: Synset[] = [];
 
   for (const synset of synsets) {
@@ -79,7 +83,7 @@ export async function taxonomyDepth(
   wordnet: BaseWordnet,
   pos: PartOfSpeech
 ): Promise<number> {
-  const synsets = await wordnet.synsets('', pos);
+  const synsets = await wordnet.synsets({ pos });
   if (synsets.length === 0) return 0;
 
   let maxDepthValue = 0;

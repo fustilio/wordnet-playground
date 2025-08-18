@@ -124,6 +124,29 @@ export interface Project {
   metadata?: Record<string, unknown>;
 }
 
+export interface WordQuery {
+  form?: string;
+  pos?: PartOfSpeech;
+  lexicon?: string;
+  lang?: string;
+}
+
+export interface SynsetQuery {
+  form?: string;
+  pos?: PartOfSpeech;
+  ili?: string | ILI;
+  lexicon?: string;
+  lang?: string;
+}
+
+export interface SenseQuery {
+  form?: string;
+  pos?: PartOfSpeech;
+  lexicon?: string;
+  lang?: string;
+  wordIdOrForm?: string;
+}
+
 export interface WordnetConfig {
   dataDirectory: string;
   downloadDirectory?: string;

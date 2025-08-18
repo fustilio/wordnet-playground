@@ -8,7 +8,7 @@ import {
   type OPFSStorageInfo,
   type DownloadOptions,
 } from "./opfs-manager.js";
-import { WebWordnet } from "./web-wordnet.js";
+import type { WebWordnet } from "./client/submodules/web-wordnet.js";
 
 export interface ProjectInfo {
   id: string;

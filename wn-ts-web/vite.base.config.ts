@@ -6,20 +6,36 @@ import { comlink } from "vite-plugin-comlink";
 export default defineConfig({
   build: {
     lib: {
-      entry: { "wn-ts-web": path.resolve(process.cwd(), "src/index.ts") },
+      entry: {
+        "wn-ts-web": path.resolve(process.cwd(), "src/index.ts"),
+        "wn-ts-web-react": path.resolve(process.cwd(), "src/react/index.ts"),
+        "wordnet-worker": path.resolve(process.cwd(), "src/workers/wordnet-worker.ts"),
+      },
       name: "WnTsWeb",
       fileName: (format, entryName) =>
         `${entryName}.${format === "es" ? "mjs" : "umd.cjs"}`,
-      formats: ["es", "umd"],
+      formats: ["es"],
     },
     outDir: "dist",
     emptyOutDir: true,
     rollupOptions: {
-      external: ["wn-ts-core", "@sqlite.org/sqlite-wasm", "lzma"],
+      external: [
+        "wn-ts-core", 
+        "@sqlite.org/sqlite-wasm", 
+        "lzma",
+        "react",
+        "react-dom",
+        "react/jsx-runtime",
+        "react/jsx-dev-runtime"
+      ],
       output: {
         globals: {
           "wn-ts-core": "WnTsCore",
           "@sqlite.org/sqlite-wasm": "SqliteWasm",
+          "react": "React",
+          "react-dom": "ReactDOM",
+          "react/jsx-runtime": "React",
+          "react/jsx-dev-runtime": "React"
         },
       },
       onwarn(warning, warn) {

@@ -73,6 +73,7 @@ export const StatisticsWidget: React.FC<StatisticsWidgetProps> = ({ stats, onRef
           <p>Words:</p><p className="font-mono text-right">{(totals.totalWords ?? 0).toLocaleString()}</p>
           <p>Synsets:</p><p className="font-mono text-right">{(totals.totalSynsets ?? 0).toLocaleString()}</p>
           <p>Senses:</p><p className="font-mono text-right">{(totals.totalSenses ?? 0).toLocaleString()}</p>
+          <p>ILIs:</p><p className="font-mono text-right">{(totals.totalILIs ?? 0).toLocaleString()}</p>
         </div>
         <div>
           <h3 className="text-md font-semibold text-gray-700">Part of Speech</h3>

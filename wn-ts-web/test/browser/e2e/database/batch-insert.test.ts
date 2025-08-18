@@ -3,7 +3,7 @@ import { Kysely } from 'kysely';
 import { createSqliteWasmDialect } from '../../../../src/database/sqlite-wasm-dialect.js';
 import { KyselyQueryService } from '../../../../src/database/kysely-query-service.js';
 import type { Database } from '../../../../src/types/database.js';
-import { WebDatabase } from '../../../../src/web-database.js';
+import { WebDatabase } from '../../../../src/client/submodules/web-database.js';
 import { batchInsert } from '../../../../src/database/batch-insert.js';
 
 const isNode =

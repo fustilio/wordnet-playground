@@ -12,7 +12,10 @@ import type {
   Form,
   ILI,
   Example,
-  Project
+  Project,
+  WordQuery,
+  SynsetQuery,
+  SenseQuery
 } from 'wn-ts-core';
 import { BaseWordnet } from 'wn-ts-core'
 
@@ -98,11 +101,48 @@ export class Wordnet extends BaseWordnet {
     return await db.all<Lexicon>(sql, this._expand);
   }
 
-  async words(
-    form: string,
-    pos?: PartOfSpeech
-  ): Promise<Word[]> {
+  async words(query?: WordQuery): Promise<Word[]> {
     await db.initialize();
+
+    const { form, pos, lexicon, lang: _lang } = query || {};
+
+    const lang = _lang || this._lang;
+    
+    if (!form) {
+      // If no form specified, return all words (with filters)
+      let sql = `
+        SELECT DISTINCT w.id, w.lemma, w.pos, w.language, w.lexicon
+        FROM words w
+        WHERE 1=1
+      `;
+      
+      const params: unknown[] = [];
+
+      if (pos) {
+        sql += ' AND w.pos = ?';
+        params.push(pos);
+      }
+
+      if (lexicon && lexicon !== '*') {
+        sql += ' AND w.lexicon = ?';
+        params.push(lexicon);
+      } else if (this._lexiconId !== '*') {
+        sql += ' AND w.lexicon = ?';
+        params.push(this._lexiconId);
+      }
+
+      if (lang || this._lang) {
+        sql += ' AND w.language = ?';
+        params.push(lang || this._lang);
+      }
+
+      if (this._lexiconVersion && this._lexiconVersion !== '*') {
+        sql += ' AND w.lexicon IN (SELECT id FROM lexicons WHERE id = ? AND version = ?)';
+        params.push(this._lexiconId, this._lexiconVersion);
+      }
+
+      return await db.all<Word>(sql, params);
+    }
 
     let normalizedForm = form;
     if (this._normalizer) {
@@ -123,14 +163,17 @@ export class Wordnet extends BaseWordnet {
       params.push(pos);
     }
 
-    if (this._lexiconId !== '*') {
+    if (lexicon && lexicon !== '*') {
+      sql += ' AND w.lexicon = ?';
+      params.push(lexicon);
+    } else if (this._lexiconId !== '*') {
       sql += ' AND w.lexicon = ?';
       params.push(this._lexiconId);
     }
 
-    if (this._lang) {
+    if (lang || this._lang) {
       sql += ' AND w.language = ?';
-      params.push(this._lang);
+      params.push(lang || this._lang);
     }
 
     if (this._lexiconVersion && this._lexiconVersion !== '*') {
@@ -153,14 +196,17 @@ export class Wordnet extends BaseWordnet {
       params.push(pos);
     }
 
-    if (this._lexiconId !== '*') {
+    if (lexicon && lexicon !== '*') {
+      sql += ' AND w.lexicon = ?';
+      params.push(lexicon);
+    } else if (this._lexiconId !== '*') {
       sql += ' AND w.lexicon = ?';
       params.push(this._lexiconId);
     }
 
-    if (this._lang) {
+    if (lang || this._lang) {
       sql += ' AND w.language = ?';
-      params.push(this._lang);
+      params.push(lang || this._lang);
     }
 
     if (this._lexiconVersion && this._lexiconVersion !== '*') {
@@ -194,24 +240,32 @@ export class Wordnet extends BaseWordnet {
           WHERE f.written_form IN (${formPlaceholders})
         `;
         
-        const formParams = [...Array.from(allForms), ...Array.from(allForms)];
-          
+        const lemmatizedParams = [...Array.from(allForms), ...Array.from(allForms)];
+        
         if (pos) {
           sql += ' AND w.pos = ?';
-          formParams.push(pos);
+          lemmatizedParams.push(pos);
         }
 
-        if (this._lexiconId !== '*') {
+        if (lexicon && lexicon !== '*') {
           sql += ' AND w.lexicon = ?';
-          formParams.push(this._lexiconId);
+          lemmatizedParams.push(lexicon);
+        } else if (this._lexiconId !== '*') {
+          sql += ' AND w.lexicon = ?';
+          lemmatizedParams.push(this._lexiconId);
         }
 
-        if (this._lang) {
+        if (lang ) {
           sql += ' AND w.language = ?';
-          formParams.push(this._lang);
+          lemmatizedParams.push(lang);
         }
 
-        const lemmatizedWords = await db.all<Word>(sql, formParams);
+        if (this._lexiconVersion && this._lexiconVersion !== '*') {
+          sql += ' AND w.lexicon IN (SELECT id FROM lexicons WHERE id = ? AND version = ?)';
+          lemmatizedParams.push(this._lexiconId, this._lexiconVersion);
+        }
+
+        const lemmatizedWords = await db.all<Word>(sql, lemmatizedParams);
         words.push(...lemmatizedWords);
       }
     }
@@ -219,18 +273,71 @@ export class Wordnet extends BaseWordnet {
     return words;
   }
 
-  async synsets(
-    form: string,
-    pos?: PartOfSpeech,
-    _ili?: string | ILI
-  ): Promise<Synset[]> {
+  async synsets(query?: SynsetQuery): Promise<Synset[]> {
     await db.initialize();
 
-    const words = await this.words(form, pos);
+    const { form, pos, ili, lexicon, lang: _lang } = query || {};
+    
+    const lang = _lang || this._lang;
+
+    if (!form) {
+      // If no form specified, return all synsets (with filters)
+      let sql = `
+        SELECT DISTINCT s.id, s.ili, s.pos, s.language, s.lexicon
+        FROM synsets s
+        WHERE 1=1
+      `;
+      
+      const params: unknown[] = [];
+
+      if (pos) {
+        sql += ' AND s.pos = ?';
+        params.push(pos);
+      }
+
+      if (ili) {
+        const iliId = typeof ili === 'string' ? ili : ili.id;
+        sql += ' AND s.ili = ?';
+        params.push(iliId);
+      }
+
+      if (lexicon && lexicon !== '*') {
+        sql += ' AND s.lexicon = ?';
+        params.push(lexicon);
+      } else if (this._lexiconId !== '*') {
+        sql += ' AND s.lexicon = ?';
+        params.push(this._lexiconId);
+      }
+
+      if (lang) {
+        sql += ' AND s.language = ?';
+        params.push(lang);
+      }
+
+      if (this._lexiconVersion && this._lexiconVersion !== '*') {
+        sql += ' AND s.lexicon IN (SELECT id FROM lexicons WHERE id = ? AND version = ?)';
+        params.push(this._lexiconId, this._lexiconVersion);
+      }
+
+      const synsets = await db.all<Synset>(sql, params);
+      
+      // Load full synset data for each
+      const fullSynsets: Synset[] = [];
+      for (const synset of synsets) {
+        const fullSynset = await this.getSynsetOrUndefined(synset.id);
+        if (fullSynset) {
+          fullSynsets.push(fullSynset);
+        }
+      }
+      
+      return fullSynsets;
+    }
+
+    const words = await this.words(query);
     const synsetIds = new Set<string>();
 
     for (const word of words) {
-      const senses = await this.senses(word.id);
+      const senses = await this.senses({ wordIdOrForm: word.id });
       for (const sense of senses) {
         synsetIds.add(sense.synset);
       }
@@ -238,7 +345,7 @@ export class Wordnet extends BaseWordnet {
 
     const synsets: Synset[] = [];
     for (const synsetId of synsetIds) {
-      const synset = await this.synset(synsetId);
+      const synset = await this.getSynsetOrUndefined(synsetId);
       if (synset) {
         synsets.push(synset);
       }
@@ -247,63 +354,36 @@ export class Wordnet extends BaseWordnet {
     return synsets;
   }
 
-  async getSynset(synsetId: string): Promise<Synset | undefined> {
-    await db.initialize();
-
-    const sql = `
-      SELECT id, ili, pos, language, lexicon
-      FROM synsets
-      WHERE id = ?
-    `;
-    
-    const result = await db.get<Synset>(sql, [synsetId]);
-    if (!result) {
-      return undefined;
-    }
-
-    // Get definitions
-    const definitions = await db.all(`
-      SELECT id, language, text, source
-      FROM definitions
-      WHERE synset_id = ?
-    `, [synsetId]);
-
-    // Get relations
-    const relations = await db.all(`
-      SELECT id, type, target_id as target, source
-      FROM relations
-      WHERE source_id = ?
-    `, [synsetId]);
-
-    // Get members and senses
-    const senses = await this.sensesBySynset(synsetId);
-    const members = senses.map(s => s.word);
-
-    // Get examples
-    const examples = await db.all(`
-      SELECT id, language, text, source
-      FROM examples
-      WHERE synset_id = ?
-    `, [synsetId]) as Example[];
-
-    return {
-      ...result,
-      definitions: definitions as Definition[],
-      relations: relations as Relation[],
-      members: members as string[],
-      senses: senses.map(s => s.id) as string[],
-      examples: examples,
-    };
-  }
-
   // Method overloads for senses
-  async getSenses(wordId: string): Promise<Sense[]>;
-  async getSenses(form: string, pos?: PartOfSpeech): Promise<Sense[]>;
-  async getSenses(wordIdOrForm: string, pos?: PartOfSpeech): Promise<Sense[]> {
+  async senses(query?: SenseQuery): Promise<Sense[]> {
     await db.initialize();
-    // If pos is provided, this is a form-based query with pos filter
-    if (pos !== undefined) {
-      const form = wordIdOrForm;
+    
+    const { form, pos, lexicon, lang, wordIdOrForm } = query || {};
+    
+    // If wordIdOrForm is provided, this is a word ID query
+    if (wordIdOrForm && !form) {
+      let sql = `
+        SELECT DISTINCT s.id, s.word_id as word, s.synset_id as synset, s.source, s.sensekey,
+               s.adjposition, s.subcategory, s.domain, s.register
+        FROM senses s
+        WHERE s.word_id = ?
+      `;
+      
+      const params: unknown[] = [wordIdOrForm];
+
+      if (lexicon && lexicon !== '*') {
+        sql += ' AND s.synset_id IN (SELECT id FROM synsets WHERE lexicon = ?)';
+        params.push(lexicon);
+      } else if (this._lexiconId !== '*') {
+        sql += ' AND s.synset_id IN (SELECT id FROM synsets WHERE lexicon = ?)';
+        params.push(this._lexiconId);
+      }
+
+      return await db.all<Sense>(sql, params);
+    }
+    
+    // If form is provided, this is a form-based query with pos filter
+    if (form) {
       let normalizedForm = form;
       if (this._normalizer) {
         normalizedForm = this._normalizer(form);
@@ -313,141 +393,119 @@ export class Wordnet extends BaseWordnet {
                s.adjposition, s.subcategory, s.domain, s.register
         FROM senses s
         JOIN words w ON s.word_id = w.id
-        LEFT JOIN forms f ON w.id = f.word_id
-        WHERE (f.written_form = ? OR w.lemma = ?)
+        WHERE w.lemma = ?
       `;
-      const params: unknown[] = [normalizedForm, normalizedForm];
-      sql += ' AND w.pos = ?';
-      params.push(pos);
-      if (this._lexiconId !== '*') {
-        sql += ' AND w.lexicon = ?';
+      
+      const params: unknown[] = [normalizedForm];
+
+      if (pos) {
+        sql += ' AND w.pos = ?';
+        params.push(pos);
+      }
+
+      if (lexicon && lexicon !== '*') {
+        sql += ' AND s.synset_id IN (SELECT id FROM synsets WHERE lexicon = ?)';
+        params.push(lexicon);
+      } else if (this._lexiconId !== '*') {
+        sql += ' AND s.synset_id IN (SELECT id FROM synsets WHERE lexicon = ?)';
         params.push(this._lexiconId);
       }
-      if (this._lang) {
+
+      if (lang || this._lang) {
         sql += ' AND w.language = ?';
-        params.push(this._lang);
+        params.push(lang || this._lang);
       }
-      const senses = await db.all<Sense>(sql, params);
+
+      let senses = await db.all<Sense>(sql, params);
+
       // If no results and searchAllForms is enabled, try lemmatization
       if (senses.length === 0 && this._searchAllForms && this._lemmatizer) {
         const lemmatizedForms = this._lemmatizer(normalizedForm, pos);
         const allForms = new Set<string>();
+        
         for (const forms of Object.values(lemmatizedForms)) {
           for (const form of forms) {
             allForms.add(form);
           }
         }
+
         if (allForms.size > 0) {
           const formPlaceholders = Array.from(allForms).map(() => '?').join(',');
-          sql = `
+          let lemmatizedSql = `
             SELECT DISTINCT s.id, s.word_id as word, s.synset_id as synset, s.source, s.sensekey,
                    s.adjposition, s.subcategory, s.domain, s.register
             FROM senses s
             JOIN words w ON s.word_id = w.id
-            LEFT JOIN forms f ON w.id = f.word_id
-            WHERE (f.written_form IN (${formPlaceholders}) OR w.lemma IN (${formPlaceholders}))
+            WHERE w.lemma IN (${formPlaceholders})
           `;
-          const formParams = [...Array.from(allForms), ...Array.from(allForms)];
-          sql += ' AND w.pos = ?';
-          formParams.push(pos);
-          if (this._lexiconId !== '*') {
-            sql += ' AND w.lexicon = ?';
-            formParams.push(this._lexiconId);
+          
+          const lemmatizedParams = Array.from(allForms);
+          
+          if (pos) {
+            lemmatizedSql += ' AND w.pos = ?';
+            lemmatizedParams.push(pos);
           }
-          if (this._lang) {
-            sql += ' AND w.language = ?';
-            params.push(this._lang);
+
+          if (lexicon && lexicon !== '*') {
+            lemmatizedSql += ' AND s.synset_id IN (SELECT id FROM synsets WHERE lexicon = ?)';
+            lemmatizedParams.push(lexicon);
+          } else if (this._lexiconId !== '*') {
+            lemmatizedSql += ' AND s.synset_id IN (SELECT id FROM synsets WHERE lexicon = ?)';
+            lemmatizedParams.push(this._lexiconId);
           }
-          const lemmatizedSenses = await db.all<Sense>(sql, formParams);
+
+          if (lang || this._lang) {
+            lemmatizedSql += ' AND w.language = ?';
+            const langParam = lang || this._lang;
+            if (langParam) {
+              lemmatizedParams.push(langParam);
+            }
+          }
+
+          const lemmatizedSenses = await db.all<Sense>(lemmatizedSql, lemmatizedParams);
           senses.push(...lemmatizedSenses);
         }
       }
-      return senses;
-    } else {
-      // Check if this looks like a wordId (contains hyphens and is not a simple word)
-      const wordId = wordIdOrForm;
-      if (wordId.includes('-')) {
-        // This is a wordId-based query
-        const sql = `
-          SELECT id, word_id as word, synset_id as synset, source, sensekey,
-                 adjposition, subcategory, domain, register
-          FROM senses
-          WHERE word_id = ?
-        `;
-        return await db.all<Sense>(sql, [wordId]);
-      } else {
-        // This is a form-based query without pos filter
-        const form = wordIdOrForm;
-        let normalizedForm = form;
-        if (this._normalizer) {
-          normalizedForm = this._normalizer(form);
-        }
-        let sql = `
-          SELECT DISTINCT s.id, s.word_id as word, s.synset_id as synset, s.source, s.sensekey,
-                 s.adjposition, s.subcategory, s.domain, s.register
-          FROM senses s
-          JOIN words w ON s.word_id = w.id
-          LEFT JOIN forms f ON w.id = f.word_id
-          WHERE (f.written_form = ? OR w.lemma = ?)
-        `;
-        const params: unknown[] = [normalizedForm, normalizedForm];
-        if (this._lexiconId !== '*') {
-          sql += ' AND w.lexicon = ?';
-          params.push(this._lexiconId);
-        }
-        if (this._lang) {
-          sql += ' AND w.language = ?';
-          params.push(this._lang);
-        }
-        const senses = await db.all<Sense>(sql, params);
-        // If no results and searchAllForms is enabled, try lemmatization
-        if (senses.length === 0 && this._searchAllForms && this._lemmatizer) {
-          const lemmatizedForms = this._lemmatizer(normalizedForm);
-          const allForms = new Set<string>();
-          for (const forms of Object.values(lemmatizedForms)) {
-            for (const form of forms) {
-              allForms.add(form);
-            }
-          }
-          if (allForms.size > 0) {
-            const formPlaceholders = Array.from(allForms).map(() => '?').join(',');
-            sql = `
-              SELECT DISTINCT s.id, s.word_id as word, s.synset_id as synset, s.source, s.sensekey,
-                     s.adjposition, s.subcategory, s.domain, s.register
-              FROM senses s
-              JOIN words w ON s.word_id = w.id
-              LEFT JOIN forms f ON w.id = f.word_id
-              WHERE (f.written_form IN (${formPlaceholders}) OR w.lemma IN (${formPlaceholders}))
-            `;
-            const formParams = [...Array.from(allForms), ...Array.from(allForms)];
-            if (this._lexiconId !== '*') {
-              sql += ' AND w.lexicon = ?';
-              formParams.push(this._lexiconId);
-            }
-            if (this._lang) {
-              sql += ' AND w.language = ?';
-              formParams.push(this._lang);
-            }
-            const lemmatizedSenses = await db.all<Sense>(sql, formParams);
-            senses.push(...lemmatizedSenses);
-          }
-        }
-        return senses;
-      }
-    }
-  }
 
-  private async sensesBySynset(synsetId: string): Promise<Sense[]> {
-    await db.initialize();
+      return senses;
+    }
     
-    const sql = `
-      SELECT id, word_id as word, synset_id as synset, source, sensekey,
-             adjposition, subcategory, domain, register
-      FROM senses
-      WHERE synset_id = ?
+    // If no form or wordIdOrForm, return all senses (with filters)
+    let sql = `
+      SELECT DISTINCT s.id, s.word_id as word, s.synset_id as synset, s.source, s.sensekey,
+             s.adjposition, s.subcategory, s.domain, s.register
+      FROM senses s
+      JOIN words w ON s.word_id = w.id
+      JOIN synsets sy ON s.synset_id = sy.id
+      WHERE 1=1
     `;
     
-    return await db.all<Sense>(sql, [synsetId]);
+    const params: unknown[] = [];
+
+    if (pos) {
+      sql += ' AND w.pos = ?';
+      params.push(pos);
+    }
+
+    if (lexicon && lexicon !== '*') {
+      sql += ' AND sy.lexicon = ?';
+      params.push(lexicon);
+    } else if (this._lexiconId !== '*') {
+      sql += ' AND sy.lexicon = ?';
+      params.push(this._lexiconId);
+    }
+
+    if (lang || this._lang) {
+      sql += ' AND w.language = ?';
+      params.push(lang || this._lang);
+    }
+
+    if (this._lexiconVersion && this._lexiconVersion !== '*') {
+      sql += ' AND sy.lexicon IN (SELECT id FROM lexicons WHERE id = ? AND version = ?)';
+      params.push(this._lexiconId, this._lexiconVersion);
+    }
+
+    return await db.all<Sense>(sql, params);
   }
 
   async getWord(wordId: string): Promise<Word | undefined> {
@@ -519,7 +577,12 @@ export class Wordnet extends BaseWordnet {
       WHERE id = ?
     `;
     
-    return await db.get<ILI>(sql, [iliId]);
+    const result = await db.get<ILI>(sql, [iliId]);
+    if (!result) {
+      return undefined;
+    }
+    
+    return result;
   }
 
   // Implement abstract methods from BaseWordnet
@@ -555,20 +618,58 @@ export class Wordnet extends BaseWordnet {
     return result;
   }
 
-  async senses(form?: string, pos?: PartOfSpeech): Promise<Sense[]> {
-    if (!form) {
-      return [];
-    }
-    return this.getSenses(form, pos);
-  }
-
   // Methods that return undefined for non-existent items (for testing)
   async getWordOrUndefined(wordId: string): Promise<Word | undefined> {
     return this.getWord(wordId);
   }
 
   async getSynsetOrUndefined(synsetId: string): Promise<Synset | undefined> {
-    return this.getSynset(synsetId);
+    await db.initialize();
+
+    const sql = `
+      SELECT id, ili, pos, language, lexicon
+      FROM synsets
+      WHERE id = ?
+    `;
+    
+    const result = await db.get<Synset>(sql, [synsetId]);
+    if (!result) {
+      return undefined;
+    }
+
+    // Get definitions
+    const definitions = await db.all(`
+      SELECT id, language, text, source
+      FROM definitions
+      WHERE synset_id = ?
+    `, [synsetId]);
+
+    // Get relations
+    const relations = await db.all(`
+      SELECT id, type, target_id as target, source
+      FROM relations
+      WHERE source_id = ?
+    `, [synsetId]);
+
+    // Get members and senses
+    const senses = await this.senses({ wordIdOrForm: synsetId });
+    const members = senses.map(s => s.word);
+
+    // Get examples
+    const examples = await db.all(`
+      SELECT id, language, text, source
+      FROM examples
+      WHERE synset_id = ?
+    `, [synsetId]) as Example[];
+
+    return {
+      ...result,
+      definitions: definitions as Definition[],
+      relations: relations as Relation[],
+      members: members as string[],
+      senses: senses.map(s => s.id) as string[],
+      examples: examples,
+    };
   }
 
   async getSenseOrUndefined(senseId: string): Promise<Sense | undefined> {

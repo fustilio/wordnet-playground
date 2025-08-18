@@ -1,0 +1,1 @@
+export { useWordNet } from './useWordNet';

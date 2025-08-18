@@ -1,8 +1,8 @@
 import { BaseWordnet } from '../src/wordnet';
-import type { Word, Sense, Synset, Lexicon, PartOfSpeech, ILI, Project } from '../src/types';
+import type { Word, Sense, Synset, Lexicon, PartOfSpeech, ILI, Project, WordQuery, SynsetQuery, SenseQuery } from '../src/types';
 
-type WordsFn = (form: string, pos?: PartOfSpeech) => Promise<Word[]>;
-type SynsetFn = (id: string) => Promise<Synset | undefined>;
+type WordsFn = (query?: WordQuery) => Promise<Word[]>;
+type SynsetFn = (id: string) => Promise<Synset>;
 
 interface TestWordnetOptions {
     words?: WordsFn;
@@ -21,25 +21,33 @@ export class TestWordnet extends BaseWordnet {
     constructor(options: TestWordnetOptions = {}) {
         super({ lexicon: 'test-en' });
         this.wordsFn = options.words || (async () => []);
-        this.synsetFn = options.synset || (async () => undefined);
+        this.synsetFn = options.synset || (async () => {
+            throw new Error('Mock synset not implemented');
+        });
     }
 
-    async words(form: string, pos?: PartOfSpeech): Promise<Word[]> {
-        return this.wordsFn(form, pos);
+    async words(query?: WordQuery): Promise<Word[]> {
+        return this.wordsFn(query);
     }
 
-    async synset(synsetId: string): Promise<Synset | undefined> {
+    async synset(synsetId: string): Promise<Synset> {
         return this.synsetFn(synsetId);
     }
     
     // Implement all other abstract methods with default behavior
     async lexicons(): Promise<Lexicon[]> { return []; }
     async expandedLexicons(): Promise<Lexicon[]> { return []; }
-    async senses(wordIdOrForm: string, pos?: PartOfSpeech): Promise<Sense[]> { return []; }
-    async synsets(form: string, pos?: PartOfSpeech, ili?: string): Promise<Synset[]> { return []; }
-    async word(wordId: string): Promise<Word | undefined> { return undefined; }
-    async sense(senseId: string): Promise<Sense | undefined> { return undefined; }
-    async ili(iliId: string): Promise<ILI | undefined> { return undefined; }
+    async senses(query?: SenseQuery): Promise<Sense[]> { return []; }
+    async synsets(query?: SynsetQuery): Promise<Synset[]> { return []; }
+    async word(wordId: string): Promise<Word> { 
+        throw new Error(`Mock word not implemented for ${wordId}`);
+    }
+    async sense(senseId: string): Promise<Sense> { 
+        throw new Error(`Mock sense not implemented for ${senseId}`);
+    }
+    async ili(iliId: string): Promise<ILI> { 
+        throw new Error(`Mock ili not implemented for ${iliId}`);
+    }
     async ilis(status?: string): Promise<ILI[]> { return []; }
     async getProjects(): Promise<Project[]> { return []; }
     async getStatistics() { return { totalWords: 0, totalSynsets: 0, totalSenses: 0, totalILIs: 0, totalLexicons: 0 }; }

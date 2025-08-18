@@ -10,6 +10,7 @@ import type { Synset, PartOfSpeech } from 'wn-ts-core';
 import { Error as WnError } from 'wn-ts-core';
 import { Wordnet } from './wordnet.js';
 import { hypernyms, shortestPath, maxDepth } from 'wn-ts-core';
+import type { SynsetQuery } from 'wn-ts-core';
 
 /**
  * Find root synsets in a Wordnet.
@@ -22,7 +23,9 @@ export async function roots(
   wordnet: Wordnet,
   pos?: PartOfSpeech
 ): Promise<Synset[]> {
-  const synsets = await wordnet.synsets('', pos);
+  const query: SynsetQuery = {};
+  if (pos) query.pos = pos;
+  const synsets = await wordnet.synsets(query);
   const rootSynsets: Synset[] = [];
   
   for (const synset of synsets) {
@@ -46,7 +49,9 @@ export async function leaves(
   wordnet: Wordnet,
   pos?: PartOfSpeech
 ): Promise<Synset[]> {
-  const synsets = await wordnet.synsets('', pos);
+  const query: SynsetQuery = {};
+  if (pos) query.pos = pos;
+  const synsets = await wordnet.synsets(query);
   const leafSynsets: Synset[] = [];
   
   for (const synset of synsets) {
@@ -76,7 +81,7 @@ export async function taxonomyDepth(
   wordnet: Wordnet,
   pos: PartOfSpeech
 ): Promise<number> {
-  const synsets = await wordnet.synsets('', pos);
+  const synsets = await wordnet.synsets({ pos });
   if (synsets.length === 0) return 0;
   
   let maxDepthValue = 0;

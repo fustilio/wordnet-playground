@@ -92,8 +92,8 @@ describe('Wordnet', () => {
 
       // Test that abstract methods are callable
       await expect(mockWordnet.lexicons()).resolves.toEqual([]);
-      await expect(mockWordnet.words('test')).resolves.toEqual([]);
-      await expect(mockWordnet.synsets('test')).resolves.toEqual([]);
+      await expect(mockWordnet.words({ form: 'test' })).resolves.toEqual([]);
+      await expect(mockWordnet.synsets({ form: 'test' })).resolves.toEqual([]);
     });
 
     it('should handle constructor options correctly', () => {

@@ -1,24 +1,81 @@
-import React, { useMemo, useState } from 'react';
-import { useWordNetContext } from '../../contexts/WordNetContext';
+import React, { useMemo, useState, useEffect } from 'react';
+import { useWordNetContext } from "wn-ts-web/react";
 import { Card } from '../shared/Card';
 import { LexiconRequirements } from '../shared/LexiconRequirements';
-import { createScopedLogger } from '../../logger';
-import { getAvailableProjects } from '../../utils/project-list';
+import { createScopedLogger } from 'utils/logger';
+import { getAvailableProjects } from "wn-ts-web/react";
 
 const logger = createScopedLogger('BilingualDictionary');
 
 // Use ISO-2 codes to match DB inserts ('en','fr','th')
 const LANG_LABEL: Record<string, string> = { en: 'English', fr: 'French', th: 'Thai' };
 
+// Try multiple language code variants to handle ISO-2/ISO-3 differences in datasets
+const LANGUAGE_VARIANTS: Record<string, string[]> = {
+  en: ['en', 'eng', 'en-us', 'en-gb'],
+  fr: ['fr', 'fra', 'fr-fr'],
+  th: ['th', 'tha'],
+};
+
+function getLanguageVariants(lang: string): string[] {
+  const base = LANGUAGE_VARIANTS[lang] || [lang];
+  // Ensure unique, preserve order
+  return Array.from(new Set(base.map(v => v.toLowerCase())));
+}
+
+// Some datasets encode ILI differently. Generate common variants from a single input.
+function getIliVariants(rawIli: string | undefined): string[] {
+  if (!rawIli) return [];
+  const s = String(rawIli);
+  const digits = s.replace(/[^0-9]/g, '');
+  const candidates = [
+    s,                        // as-is (e.g., "i115069" or "ili-115069")
+    digits,                   // just digits ("115069")
+    `i${digits}`,             // prefixed with i
+    `ili-${digits}`,          // prefixed with ili-
+  ].filter(Boolean) as string[];
+  return Array.from(new Set(candidates));
+}
+
+function getSynsetIdVariants(synsetId: string): string[] {
+  const variants: string[] = [synsetId];
+  const m = synsetId.match(/^([a-z0-9]+)-(.*)$/i);
+  if (m) {
+    const prefix = m[1].toLowerCase();
+    const rest = m[2];
+    if (prefix === 'oewn' || prefix === 'ewn') {
+      variants.push(`omw-${rest}`);
+    }
+  }
+  return Array.from(new Set(variants));
+}
+
 type Pair = { from: 'en' | 'fr'; to: 'fr' | 'th' } | { from: 'en'; to: 'th' };
 
 export const BilingualDictionary: React.FC = () => {
-  const { wordnet, dataLoader, availablePackages, loadedPackages, loadPackageData, refreshPackages, loading } = useWordNetContext();
+  const { 
+    availablePackages, 
+    loadedPackages, 
+    loadPackageData, 
+    refreshPackages, 
+    loading, 
+    isInitializing,
+    queryWords,
+    getSensesByWordIdOrForm,
+    getDefinitionsBySynsetId,
+    getSynsetById,
+    getWordsByIliAndLanguage,
+    getWordsByIliAndLexiconPrefix,
+  } = useWordNetContext();
   const [pair, setPair] = useState<Pair>({ from: 'en', to: 'fr' });
   const [term, setTerm] = useState('water');
   const [results, setResults] = useState<Array<{ source: string; target: string; synsetId: string; defFrom?: string; defTo?: string }>>([]);
   const [busy, setBusy] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
+  const [lexiconExploration, setLexiconExploration] = useState<string>('');
+
+  // Compute button enabled state early so we can log it in effects
+  const canQuery = !loading && !busy && !isInitializing;
 
   // Define lexicon requirements for this demo
   const lexiconRequirements = [
@@ -35,21 +92,27 @@ export const BilingualDictionary: React.FC = () => {
       priority: 'high' as const
     },
     {
+      id: 'omw:1.4',
+      label: 'Open Multilingual Wordnet 1.4',
+      description: 'Aggregate with ILI-linked synsets across languages',
+      priority: 'high' as const
+    },
+    {
       id: 'omw-fr:1.4',
       label: 'French WordNet 1.4',
-      description: 'Required for French target language support',
+      description: 'French target language support (optional if using OMW aggregate)',
       priority: 'medium' as const
     },
     {
       id: 'omw-th:1.4',
       label: 'Thai WordNet 1.4',
-      description: 'Required for Thai target language support',
+      description: 'Thai target language support (optional if using OMW aggregate)',
       priority: 'low' as const
     }
   ];
 
   const findLatestByPrefix = (prefix: string, filter?: (v: string) => boolean) => {
-    // Use full catalog so we don’t depend on context.availablePackages filtering
+    // Use full catalog so we don't depend on context.availablePackages filtering
     const catalog = getAvailableProjects();
     const proj = catalog.find(p => p.id === prefix);
     if (!proj) return undefined;
@@ -70,15 +133,37 @@ export const BilingualDictionary: React.FC = () => {
   const requiredProjects = useMemo(() => {
     // English: prefer 'oewn:>=2021', else 'ewn:<2021'
     const en = findLatestByPrefix('oewn', v => toInt(v) >= 2021) || findLatestByPrefix('ewn', v => toInt(v) < 2021);
+    // Aggregate OMW (multi-language, ILI-linked)
+    const omwAll = findLatestByPrefix('omw');
     // French/Thai from OMW where available
     const fr = findLatestByPrefix('omw-fr');
     const th = findLatestByPrefix('omw-th');
-    return { en, fr, th };
+    return { en, fr, th, omwAll };
     function toInt(v: string) {
       const n = parseInt(v.replace(/[^0-9]/g, ''), 10);
       return isNaN(n) ? -Infinity : n;
     }
-  }, [availablePackages]);
+  }, []); // Remove dependency on availablePackages since we're using getAvailableProjects() directly
+
+  // Render/debug logs
+  useEffect(() => {
+    logger.debug('render state', {
+      isInitializing,
+      loading,
+      busy,
+      canQuery,
+      term,
+      pair,
+      loadedCount: loadedPackages.length,
+      availableCount: availablePackages.length,
+      loaded: loadedPackages.slice(0, 10),
+      availableSample: availablePackages.slice(0, 5)
+    });
+  }, [isInitializing, loading, busy, term, pair, loadedPackages, availablePackages, canQuery]);
+
+  useEffect(() => {
+    logger.debug('required projects resolved', requiredProjects);
+  }, [requiredProjects]);
 
   const ensureLoaded = async () => {
     logger.start('ensuring required packages are loaded');
@@ -87,6 +172,10 @@ export const BilingualDictionary: React.FC = () => {
     const need: string[] = [];
     if (pair.from === 'en' && !loadedPackages.some(id => id.startsWith('oewn') || id.startsWith('ewn') || id.startsWith('omw-en'))) {
       if (requiredProjects.en) need.push(requiredProjects.en);
+    }
+    // Ensure OMW aggregate is present for ILI bridging across languages
+    if (!loadedPackages.some(id => id.startsWith('omw:'))) {
+      if (requiredProjects.omwAll) need.push(requiredProjects.omwAll);
     }
     if ((pair.from === 'fr' || pair.to === 'fr') && !loadedPackages.some(id => id.startsWith('omw-fr') || id.startsWith('wn-fra') || id.startsWith('fra'))) {
       if (requiredProjects.fr) need.push(requiredProjects.fr);
@@ -111,43 +200,240 @@ export const BilingualDictionary: React.FC = () => {
     logger.end('ensuring required packages are loaded', { loaded: need });
   };
 
+  const loadRequiredPackages = async () => {
+    logger.start('loading required packages with correct versions');
+    
+    try {
+      // Get the raw project data to see what's actually available
+      const catalog = getAvailableProjects();
+      logger.debug('Available projects from catalog', { 
+        total: catalog.length,
+        sample: catalog.slice(0, 5).map(p => ({ id: p.id, versions: p.versions }))
+      });
+      
+      // Check what we need vs what's available
+      const required = [
+        { id: 'oewn', versions: ['2024', '2023', '2022', '2021'] },
+        { id: 'cili', versions: ['1.0'] },
+        { id: 'omw', versions: ['1.4', '1.3'] },
+        { id: 'omw-fr', versions: ['1.4', '1.3'] },
+        { id: 'omw-th', versions: ['1.4', '1.3'] }
+      ];
+      
+      for (const req of required) {
+        const project = catalog.find(p => p.id === req.id);
+        if (project) {
+          logger.debug(`Project ${req.id} found`, { 
+            availableVersions: project.versions,
+            requiredVersions: req.versions
+          });
+          
+          // Find the best matching version
+          const bestVersion = req.versions.find(v => project.versions.includes(v)) || project.versions[0];
+          if (bestVersion) {
+            const packageId = `${req.id}:${bestVersion}`;
+            const isLoaded = loadedPackages.some(lp => lp.startsWith(req.id));
+            
+            if (!isLoaded) {
+              logger.step(`Loading ${packageId}`);
+              try {
+                await loadPackageData(packageId);
+                logger.success(`Successfully loaded ${packageId}`);
+              } catch (error) {
+                logger.warn(`Failed to load ${packageId}`, { error });
+              }
+            } else {
+              logger.debug(`${req.id} already loaded`);
+            }
+          }
+        } else {
+          logger.warn(`Project ${req.id} not found in catalog`);
+        }
+      }
+      
+      await refreshPackages();
+      logger.success('Required packages loading completed');
+    } catch (error) {
+      logger.fail('Failed to load required packages', { error });
+    }
+  };
+
   const runQuery = async () => {
     logger.start(`bilingual query for "${term}"`);
-    logger.step('starting bilingual query', { term, pair });
+    logger.step('starting bilingual query', { term, pair, canQuery, isInitializing, loading, busy });
     
+    if (!canQuery) {
+      logger.warn('Search attempted while disabled', { isInitializing, loading, busy });
+      return;
+    }
+
     setBusy(true);
     setLastError(null);
     setResults([]);
     
     try {
-      if (!wordnet) throw new Error('WordNet not initialized');
-      const qs = wordnet.getQueryService?.();
-      if (!qs) throw new Error('Query service unavailable');
-
       const fromLang = pair.from;
       const toLang = pair.to;
+      const toLangVariants = getLanguageVariants(toLang);
 
       // 1) Find source words in fromLang
       logger.step('finding source words', { term, language: fromLang });
-      const srcWords = await qs.getWords({ form: term, language: fromLang, searchAllForms: true });
-      logger.step('source words found', { count: srcWords.length });
+      const srcWords = await queryWords(term);
+      logger.step('source words found', { count: (srcWords as any[]).length, sample: (srcWords as any[]).slice(0, 5) });
       
       const out: Array<{ source: string; target: string; synsetId: string; defFrom?: string; defTo?: string }> = [];
 
-      for (const w of srcWords.slice(0, 25)) {
-        const senses = await qs.getSenses({ wordIdOrForm: w.id });
-        for (const s of senses.slice(0, 25)) {
-          // 2) Same synset, other-language words
-          const toWords = await qs.getWordsBySynsetAndLanguage(s.synset, toLang);
-          if (toWords.length === 0) continue;
+      const srcSlice = (srcWords as any[]).slice(0, 25);
+      for (let wi = 0; wi < srcSlice.length; wi++) {
+        const w = srcSlice[wi];
+        const senses = await getSensesByWordIdOrForm(w.id);
+        logger.step('senses fetched', { word: w.lemma, count: (senses as any[]).length });
 
-          // 3) Definitions from both langs
-          const defs = await qs.getDefinitionsBySynsetId(s.synset);
-          const defFrom = defs.find(d => d.language === fromLang)?.text;
-          const defTo = defs.find(d => d.language === toLang)?.text;
+        const sensesSlice = (senses as any[]).slice(0, 25);
+        for (let si = 0; si < sensesSlice.length; si++) {
+          const s = sensesSlice[si];
+          
+          // 2) Try to find corresponding words in target language using multiple strategies
+          let toWords: any[] = [];
+          
+          // Strategy 1: Direct word lookup in target language (simple but effective)
+          try {
+            const targetLexiconId = toLang === 'fr' ? 'omw-fr:1.4' : toLang === 'th' ? 'omw-th:1.4' : '';
+            if (targetLexiconId) {
+              // Try the exact word first
+              const exactMatch = await queryWords(w.lemma);
+              if ((exactMatch as any[]).length > 0) {
+                // Filter to target language
+                const targetWords = (exactMatch as any[]).filter(word => 
+                  toLangVariants.includes(word.language?.toLowerCase())
+                );
+                if (targetWords.length > 0) {
+                  toWords = targetWords;
+                  logger.debug('Found exact word match in target language', { 
+                    source: w.lemma, 
+                    target: targetWords[0].lemma, 
+                    count: targetWords.length 
+                  });
+                }
+              }
+              
+              // If no exact match, try searching for similar words
+              if (toWords.length === 0) {
+                // Try common variations and related terms
+                const variations = [
+                  w.lemma,
+                  w.lemma.toLowerCase(),
+                  w.lemma.replace(/[^a-zA-Z]/g, ''),
+                  // Add some common prefixes/suffixes for Romance languages
+                  ...(toLang === 'fr' ? ['le', 'la', 'les', 'un', 'une', 'des'] : []),
+                  ...(toLang === 'th' ? ['น้ำ', 'ของ', 'การ'] : [])
+                ];
+                
+                for (const variation of variations) {
+                  try {
+                    const similarWords = await queryWords(variation);
+                    const targetSimilar = (similarWords as any[]).filter(word => 
+                      toLangVariants.includes(word.language?.toLowerCase())
+                    );
+                    if (targetSimilar.length > 0) {
+                      toWords = targetSimilar;
+                      logger.debug('Found similar word match', { 
+                        variation, 
+                        count: targetSimilar.length 
+                      });
+                      break;
+                    }
+                  } catch (e) {
+                    // Continue with next variation
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            logger.warn('Direct word lookup failed', { error: e instanceof Error ? e.message : String(e) });
+          }
 
-          for (const tw of toWords.slice(0, 10)) {
-            out.push({ source: w.lemma, target: tw.lemma, synsetId: s.synset, defFrom, defTo });
+          // Strategy 2: Try to find words with similar meanings using definitions
+          if (toWords.length === 0) {
+            try {
+              const defs = await getDefinitionsBySynsetId(s.synset);
+              const sourceDef = (defs as any[]).find(d => d.language === fromLang)?.text;
+              
+              if (sourceDef) {
+                // Extract key terms from definition and search for them
+                const keyTerms = sourceDef
+                  .toLowerCase()
+                  .replace(/[^a-z\s]/g, ' ')
+                  .split(/\s+/)
+                  .filter((wordTerm: string) => wordTerm.length > 3 && !['the', 'and', 'or', 'for', 'with', 'from', 'into', 'during', 'including', 'until', 'against', 'among', 'throughout', 'despite', 'towards', 'upon'].includes(wordTerm))
+                  .slice(0, 5); // Take top 5 key terms
+                
+                logger.debug('Extracted key terms from definition', { sourceDef, keyTerms });
+                
+                for (const keyTerm of keyTerms) {
+                  try {
+                    const keyTermWords = await queryWords(keyTerm);
+                    const targetKeyTerms = (keyTermWords as any[]).filter(word => 
+                      toLangVariants.includes(word.language?.toLowerCase())
+                    );
+                    if (targetKeyTerms.length > 0) {
+                      toWords = targetKeyTerms;
+                      logger.debug('Found target words via key term', { 
+                        keyTerm, 
+                        count: targetKeyTerms.length 
+                      });
+                      break;
+                    }
+                  } catch (e) {
+                    // Continue with next key term
+                  }
+                }
+              }
+            } catch (e) {
+              logger.warn('Definition-based search failed', { error: e instanceof Error ? e.message : String(e) });
+            }
+          }
+
+          if (toWords.length === 0) {
+            logger.debug('No target words found via any strategy', { synset: s.synset, sourceWord: w.lemma });
+            continue;
+          }
+
+          // 3) Get definitions from both languages
+          let defFrom: string | undefined;
+          let defTo: string | undefined;
+          
+          try {
+            const defs = await getDefinitionsBySynsetId(s.synset);
+            defFrom = (defs as any[]).find(d => d.language === fromLang)?.text;
+          } catch (e) {
+            logger.warn('Failed to get source definitions', { synset: s.synset, error: e instanceof Error ? e.message : String(e) });
+          }
+
+          // Try to get target definition from one of the target words' synsets
+          if ((toWords as any[]).length > 0) {
+            try {
+              const firstTargetWord = (toWords as any[])[0];
+              const targetSenses = await getSensesByWordIdOrForm(firstTargetWord.id);
+              if ((targetSenses as any[]).length > 0) {
+                const targetSynsetId = (targetSenses as any[])[0].synset;
+                const targetDefs = await getDefinitionsBySynsetId(targetSynsetId);
+                defTo = (targetDefs as any[]).find(d => toLangVariants.includes((d.language || '').toLowerCase()))?.text;
+              }
+            } catch (e) {
+              logger.warn('Failed to get target definitions', { error: e instanceof Error ? e.message : String(e) });
+            }
+          }
+
+          // 4) Add results
+          for (const tw of (toWords as any[]).slice(0, 10)) {
+            out.push({ 
+              source: w.lemma, 
+              target: tw.lemma, 
+              synsetId: s.synset, 
+              defFrom, 
+              defTo 
+            });
           }
         }
       }
@@ -161,7 +447,7 @@ export const BilingualDictionary: React.FC = () => {
       setResults(out);
       logger.end(`bilingual query for "${term}"`, { resultCount: out.length });
     } catch (e) {
-      const errorMsg = e instanceof Error ? e.message : String(e);
+      const errorMsg = e instanceof Error ? `${e.message}\n${e.stack || ''}` : String(e);
       logger.fail('Bilingual query failed', { term, pair, error: errorMsg });
       setLastError(errorMsg);
       logger.end(`bilingual query for "${term}"`);
@@ -170,22 +456,402 @@ export const BilingualDictionary: React.FC = () => {
     }
   };
 
-  // Removed automatic data loading - user must manually load required lexicons
-
-  const canQuery = !!wordnet && !!dataLoader && !loading && !busy;
-
   const handlePairChange = (field: 'from' | 'to', value: string) => {
     logger.debug('Language pair changed', { field, from: pair.from, to: pair.to, newValue: value });
     setPair(p => ({ ...p, [field]: value as any }));
   };
 
   const handleTermChange = (value: string) => {
+    logger.debug('Term changed', { prev: term, next: value });
     setTerm(value);
   };
 
+  const handleTermChangeTyped = (value: any) => {
+    const stringValue = String(value);
+    handleTermChange(stringValue);
+  };
+
+  const runDiagnostics = async () => {
+    logger.start('running database diagnostics');
+    setBusy(true);
+    setLastError(null);
+    
+    try {
+      // Check if we have any ILI records at all
+      try {
+        const iliCount = await getAvailableProjects().find(p => p.id === 'cili')?.versions?.length || 0;
+        logger.debug('CILI package info', { iliCount });
+      } catch (e) {
+        logger.warn('Failed to check CILI package info', { error: e instanceof Error ? e.message : String(e) });
+      }
+
+      // Check if we have any synsets with ILI identifiers
+      try {
+        // This is a hack to check database content - we'll try to get a synset and see if it has ILI
+        const testSynset = await getSynsetById('oewn-14869913-n');
+        logger.debug('Test synset lookup', { synsetId: 'oewn-14869913-n', hasIli: !!testSynset?.ili, ili: testSynset?.ili });
+      } catch (e) {
+        logger.warn('Failed to check test synset', { error: e instanceof Error ? e.message : String(e) });
+      }
+
+      // Check if we have any words in the target language
+      try {
+        // Try to find any French words at all
+        const anyFrenchWords = await getWordsByIliAndLanguage('i1', 'fr');
+        logger.debug('Any French words via ILI i1', { count: (anyFrenchWords as any[]).length });
+      } catch (e) {
+        logger.warn('Failed to check for any French words', { error: e instanceof Error ? e.message : String(e) });
+      }
+
+      // Check what languages we actually have in the database
+      try {
+        const allLexicons = getAvailableProjects();
+        const loadedLexicons = allLexicons.filter(p => loadedPackages.some(lp => lp.startsWith(p.id)));
+        logger.debug('Loaded lexicons analysis', { 
+          total: allLexicons.length, 
+          loaded: loadedLexicons.length,
+          loadedIds: loadedLexicons.map(l => l.id),
+          sample: loadedLexicons.slice(0, 5)
+        });
+      } catch (e) {
+        logger.warn('Failed to analyze loaded lexicons', { error: e instanceof Error ? e.message : String(e) });
+      }
+
+      logger.success('Database diagnostics completed');
+    } catch (e) {
+      const errorMsg = e instanceof Error ? `${e.message}\n${e.stack || ''}` : String(e);
+      logger.fail('Database diagnostics failed', { error: errorMsg });
+      setLastError(errorMsg);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const exploreLexicon = async () => {
+    logger.start('exploring lexicon structure');
+    setBusy(true);
+    setLexiconExploration('');
+    
+    try {
+      let exploration = '🔍 LEXICON EXPLORATION RESULTS\n';
+      exploration += '================================\n\n';
+      
+      // 1. Check what packages are loaded
+      exploration += '📦 LOADED PACKAGES:\n';
+      exploration += `Total: ${loadedPackages.length}\n`;
+      exploration += `Packages: ${loadedPackages.join(', ')}\n\n`;
+      
+      // 2. Check available projects
+      const allProjects = getAvailableProjects();
+      exploration += '🌐 AVAILABLE PROJECTS:\n';
+      exploration += `Total: ${allProjects.length}\n`;
+      exploration += `Sample: ${allProjects.slice(0, 10).map(p => p.id).join(', ')}\n\n`;
+      
+      // 3. Check specific lexicon content
+      exploration += '📚 LEXICON CONTENT ANALYSIS:\n';
+      
+      // Check English WordNet
+      try {
+        const enWords = await queryWords('water');
+        exploration += `English "water": ${(enWords as any[]).length} words found\n`;
+        if ((enWords as any[]).length > 0) {
+          const firstWord = (enWords as any[])[0];
+          exploration += `  First word: ${firstWord.id} (${firstWord.lemma})\n`;
+          
+          // Check senses
+          const senses = await getSensesByWordIdOrForm(firstWord.id);
+          exploration += `  Senses: ${(senses as any[]).length} found\n`;
+          if ((senses as any[]).length > 0) {
+            const firstSense = (senses as any[])[0];
+            exploration += `  First sense synset: ${firstSense.synset}\n`;
+            
+            // Check synset details
+            const synset = await getSynsetById(firstSense.synset);
+            exploration += `  Synset language: ${synset?.language}\n`;
+            exploration += `  Synset lexicon: ${synset?.lexicon}\n`;
+            exploration += `  Synset has ILI: ${!!synset?.ili}\n`;
+            if (synset?.ili) {
+              exploration += `  Synset ILI: ${synset.ili}\n`;
+            }
+          }
+        }
+      } catch (e) {
+        exploration += `English "water" query failed: ${e instanceof Error ? e.message : String(e)}\n`;
+      }
+      
+      exploration += '\n';
+      
+      // Check French WordNet - MORE DETAILED
+      try {
+        exploration += '🇫🇷 FRENCH LEXICON DETAILED CHECK:\n';
+        
+        // Try multiple French words
+        const frenchWords = ['eau', 'chat', 'chien', 'maison', 'voiture', 'le', 'la', 'les'];
+        for (const frWord of frenchWords) {
+          try {
+            const words = await queryWords(frWord);
+            const frResults = (words as any[]).filter(w => w.language === 'fr' || w.language === 'fra');
+            exploration += `  "${frWord}": ${frResults.length} French words\n`;
+            if (frResults.length > 0) {
+              exploration += `    Sample: ${frResults.slice(0, 3).map(w => `${w.lemma}(${w.lexicon})`).join(', ')}\n`;
+            }
+          } catch (e) {
+            exploration += `  "${frWord}": Query failed - ${e instanceof Error ? e.message : String(e)}\n`;
+          }
+        }
+        
+        // Check if we can find ANY French words at all
+        try {
+          const anyWords = await queryWords('a');
+          const anyFr = (anyWords as any[]).filter(w => w.language === 'fr' || w.language === 'fra');
+          exploration += `  Any French words starting with "a": ${anyFr.length}\n`;
+          if (anyFr.length > 0) {
+            exploration += `    Sample: ${anyFr.slice(0, 5).map(w => `${w.lemma}(${w.lexicon})`).join(', ')}\n`;
+          }
+        } catch (e) {
+          exploration += `  Any French words check failed: ${e instanceof Error ? e.message : String(e)}\n`;
+        }
+        
+      } catch (e) {
+        exploration += `French lexicon check failed: ${e instanceof Error ? e.message : String(e)}\n`;
+      }
+      
+      exploration += '\n';
+      
+      // Check Thai WordNet - MORE DETAILED
+      try {
+        exploration += '🇹🇭 THAI LEXICON DETAILED CHECK:\n';
+        
+        // Try multiple Thai words
+        const thaiWords = ['น้ำ', 'แมว', 'สุนัข', 'บ้าน', 'รถ', 'ของ', 'การ'];
+        for (const thWord of thaiWords) {
+          try {
+            const words = await queryWords(thWord);
+            const thResults = (words as any[]).filter(w => w.language === 'th' || w.language === 'tha');
+            exploration += `  "${thWord}": ${thResults.length} Thai words\n`;
+            if (thResults.length > 0) {
+              exploration += `    Sample: ${thResults.slice(0, 3).map(w => `${w.lemma}(${w.lexicon})`).join(', ')}\n`;
+            }
+          } catch (e) {
+            exploration += `  "${thWord}": Query failed - ${e instanceof Error ? e.message : String(e)}\n`;
+          }
+        }
+        
+        // Check if we can find ANY Thai words at all
+        try {
+          const anyWords = await queryWords('ก');
+          const anyTh = (anyWords as any[]).filter(w => w.language === 'th' || w.language === 'tha');
+          exploration += `  Any Thai words starting with "ก": ${anyTh.length}\n`;
+          if (anyTh.length > 0) {
+            exploration += `    Sample: ${anyTh.slice(0, 5).map(w => `${w.lemma}(${w.lexicon})`).join(', ')}\n`;
+          }
+        } catch (e) {
+          exploration += `  Any Thai words check failed: ${e instanceof Error ? e.message : String(e)}\n`;
+        }
+        
+      } catch (e) {
+        exploration += `Thai lexicon check failed: ${e instanceof Error ? e.message : String(e)}\n`;
+      }
+      
+      exploration += '\n';
+      
+      // Check CILI
+      try {
+        exploration += '🔗 CILI INDEX CHECK:\n';
+        const ciliProject = allProjects.find(p => p.id === 'cili');
+        if (ciliProject) {
+          exploration += `CILI project found: ${ciliProject.id}\n`;
+          exploration += `Versions: ${(ciliProject as any).versions?.join(', ') || 'none'}\n`;
+        } else {
+          exploration += 'CILI project not found\n';
+        }
+      } catch (e) {
+        exploration += `CILI check failed: ${e instanceof Error ? e.message : String(e)}\n`;
+      }
+      
+      setLexiconExploration(exploration);
+      logger.success('Lexicon exploration completed');
+    } catch (e) {
+      const errorMsg = e instanceof Error ? `${e.message}\n${e.stack || ''}` : String(e);
+      logger.fail('Lexicon exploration failed', { error: errorMsg });
+      setLexiconExploration(`❌ EXPLORATION FAILED:\n${errorMsg}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const testBasicQueries = async () => {
+    logger.start('testing basic queries');
+    setBusy(true);
+    setLexiconExploration('');
+    
+    try {
+      let results = '🧪 BASIC QUERY TEST RESULTS\n';
+      results += '============================\n\n';
+      
+      const testWords = ['water', 'cat', 'dog', 'house', 'car'];
+      const testLanguages = ['en', 'fr', 'th'];
+      
+      for (const word of testWords) {
+        results += `📝 Testing word: "${word}"\n`;
+        results += `${'='.repeat(20 + word.length)}\n`;
+        
+        for (const lang of testLanguages) {
+          try {
+            const words = await queryWords(word);
+            const langWords = (words as any[]).filter(w => w.language === lang);
+            results += `${lang.toUpperCase()}: ${langWords.length} words found\n`;
+            
+            if (langWords.length > 0) {
+              const sample = langWords.slice(0, 3);
+              results += `  Sample: ${sample.map(w => `${w.lemma}(${w.lexicon})`).join(', ')}\n`;
+            }
+          } catch (e) {
+            results += `${lang.toUpperCase()}: Query failed - ${e instanceof Error ? e.message : String(e)}\n`;
+          }
+        }
+        results += '\n';
+      }
+      
+      setLexiconExploration(results);
+      logger.success('Basic query tests completed');
+    } catch (e) {
+      const errorMsg = e instanceof Error ? `${e.message}\n${e.stack || ''}` : String(e);
+      logger.fail('Basic query tests failed', { error: errorMsg });
+      setLexiconExploration(`❌ BASIC TESTS FAILED:\n${errorMsg}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const checkDatabaseTables = async () => {
+    logger.start('checking database table contents');
+    setBusy(true);
+    setLexiconExploration('');
+    
+    try {
+      let results = '🗄️ DATABASE TABLE CONTENTS\n';
+      results += '==========================\n\n';
+      
+      // Check what's in each table by trying to query sample data
+      results += '📊 TABLE ANALYSIS:\n';
+      
+      // Check words table
+      try {
+        const sampleWords = await queryWords('a');
+        results += `Words table: ${(sampleWords as any[]).length} total words\n`;
+        if ((sampleWords as any[]).length > 0) {
+          const sample = (sampleWords as any[]).slice(0, 5);
+          results += `  Sample: ${sample.map(w => `${w.lemma}(${w.language}/${w.lexicon})`).join(', ')}\n`;
+          
+          // Group by language
+          const byLang = (sampleWords as any[]).reduce((acc, w) => {
+            const lang = w.language || 'unknown';
+            acc[lang] = (acc[lang] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+          
+          results += `  By language: ${Object.entries(byLang).map(([lang, count]) => `${lang}:${count}`).join(', ')}\n`;
+        }
+      } catch (e) {
+        results += `Words table check failed: ${e instanceof Error ? e.message : String(e)}\n`;
+      }
+      
+      results += '\n';
+      
+      // Check synsets table
+      try {
+        const testSynset = await getSynsetById('oewn-14869913-n');
+        if (testSynset) {
+          results += `Synsets table: Sample synset found\n`;
+          results += `  ID: ${testSynset.id}\n`;
+          results += `  Language: ${testSynset.language || 'undefined'}\n`;
+          results += `  Lexicon: ${testSynset.lexicon || 'undefined'}\n`;
+          results += `  Has ILI: ${!!testSynset.ili}\n`;
+          if (testSynset.ili) {
+            results += `  ILI: ${testSynset.ili}\n`;
+          }
+        } else {
+          results += `Synsets table: No test synset found\n`;
+        }
+      } catch (e) {
+        results += `Synsets table check failed: ${e instanceof Error ? e.message : String(e)}\n`;
+      }
+      
+      results += '\n';
+      
+      // Check if we can find any non-English words
+      results += '🌍 MULTILINGUAL CHECK:\n';
+      try {
+        const allWords = await queryWords('a');
+        const nonEn = (allWords as any[]).filter(w => w.language !== 'en');
+        results += `Non-English words: ${nonEn.length} found\n`;
+        if (nonEn.length > 0) {
+          const sample = nonEn.slice(0, 10);
+          results += `  Sample: ${sample.map(w => `${w.lemma}(${w.language}/${w.lexicon})`).join(', ')}\n`;
+        } else {
+          results += `  No non-English words found - this explains why cross-lingual queries fail!\n`;
+        }
+      } catch (e) {
+        results += `Multilingual check failed: ${e instanceof Error ? e.message : String(e)}\n`;
+      }
+      
+      setLexiconExploration(results);
+      logger.success('Database table check completed');
+    } catch (e) {
+      const errorMsg = e instanceof Error ? `${e.message}\n${e.stack || ''}` : String(e);
+      logger.fail('Database table check failed', { error: errorMsg });
+      setLexiconExploration(`❌ DATABASE CHECK FAILED:\n${errorMsg}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
-    <Card title="Bilingual Dictionary">
+    <Card title="Cross-Lingual Dictionary (via CILI)">
       <div className="space-y-4">
+        <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded">
+          <strong>How it works:</strong> This demo uses the Collaborative Interlingual Index (CILI) to find semantically equivalent words across languages. 
+          It searches for English words, extracts potential ILI identifiers from their synset IDs, then uses those ILI identifiers to locate corresponding words in French or Thai.
+          <br /><br />
+          <strong>Note:</strong> Since English WordNet doesn't have explicit ILI identifiers, we construct them from the synset ID format (e.g., oewn-14869913-n → i14869913).
+        </div>
+        
+        {/* Lexicon Explorer */}
+        <div className="bg-yellow-50 p-3 rounded border">
+          <h3 className="font-medium text-yellow-800 mb-2">🔍 Lexicon Explorer (Debug)</h3>
+          <div className="space-y-2 text-sm">
+            <div className="flex gap-2">
+              <button 
+                onClick={exploreLexicon} 
+                className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded text-xs"
+                disabled={!canQuery}
+              >
+                Explore All Lexicons
+              </button>
+              <button 
+                onClick={testBasicQueries} 
+                className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded text-xs"
+                disabled={!canQuery}
+              >
+                Test Basic Queries
+              </button>
+              <button 
+                onClick={checkDatabaseTables} 
+                className="px-2 py-1 bg-red-200 text-red-800 rounded text-xs"
+                disabled={!canQuery}
+              >
+                Check DB Tables
+              </button>
+            </div>
+            {lexiconExploration && (
+              <div className="bg-white p-2 rounded text-xs max-h-40 overflow-auto">
+                <pre className="whitespace-pre-wrap">{lexiconExploration}</pre>
+              </div>
+            )}
+          </div>
+        </div>
+        
         {/* Lexicon Requirements */}
         <LexiconRequirements requirements={lexiconRequirements} />
         
@@ -212,7 +878,7 @@ export const BilingualDictionary: React.FC = () => {
         <div className="flex gap-2 items-center">
           <input 
             value={term} 
-            onChange={(e) => handleTermChange(e.target.value)} 
+            onChange={(e) => handleTermChangeTyped(e.target.value)} 
             placeholder={`Enter ${LANG_LABEL[pair.from]} word`} 
             className="flex-1 px-3 py-2 border rounded" 
           />
@@ -220,13 +886,25 @@ export const BilingualDictionary: React.FC = () => {
             {busy ? 'Searching…' : 'Search'}
           </button>
           <button onClick={ensureLoaded} className="px-3 py-2 bg-gray-200 rounded">Ensure Data</button>
+          <button onClick={loadRequiredPackages} className="px-3 py-2 bg-green-200 rounded">Load Required</button>
           <button onClick={refreshPackages} className="px-3 py-2 bg-gray-200 rounded">Refresh</button>
+          <button onClick={runDiagnostics} className="px-3 py-2 bg-yellow-200 rounded">Run Diagnostics</button>
         </div>
 
         <div className="text-sm text-gray-600">
           <span className="font-medium">Loaded:</span>{' '}
           {loadedPackages.length > 0 ? loadedPackages.join(', ') : 'none'}
         </div>
+
+        {/* Debug Info */}
+        {results.length > 0 && (
+          <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+            <div className="font-medium">Debug Info:</div>
+            <div>Found {results.length} cross-lingual mappings</div>
+            <div>Source language: {pair.from} → Target language: {pair.to}</div>
+            <div>Using CILI (Collaborative Interlingual Index) for semantic alignment</div>
+          </div>
+        )}
 
         {lastError && (
           <div className="text-sm text-red-700 bg-red-50 p-2 rounded">{lastError}</div>

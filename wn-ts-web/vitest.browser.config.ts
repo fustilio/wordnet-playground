@@ -14,17 +14,9 @@ export default defineConfig({
     globals: true,
     // Only include browser-specific tests
     include: ["test/browser/**/*.{test,spec}.{js,ts,jsx,tsx}"],
-    // Exclude Node.js and E2E tests
+    // Exclude E2E tests from this browser-functional test suite
     exclude: [
       "test/browser/e2e/**/*",
-      "test/factory.test.ts",
-      "test/kysely-integration.test.ts",
-      "test/sqlite-wasm-api.test.ts",
-      "test/sqlite-wasm-dialect.test.ts",
-      "test/kysely-sqlite-wasm.test.ts",
-      "test/web-database.test.ts",
-      "test/web-wordnet.test.ts",
-      "test/kysely-integration-comprehensive.test.ts",
     ],
     pool: "forks",
     poolOptions: {

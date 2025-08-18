@@ -9,6 +9,11 @@ import type {
   PartOfSpeech,
 } from './types.js';
 import { DatabaseError } from './types.js';
+import type {
+  WordQuery,
+  SenseQuery,
+  SynsetQuery,
+} from './types.js';
 
 /**
  * Get all available projects - matching Python wn.projects()
@@ -81,7 +86,11 @@ export async function words(
   options?: { lexicon: string }
 ): Promise<Word[]> {
   try {
-    return await client.words(form || '', pos, options);
+    const query: WordQuery = {};
+    if (form) query.form = form;
+    if (pos) query.pos = pos;
+    if (options?.lexicon) query.lexicon = options.lexicon;
+    return await client.words(query);
   } catch (error) {
     if (error instanceof DatabaseError) {
       return [];
@@ -120,7 +129,10 @@ export async function senses(
   pos?: PartOfSpeech
 ): Promise<Sense[]> {
   try {
-    return await client.senses(form || '', pos);
+    const query: SenseQuery = {};
+    if (form) query.form = form;
+    if (pos) query.pos = pos;
+    return await client.senses(query);
   } catch (error) {
     if (error instanceof DatabaseError) {
       return [];
@@ -160,7 +172,10 @@ export async function synsets(
 ): Promise<Synset[]> {
   try {
     // TODO: add ili support or lexicon filtering? i'm not sure if this is a thing
-    return await client.synsets(form || '', pos);
+    const query: SynsetQuery = {};
+    if (form) query.form = form;
+    if (pos) query.pos = pos;
+    return await client.synsets(query);
   } catch (error) {
     if (error instanceof DatabaseError) {
       return [];

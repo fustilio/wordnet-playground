@@ -125,19 +125,20 @@ const { cacheInfo, clearCache, removeFromCache } = useWordNetCache();
 ### 4.3 Utility Hooks
 
 #### `useSearch()`
-**Purpose**: Search functionality with history and suggestions
+**Purpose**: Provides state and handlers for WordNet search functionality.
 
 **Returns**: `SearchState & SearchMethods`
+- **State**: `searchTerm`, `searchResults`, `isSearching`, `activeTab`
+- **Methods**: `setSearchTerm`, `setActiveTab`, `handleSearch`
 
 **Key Features**:
-- Search term management
-- Search history tracking
-- Autocomplete suggestions
-- Search result caching
+- Manages search term, search results, and loading state.
+- Handles searching for words, synsets, and senses.
+- Integrates with `WordNetContext` to perform queries.
 
 **Usage Example**:
 ```typescript
-const { searchTerm, searchHistory, performSearch } = useSearch();
+const { searchTerm, setSearchTerm, searchResults, handleSearch } = useSearch('initial term');
 ```
 
 #### `useStatistics()`

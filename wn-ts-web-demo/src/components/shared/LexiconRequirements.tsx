@@ -1,6 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { useWordNetContext } from '../../contexts/WordNetContext';
-import { createScopedLogger } from '../../logger';
+import { useWordNetContext } from "wn-ts-web/react";
+import { createScopedLogger } from 'utils/logger';
+import { 
+  isRequirementSatisfied, 
+  isRequirementAvailable, 
+  findBestPackageForRequirement,
+  getPackageIdToLoad 
+} from '../../utils/package-utils';
 
 const logger = createScopedLogger('LexiconRequirements');
 
@@ -31,8 +37,8 @@ export const LexiconRequirements: React.FC<LexiconRequirementsProps> = React.mem
   
   // Calculate loading progress
   const totalRequired = requirements.length;
-  const loadedCount = requirements.filter(r => loadedPackages.includes(r.id)).length;
-  const loadingCount = requirements.filter(r => loading && !loadedPackages.includes(r.id)).length;
+  const loadedCount = requirements.filter(r => isRequirementSatisfied(r.id, loadedPackages)).length;
+  const loadingCount = requirements.filter(r => loading && !isRequirementSatisfied(r.id, loadedPackages)).length;
   const progressPercentage = (loadedCount / totalRequired) * 100;
 
   useEffect(() => {
@@ -47,7 +53,7 @@ export const LexiconRequirements: React.FC<LexiconRequirementsProps> = React.mem
       logger.debug('Package structure sample', {
         firstPackage: availablePackages[0],
         hasId: !!availablePackages[0]?.id,
-        hasVersion: !!availablePackages[0]?.version
+        hasVersion: !!availablePackages[0]?.versions?.length
       });
     }
     
@@ -65,11 +71,7 @@ export const LexiconRequirements: React.FC<LexiconRequirementsProps> = React.mem
       const missing: LexiconRequirement[] = [];
       
       for (const requirement of requirements) {
-        const isLoaded = loadedPackages.some(pkg => {
-          // Check if the package ID matches the requirement
-          // Support both exact matches and prefix matches
-          return pkg === requirement.id || pkg.startsWith(requirement.id + ':');
-        });
+        const isLoaded = isRequirementSatisfied(requirement.id, loadedPackages);
         
         if (!isLoaded) {
           missing.push(requirement);
@@ -80,7 +82,7 @@ export const LexiconRequirements: React.FC<LexiconRequirementsProps> = React.mem
     };
     
     checkRequirements();
-  }, [requirements, loadedPackages]);
+  }, [requirements, loadedPackages, isRequirementSatisfied]);
 
   const handleLoadAll = async () => {
     if (!onLoadAll) return;
@@ -102,10 +104,7 @@ export const LexiconRequirements: React.FC<LexiconRequirementsProps> = React.mem
     logger.step('checking missing lexicons', { missingCount: missingLexicons.length });
     
     const availableMissing = missingLexicons.filter(lexicon => {
-      const lexiconAvailable = availablePackages.some(pkg => {
-        // Check if any available package matches the requirement
-        return pkg.id === lexicon.id || pkg.id.startsWith(lexicon.id + ':');
-      });
+      const lexiconAvailable = isRequirementAvailable(lexicon.id, availablePackages);
       
       logger.step(`checking lexicon ${lexicon.id}`, { available: lexiconAvailable });
       
@@ -137,12 +136,11 @@ export const LexiconRequirements: React.FC<LexiconRequirementsProps> = React.mem
     for (const lexicon of availableMissing) {
       try {
         // Find the best available package for this lexicon
-        const bestPackage = availablePackages.find(pkg => {
-          return pkg.id === lexicon.id || pkg.id.startsWith(lexicon.id + ':');
-        });
+        const bestPackage = findBestPackageForRequirement(lexicon.id, availablePackages);
         
         if (bestPackage) {
-          const packageId = `${bestPackage.id}:${bestPackage.version}`;
+          const packageId = getPackageIdToLoad(lexicon.id, bestPackage);
+          
           logger.step(`loading package ${packageId} for lexicon ${lexicon.id}`);
           await loadPackageData(packageId);
           logger.step(`package ${packageId} loaded successfully`);
@@ -231,11 +229,8 @@ export const LexiconRequirements: React.FC<LexiconRequirementsProps> = React.mem
       {/* Requirements List */}
       <div className="space-y-3">
         {requirements.map((requirement) => {
-          const isLoaded = loadedPackages.includes(requirement.id) || 
-            loadedPackages.some(pkg => pkg.startsWith(requirement.id + ':'));
-          const isAvailable = availablePackages.some(pkg => 
-            pkg.id === requirement.id || pkg.id.startsWith(requirement.id + ':')
-          );
+          const isLoaded = isRequirementSatisfied(requirement.id, loadedPackages);
+          const isAvailable = isRequirementAvailable(requirement.id, availablePackages);
           
           return (
             <div 

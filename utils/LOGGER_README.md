@@ -1,6 +1,6 @@
-# 🚀 WordNet Demo Logger - Super Simple & Powerful Logging
+# 🚀 WordNet Project Logger - Super Simple & Powerful Logging
 
-The WordNet Demo Logger makes logging **10x easier** than `console.log` while giving you **10x more power**. It automatically handles timestamps, component labels, grouping, timing, and formatting.
+The WordNet Project Logger makes logging **10x easier** than `console.log` while giving you **10x more power**. It automatically handles timestamps, component labels, grouping, timing, and formatting.
 
 ## ✨ Features
 
@@ -14,12 +14,29 @@ The WordNet Demo Logger makes logging **10x easier** than `console.log` while gi
 - **✅ Success/failure** - Special methods for common logging patterns
 - **💾 Persistent settings** - Log level persists across browser sessions
 
+## 🎯 Project Preferences
+
+### 1. **Type Safety First**
+- **NO `any` types** - everything must be properly typed
+- Comprehensive TypeScript interfaces
+- Runtime type validation where appropriate
+
+### 2. **SOLID Principles**
+- **Single Responsibility**: Each logger has one clear purpose
+- **Open/Closed**: Extensible without modification
+- **Interface Segregation**: Clients only depend on methods they use
+
+### 3. **Performance Focus**
+- Log level checking before processing
+- Structured data only processed when needed
+- Memory-efficient logging for production
+
 ## 🚀 Quick Start
 
 ### 1. Create a Logger
 
 ```typescript
-import { createScopedLogger } from '../logger';
+import { createScopedLogger } from 'utils/logger';
 
 const logger = createScopedLogger('MyComponent');
 ```
@@ -234,7 +251,7 @@ logger.end('creating backup', {
 Control what gets logged globally:
 
 ```typescript
-import { setGlobalLogLevel, getGlobalLogLevel } from '../logger';
+import { setGlobalLogLevel, getGlobalLogLevel } from 'utils/logger';
 
 // Set log level
 setGlobalLogLevel('debug');  // Show debug and above
@@ -357,6 +374,8 @@ logger.end('Complex Operation');
 4. **Use appropriate levels** - `debug` for development, `info` for user actions, `warn` for issues, `error` for failures
 5. **Keep messages concise** - Clear, actionable log messages
 6. **Structure your data** - Use objects for complex data, simple values for basic info
+7. **NO `any` types** - Always use proper TypeScript types
+8. **Follow SOLID principles** - Single responsibility, clean interfaces
 
 ## 🔍 Troubleshooting
 
@@ -374,8 +393,41 @@ logger.end('Complex Operation');
 - Ensure `start()` and `end()` are called in pairs
 - Check that `end()` is called in finally blocks for error handling
 
+## 🚨 Common Pitfalls to Avoid
+
+### ❌ Don't Do This
+```typescript
+// Don't use any types
+const logger = createScopedLogger('Component');
+logger.log('Data:', anyData); // ❌
+
+// Don't mix concerns
+logger.start('mixed operation');
+logger.log('unrelated info'); // ❌
+logger.end('mixed operation');
+```
+
+### ✅ Do This Instead
+```typescript
+// Use proper types
+interface LogData {
+  userId: number;
+  action: string;
+}
+const logger = createScopedLogger('Component');
+logger.log('Data:', { userId: 123, action: 'update' } as LogData); // ✅
+
+// Keep operations focused
+logger.start('user update');
+logger.step('validating input');
+logger.step('updating database');
+logger.end('user update'); // ✅
+```
+
 ---
 
 **Happy Logging! 🎉**
 
-The WordNet Demo Logger makes debugging and monitoring your application a breeze while keeping your code clean and readable.
+The WordNet Project Logger makes debugging and monitoring your application a breeze while keeping your code clean, readable, and type-safe.
+
+**Remember: Type safety first, no `any` types, and follow SOLID principles!**

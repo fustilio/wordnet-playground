@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '../components/shared/Card';
-import { useWordNetContext } from '../contexts/WordNetContext';
-import { createScopedLogger } from '../logger';
+import { useWordNetContext } from "wn-ts-web/react";
+import { createScopedLogger } from 'utils/logger';
 
 const logger = createScopedLogger('ProjectList');
 
@@ -33,8 +33,8 @@ export const ProjectList: React.FC = () => {
           id: pkg.id,
           label: pkg.label || pkg.id,
           language: pkg.language || 'unknown',
-          version: pkg.version || 'unknown',
-          description: `${pkg.language || 'Unknown'} WordNet ${pkg.version || 'Unknown'}`,
+          version: pkg.versions?.[0] || 'unknown',
+          description: `${pkg.language || 'Unknown'} WordNet ${pkg.versions?.[0] || 'Unknown'}`,
           license: 'Unknown',
           url: `https://wordnet.princeton.edu/`
         }));

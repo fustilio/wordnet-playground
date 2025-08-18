@@ -1,494 +1,235 @@
-# Architecture Guide for `wn-ts-web`
+# wn-ts-web Architecture Documentation
 
-This document provides a comprehensive overview of the architecture and design patterns for `wn-ts-web`, including clear thread separation, parallel event flows, and the worker-first approach using Comlink.
+## 🏗️ System Overview
 
-## 🏗️ **Architecture Overview**
+`wn-ts-web` is designed as a layered, worker-first architecture that provides high-performance WordNet operations while maintaining reliability through graceful fallbacks.
 
-`wn-ts-web` follows a **worker-first, main-thread-lightweight** pattern where heavy operations are offloaded to Web Workers while keeping the UI responsive on the main thread. **Comlink is the primary communication mechanism** between threads.
+## 📊 Architecture Diagram
 
-```mermaid
-graph TB
-    subgraph "Main Thread (UI) - Lightweight Only"
-        UI[React UI Components]
-        State[React State Management]
-        Cache[Lightweight Cache]
-        Events[User Interactions]
-        ComlinkClient[Comlink Client]
-    end
-    
-    subgraph "Web Worker - Heavy Operations"
-        SQLite[SQLite WASM Engine]
-        OPFS[OPFS Storage]
-        WordNet[WordNet Processing]
-        DataLoader[Data Loading]
-        ComlinkServer[Comlink Server]
-    end
-    
-    subgraph "Communication Layer"
-        Comlink[Comlink RPC Bridge]
-    end
-    
-    UI -->|User Actions| Events
-    Events -->|Comlink Calls| ComlinkClient
-    ComlinkClient -->|RPC| Comlink
-    Comlink -->|Execute| ComlinkServer
-    ComlinkServer -->|Database Ops| SQLite
-    SQLite -->|Persist| OPFS
-    SQLite -->|Query Results| WordNet
-    WordNet -->|Process| DataLoader
-    DataLoader -->|Return Data| ComlinkServer
-    ComlinkServer -->|Comlink| Comlink
-    Comlink -->|Update State| ComlinkClient
-    ComlinkClient -->|State Updates| State
-    State -->|Re-render| UI
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        React Application                        │
+├─────────────────────────────────────────────────────────────────┤
+│  useWordNet Hook                                               │
+│  ├─ State Management                                           │
+│  ├─ Worker Coordination                                        │
+│  └─ Fallback Logic                                            │
+├─────────────────────────────────────────────────────────────────┤
+│  WordNetWorkerClient (Main Thread)                             │
+│  ├─ Comlink Communication                                      │
+│  ├─ Event Management                                           │
+│  └─ State Tracking                                             │
+├─────────────────────────────────────────────────────────────────┤
+│  wordnet-worker (Web Worker)                                   │
+│  ├─ WordNetOrchestrator                                        │
+│  ├─ SQLite WASM Management                                     │
+│  └─ Heavy Computation                                          │
+├─────────────────────────────────────────────────────────────────┤
+│  WebWordnet (Database Layer)                                   │
+│  ├─ Kysely Query Service                                       │
+│  ├─ SQLite WASM Operations                                     │
+│  └─ Data Persistence                                           │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-## 🧵 **Thread Responsibilities - Clear Separation**
+## 🔄 Request Flow
 
-### **Main Thread (UI Thread) - Lightweight Operations Only**
-
-**✅ ALLOWED:**
-- **React Components**: Rendering and user interactions
-- **State Management**: React hooks and context
-- **Event Handling**: User clicks, form submissions
-- **Lightweight Cache**: Small objects, user preferences
-- **Progress Updates**: UI progress indicators
-- **Error Display**: User-friendly error messages
-- **Comlink Client**: Making RPC calls to worker
-
-**❌ NEVER:**
-- SQLite operations
-- Large data processing
-- File system operations
-- Network requests for WordNet data
-- Heavy computations
-- Database queries
-
-### **Web Worker Thread - Heavy Operations Only**
-
-**✅ ALLOWED:**
-- **SQLite Operations**: All database queries and transactions
-- **OPFS Access**: File system operations for persistence
-- **Data Processing**: Heavy WordNet data operations
-- **Data Loading**: Downloading and parsing WordNet files
-- **Statistics Calculation**: Database statistics and analytics
-- **Memory-Intensive Operations**: Large dataset operations
-- **Comlink Server**: Exposing API to main thread
-
-**❌ NEVER:**
-- DOM manipulation
-- UI state management
-- User interaction handling
-- React component logic
-
-## 🔗 **Comlink Communication Pattern**
-
-### **Worker Setup (Comlink Server)**
-
+### 1. **User Request**
 ```typescript
-// wordnet.worker.ts
-import { expose } from 'comlink';
-import { createWordNetInstance } from 'wn-ts-web';
+// User calls a method on useWordNet
+const { loadPackageData } = useWordNet();
+await loadPackageData('oewn:2024');
+```
 
-let wordnet: any;
-let dataLoader: any;
-
-// Expose API to main thread via Comlink
-export const api = {
-  // Initialize WordNet instance
-  async initializeWordNet() {
-    try {
-      const instance = await createWordNetInstance();
-      wordnet = instance.wordnet;
-      dataLoader = instance.dataLoader;
-      
-      // Return initial state for UI rehydration
-      const lexiconStats = await wordnet.getLexiconStatistics();
-      const statistics = await wordnet.getStatistics();
-      
-      return { 
-        success: true, 
-        data: { lexiconStats, statistics } 
-      };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  },
-
-  // Query operations
-  async queryWords(term: string) {
-    if (!wordnet) throw new Error('WordNet not initialized');
-    const results = await wordnet.words(term);
-    return { success: true, data: results };
-  },
-
-  async querySynsets(term: string) {
-    if (!wordnet) throw new Error('WordNet not initialized');
-    const results = await wordnet.synsets(term);
-    return { success: true, data: results };
-  },
-
-  // Data loading operations
-  async loadPackage(packageId: string, options?: { onProgress?: (p: number) => void }) {
-    if (!dataLoader) throw new Error('DataLoader not initialized');
-    
-    await dataLoader.downloadAndLoad(packageId, {
-      onProgress: options?.onProgress
-    });
-    
-    // Return updated state
-    const statistics = await wordnet.getStatistics();
-    const lexiconStats = await wordnet.getLexiconStatistics();
-    
-    return { 
-      success: true, 
-      data: { statistics, lexiconStats } 
-    };
-  },
-
-  // Status and utility operations
-  async getStatus() {
-    if (!wordnet) return { success: false, error: 'Not initialized' };
-    
-    const lexiconStats = await wordnet.getLexiconStatistics();
-    const statistics = await wordnet.getStatistics();
-    
-    return { 
-      success: true, 
-      data: { lexiconStats, statistics } 
-    };
-  },
-
-  async clearData() {
-    if (!dataLoader) return { success: false, error: 'Not initialized' };
-    
-    await dataLoader.clearAllData();
-    return { success: true };
+### 2. **Hook Processing**
+```typescript
+// useWordNet processes the request
+const loadPackageData = useCallback(async (packageId) => {
+  if (workerClientRef.current?.initialized) {
+    // Route to worker
+    return await workerClientRef.current.loadPackage(packageId);
+  } else if (dataLoaderRef.current) {
+    // Fallback to main thread
+    return await dataLoaderRef.current.downloadAndLoad(packageId);
   }
-};
-
-// Expose the API to main thread
-expose(api);
+  throw new Error("DataLoader not initialized");
+}, []);
 ```
 
-### **Main Thread Usage (Comlink Client)**
-
+### 3. **Worker Communication**
 ```typescript
-// main.ts or React hook
-import { wrap } from 'comlink';
-
-// Create worker and wrap with Comlink
-const worker = new Worker(new URL('./wordnet.worker.ts', import.meta.url), { 
-  type: 'module' 
-});
-const wordnetAPI = wrap<any>(worker);
-
-// Usage in React hook
-export function useWordNet() {
-  const [state, setState] = useState({
-    isReady: false,
-    loading: false,
-    error: null,
-    loadedPackages: [],
-    statistics: null
-  });
-
-  const initialize = useCallback(async () => {
-    setState(prev => ({ ...prev, loading: true }));
-    
-    try {
-      // Call worker via Comlink
-      const result = await wordnetAPI.initializeWordNet();
-      
-      if (result.success) {
-        const { lexiconStats, statistics } = result.data;
-        setState(prev => ({
-          ...prev,
-          isReady: true,
-          loading: false,
-          loadedPackages: lexiconStats.map((ls: any) => ls.lexiconId),
-          statistics
-        }));
-      } else {
-        throw new Error(result.error);
-      }
-    } catch (error) {
-      setState(prev => ({
-        ...prev,
-        loading: false,
-        error: error.message
-      }));
-    }
-  }, []);
-
-  const queryWords = useCallback(async (term: string) => {
-    try {
-      const result = await wordnetAPI.queryWords(term);
-      return result.success ? result.data : [];
-    } catch (error) {
-      console.error('Query failed:', error);
-      return [];
-    }
-  }, []);
-
-  const loadPackage = useCallback(async (packageId: string, onProgress?: (p: number) => void) => {
-    try {
-      const result = await wordnetAPI.loadPackage(packageId, { onProgress });
-      
-      if (result.success) {
-        const { statistics, lexiconStats } = result.data;
-        setState(prev => ({
-          ...prev,
-          statistics,
-          loadedPackages: [...prev.loadedPackages, packageId]
-        }));
-      }
-      
-      return result;
-    } catch (error) {
-      console.error('Package loading failed:', error);
-      throw error;
-    }
-  }, []);
-
-  return {
-    ...state,
-    initialize,
-    queryWords,
-    loadPackage
-  };
+// WordNetWorkerClient forwards to worker via Comlink
+async loadPackage(packageId: string) {
+  const result = await this.remote!.loadPackage(packageId);
+  return result;
 }
 ```
 
-## 🔄 **Parallel Event Flows with Comlink**
-
-### **1. Application Initialization Flow**
-
-```mermaid
-sequenceDiagram
-    participant Main as Main Thread
-    participant Comlink as Comlink Client
-    participant Worker as Web Worker
-    participant ComlinkSrv as Comlink Server
-    participant SQLite as SQLite WASM
-    participant OPFS as OPFS Storage
-    
-    Main->>Main: React App Mounts
-    Main->>Comlink: Create Comlink Client
-    Comlink->>Worker: Wrap Worker
-    Main->>Comlink: wordnetAPI.initializeWordNet()
-    Comlink->>Worker: RPC Call
-    Worker->>ComlinkSrv: Execute initializeWordNet
-    ComlinkSrv->>SQLite: Initialize SQLite WASM
-    SQLite->>OPFS: Check OPFS Support
-    OPFS-->>SQLite: OPFS Status
-    SQLite-->>ComlinkSrv: SQLite Ready
-    ComlinkSrv->>OPFS: Check Existing Data
-    OPFS-->>ComlinkSrv: Database Status
-    ComlinkSrv-->>Worker: Initial State
-    Worker-->>Comlink: RPC Response
-    Comlink-->>Main: Return State
-    Main->>Main: Update UI State
-```
-
-### **2. Data Loading Flow with Progress**
-
-```mermaid
-sequenceDiagram
-    participant User as User
-    participant Main as Main Thread
-    participant Comlink as Comlink Client
-    participant Worker as Web Worker
-    participant SQLite as SQLite WASM
-    participant OPFS as OPFS Storage
-    participant Network as Network
-    
-    User->>Main: Click "Load Package"
-    Main->>Comlink: wordnetAPI.loadPackage(packageId, onProgress)
-    Comlink->>Worker: RPC Call with Progress Callback
-    Worker->>Network: Download WordNet Data
-    Network-->>Worker: Data Stream
-    Worker->>Worker: Parse & Process Data
-    Worker->>SQLite: Insert into Database
-    SQLite->>OPFS: Persist to OPFS
-    Worker->>Main: Progress Callback (0.5)
-    Main->>Main: Update Progress Bar
-    Worker->>SQLite: Get Updated Statistics
-    Worker-->>Comlink: Load Complete + Stats
-    Comlink-->>Main: Return Results
-    Main->>Main: Update UI State
-    Main->>User: Show Success Message
-```
-
-## 🚀 **Performance Optimizations**
-
-### **Thread Isolation Benefits**
-
-```mermaid
-graph LR
-    subgraph "Main Thread - Always Responsive"
-        A[UI Rendering]
-        B[User Input]
-        C[State Updates]
-        D[Lightweight Operations]
-    end
-    
-    subgraph "Worker Thread - Heavy Processing"
-        E[Database Queries]
-        F[Data Processing]
-        G[File Operations]
-        H[Network Requests]
-    end
-    
-    subgraph "Comlink Bridge"
-        I[Non-blocking RPC]
-        J[Progress Callbacks]
-        K[Error Handling]
-    end
-    
-    A --> I
-    E --> I
-    I --> C
-    I --> J
-```
-
-### **Memory Management Strategy**
-
-```mermaid
-graph TB
-    subgraph "Main Thread Memory"
-        A[UI State Objects]
-        B[User Preferences]
-        C[Component State]
-        D[Lightweight Cache]
-    end
-    
-    subgraph "Worker Thread Memory"
-        E[SQLite Database]
-        F[Large Data Structures]
-        G[File Buffers]
-        H[Processing Results]
-    end
-    
-    subgraph "Shared Memory (Minimal)"
-        I[Comlink Messages]
-        J[Progress Data]
-        K[Error Objects]
-    end
-    
-    A --> I
-    E --> I
-    I --> C
-```
-
-## 🔧 **Implementation Guidelines**
-
-### **1. Always Use Comlink for Worker Communication**
-
+### 4. **Worker Processing**
 ```typescript
-// ❌ WRONG - Direct worker messaging
-worker.postMessage({ type: 'query', term: 'joy' });
-worker.onmessage = (ev) => { /* handle response */ };
-
-// ✅ CORRECT - Comlink RPC
-const wordnetAPI = wrap<any>(worker);
-const results = await wordnetAPI.queryWords('joy');
-```
-
-### **2. Keep Main Thread Lightweight**
-
-```typescript
-// ❌ WRONG - Heavy operations on main thread
-const results = await wordnet.words('joy'); // Direct WordNet call
-
-// ✅ CORRECT - Delegate to worker
-const results = await wordnetAPI.queryWords('joy'); // Worker call
-```
-
-### **3. Use Progress Callbacks for Long Operations**
-
-```typescript
-// ✅ CORRECT - Progress tracking
-await wordnetAPI.loadPackage('oewn:2024', {
-  onProgress: (progress) => {
-    setProgress(progress); // Update UI on main thread
+// wordnet-worker processes the request
+export async function loadPackage(packageId: string) {
+  if (!orchestrator) {
+    return { success: false, error: "WordNet not initialized" };
   }
-});
+  
+  await orchestrator.loadLexicon(packageId);
+  const statistics = await orchestrator.getOverallStatistics();
+  return { success: true, data: { statistics } };
+}
 ```
 
-### **4. Return Structured Responses**
-
+### 5. **Orchestrator Management**
 ```typescript
-// ✅ CORRECT - Consistent response format
-return { 
-  success: true, 
-  data: { results, statistics },
-  metadata: { timestamp: Date.now() }
-};
-
-// ❌ WRONG - Inconsistent responses
-return results; // No error handling info
+// WordNetOrchestrator manages the operation
+async loadLexicon(lexiconId: string) {
+  if (!this.isInitialized) {
+    throw new Error("Orchestrator not initialized");
+  }
+  
+  await this.dataLoader!.downloadAndLoad(lexiconId);
+  this.updateLexiconState(lexiconId, { status: 'loaded' });
+}
 ```
 
-## 🎯 **Key Benefits of This Architecture**
-
-1. **UI Responsiveness**: Main thread never blocks on heavy operations
-2. **Scalability**: Worker can handle multiple concurrent operations
-3. **Persistence**: OPFS provides fast, persistent storage
-4. **Fallback Support**: Graceful degradation when workers fail
-5. **Memory Efficiency**: Heavy operations isolated in worker context
-6. **Type Safety**: Comlink provides full TypeScript support
-7. **Performance**: Parallel execution of UI updates and data processing
-8. **Clear Separation**: No confusion about what runs where
-
-## 🔄 **Event Flow Summary**
-
-```mermaid
-graph TB
-    subgraph "Parallel Execution"
-        A[UI Rendering - Main Thread]
-        B[Data Processing - Worker]
-        C[Network Operations - Worker]
-        D[Storage Operations - Worker]
-    end
-    
-    subgraph "Comlink Synchronization"
-        E[State Updates]
-        F[Progress Updates]
-        G[Error Handling]
-    end
-    
-    A --> E
-    B --> E
-    C --> F
-    D --> G
-    
-    style A fill:#e1f5fe
-    style B fill:#f3e5f5
-    style C fill:#e8f5e8
-    style D fill:#fff3e0
+### 6. **Database Operations**
+```typescript
+// WebWordnet performs database operations
+async downloadAndLoad(packageId: string) {
+  const data = await this.downloadPackage(packageId);
+  await this.loadIntoDatabase(data);
+}
 ```
 
-## 🏗️ **Design Principles**
+## 🏛️ Layer Responsibilities
 
-### **1. Worker-First Approach**
-- All heavy operations default to worker execution
-- Main thread operations are lightweight and non-blocking
-- Automatic fallback to main thread when workers fail
+### **React Layer (useWordNet)**
+- **State Management**: Manages React state for UI updates
+- **Worker Coordination**: Coordinates between worker and main thread
+- **Fallback Logic**: Handles worker failures gracefully
+- **API Surface**: Provides clean interface for components
 
-### **2. Comlink-Only Communication**
-- Never use direct worker messaging
-- Always use Comlink RPC for worker communication
-- Consistent API design across all worker operations
+### **Communication Layer (WordNetWorkerClient)**
+- **Comlink Integration**: Manages Comlink communication with worker
+- **Event Management**: Handles worker events and state updates
+- **Lifecycle Management**: Manages worker initialization and cleanup
+- **State Tracking**: Tracks loaded lexicons and statistics
 
-### **3. Clear Thread Boundaries**
-- Main thread: UI, state, lightweight operations only
-- Worker thread: Database, processing, heavy operations only
-- Comlink bridge: All inter-thread communication
+### **Worker Layer (wordnet-worker)**
+- **Heavy Computation**: Handles CPU-intensive operations
+- **SQLite Management**: Manages SQLite WASM instances
+- **Orchestrator Coordination**: Coordinates WordNet operations
+- **Memory Management**: Manages memory for large datasets
 
-### **4. State Rehydration**
-- Worker returns existing state on initialization
-- UI reflects persisted data without manual reload
-- Efficient startup with minimal network requests
+### **Orchestration Layer (WordNetOrchestrator)**
+- **High-Level Logic**: Manages cross-lexicon operations
+- **Lifecycle Management**: Handles lexicon loading/unloading
+- **State Coordination**: Coordinates between multiple lexicons
+- **Event Emission**: Emits events for state changes
 
-This architecture ensures that `wn-ts-web` operates efficiently in the browser while providing a responsive, interactive experience that never blocks the user interface. The clear separation between UI and worker threads, combined with Comlink's ergonomic RPC, makes the library both performant and easy to use.
+### **Database Layer (WebWordnet)**
+- **Low-Level Operations**: Performs actual database operations
+- **Query Optimization**: Optimizes SQL queries for performance
+- **Data Persistence**: Manages data storage and retrieval
+- **Type Safety**: Provides type-safe database operations via Kysely
+
+## 🔧 Key Design Patterns
+
+### **Worker-First Architecture**
+- All heavy operations default to worker threads
+- Main thread remains responsive during operations
+- Automatic fallback to main thread on worker failure
+
+### **Layered Abstraction**
+- Each layer has a single, clear responsibility
+- Clean interfaces between layers
+- Easy to test and maintain individual components
+
+### **State Synchronization**
+- Uses React refs for immediate instance access
+- Avoids state update timing issues
+- Maintains consistency between worker and main thread
+
+### **Event-Driven Communication**
+- Worker events propagate to main thread
+- State updates trigger UI re-renders
+- Clean separation of concerns
+
+## 🚀 Performance Optimizations
+
+### **Worker Isolation**
+- Heavy operations don't block main thread
+- UI remains responsive during data loading
+- Parallel processing capabilities
+
+### **Efficient State Updates**
+- Minimal re-renders through ref usage
+- Batch operations where possible
+- Smart caching and memoization
+
+### **Memory Management**
+- Automatic cleanup of unused resources
+- Efficient SQLite operations
+- Smart data loading and unloading
+
+## 🔒 Error Handling
+
+### **Graceful Degradation**
+- Worker failures don't crash the application
+- Automatic fallback to main thread
+- Clear error messages for debugging
+
+### **Error Recovery**
+- Automatic retry mechanisms
+- State restoration after errors
+- Comprehensive error logging
+
+### **User Experience**
+- Loading states during operations
+- Progress indicators for long operations
+- Clear feedback for user actions
+
+## 🧪 Testing Strategy
+
+### **Unit Testing**
+- Test each layer independently
+- Mock dependencies for isolation
+- Comprehensive coverage of edge cases
+
+### **Integration Testing**
+- Test communication between layers
+- Verify worker communication
+- Test fallback mechanisms
+
+### **Performance Testing**
+- Measure worker initialization time
+- Test memory usage patterns
+- Benchmark query performance
+
+## 🔮 Future Enhancements
+
+### **Multiple Worker Support**
+- Load balancing across multiple workers
+- Specialized workers for different operations
+- Dynamic worker scaling
+
+### **Advanced Caching**
+- Intelligent cache invalidation
+- Predictive data loading
+- Cross-session persistence
+
+### **Plugin Architecture**
+- Extensible query system
+- Custom data processors
+- Third-party integrations
+
+## 📚 Related Documentation
+
+- [SPEC.md](../SPEC.md) - Project specification
+- [React README](../src/react/README.md) - React integration guide
+- [API Documentation](../docs/API.md) - Complete API reference
+- [Performance Guide](../docs/PERFORMANCE.md) - Performance optimization tips
+
+---
+
+**This architecture document is maintained alongside the codebase and should be updated as the system evolves.**

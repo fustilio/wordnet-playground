@@ -21,6 +21,9 @@ import type {
   PartOfSpeech,
   ILI,
   Project,
+  WordQuery,
+  SenseQuery,
+  SynsetQuery,
 } from '../src/types';
 
 // Mock implementation of BaseWordnet for testing
@@ -37,32 +40,32 @@ class MockWordnetClient extends BaseWordnet {
     return [];
   }
 
-  async words(form: string, pos?: PartOfSpeech): Promise<Word[]> {
+  async words(query?: WordQuery): Promise<Word[]> {
     return [];
   }
 
-  async senses(wordIdOrForm: string, pos?: PartOfSpeech): Promise<Sense[]> {
+  async senses(query?: SenseQuery): Promise<Sense[]> {
     return [];
   }
 
-  async synsets(form: string, pos?: PartOfSpeech, ili?: string): Promise<Synset[]> {
+  async synsets(query?: SynsetQuery): Promise<Synset[]> {
     return [];
   }
 
-  async word(wordId: string): Promise<Word | undefined> {
-    return undefined;
+  async word(wordId: string): Promise<Word> {
+    throw new Error(`Mock word not implemented for ${wordId}`);
   }
 
-  async sense(senseId: string): Promise<Sense | undefined> {
-    return undefined;
+  async sense(senseId: string): Promise<Sense> {
+    throw new Error(`Mock sense not implemented for ${senseId}`);
   }
 
-  async synset(synsetId: string): Promise<Synset | undefined> {
-    return undefined;
+  async synset(synsetId: string): Promise<Synset> {
+    throw new Error(`Mock synset not implemented for ${synsetId}`);
   }
 
-  async ili(iliId: string): Promise<ILI | undefined> {
-    return undefined;
+  async ili(iliId: string): Promise<ILI> {
+    throw new Error(`Mock ili not implemented for ${iliId}`);
   }
 
   async ilis(status?: string): Promise<ILI[]> {

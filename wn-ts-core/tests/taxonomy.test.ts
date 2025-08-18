@@ -55,7 +55,7 @@ describe('Taxonomy', () => {
       {
         id: 'test-entity-n',
         ili: 'i123',
-        partOfSpeech: 'n',
+        pos: 'n',
         language: 'en',
         lexicon: 'test',
         definitions: [],
@@ -69,7 +69,7 @@ describe('Taxonomy', () => {
       {
         id: 'test-thing-n',
         ili: 'i456',
-        partOfSpeech: 'n',
+        pos: 'n',
         language: 'en',
         lexicon: 'test',
         definitions: [],
@@ -83,7 +83,7 @@ describe('Taxonomy', () => {
       {
         id: 'test-object-n',
         ili: 'i789',
-        partOfSpeech: 'n',
+        pos: 'n',
         language: 'en',
         lexicon: 'test',
         definitions: [],
@@ -96,7 +96,11 @@ describe('Taxonomy', () => {
 
     // Mock the synset method to return our test synsets
     wordnet.synset = async (id: string) => {
-      return mockSynsets.find(s => s.id === id);
+      const synset = mockSynsets.find(s => s.id === id);
+      if (!synset) {
+        throw new Error(`Synset not found: ${id}`);
+      }
+      return synset;
     };
   });
 
@@ -212,7 +216,7 @@ describe('Taxonomy', () => {
             return {
               id: 'test-entity-n',
               ili: 'i123',
-              partOfSpeech: 'n',
+              pos: 'n',
               language: 'en',
               lexicon: 'test',
               definitions: [],
@@ -226,7 +230,7 @@ describe('Taxonomy', () => {
             return {
               id: 'test-unrelated-n',
               ili: 'i999',
-              partOfSpeech: 'n',
+              pos: 'n',
               language: 'en',
               lexicon: 'test',
               definitions: [],

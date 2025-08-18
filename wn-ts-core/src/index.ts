@@ -75,6 +75,9 @@ export type {
   WordnetOptions,
   AddOptions,
   ExportOptions,
+  WordQuery,
+  SynsetQuery,
+  SenseQuery,
 } from './types.js';
 
 // Error classes (environment-agnostic)

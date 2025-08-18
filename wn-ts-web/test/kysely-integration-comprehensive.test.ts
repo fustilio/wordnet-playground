@@ -6,11 +6,10 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
-import { WebWordnet } from '../src/web-wordnet.js';
-import { WebDatabase } from '../src/web-database.js';
+import { WebWordnet } from '../src/client/submodules/web-wordnet.js';
+import { WebDatabase } from '../src/client/submodules/web-database.js';
 import { KyselyQueryService } from '../src/database/kysely-query-service.js';
 import { createWordNetInstance } from '../src/factory.js';
-import type { Database } from '../src/types/database.js';
 import { MockDataLoader } from './mock-data-loader.js';
 import type { Sqlite3Static } from '@sqlite.org/sqlite-wasm';
 
@@ -275,12 +274,12 @@ describe('Comprehensive Kysely Integration', () => {
 
   describe('WebWordnet Methods', () => {
     it('should get words through WebWordnet', async () => {
-      const words = await wordnet.words('test');
+      const words = await wordnet.words({ form: 'test' });
       expect(Array.isArray(words)).toBe(true);
     });
 
     it('should get synsets through WebWordnet', async () => {
-      const synsets = await wordnet.synsets('test');
+      const synsets = await wordnet.synsets({ form: 'test' });
       expect(Array.isArray(synsets)).toBe(true);
     });
 
@@ -362,7 +361,7 @@ describe('Comprehensive Kysely Integration', () => {
       (wordnetWithoutQuery as any).queryService = undefined;
       
       // This should throw an error
-      await expect(wordnetWithoutQuery.words('test')).rejects.toThrow('WebWordnet not initialized');
+      await expect(wordnetWithoutQuery.words({ form: 'test' })).rejects.toThrow('WebWordnet not initialized');
       
       await wordnetWithoutQuery.close();
     });

@@ -1,6 +1,10 @@
 import React from 'react';
 import { Card } from '../shared/Card';
-import { useWordNetContext } from '../../contexts/WordNetContext';
+import { useWordNetContext } from "wn-ts-web/react";
+import { 
+  isRequirementSatisfied, 
+  isRequirementAvailable 
+} from '../../utils/package-utils';
 
 interface LexiconRequirement {
   id: string;
@@ -63,7 +67,7 @@ export const LexiconRequirementsWidget: React.FC = () => {
     }
   };
 
-  const isLoaded = (id: string) => loadedPackages.includes(id);
+  const isLoaded = (id: string) => isRequirementSatisfied(id, loadedPackages);
   const isLoading = (id: string) => loading && !isLoaded(id);
 
   return (
@@ -77,7 +81,7 @@ export const LexiconRequirementsWidget: React.FC = () => {
           {lexiconRequirements.map((req) => {
             const loaded = isLoaded(req.id);
             const loading = isLoading(req.id);
-            const available = availablePackages.some((p: any) => `${p.id}:${p.version}` === req.id);
+            const available = isRequirementAvailable(req.id, availablePackages);
             
             return (
               <div 
@@ -132,7 +136,7 @@ export const LexiconRequirementsWidget: React.FC = () => {
         
         <div className="pt-3 border-t border-gray-200">
           <div className="text-sm text-gray-600 mb-2">
-            <span className="font-medium">Status:</span> {loadedPackages.length} of {lexiconRequirements.filter(r => availablePackages.some((p: any) => `${p.id}:${p.version}` === r.id)).length} available lexicons loaded
+            <span className="font-medium">Status:</span> {loadedPackages.length} of {lexiconRequirements.filter(r => isRequirementAvailable(r.id, availablePackages)).length} available lexicons loaded
           </div>
           
           {loadedPackages.length > 0 && (
@@ -144,4 +148,4 @@ export const LexiconRequirementsWidget: React.FC = () => {
       </div>
     </Card>
   );
-};
+}; 

@@ -41,13 +41,13 @@ describe('Wordnet', () => {
   describe('words', () => {
     it('should return empty array for non-existent word', async () => {
       const en = new Wordnet('test-en');
-      const words = await en.words('nonexistent');
+      const words = await en.words({ form: 'nonexistent' });
       expect(words).toHaveLength(0);
     });
 
     it('should handle part of speech filtering', async () => {
       const en = new Wordnet('test-en');
-      const words = await en.words('test', 'n');
+      const words = await en.words({ form: 'test', pos: 'n' });
       expect(words).toHaveLength(0); // No data yet
     });
   });
@@ -55,13 +55,13 @@ describe('Wordnet', () => {
   describe('synsets', () => {
     it('should return empty array for non-existent word', async () => {
       const en = new Wordnet('test-en');
-      const synsets = await en.synsets('nonexistent');
+      const synsets = await en.synsets({ form: 'nonexistent' });
       expect(synsets).toHaveLength(0);
     });
 
     it('should handle part of speech filtering', async () => {
       const en = new Wordnet('test-en');
-      const synsets = await en.synsets('test', 'n');
+      const synsets = await en.synsets({ form: 'test', pos: 'n' });
       expect(synsets).toHaveLength(0); // No data yet
     });
   });
@@ -77,7 +77,7 @@ describe('Wordnet', () => {
   describe('senses', () => {
     it('should return empty array for non-existent word', async () => {
       const en = new Wordnet('test-en');
-      const senses = await en.senses('nonexistent-word');
+      const senses = await en.senses({ form: 'nonexistent-word' });
       expect(senses).toHaveLength(0);
     });
   });
@@ -102,7 +102,7 @@ describe('Wordnet', () => {
     it('should use custom normalizer when provided', async () => {
       const normalizer = (form: string) => form.toLowerCase();
       const es = new Wordnet('test-es', { normalizer });
-      const words = await es.words('TEST');
+      const words = await es.words({ form: 'TEST' });
       expect(words).toHaveLength(0); // No data yet, but normalizer should be used
     });
   });
@@ -124,14 +124,17 @@ describe('Wordnet', () => {
         };
         
         if (pos === 'n' && form.endsWith('s')) {
-          result.n.add(form.slice(0, -1));
+          const nSet = result.n;
+          if (nSet) {
+            nSet.add(form.slice(0, -1));
+          }
         }
         
         return result;
       };
 
       const en = new Wordnet('test-en', { lemmatizer, searchAllForms: false });
-      const words = await en.words('examples', 'n');
+      const words = await en.words({ form: 'examples', pos: 'n' });
       expect(words).toHaveLength(0); // No data yet, but lemmatizer should be used
     });
   });
@@ -139,7 +142,7 @@ describe('Wordnet', () => {
   describe('search all forms', () => {
     it('should respect searchAllForms option', async () => {
       const en = new Wordnet('test-en', { searchAllForms: false });
-      const words = await en.words('examples');
+      const words = await en.words({ form: 'examples' });
       expect(words).toHaveLength(0); // No data yet
     });
   });

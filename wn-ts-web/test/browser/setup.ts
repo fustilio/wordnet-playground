@@ -15,9 +15,9 @@ export const mockSqliteWasm = {
   },
   oo1: {
     DB: class MockDB {
-      private data: Record<string, any[]> = {};
-      private totalChangesCount = 0;
-      private lastOpChangesCount = 0;
+      public data: Record<string, any[]> = {};
+      public totalChangesCount = 0;
+      public lastOpChangesCount = 0;
 
       constructor(path: string, mode: string) {}
 
@@ -54,14 +54,14 @@ export const mockSqliteWasm = {
           
           if (tableNameMatch && tableNameMatch[1] && columnsMatch && columnsMatch[1]) {
             const tableName = tableNameMatch[1];
-            const columns = columnsMatch[1].split(',').map(c => c.trim().replace(/['"`]/g, ''));
+            const columns = columnsMatch[1].split(',').map((c: any) => c.trim().replace(/['"`]/g, ''));
             const table = this.data[tableName];
 
             if (table && columns.length > 0) {
               const numRows = params.length / columns.length;
               for (let i = 0; i < numRows; i++) {
                 const row: Record<string, any> = {};
-                columns.forEach((col, j) => {
+                columns.forEach((col: any, j: any) => {
                   row[col] = params[i * columns.length + j];
                 });
 

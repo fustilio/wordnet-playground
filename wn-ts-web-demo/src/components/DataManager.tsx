@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { createScopedLogger } from '../logger';
+import { createScopedLogger } from 'utils/logger';
 
 const logger = createScopedLogger('DataManager');
 
@@ -20,6 +20,7 @@ export const DataManager: React.FC<DataManagerProps> = ({
   loadedPackage,
   loadedVersion
 }) => {
+
   const [cacheInfo, setCacheInfo] = useState<any>(null);
   const [showCacheInfo, setShowCacheInfo] = useState(false);
   const [refreshingCache, setRefreshingCache] = useState(false);
@@ -64,10 +65,10 @@ export const DataManager: React.FC<DataManagerProps> = ({
       const info = await getCacheInfo();
       logger.success('Cache info refreshed successfully');
       logger.end('refreshing cache info', { 
-        hasStorageQuota: !!info.storageQuota,
-        hasIndexedDB: !!info.indexedDB,
-        hasLocalStorage: !!info.localStorage,
-        hasSessionStorage: !!info.sessionStorage
+        hasStorageQuota: !!info.hasStorageQuota,
+        hasIndexedDB: !!info.hasIndexedDB,
+        hasLocalStorage: !!info.hasLocalStorage,
+        hasSessionStorage: !!info.hasSessionStorage
       });
       setCacheInfo(info);
     } catch (error) {
@@ -100,6 +101,17 @@ export const DataManager: React.FC<DataManagerProps> = ({
     <section className="bg-white rounded-xl p-8 shadow-sm border border-gray-200">
       <h3 className="text-2xl font-semibold text-gray-900 mb-6">🗄️ Data Management</h3>
       
+      {/* Operation Mode Status - Temporarily disabled until worker integration is complete */}
+      {/* <div className="operation-mode-status">
+        <div className="status-indicator fallback-mode">
+          <span className="status-icon">🔄</span>
+          <span className="status-text">Fallback Mode</span>
+          <span className="status-description">
+            Running in main thread with graceful fallback
+          </span>
+        </div>
+      </div> */}
+
       {/* Current Data Status */}
       <div className="mb-6">
         <h4 className="text-lg font-medium text-gray-800 mb-3">Current Data Status</h4>

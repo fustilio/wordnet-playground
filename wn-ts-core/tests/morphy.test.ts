@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { Morphy, createMorphy } from '../src/morphy';
 import { BaseWordnet } from '../src/wordnet';
 import { TestWordnet } from './helpers';
-import type { Word } from '../src/types';
+import type { Word, WordQuery } from '../src/types';
 
 describe('Morphy', () => {
   let wordnet: BaseWordnet;
@@ -67,20 +67,50 @@ describe('Morphy', () => {
       // Mock wordnet to return specific words
       const mockWords: Record<string, Word[]> = {
         'n': [
-          { id: 'test-example-n', lemma: 'example', pos: 'n', language: 'en', lexicon: 'test', forms:[] } as Word,
-          { id: 'test-datum-n', lemma: 'datum', pos: 'n', language: 'en', lexicon: 'test', forms:[] } as Word,
+          { 
+            id: 'test-example-n', 
+            lemma: 'example', 
+            pos: 'n', 
+            language: 'en', 
+            lexicon: 'test', 
+            forms: [],
+            pronunciations: [],
+            tags: [],
+            counts: []
+          },
+          { 
+            id: 'test-datum-n', 
+            lemma: 'datum', 
+            pos: 'n', 
+            language: 'en', 
+            lexicon: 'test', 
+            forms: [],
+            pronunciations: [],
+            tags: [],
+            counts: []
+          },
         ],
         'v': [
-          { id: 'test-exemplify-v', lemma: 'exemplify', pos: 'v', language: 'en', lexicon: 'test', forms:[] } as Word,
+          { 
+            id: 'test-exemplify-v', 
+            lemma: 'exemplify', 
+            pos: 'v', 
+            language: 'en', 
+            lexicon: 'test', 
+            forms: [],
+            pronunciations: [],
+            tags: [],
+            counts: []
+          },
         ],
       };
 
-      const wordsFn = async (word: string, pos?: string): Promise<Word[]> => {
-        if (word === '') {
-          return pos ? mockWords[pos] || [] : [];
+      const wordsFn = async (query?: WordQuery): Promise<Word[]> => {
+        if (!query || !query.form) {
+          return query?.pos ? mockWords[query.pos] || [] : [];
         }
-        const wordsForPos = pos ? mockWords[pos] || [] : [];
-        return wordsForPos.filter(w => w.lemma === word);
+        const wordsForPos = query.pos ? mockWords[query.pos] || [] : [];
+        return wordsForPos.filter(w => w.lemma === query.form);
       };
 
       const mockWordnet = new TestWordnet({ words: wordsFn });

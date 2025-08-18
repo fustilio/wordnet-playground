@@ -61,7 +61,8 @@
     "test:ui": "vitest --ui --exclude \"**/*e2e.test.ts\"",
     "test:verbose": "node scripts/test-verbose.js",
     "vitest": "pnpm with-debug-logs vitest run",
-    "with-debug-logs": "cross-env WN_TS_LOG_LEVEL=5"
+    "with-debug-logs": "cross-env WN_TS_LOG_LEVEL=5",
+    "typecheck": "tsc --noEmit"
   },
   "files": [
     "tools/"

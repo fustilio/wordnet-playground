@@ -80,9 +80,52 @@ const serverConfig = {
       },
     },
     "/api/github": {
+      target: "https://github.com",
+      changeOrigin: true,
+      followRedirects: false,
+      rewrite: (path) => path.replace(/^\/api\/github\//, "/"),
+      configure: (proxy) => {
+        proxy.on("error", (err) => {
+          if (shouldLog("warn")) console.log("proxy error", err);
+        });
+        proxy.on("proxyRes", (proxyRes, req, res) => {
+          const url = req.url || "";
+          if (shouldLog("info")) console.log("🔁 [forward]", url);
+          
+          // Handle GitHub release redirects to CDN
+          if (proxyRes.statusCode === 302 || proxyRes.statusCode === 301) {
+            const location = proxyRes.headers.location;
+            if (location && location.includes("release-assets.githubusercontent.com")) {
+              // Rewrite the redirect to use our release-assets proxy
+              const newLocation = location.replace(
+                "https://release-assets.githubusercontent.com",
+                "/api/release-assets"
+              );
+              proxyRes.headers.location = newLocation;
+              if (shouldLog("info")) console.log("🔄 [redirect] Rewrote to:", newLocation);
+            }
+          }
+        });
+      },
+    },
+    "/api/github-api": {
       target: "https://api.github.com",
       changeOrigin: true,
-      rewrite: (path) => path.replace(/^\/api\/github\//, "/"),
+      rewrite: (path) => path.replace(/^\/api\/github-api\//, "/"),
+      configure: (proxy) => {
+        proxy.on("error", (err) => {
+          if (shouldLog("warn")) console.log("proxy error", err);
+        });
+        proxy.on("proxyRes", (proxyRes, req, res) => {
+          const url = req.url || "";
+          if (shouldLog("info")) console.log("🔁 [forward]", url);
+        });
+      },
+    },
+    "/api/release-assets": {
+      target: "https://release-assets.githubusercontent.com",
+      changeOrigin: true,
+      rewrite: (path) => path.replace(/^\/api\/release-assets\//, "/"),
       configure: (proxy) => {
         proxy.on("error", (err) => {
           if (shouldLog("warn")) console.log("proxy error", err);
@@ -130,6 +173,8 @@ function makeServerPlugin() {
           url.startsWith("/api/raw-github/") ||
           url.startsWith("/api/wordnet/") ||
           url.startsWith("/api/github/") ||
+          url.startsWith("/api/github-api/") ||
+          url.startsWith("/api/release-assets/") ||
           url.startsWith("/api/external/");
         if (!cacheable) return next();
         const filePath = toCachePath(url);

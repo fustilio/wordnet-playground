@@ -8,30 +8,53 @@ import { Project } from './project.js';
 
 // Core exports
 export { createWebWordnet, createDataLoader, createWordNetInstance } from './factory.js';
-export { WebWordnet } from './web-wordnet.js';
-export { WebDatabase } from './web-database.js';
+export { WebWordnet } from './client/submodules/web-wordnet.js';
+export { WebDatabase } from './client/submodules/web-database.js';
 export { DataLoader } from './data-loader.js';
 export { OPFSManager } from './opfs-manager.js';
 export { DataManager } from './data-manager.js';
 
 // Orchestration and worker exports
-export { WordNetOrchestrator } from './wordnet-orchestrator.js';
-export { WordNetWorkerClient } from './wordnet-worker-client.js';
+export { WordNetOrchestrator } from './workers/wordnet-orchestrator.js';
+export { WordNetWorkerClient } from './client/wordnet-worker-client.js';
 export type { 
   LexiconState, 
   OrchestratorOptions, 
   LoadLexiconOptions, 
   QueryOptions
-} from './wordnet-orchestrator.js';
+} from './workers/wordnet-orchestrator.js';
 export type {
-  WordNetWorkerAPI,
   LexiconInfo,
   WordNetEventMap,
   WordNetEventListener
-} from './wordnet-worker-client.js';
+} from './client/wordnet-worker-client.js';
+export type { WordNetWorkerAPI } from './workers/type.js';
 
 // Worker factory exports (framework-agnostic)
-export { createWordNetWorker } from './worker-factory';
+export { createWordNetWorker } from './client/utils/worker-factory.js';
+
+// React hooks and types (framework-specific)
+export type {
+  WordNetStatistics,
+  CacheInfo,
+  WordQueryResult,
+  SynsetQueryResult,
+  SenseInfo,
+  DefinitionInfo,
+  WordInfo,
+  RelationInfo,
+  PackageInfo,
+  WorkerStatus,
+  LexiconsChangedEvent,
+  PackageLoadedEvent,
+  StatusUpdatedEvent,
+  ErrorEvent,
+  MemoryQueryTestResult,
+  DataSourceInfo,
+  IntegrityInfo,
+  WordNetState,
+  ProgressCallback
+} from './react/hooks/useWordNet.js';
 
 // Note: React hooks are not exported here to keep wn-ts-web framework-agnostic
 // They can be imported separately from './react-hooks' if needed, or moved to a separate package

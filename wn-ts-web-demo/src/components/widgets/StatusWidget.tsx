@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card } from '../shared/Card';
-import type { WordNetState } from '../../hooks/useWordNet';
+import type { WordNetState } from "wn-ts-web/react";
 
 export const StatusWidget: React.FC<WordNetState> = ({ isInitializing, loading, error, progress, progressStage, loadedPackages }) => {
   return (

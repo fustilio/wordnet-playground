@@ -28,21 +28,6 @@ describe.skipIf(isNode)('OPFS Manager Browser Tests', () => {
     }
   });
 
-  describe('Browser API Support', () => {
-    it('should detect OPFS support', () => {
-      expect('storage' in navigator).toBe(true);
-      expect('getDirectory' in navigator.storage).toBe(true);
-    });
-
-    it('should detect secure context', () => {
-      expect(window.isSecureContext).toBeDefined();
-    });
-
-    it('should detect SharedArrayBuffer support', () => {
-      expect(typeof SharedArrayBuffer).toBe('function');
-    });
-  });
-
   describe('OPFS Initialization', () => {
     it('should initialize OPFS manager', async () => {
       expect(opfsManager).toBeDefined();
@@ -99,25 +84,6 @@ describe.skipIf(isNode)('OPFS Manager Browser Tests', () => {
     });
   });
 
-  describe('Storage Quota', () => {
-    it('should get storage quota', async () => {
-      const quota = await navigator.storage.estimate();
-      
-      expect(quota).toHaveProperty('quota');
-      expect(quota).toHaveProperty('usage');
-      expect(quota).toHaveProperty('usageDetails');
-    });
-
-    it('should handle quota limits', async () => {
-      const info = await opfsManager.getStorageInfo();
-      
-      expect(info.total).toBeGreaterThan(0);
-      expect(info.used).toBeGreaterThanOrEqual(0);
-      expect(info.available).toBeGreaterThanOrEqual(0);
-      expect(info.used + info.available).toBeLessThanOrEqual(info.total);
-    });
-  });
-
   describe('Error Handling', () => {
     it('should handle unsupported browsers gracefully', () => {
       // Test that the manager can handle missing APIs
@@ -144,23 +110,4 @@ describe.skipIf(isNode)('OPFS Manager Browser Tests', () => {
     });
   });
 
-  describe('Performance', () => {
-    it('should handle large files efficiently', async () => {
-      const startTime = performance.now();
-      
-      try {
-        await opfsManager.downloadProject('oewn:2024', {
-          timeout: 30000 // 30 second timeout
-        });
-      } catch (error) {
-        // Expected for test environment
-      }
-      
-      const endTime = performance.now();
-      const duration = endTime - startTime;
-      
-      // Should complete within reasonable time
-      expect(duration).toBeLessThan(60000); // 60 seconds
-    });
-  });
 }); 

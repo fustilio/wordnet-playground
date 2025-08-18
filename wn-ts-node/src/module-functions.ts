@@ -1,15 +1,15 @@
 import { Wordnet } from './wordnet.js';
-import {
-  projects as coreProjects,
-  word as coreWord,
-  words as coreWords,
-  sense as coreSense,
-  senses as coreSenses,
-  synset as coreSynset,
-  synsets as coreSynsets,
-  ili as coreIli,
-  ilis as coreIlis,
-  lexicons as coreLexicons,
+import { projects as coreProjects } from 'wn-ts-core';
+import type {
+  Word,
+  Sense,
+  Synset,
+  ILI,
+  Lexicon,
+  PartOfSpeech,
+  WordQuery,
+  SenseQuery,
+  SynsetQuery
 } from 'wn-ts-core';
 
 // Re-export projects (no Wordnet constructor needed)
@@ -21,58 +21,82 @@ const defaultClient = new Wordnet();
 // Convenience functions that use the default client
 export async function word(
   id: string
-): Promise<any> {
-  return coreWord(defaultClient, id);
+): Promise<Word> {
+  return defaultClient.word(id);
 }
 
 export async function words(
   form?: string,
-  pos?: any,
-  options?: { lexicon: string }
-): Promise<any[]> {
-  return coreWords(defaultClient, form, pos, options);
+  pos?: PartOfSpeech,
+  options?: { lexicon?: string }
+): Promise<Word[]> {
+  if (!form) {
+    return [];
+  }
+  
+  const query: WordQuery = { form };
+  if (pos) query.pos = pos;
+  if (options?.lexicon) query.lexicon = options.lexicon;
+  
+  return defaultClient.words(query);
 }
 
 export async function sense(
   id: string
-): Promise<any> {
-  return coreSense(defaultClient, id);
+): Promise<Sense> {
+  return defaultClient.sense(id);
 }
 
 export async function senses(
   form?: string,
-  pos?: any,
-  options?: { lexicon: string }
-): Promise<any[]> {
-  return coreSenses(defaultClient, form, pos, options);
+  pos?: PartOfSpeech,
+  options?: { lexicon?: string }
+): Promise<Sense[]> {
+  if (!form) {
+    return [];
+  }
+  
+  const query: SenseQuery = { form };
+  if (pos) query.pos = pos;
+  if (options?.lexicon) query.lexicon = options.lexicon;
+  
+  return defaultClient.senses(query);
 }
 
 export async function synset(
   id: string
-): Promise<any> {
-  return coreSynset(defaultClient, id);
+): Promise<Synset> {
+  return defaultClient.synset(id);
 }
 
 export async function synsets(
   form?: string,
-  pos?: any,
-  options?: { lexicon: string }
-): Promise<any[]> {
-  return coreSynsets(defaultClient, form, pos, options);
+  pos?: PartOfSpeech,
+  options?: { lexicon?: string }
+): Promise<Synset[]> {
+  if (!form) {
+    return [];
+  }
+  
+  const query: SynsetQuery = { form };
+  if (pos) query.pos = pos;
+  if (options?.lexicon) query.lexicon = options.lexicon;
+  
+  return defaultClient.synsets(query);
 }
 
 export async function ili(
   id: string
-): Promise<any> {
-  return coreIli(defaultClient, id);
+): Promise<ILI> {
+  return defaultClient.ili(id);
 }
 
 export async function ilis(
   status?: string
-): Promise<any[]> {
-  return coreIlis(defaultClient, status);
+): Promise<ILI[]> {
+  return defaultClient.ilis(status);
 }
 
-export async function lexicons(): Promise<any[]> {
-  return coreLexicons(defaultClient);
+export async function lexicons(): Promise<Lexicon[]> {
+  return defaultClient.lexicons();
 } 

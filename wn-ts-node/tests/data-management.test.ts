@@ -9,8 +9,8 @@ import {
 import { db } from '../src/db/database';
 import { config } from '../src/config';
 import { testUtils } from './setup';
-import { ProjectError, DatabaseError } from 'wn-ts-core';
-import { writeFileSync, existsSync } from 'fs';
+import { ProjectError } from 'wn-ts-core';
+import { existsSync } from 'fs';
 import { join } from 'path';
 import { logger } from 'wn-ts-core';
 
@@ -23,14 +23,6 @@ vi.mock('../src/utils/fetch', () => ({
     return Promise.resolve();
   }),
 }));
-
-// Utility to generate a unique lexicon ID and file path per test
-function uniqueLexiconId() {
-  return `test-lexicon-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
-}
-function uniqueLexiconFile(testDataDir: string) {
-  return join(testDataDir, `${uniqueLexiconId()}.xml`);
-}
 
 describe('Data Management', () => {
   beforeEach(async () => {
@@ -198,8 +190,11 @@ describe('Data Management', () => {
       await exportData({ format: 'json' });
 
       expect(loggerSpy).toHaveBeenCalled();
-      const output = loggerSpy.mock.calls[0][0];
-      const data = JSON.parse(output);
+      const calls = loggerSpy.mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      const output = calls[0]?.[0];
+      expect(output).toBeDefined();
+      const data = JSON.parse(output!);
 
       expect(data).toHaveProperty('lexicons');
       expect(data).toHaveProperty('exportDate');
@@ -222,8 +217,11 @@ describe('Data Management', () => {
         include: ['test-en'],
       });
 
-      const output = loggerSpy.mock.calls[0][0];
-      const data = JSON.parse(output);
+      const calls = loggerSpy.mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      const output = calls[0]?.[0];
+      expect(output).toBeDefined();
+      const data = JSON.parse(output!);
       expect(data.lexicons).toHaveLength(1);
       expect(data.lexicons[0].id).toBe('test-en');
 
@@ -243,8 +241,11 @@ describe('Data Management', () => {
         exclude: ['test-en'],
       });
 
-      const output = loggerSpy.mock.calls[0][0];
-      const data = JSON.parse(output);
+      const calls = loggerSpy.mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      const output = calls[0]?.[0];
+      expect(output).toBeDefined();
+      const data = JSON.parse(output!);
       expect(data.lexicons).toHaveLength(1); // Only test-es should remain
       expect(data.lexicons[0].id).toBe('test-es');
 
@@ -262,7 +263,10 @@ describe('Data Management', () => {
       await exportData({ format: 'xml' });
 
       expect(loggerSpy).toHaveBeenCalled();
-      const output = loggerSpy.mock.calls[0][0];
+      const calls = loggerSpy.mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      const output = calls[0]?.[0];
+      expect(output).toBeDefined();
 
       expect(output).toContain('<?xml version="1.0" encoding="UTF-8"?>');
       expect(output).toContain('<lexical-resources>');
@@ -282,7 +286,10 @@ describe('Data Management', () => {
       await exportData({ format: 'csv' });
 
       expect(loggerSpy).toHaveBeenCalled();
-      const output = loggerSpy.mock.calls[0][0];
+      const calls = loggerSpy.mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      const output = calls[0]?.[0];
+      expect(output).toBeDefined();
 
       expect(output).toContain(
         'Type,ID,Lemma,PartOfSpeech,Language,Lexicon,Definition,Example'

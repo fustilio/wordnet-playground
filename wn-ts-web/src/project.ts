@@ -19,11 +19,11 @@ const ProjectDataSchema = z.union([
     label: z.string().optional(),
     language: z.string().optional(),
     license: z.string().optional(),
-    versions: z.record(ProjectVersionSchema),
+    versions: z.record(z.string(), ProjectVersionSchema),
   }),
 ]);
 
-const IndexDataSchema = z.record(ProjectDataSchema);
+const IndexDataSchema = z.record(z.string(),ProjectDataSchema);
 
 // Base (built-in) index parsed once
 const baseIndexData = IndexDataSchema.parse(indexData);
@@ -65,7 +65,7 @@ export class Project {
   public readonly version: string | null;
   public readonly projectIdWithVersion: string;
 
-  private readonly projectData: ProjectData;
+  private readonly _projectData: ProjectData;
   private readonly projectVersionData:
     | z.infer<typeof ProjectVersionSchema>
     | undefined;
@@ -80,20 +80,20 @@ export class Project {
     if (!(this.id in index)) {
       throw new Error(`Project with ID '${this.id}' not found in index.`);
     }
-    this.projectData = index[this.id as keyof typeof index];
+    this._projectData = index[this.id as keyof typeof index];
 
-    if ("error" in this.projectData) {
-      throw new Error(this.projectData.error);
+    if ("error" in this._projectData) {
+      throw new Error(this._projectData.error);
     }
 
     if (this.version) {
-      if (!(this.version in this.projectData.versions)) {
+      if (!(this.version in this._projectData.versions)) {
         throw new Error(
           `Version '${this.version}' not found for project '${this.id}'.`
         );
       }
 
-      this.projectVersionData = this.projectData.versions[this.version];
+      this.projectVersionData = this._projectData.versions[this.version];
 
       if ('error' in  this.projectVersionData) {
         throw new Error(this.projectVersionData.error)
@@ -147,10 +147,10 @@ export class Project {
 
   getUrls(): string[] {
     if (!this.version) {
-      if ("error" in this.projectData) throw new Error(this.projectData.error);
+      if ("error" in this._projectData) throw new Error(this._projectData.error);
       throw new Error(
         `No version specified for project '${this.id}'. Available versions: ${Object.keys(
-          this.projectData.versions
+          this._projectData.versions
         ).join(", ")}`
       );
     }
@@ -172,29 +172,40 @@ export class Project {
   }
 
   getLabel(): string {
-    if ("error" in this.projectData) {
-      throw new Error(this.projectData.error);
+    if ("error" in this._projectData) {
+      throw new Error(this._projectData.error);
     }
-    return this.projectData.label || `Project ${this.id.toUpperCase()}`;
+    return this._projectData.label || `Project ${this.id.toUpperCase()}`;
   }
 
   getLanguage(): string {
-    if ("error" in this.projectData) {
-      throw new Error(this.projectData.error);
+    if ("error" in this._projectData) {
+      throw new Error(this._projectData.error);
     }
-    return this.projectData.language || "en";
+    return this._projectData.language || "en";
   }
 
   getLicense(): string {
-    if ("error" in this.projectData) {
-      throw new Error(this.projectData.error);
+    if ("error" in this._projectData) {
+      throw new Error(this._projectData.error);
     }
     return (
-      this.projectData.license || "https://creativecommons.org/licenses/by/4.0/"
+      this._projectData.license || "https://creativecommons.org/licenses/by/4.0/"
     );
   }
 
   getCitation(): string {
     return `${this.getLabel()} ${this.version}.`;
+  }
+
+  get type(): string | undefined {
+    if ("error" in this._projectData) {
+      throw new Error(this._projectData.error);
+    }
+    return this._projectData.type;
+  }
+
+  get projectData(): ProjectData {
+    return this._projectData;
   }
 }

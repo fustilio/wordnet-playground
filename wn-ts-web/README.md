@@ -72,7 +72,49 @@ await wordnet.initialize(sqlModule);
 const words = await wordnet.words('example');
 ```
 
-For detailed architecture information, see [ORCHESTRATION_ARCHITECTURE.md](./ORCHESTRATION_ARCHITECTURE.md).
+For detailed architecture information, see:
+- [ORCHESTRATION_ARCHITECTURE.md](./ORCHESTRATION_ARCHITECTURE.md) - High-level orchestration patterns
+- [WORKER_ARCHITECTURE.md](./docs/WORKER_ARCHITECTURE.md) - Worker-first architecture and React integration
+
+## React Integration
+
+For React applications, use the `useWordNet` hook which provides a worker-first architecture:
+
+```tsx
+import { useWordNet } from 'wn-ts-web/react';
+
+function WordNetComponent() {
+  const { 
+    loading, 
+    workerReady,
+    loadPackageData, 
+    queryWords, 
+    statistics 
+  } = useWordNet();
+
+  const handleLoad = async () => {
+    if (workerReady) {
+      await loadPackageData('oewn:2024');
+    } else {
+      console.log('Worker not ready yet');
+    }
+  };
+
+  const handleQuery = async (term: string) => {
+    const results = await queryWords(term);
+    console.log(results);
+  };
+
+  return (
+    <div>
+      {loading ? 'Loading...' : 'Ready'}
+      <button onClick={handleLoad}>Load Package</button>
+    </div>
+  );
+}
+```
+
+The hook automatically manages worker communication, event handling, and state synchronization. See [WORKER_ARCHITECTURE.md](./docs/WORKER_ARCHITECTURE.md) for detailed usage patterns.
 
 ## Run in a Web Worker (assumed)
 

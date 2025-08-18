@@ -1,13 +1,16 @@
 import React from 'react';
 import { Card } from '../shared/Card';
-import { useWordNetContext } from '../../contexts/WordNetContext';
+import { useWordNetContext } from "wn-ts-web/react";
 import { LexiconRequirements } from '../shared/LexiconRequirements';
-import { createScopedLogger } from '../../logger';
+import { createScopedLogger } from 'utils/logger';
+import { SequentialRunner } from '../../examples/SequentialRunner';
+import { ProxyStatus } from '../ProxyStatus';
+import { PerformanceMonitor } from '../developer-tools/PerformanceMonitor';
 
 const logger = createScopedLogger('DeveloperDemo');
 
 export const DeveloperDemo: React.FC = () => {
-  const { unloadData, testMemoryQueries } = useWordNetContext();
+  const { testMemoryQueries } = useWordNetContext();
   
   // Define lexicon requirements for this demo
   const lexiconRequirements = [
@@ -18,21 +21,6 @@ export const DeveloperDemo: React.FC = () => {
       priority: 'medium' as const
     }
   ];
-  
-
-
-  const handleUnloadData = async () => {
-    logger.start('unloading data');
-    
-    try {
-      await unloadData();
-      logger.success('Data unloaded successfully');
-      logger.end('unloading data');
-    } catch (error) {
-      logger.fail('Failed to unload data', error);
-      logger.end('unloading data');
-    }
-  };
 
   const handleTestMemoryQueries = async () => {
     logger.start('testing memory queries');
@@ -51,30 +39,32 @@ export const DeveloperDemo: React.FC = () => {
   };
 
   return (
-    <Card title="Developer Tools">
-       <div className="space-y-6">
-        {/* Lexicon Requirements */}
-        <LexiconRequirements requirements={lexiconRequirements} />
-        
-        <div>
-          <h3 className="font-semibold text-gray-700">Database Management</h3>
-          <p className="text-sm text-gray-600 mb-2">Manage WordNet database data.</p>
-          <div className="flex flex-wrap gap-2">
-             <button
-              onClick={handleUnloadData}
-              className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
-            >
-              Clear DB Data
-            </button>
-            <button
-              onClick={handleTestMemoryQueries}
-              className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-            >
-              Test Memory Queries
-            </button>
+    <div className="space-y-6">
+      <Card title="Developer Tools & Tests">
+        <div className="space-y-6">
+          <LexiconRequirements requirements={lexiconRequirements} />
+          
+          <SequentialRunner />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <ProxyStatus />
+            <PerformanceMonitor />
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-gray-700">Actions</h3>
+            <p className="text-sm text-gray-600 mb-2">Run specific developer actions.</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={handleTestMemoryQueries}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Test Memory Queries
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </Card>
+      </Card>
+    </div>
   );
 };

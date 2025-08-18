@@ -10,25 +10,50 @@ The `types/` directory contains TypeScript type definitions, interfaces, and typ
 - [x] **Storage Types**: Storage and database type definitions
 - [x] **Type Organization**: Organized type structure
 - [x] **Type Safety**: Full TypeScript type safety
+- [x] **Unified Architecture**: Single source of truth for all types
 
 ## 3. Current Directory Structure
 
 ```
 types/
-├── index.ts               # Main type exports and definitions
+├── index.ts               # Main type exports (re-exports from wordnet.ts)
+├── wordnet.ts             # All WordNet and application type definitions
 └── SPEC.md                # This specification file
 ```
 
 ## 4. Type Categories
 
-### 4.1 Storage Types (`index.ts`)
+### 4.1 Core WordNet Types (`wordnet.ts`)
+
+**Purpose**: Define all WordNet-related types and interfaces
+
+**Key Types**:
+- **LexiconInfo**: Lexicon information (extends wn-ts-web types)
+- **WordNetStatistics**: Statistics interface (extends wn-ts-web types)
+- **WordQueryResult**: Word query results
+- **SynsetQueryResult**: Synset query results
+- **SenseInfo**: Sense information
+- **DefinitionInfo**: Definition information
+
+**Type Definitions**:
+```typescript
+// Extends wn-ts-web types for consistency
+export interface LexiconInfo extends WnTsLexiconInfo {
+  // Only add demo-specific extensions
+}
+
+export interface WordNetStatistics extends DatabaseStatistics {
+  source: 'Database' | 'Worker' | 'MainThread';
+}
+```
+
+### 4.2 Storage and Database Types
 
 **Purpose**: Define types for storage and database operations
 
 **Key Types**:
 - **StorageInfo**: Storage system information
 - **DatabaseInfo**: Database metadata and information
-- **FileInfo**: File system information
 
 **Type Definitions**:
 ```typescript
@@ -38,30 +63,26 @@ export interface StorageInfo {
   available: number;       // Available storage space
   databases: DatabaseInfo[]; // Database information
 }
-
-export interface DatabaseInfo {
-  name: string;            // Database name
-  size: number;            // Database size in bytes
-  lastModified: Date;      // Last modification date
-  tables: string[];        // Table names
-}
 ```
 
-### 4.2 Type Organization
+### 4.3 Event and Status Types
 
-**Purpose**: Organize and export types for use throughout the application
+**Purpose**: Define types for event handling and status updates
 
-**Export Pattern**:
-```typescript
-// Re-export types from other modules
-export type { WordNetState } from '../hooks/useWordNet';
-export type { BackupConfig, BackupMetadata } from '../hooks/useBackup';
-export type { ExportOptions, ExportResult } from '../hooks/useExport';
+**Key Types**:
+- **WorkerStatus**: Worker operation status
+- **LexiconsChangedEvent**: Lexicon change events
+- **PackageLoadedEvent**: Package loading events
+- **StatusUpdatedEvent**: Status update events
 
-// Local type definitions
-export interface StorageInfo { /* ... */ }
-export interface DatabaseInfo { /* ... */ }
-```
+### 4.4 Utility and Compatibility Types
+
+**Purpose**: Provide utility types and backward compatibility
+
+**Key Types**:
+- **WordNetStats**: Type alias for wn-ts-web statistics
+- **StatisticsBundle**: Bundled statistics information
+- **WordNetTotals**: Legacy interface for backward compatibility
 
 ## 5. Type Design Patterns
 
@@ -137,31 +158,24 @@ export interface DatabaseInfo { /* ... */ }
 - **Integration**: Test type integration
 - **Performance**: Test type performance impact
 
-## 9. Planned Improvements
+## 9. Architecture Principles
 
-### 9.1 Type Organization
-- [ ] **Type Categories**: Organize types into logical categories
-- [ ] **Type Documentation**: Enhance type documentation
-- [ ] **Type Examples**: Add comprehensive type examples
-- [ ] **Type Validation**: Add runtime type validation
+### 9.1 Single Source of Truth
+- **Centralized Types**: All types defined in `wordnet.ts`
+- **No Duplication**: Avoid type duplication across files
+- **Clear Exports**: Single export point through `index.ts`
 
-### 9.2 Type Safety
-- [ ] **Stricter Types**: Implement stricter type definitions
-- [ ] **Type Guards**: Add comprehensive type guards
-- [ ] **Type Validation**: Add runtime type validation
-- [ ] **Type Testing**: Add type testing utilities
+### 9.2 wn-ts-web Integration
+- **Extend Don't Redefine**: Extend wn-ts-web types when possible
+- **Consistent Interfaces**: Maintain consistency with wn-ts-web APIs
+- **Type Compatibility**: Ensure type compatibility across layers
 
-### 9.3 Type Performance
-- [ ] **Type Optimization**: Optimize type definitions
-- [ ] **Type Caching**: Implement type caching
-- [ ] **Type Lazy Loading**: Implement lazy type loading
-- [ ] **Type Monitoring**: Add type performance monitoring
-
-### 9.4 Type Documentation
-- [ ] **API Documentation**: Add comprehensive API documentation
-- [ ] **Usage Examples**: Add usage examples for all types
-- [ ] **Type Diagrams**: Add type relationship diagrams
-- [ ] **Migration Guides**: Add type migration guides
+### 9.3 SOLID Principles
+- **Single Responsibility**: Each type has one clear purpose
+- **Open/Closed**: Types are open for extension, closed for modification
+- **Liskov Substitution**: Subtypes are substitutable for base types
+- **Interface Segregation**: Keep interfaces focused and minimal
+- **Dependency Inversion**: Depend on abstractions, not concretions
 
 ## 10. Future Enhancements
 
@@ -170,7 +184,7 @@ export interface DatabaseInfo { /* ... */ }
 - [ ] **Type Migration**: Type migration tools
 - [ ] **Type Analysis**: Type analysis and optimization tools
 - [ ] **Type Visualization**: Type visualization tools
-- [ ] **Type Testing**: Automated type testing
+- **Type Testing**: Automated type testing
 
 ## 11. Dependencies
 
@@ -183,7 +197,7 @@ export interface DatabaseInfo { /* ... */ }
 ### 11.2 External Dependencies
 - **TypeScript**: TypeScript language and compiler
 - **React**: React type definitions
-- **External Libraries**: Types from external libraries
+- **wn-ts-web**: Core WordNet types and interfaces
 
 ## 12. Performance Considerations
 

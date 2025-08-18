@@ -26,7 +26,6 @@ components/
 │   ├── DeveloperDemo.tsx # Developer tools demo
 │   └── index.ts          # Demo component exports
 ├── developer-tools/       # Development and debugging utilities
-│   ├── DebugConsole.tsx  # Real-time logging console
 │   ├── PerformanceMonitor.tsx # Performance metrics display
 │   └── index.ts          # Developer tools exports
 ├── features/              # Core feature implementations
@@ -41,9 +40,6 @@ components/
 │   ├── Tabs.tsx          # Tab navigation component
 │   └── index.ts          # Shared component exports
 ├── ui/                    # Basic UI components
-│   ├── Navigation.tsx    # Navigation component
-│   ├── SearchSection.tsx # Search interface component
-│   ├── ResultsSection.tsx # Results display component
 │   └── index.ts          # UI component exports
 ├── visualizations/        # Data visualization components
 │   ├── WordRelationshipGraph.tsx # Interactive word relationship graph
@@ -59,10 +55,6 @@ components/
 ├── DataManager.tsx        # Data management interface
 ├── ProjectList.tsx        # Project listing component
 ├── ProxyStatus.tsx        # Proxy status display
-├── ResultsSection.tsx     # Search results display
-├── SearchSection.tsx      # Search interface
-├── SimpleDataLoader.tsx   # Simplified data loader
-├── WordNetStatistics.tsx  # Statistics display component
 └── index.ts               # Main component exports
 ```
 

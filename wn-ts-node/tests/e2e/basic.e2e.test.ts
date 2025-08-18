@@ -45,7 +45,7 @@ describe('End-to-End Integration Tests', () => {
     config.dataDirectory = e2eDataDir;
 
     // Initialize by creating a Wordnet instance - this will handle database initialization
-    const tempWn = new Wordnet('*');
+    new Wordnet('*');
 
     const ciliDownloadProgress = new ProgressLogger('Download CILI');
     const ciliPath = await download('cili:1.0', {
@@ -91,7 +91,7 @@ describe('End-to-End Integration Tests', () => {
     config.dataDirectory = e2eDataDir;
 
     // Initialize by creating a Wordnet instance - this will handle database initialization
-    const tempWn = new Wordnet('*');
+    new Wordnet('*');
     
     // Create a client for the tests
     wordnetClient = new Wordnet('oewn:2024');
@@ -177,12 +177,15 @@ describe('End-to-End Integration Tests', () => {
 
       // Verify structure of the first synset
       const synset = infoSynsets[0];
-      expect(synset).toHaveProperty('id');
-      expect(synset).toHaveProperty('pos');
-      expect(synset).toHaveProperty('language');
-      expect(synset).toHaveProperty('lexicon');
-      expect(synset).toHaveProperty('definitions');
-      expect(synset.definitions).toBeInstanceOf(Array);
+      expect(synset).toBeDefined();
+      if (synset) {
+        expect(synset).toHaveProperty('id');
+        expect(synset).toHaveProperty('pos');
+        expect(synset).toHaveProperty('language');
+        expect(synset).toHaveProperty('lexicon');
+        expect(synset).toHaveProperty('definitions');
+        expect(synset.definitions).toBeInstanceOf(Array);
+      }
       logger.success('Synset structure verified');
       logger.success('Synset queries completed');
     });
@@ -193,13 +196,13 @@ describe('End-to-End Integration Tests', () => {
 
       // Test word search
       logger.data('Testing word search...');
-      const wordResults = await wordnetClient.words('test');
+      const wordResults = await wordnetClient.words({ form: 'test' });
       expect(wordResults.length).toBeGreaterThan(0);
       logger.success(`Found ${wordResults.length} words via class instance`);
 
       // Test synset search
       logger.synset('Testing synset search...');
-      const synsetResults = await wordnetClient.synsets('test');
+      const synsetResults = await wordnetClient.synsets({ form: 'test' });
       expect(synsetResults.length).toBeGreaterThan(0);
       logger.success(`Found ${synsetResults.length} synsets via class instance`);
     });
@@ -273,11 +276,13 @@ describe('End-to-End Integration Tests', () => {
       
       if (results.length > 0) {
         const word = results[0];
-        expect(typeof word.id).toBe('string');
-        expect(typeof word.lemma).toBe('string');
-        expect(typeof word.pos).toBe('string');
-        expect(typeof word.language).toBe('string');
-        expect(typeof word.lexicon).toBe('string');
+        if (word) {
+          expect(typeof word.id).toBe('string');
+          expect(typeof word.lemma).toBe('string');
+          expect(typeof word.pos).toBe('string');
+          expect(typeof word.language).toBe('string');
+          expect(typeof word.lexicon).toBe('string');
+        }
       }
       logger.success('Data type consistency verified');
     });

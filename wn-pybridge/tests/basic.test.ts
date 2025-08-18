@@ -73,7 +73,7 @@ describe('WnBridge Basic Functionality Tests', { timeout: 60000 }, () => {
         return;
       }
 
-      const words = await wn!.words('information');
+      const words = await wn!.words({ form: 'information' });
       expect(Array.isArray(words)).toBe(true);
       
       if (words.length > 0) {
@@ -90,7 +90,7 @@ describe('WnBridge Basic Functionality Tests', { timeout: 60000 }, () => {
         return;
       }
 
-      const words = await wn!.words('nonexistentword');
+      const words = await wn!.words({ form: 'nonexistentword' });
       expect(Array.isArray(words)).toBe(true);
       expect(words.length).toBe(0);
     });
@@ -101,7 +101,7 @@ describe('WnBridge Basic Functionality Tests', { timeout: 60000 }, () => {
         return;
       }
 
-      const words = await wn!.words('');
+      const words = await wn!.words({ form: '' });
       expect(Array.isArray(words)).toBe(true);
       expect(words.length).toBe(0);
     });
@@ -111,7 +111,7 @@ describe('WnBridge Basic Functionality Tests', { timeout: 60000 }, () => {
         console.log('Skipping test: bridge not initialized');
         return;
       }
-      const words = await wn!.words('information', { pos: 'adj' });
+      const words = await wn!.words({ form: 'information', pos: 'adj' });
       expect(Array.isArray(words)).toBe(true);
       // It may be empty or not, but should not throw
     });
@@ -124,7 +124,7 @@ describe('WnBridge Basic Functionality Tests', { timeout: 60000 }, () => {
         return;
       }
 
-      const senses = await wn!.senses('information');
+      const senses = await wn!.senses({ form: 'information' });
       expect(Array.isArray(senses)).toBe(true);
       
       if (senses.length > 0) {
@@ -140,7 +140,7 @@ describe('WnBridge Basic Functionality Tests', { timeout: 60000 }, () => {
         return;
       }
 
-      const senses = await wn!.senses('nonexistentword');
+      const senses = await wn!.senses({ form: 'nonexistentword' });
       expect(Array.isArray(senses)).toBe(true);
       expect(senses.length).toBe(0);
     });
@@ -153,7 +153,7 @@ describe('WnBridge Basic Functionality Tests', { timeout: 60000 }, () => {
         return;
       }
 
-      const synsets = await wn!.synsets('information');
+      const synsets = await wn!.synsets({ form: 'information' });
       expect(Array.isArray(synsets)).toBe(true);
       
       if (synsets.length > 0) {
@@ -169,7 +169,7 @@ describe('WnBridge Basic Functionality Tests', { timeout: 60000 }, () => {
         return;
       }
 
-      const synsets = await wn!.synsets('nonexistentword');
+      const synsets = await wn!.synsets({ form: 'nonexistentword' });
       expect(Array.isArray(synsets)).toBe(true);
       expect(synsets.length).toBe(0);
     });
@@ -182,7 +182,7 @@ describe('WnBridge Basic Functionality Tests', { timeout: 60000 }, () => {
         return;
       }
 
-      const words = await wn!.words('nonexistentword');
+      const words = await wn!.words({ form: 'nonexistentword' });
       expect(Array.isArray(words)).toBe(true);
       expect(words.length).toBe(0);
     });
@@ -193,7 +193,7 @@ describe('WnBridge Basic Functionality Tests', { timeout: 60000 }, () => {
         return;
       }
 
-      const synsets = await wn!.synsets('nonexistentword');
+      const synsets = await wn!.synsets({ form: 'nonexistentword' });
       expect(Array.isArray(synsets)).toBe(true);
       expect(synsets.length).toBe(0);
     });
@@ -204,7 +204,7 @@ describe('WnBridge Basic Functionality Tests', { timeout: 60000 }, () => {
         return;
       }
 
-      const words = await wn!.words('');
+      const words = await wn!.words({ form: '' });
       expect(Array.isArray(words)).toBe(true);
       expect(words.length).toBe(0);
     });
@@ -217,7 +217,7 @@ describe('WnBridge Basic Functionality Tests', { timeout: 60000 }, () => {
         return;
       }
 
-      const synsets = await wn!.synsets('dog');
+      const synsets = await wn!.synsets({ form: 'dog' });
       if (synsets.length > 0) {
         const synsetId = synsets[0].id;
         const hypernyms = await wn!.hypernyms(synsetId);

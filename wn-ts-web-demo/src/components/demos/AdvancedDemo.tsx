@@ -1,14 +1,16 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Card } from '../shared/Card';
-import { useWordNetContext } from '../../contexts/WordNetContext';
+import { useWordNetContext, getAvailableProjects, type ProjectInfo } from "wn-ts-web/react";
 import { LexiconRequirements } from '../shared/LexiconRequirements';
-import { createScopedLogger } from '../../logger';
-import { getAvailableProjects, type ProjectInfo } from '../../utils/project-list';
+import { createScopedLogger } from 'utils/logger';
+import { ProjectList } from '../../examples/ProjectList';
+import { Tabs } from '../shared/Tabs';
 
 const logger = createScopedLogger('AdvancedDemo');
 
 export const AdvancedDemo: React.FC = () => {
   const { availablePackages, loadPackageData, loadedPackages } = useWordNetContext();
+  const [activeTab, setActiveTab] = useState('Catalog');
   
   // Define lexicon requirements for this demo
   const lexiconRequirements = [
@@ -102,41 +104,49 @@ export const AdvancedDemo: React.FC = () => {
     superseded: 'Superseded'
   };
   
+  const TABS = ['Catalog', 'Browser'];
+
   return (
-    <Card title="Advanced Data Management">
+    <Card title="Data Catalog & Browser">
       <div className="space-y-6">
-        {/* Lexicon Requirements */}
         <LexiconRequirements requirements={lexiconRequirements} />
         
-        <div>
-          <h3 className="font-semibold text-gray-700">Lexicon Catalog</h3>
-          <p className="text-sm text-gray-600 mb-2">All detected lexicon versions and their status.</p>
-          <div className="space-y-2">
-            {rows.length === 0 ? (
-              <div className="text-sm text-gray-500">No lexicons detected yet.</div>
-            ) : (
-              rows.map(row => (
-                <div key={row.key} className={`flex items-center justify-between rounded-md px-3 py-2 ${statusClasses[row.status]}`}>
-                  <div className="flex items-center gap-3">
-                    <span className="font-medium">{row.label}</span>
-                    <span className="text-xs px-2 py-0.5 rounded bg-white/60 text-gray-800 border border-gray-300">{row.id}:{row.version}</span>
-                    <span className="text-xs px-2 py-0.5 rounded bg-white/60 text-gray-800 border border-gray-300">{row.language.toUpperCase()}</span>
-                    <span className="text-xs px-2 py-0.5 rounded bg-white/60 text-gray-800 border border-gray-300">{statusLabel[row.status]}</span>
-                  </div>
-                  <div>
-                    {row.status === 'unloaded' && (
-                      <button
-                        onClick={() => handleLoadPackage(`${row.id}:${row.version}`)}
-                        className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-                      >
-                        Load
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+        <Tabs tabs={TABS} activeTab={activeTab} setActiveTab={setActiveTab} />
+        
+        <div className="mt-4">
+          {activeTab === 'Catalog' && (
+            <div>
+              <h3 className="font-semibold text-gray-700">Lexicon Catalog</h3>
+              <p className="text-sm text-gray-600 mb-2">All detected lexicon versions and their status.</p>
+              <div className="space-y-2">
+                {rows.length === 0 ? (
+                  <div className="text-sm text-gray-500">No lexicons detected yet.</div>
+                ) : (
+                  rows.map(row => (
+                    <div key={row.key} className={`flex items-center justify-between rounded-md px-3 py-2 ${statusClasses[row.status]}`}>
+                      <div className="flex items-center gap-3">
+                        <span className="font-medium">{row.label}</span>
+                        <span className="text-xs px-2 py-0.5 rounded bg-white/60 text-gray-800 border border-gray-300">{row.id}:{row.version}</span>
+                        <span className="text-xs px-2 py-0.5 rounded bg-white/60 text-gray-800 border border-gray-300">{row.language.toUpperCase()}</span>
+                        <span className="text-xs px-2 py-0.5 rounded bg-white/60 text-gray-800 border border-gray-300">{statusLabel[row.status]}</span>
+                      </div>
+                      <div>
+                        {row.status === 'unloaded' && (
+                          <button
+                            onClick={() => handleLoadPackage(`${row.id}:${row.version}`)}
+                            className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                          >
+                            Load
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+          {activeTab === 'Browser' && <ProjectList />}
         </div>
       </div>
     </Card>

@@ -1,7 +1,7 @@
+import { WebDatabase } from "../src/client/submodules/web-database.js";
+import type { WebWordnet } from "../src/client/submodules/web-wordnet.js";
 import { DataLoader, type DataLoadOptions } from "../src/data-loader.js";
 import { Project } from "../src/project.js";
-import type { WebDatabase } from "../src/web-database.js";
-import type { WebWordnet } from "../src/web-wordnet.js";
 
 /**
  * A DataLoader for testing purposes that uses mock data as a fallback or directly.
@@ -82,7 +82,7 @@ export class MockDataLoader extends DataLoader {
   getMockDataSource(): any {
     return this.mockDataSource;
   }
-  
+
   /**
    * Insert sample data for testing when downloads fail
    */
@@ -90,7 +90,7 @@ export class MockDataLoader extends DataLoader {
     console.log(`📝 Inserting sample data for ${projectIdWithVersion}...`);
 
     try {
-      const project = Project.from(projectIdWithVersion);
+      const project = new Project(projectIdWithVersion);
       console.log(`🔍 Debug: projectId = ${project.id}`);
       console.log(`🔍 Debug: project =`, project);
 
@@ -112,6 +112,7 @@ export class MockDataLoader extends DataLoader {
             label: label,
             language: language,
             license: license,
+            version: project.version ?? "",
           });
         } else {
           this.database.run(
@@ -260,7 +261,7 @@ export class MockDataLoader extends DataLoader {
     );
 
     try {
-      const project = Project.from(projectIdWithVersion);
+      const project = new Project(projectIdWithVersion);
       console.log(`🔍 Debug Mock: projectId = ${project.id}`);
       console.log(`🔍 Debug Mock: project =`, project);
 
@@ -282,6 +283,7 @@ export class MockDataLoader extends DataLoader {
             label: label,
             language: language,
             license: license,
+            version: project.version ?? "",
           });
         } else {
           this.database.run(
@@ -336,7 +338,133 @@ export class MockDataLoader extends DataLoader {
 
       // Common English words for realistic testing
       const commonWords = [
-        "the", "be", "to", "of", "and", "a", "in", "that", "have", "I", "it", "for", "not", "on", "with", "he", "as", "you", "do", "at", "this", "but", "his", "by", "from", "they", "we", "say", "her", "she", "or", "an", "will", "my", "one", "all", "would", "there", "their", "what", "so", "up", "out", "if", "about", "who", "get", "which", "go", "me", "when", "make", "can", "like", "time", "no", "just", "him", "know", "take", "people", "into", "year", "your", "good", "some", "could", "them", "see", "other", "than", "then", "now", "look", "only", "come", "its", "over", "think", "also", "back", "after", "use", "two", "how", "our", "work", "first", "well", "way", "even", "new", "want", "because", "any", "these", "give", "day", "most", "us", "water", "run", "happy", "book", "quickly", "computer", "internet", "technology", "science", "art", "music", "food", "travel", "education", "business", "health", "family", "friend", "love", "life", "world", "country", "city", "home", "school", "work", "play",
+        "the",
+        "be",
+        "to",
+        "of",
+        "and",
+        "a",
+        "in",
+        "that",
+        "have",
+        "I",
+        "it",
+        "for",
+        "not",
+        "on",
+        "with",
+        "he",
+        "as",
+        "you",
+        "do",
+        "at",
+        "this",
+        "but",
+        "his",
+        "by",
+        "from",
+        "they",
+        "we",
+        "say",
+        "her",
+        "she",
+        "or",
+        "an",
+        "will",
+        "my",
+        "one",
+        "all",
+        "would",
+        "there",
+        "their",
+        "what",
+        "so",
+        "up",
+        "out",
+        "if",
+        "about",
+        "who",
+        "get",
+        "which",
+        "go",
+        "me",
+        "when",
+        "make",
+        "can",
+        "like",
+        "time",
+        "no",
+        "just",
+        "him",
+        "know",
+        "take",
+        "people",
+        "into",
+        "year",
+        "your",
+        "good",
+        "some",
+        "could",
+        "them",
+        "see",
+        "other",
+        "than",
+        "then",
+        "now",
+        "look",
+        "only",
+        "come",
+        "its",
+        "over",
+        "think",
+        "also",
+        "back",
+        "after",
+        "use",
+        "two",
+        "how",
+        "our",
+        "work",
+        "first",
+        "well",
+        "way",
+        "even",
+        "new",
+        "want",
+        "because",
+        "any",
+        "these",
+        "give",
+        "day",
+        "most",
+        "us",
+        "water",
+        "run",
+        "happy",
+        "book",
+        "quickly",
+        "computer",
+        "internet",
+        "technology",
+        "science",
+        "art",
+        "music",
+        "food",
+        "travel",
+        "education",
+        "business",
+        "health",
+        "family",
+        "friend",
+        "love",
+        "life",
+        "world",
+        "country",
+        "city",
+        "home",
+        "school",
+        "work",
+        "play",
       ];
 
       const partsOfSpeech = ["n", "v", "a", "r"]; // noun, verb, adjective, adverb

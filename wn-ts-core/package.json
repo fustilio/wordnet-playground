@@ -40,7 +40,8 @@
     "test:ui": "vitest --ui --exclude \"**/*e2e.test.ts\"",
     "vitest": "pnpm with-debug-logs vitest run",
     "with-debug-logs": "cross-env WN_TS_LOG_LEVEL=5",
-    "build": "tsc --noEmit"
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
   },
   "files": [
     "tools/"

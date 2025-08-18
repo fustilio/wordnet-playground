@@ -1,6 +1,5 @@
 export * from './demos';
 export * from './developer-tools';
-export * from './features';
 export * from './screens';
 export * from './shared';
 export * from './ui';
@@ -9,6 +8,3 @@ export * from './widgets';
 export { DataLoader } from './DataLoader';
 export { DataManager } from './DataManager';
 export { ProxyStatus } from './ProxyStatus';
-export { ResultsSection } from './ResultsSection';
-export { SimpleDataLoader } from './SimpleDataLoader';
-export { WordNetStatistics } from './WordNetStatistics';

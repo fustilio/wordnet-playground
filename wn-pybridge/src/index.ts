@@ -65,6 +65,29 @@ export interface Project {
   license?: string;
 }
 
+export interface WordQuery {
+  form?: string;
+  pos?: string;
+  lexicon?: string;
+  lang?: string;
+}
+
+export interface SynsetQuery {
+  form?: string;
+  pos?: string;
+  ili?: string;
+  lexicon?: string;
+  lang?: string;
+}
+
+export interface SenseQuery {
+  form?: string;
+  pos?: string;
+  lexicon?: string;
+  lang?: string;
+  wordIdOrForm?: string;
+}
+
 export interface QueryOptions {
   pos?: string;
   lexicon?: string;
@@ -200,10 +223,25 @@ export class WnBridge {
     }
   }
 
-  async synsets(form: string, options: QueryOptions = {}): Promise<Synset[]> {
+  async synsets(query?: SynsetQuery): Promise<Synset[]> {
     await this.ensureInitialized();
     try {
-      console.log('[WnBridge.synsets] form:', form, 'options:', options);
+      const { form, pos, ili, lexicon, lang } = query || {};
+      
+      if (!form) {
+        // If no form specified, return all synsets (with filters)
+        // This would need to be implemented based on the Python wn library capabilities
+        throw new WnDatabaseError('Querying all synsets without form is not yet implemented');
+      }
+
+      console.log('[WnBridge.synsets] form:', form, 'pos:', pos, 'lexicon:', lexicon, 'lang:', lang);
+      
+      // Convert to old format for backward compatibility with Python calls
+      const options: QueryOptions = {};
+      if (pos) options.pos = pos;
+      if (lexicon) options.lexicon = lexicon;
+      if (lang) options.lang = lang;
+
       if (this.pythonWn && typeof this.pythonWn.lexicons === 'function') {
         const lexicons = await this.pythonWn.lexicons();
         const lexiconList = [];
@@ -217,6 +255,7 @@ export class WnBridge {
         }
         console.log('[WnBridge.synsets] Available lexicons:', lexiconList);
       }
+      
       // Always call with named arguments
       let result;
       let arr: Synset[] = [];
@@ -247,6 +286,7 @@ export class WnBridge {
         }
         console.log('[WnBridge.synsets] No results with named pos, trying without pos');
       }
+      
       // Try calling with just the form as a named argument
       try {
         console.log('[WnBridge.synsets] Trying synsets$({ form })');
@@ -273,28 +313,62 @@ export class WnBridge {
         return [];
       }
     } catch (error) {
-      throw new WnDatabaseError(`Failed to get synsets for '${form}': ${error}`);
+      throw new WnDatabaseError(`Failed to get synsets: ${error}`);
     }
   }
 
-  async words(form: string, options: QueryOptions = {}): Promise<Word[]> {
+  async words(query?: WordQuery): Promise<Word[]> {
     await this.ensureInitialized();
     try {
+      const { form, pos, lexicon, lang } = query || {};
+      
+      if (!form) {
+        // If no form specified, return all words (with filters)
+        // This would need to be implemented based on the Python wn library capabilities
+        throw new WnDatabaseError('Querying all words without form is not yet implemented');
+      }
+
+      // Convert to old format for backward compatibility with Python calls
+      const options: QueryOptions = {};
+      if (pos) options.pos = pos;
+      if (lexicon) options.lexicon = lexicon;
+      if (lang) options.lang = lang;
+
       const result = await this.pythonWn.words$(form, options);
       return await this.convertToJsArray(result, 'Word');
     } catch (error) {
-      throw new WnDatabaseError(`Failed to get words for '${form}': ${error}`);
+      throw new WnDatabaseError(`Failed to get words: ${error}`);
     }
   }
 
-  async senses(form: string, options: QueryOptions = {}): Promise<Sense[]> {
+  async senses(query?: SenseQuery): Promise<Sense[]> {
     await this.ensureInitialized();
     
     try {
+      const { form, pos, lexicon, lang, wordIdOrForm } = query || {};
+      
+      if (wordIdOrForm && !form) {
+        // Query by word ID
+        const result = await this.pythonWn.senses$(wordIdOrForm, {});
+        return await this.convertToJsArray(result, 'Sense');
+      }
+      
+      if (!form) {
+        // If no form specified, return all senses (with filters)
+        // This would need to be implemented based on the Python wn library capabilities
+        throw new WnDatabaseError('Querying all senses without form is not yet implemented');
+      }
+
+      // Convert to old format for backward compatibility with Python calls
+      const options: QueryOptions = {};
+      if (pos) options.pos = pos;
+      if (lexicon) options.lexicon = lexicon;
+      if (lang) options.lang = lang;
+
       const result = await this.pythonWn.senses$(form, options);
       return await this.convertToJsArray(result, 'Sense');
     } catch (error) {
-      throw new WnDatabaseError(`Failed to get senses for '${form}': ${error}`);
+      throw new WnDatabaseError(`Failed to get senses: ${error}`);
     }
   }
 

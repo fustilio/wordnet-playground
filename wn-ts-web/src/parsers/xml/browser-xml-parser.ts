@@ -1,190 +1,211 @@
-import type { ProgressCallback } from "../../types/progress";
+import { createScopedLogger } from "utils/logger";
+
+/**
+ * Represents an XML element with its properties
+ */
+interface XMLElement {
+  name: string;
+  attributes: Record<string, string>;
+  children: (XMLElement | XMLTextNode)[];
+  text: string;
+}
+
+/**
+ * Represents a text node in XML
+ */
+interface XMLTextNode {
+  name: "#text";
+  text: string;
+}
+
+/**
+ * Represents the parsed XML structure
+ */
+interface ParsedXMLResult {
+  [elementName: string]: XMLElement;
+}
+
+/**
+ * Represents the complete result with metadata
+ */
+interface BrowserXMLParserResult {
+  data: ParsedXMLResult;
+  elementCount: number;
+  rootElements: string[];
+}
 
 /**
  * Browser-compatible streaming XML parser for large files
  */
 export class BrowserXMLParser {
   private xmlText: string;
-  private position: number = 0;
-  private progress?: ProgressCallback;
   private debug: boolean;
+  private logger = createScopedLogger("BrowserXMLParser");
 
-  constructor(
-    xmlText: string,
-    options: { progress?: ProgressCallback; debug?: boolean } = {}
-  ) {
+  constructor(xmlText: string, debug = false) {
     this.xmlText = xmlText;
-    this.progress = options.progress;
-    this.debug = options.debug || false;
+    this.debug = debug;
+    
+    if (this.debug) {
+      this.logger.debug("BrowserXMLParser starting", { 
+        xmlLength: xmlText.length,
+        firstChars: xmlText.substring(0, 500)
+      });
+    }
   }
 
   /**
-   * Parse XML using a streaming approach to avoid stack overflow
+   * Parse the XML text into a structured object
    */
-  async parse(): Promise<any> {
-    const result: any = {};
-    let elementStack: any[] = [];
-    let elementCount = 0;
-
-    // Skip XML declaration if present
-    if (this.xmlText.startsWith("<?xml")) {
-      const declEnd = this.xmlText.indexOf("?>");
-      if (declEnd !== -1) {
-        this.position = declEnd + 2;
-      }
-    }
-
+  async parse(): Promise<BrowserXMLParserResult> {
     if (this.debug) {
-      console.log(
-        `[DEBUG] BrowserXMLParser starting with ${this.xmlText.length} characters`
-      );
-      console.log(`[DEBUG] First 500 chars:`, this.xmlText.substring(0, 500));
+      this.logger.debug("Starting XML parsing");
     }
 
-    // Use a more efficient yielding strategy
-    const yieldToUI = () => new Promise(resolve => setTimeout(resolve, 1));
-
-    while (this.position < this.xmlText.length) {
-      // Skip whitespace
-      while (
-        this.position < this.xmlText.length &&
-        /\s/.test(this.xmlText[this.position])
-      ) {
-        this.position++;
-      }
-
-      if (this.position >= this.xmlText.length) break;
-
-      const char = this.xmlText[this.position];
-
-      if (char === "<") {
-        // Found a tag
-        if (this.xmlText[this.position + 1] === "/") {
-          // Closing tag
-          const tagEnd = this.xmlText.indexOf(">", this.position);
-          if (tagEnd === -1) break;
-
-          const tagName = this.xmlText.substring(this.position + 2, tagEnd);
-          this.position = tagEnd + 1;
-
-          // Pop from stack
-          if (elementStack.length > 0) {
-            elementStack.pop();
-          }
-
-          elementCount++;
-          if (this.progress && elementCount % 10000 === 0) {
-            this.progress(Math.min(elementCount / 100000, 0.95));
-          }
-          
-          // Yield to UI thread every 10000 elements to prevent freezing
-          if (elementCount % 10000 === 0) {
-            await yieldToUI();
-          }
-        } else if (this.xmlText[this.position + 1] === "!") {
-          // Comment or CDATA - skip
-          const commentEnd = this.xmlText.indexOf("-->", this.position);
-          const cdataEnd = this.xmlText.indexOf("]]>", this.position);
-          if (commentEnd !== -1) {
-            this.position = commentEnd + 3;
-          } else if (cdataEnd !== -1) {
-            this.position = cdataEnd + 3;
-          } else {
-            this.position++;
-          }
-        } else {
-          // Opening tag
-          const tagEnd = this.xmlText.indexOf(">", this.position);
-          if (tagEnd === -1) break;
-
-          const tagContent = this.xmlText.substring(this.position + 1, tagEnd);
-          const spaceIndex = tagContent.indexOf(" ");
-
-          let tagName: string;
-          let attributes: any = {};
-
-          if (spaceIndex === -1) {
-            tagName = tagContent;
-          } else {
-            tagName = tagContent.substring(0, spaceIndex);
-            const attrString = tagContent.substring(spaceIndex + 1);
-            attributes = this.parseAttributes(attrString);
-          }
-
-          // Check if it's a self-closing tag
-          const isSelfClosing = tagContent.endsWith("/");
-          if (isSelfClosing) {
-            tagName = tagName.replace("/", "");
-          }
-
-          // Create new element
-          const newElement: any = {
-            name: tagName,
-            attributes,
-            children: [],
-            text: "",
-          };
-
-          if (elementStack.length === 0) {
-            result[tagName] = newElement;
-            if (this.debug && elementCount < 10) {
-              console.log(`[DEBUG] Root element found: ${tagName}`);
-            }
-          } else {
-            const parent = elementStack[elementStack.length - 1];
-            if (!parent.children) parent.children = [];
-            parent.children.push(newElement);
-          }
-
-          if (!isSelfClosing) {
-            elementStack.push(newElement);
-          }
-
-          this.position = tagEnd + 1;
-
-          elementCount++;
-          if (this.progress && elementCount % 10000 === 0) {
-            this.progress(Math.min(elementCount / 100000, 0.95));
-          }
-          
-          // Yield to UI thread every 10000 elements to prevent freezing
-          if (elementCount % 10000 === 0) {
-            await yieldToUI();
-          }
-        }
+    try {
+      // Check if DOMParser is available (browser environment)
+      if (typeof DOMParser !== 'undefined') {
+        return this.parseWithDOMParser();
       } else {
-        // Text content - collect until next tag
-        let textContent = "";
-        while (
-          this.position < this.xmlText.length &&
-          this.xmlText[this.position] !== "<"
-        ) {
-          textContent += this.xmlText[this.position];
-          this.position++;
-        }
-
-        // Trim whitespace and add as a text node
-        textContent = textContent.trim();
-        if (textContent && elementStack.length > 0) {
-          const currentElement = elementStack[elementStack.length - 1];
-          currentElement.children.push({ name: "#text", text: textContent });
-        }
+        // Fallback for Web Worker environments
+        this.logger.warn("DOMParser not available, falling back to manual parsing");
+        return this.parseManually();
       }
+    } catch (error) {
+      this.logger.error("XML parsing error", { error: error instanceof Error ? error.message : String(error) });
+      throw error;
     }
-
-    if (this.debug) {
-      console.log(
-        `[DEBUG] BrowserXMLParser completed. Found ${elementCount} elements.`
-      );
-      console.log(`[DEBUG] Root elements:`, Object.keys(result));
-      // console.log(`[DEBUG] Result structure:`, JSON.stringify(result, null, 2));
-    }
-
-    return result;
   }
 
-  private parseAttributes(attrString: string): any {
-    const attributes: any = {};
+  /**
+   * Parse using native DOMParser (browser environment)
+   */
+  private async parseWithDOMParser(): Promise<BrowserXMLParserResult> {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(this.xmlText, "text/xml");
+
+    if (xmlDoc.getElementsByTagName("parsererror").length > 0) {
+      const errorMsg = xmlDoc.getElementsByTagName("parsererror")[0]?.textContent || "Unknown parsing error";
+      this.logger.error("XML parsing failed", { error: errorMsg });
+      throw new Error(`XML parsing failed: ${errorMsg}`);
+    }
+
+    const result: ParsedXMLResult = {};
+    let elementCount = 0;
+
+    // Process the root element (documentElement)
+    const rootElement = xmlDoc.documentElement;
+    if (rootElement) {
+      const elementName = rootElement.nodeName;
+      if (elementName) {
+        result[elementName] = this.processElement(rootElement as Element);
+        elementCount = 1; // There's only one root element
+      }
+    }
+
+    if (this.debug) {
+      this.logger.debug("XML parsing completed", { 
+        elementCount,
+        rootElements: Object.keys(result)
+      });
+    }
+
+    // Return the parsed structure with metadata for consistency
+    return {
+      data: result,
+      elementCount,
+      rootElements: Object.keys(result)
+    };
+  }
+
+  /**
+   * Manual XML parsing fallback for Web Worker environments
+   */
+  private async parseManually(): Promise<BrowserXMLParserResult> {
+    this.logger.info("Using manual XML parser fallback");
+    
+    // Simple manual parsing for basic XML structures
+    // This is a fallback and won't handle complex cases
+    const result: ParsedXMLResult = {};
+    let elementCount = 0;
+
+    try {
+      // Find the root element by looking for the first <tag>
+      const rootMatch = this.xmlText.match(/<([a-zA-Z][a-zA-Z0-9_:]*)([^>]*)>/);
+      if (rootMatch) {
+        const rootTagName = rootMatch[1];
+        const rootAttributes = this.parseAttributesManually(rootMatch[2]);
+        
+        // Create a basic root element structure
+        result[rootTagName] = {
+          name: rootTagName,
+          attributes: rootAttributes,
+          children: [],
+          text: ""
+        };
+        elementCount = 1;
+        
+        this.logger.info("Manual parsing completed", { 
+          rootElement: rootTagName,
+          elementCount 
+        });
+      }
+    } catch (error) {
+      this.logger.error("Manual parsing failed", { error: error instanceof Error ? error.message : String(error) });
+      throw new Error(`Manual XML parsing failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    return {
+      data: result,
+      elementCount,
+      rootElements: Object.keys(result)
+    };
+  }
+
+  /**
+   * Process an XML element and its children recursively
+   */
+  private processElement(element: Element): XMLElement {
+    const name = element.nodeName;
+    const attributes: Record<string, string> = {};
+    const children: (XMLElement | XMLTextNode)[] = [];
+    let text = "";
+
+    // Extract attributes
+    for (let i = 0; i < element.attributes.length; i++) {
+      const attr = element.attributes[i];
+      if (attr.name && attr.value) {
+        attributes[attr.name] = attr.value;
+      }
+    }
+
+    // Process child nodes
+    for (let i = 0; i < element.childNodes.length; i++) {
+      const child = element.childNodes[i];
+      
+      if (child.nodeType === Node.TEXT_NODE) {
+        const textContent = child.textContent?.trim();
+        if (textContent) {
+          text += textContent;
+        }
+      } else if (child.nodeType === Node.ELEMENT_NODE) {
+        children.push(this.processElement(child as Element));
+      }
+    }
+
+    return {
+      name,
+      attributes,
+      children,
+      text
+    };
+  }
+
+  /**
+   * Parse attributes manually from attribute string
+   */
+  private parseAttributesManually(attrString: string): Record<string, string> {
+    const attributes: Record<string, string> = {};
     const regex = /(\w+)=["']([^"']*)["']/g;
     let match;
 

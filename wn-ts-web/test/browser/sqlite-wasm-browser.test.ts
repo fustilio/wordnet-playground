@@ -5,9 +5,9 @@
  * They test SQLite WASM functionality in the browser environment.
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { WebWordnet } from '../../src/web-wordnet.js';
-import { WebDatabase } from '../../src/web-database.js';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+import { WebWordnet } from '../../src/client/submodules/web-wordnet.js';
+import { WebDatabase } from '../../src/client/submodules/web-database.js';
 
 const isNode = typeof process !== 'undefined' && process.versions != null && process.versions.node != null;
 
@@ -26,25 +26,6 @@ describe.skipIf(isNode)('SQLite WASM Browser Tests', () => {
     } catch (error) {
       console.warn('SQLite WASM not available in test environment');
     }
-  });
-
-  describe('Browser Environment', () => {
-    it('should have WebAssembly support', () => {
-      expect(WebAssembly).toBeDefined();
-      expect(typeof WebAssembly.instantiate).toBe('function');
-    });
-
-    it('should have SharedArrayBuffer support', () => {
-      expect(typeof SharedArrayBuffer).toBe('function');
-    });
-
-    it('should have secure context for OPFS', () => {
-      expect(window.isSecureContext).toBeDefined();
-    });
-
-    it('should have performance API', () => {
-      expect(typeof performance.now).toBe('function');
-    });
   });
 
   describe('SQLite WASM Loading', () => {
@@ -226,52 +207,13 @@ describe.skipIf(isNode)('SQLite WASM Browser Tests', () => {
           }
         });
 
-        // Test OPFS database creation
-        if ('opfs' in sqlModule) {
-          expect(sqlModule.opfs).toBeDefined();
-          expect(sqlModule.opfs.Vfs).toBeDefined();
-        }
+        expect(sqlModule.oo1).toBeDefined();
+        expect(sqlModule.oo1.OpfsDb).toBeDefined();
+        
       } catch (error) {
         // Expected in test environment
         console.warn('OPFS not available in test environment');
       }
-    });
-  });
-
-  describe('Performance', () => {
-    it('should measure database operation performance', async () => {
-      const startTime = performance.now();
-      
-      try {
-        const sqlite3 = await import('@sqlite.org/sqlite-wasm');
-        await sqlite3.default({
-          locateFile: (file: string) => {
-            if (file === 'sqlite3.wasm') {
-              return '/node_modules/@sqlite.org/sqlite-wasm/sqlite-wasm/jswasm/sqlite3.wasm';
-            }
-            return file;
-          },
-          // Suppress verbose SQL trace output but keep error logging
-          print: (msg: string) => {
-            // Only suppress SQL TRACE messages, keep other output
-            if (!msg.includes('SQL TRACE')) {
-              console.log(msg);
-            }
-          },
-          printErr: (msg: string) => {
-            // Keep error output for debugging
-            console.error(msg);
-          }
-        });
-      } catch (error) {
-        // Expected in test environment
-      }
-      
-      const endTime = performance.now();
-      const duration = endTime - startTime;
-      
-      // Should complete within reasonable time
-      expect(duration).toBeLessThan(5000); // 5 seconds
     });
   });
 

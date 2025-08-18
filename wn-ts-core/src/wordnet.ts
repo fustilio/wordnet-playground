@@ -11,7 +11,10 @@ import type {
   PartOfSpeech,
   WordnetOptions,
   ILI,
-  Project
+  Project,
+  WordQuery,
+  SynsetQuery,
+  SenseQuery
 } from './types.js';
 
 export abstract class BaseWordnet {
@@ -57,13 +60,13 @@ export abstract class BaseWordnet {
   // Abstract methods that must be implemented by concrete classes
   abstract lexicons(): Promise<Lexicon[]>;
   abstract expandedLexicons(): Promise<Lexicon[]>;
-  abstract words(form: string, pos?: PartOfSpeech, options?: { lexicon: string }): Promise<Word[]>;
-  abstract synsets(form: string, pos?: PartOfSpeech, ili?: string | ILI): Promise<Synset[]>;
-  abstract synset(synsetId: string): Promise<Synset | undefined>;
-  abstract senses(wordIdOrForm: string, pos?: PartOfSpeech): Promise<Sense[]>;
-  abstract word(wordId: string): Promise<Word | undefined>;
-  abstract sense(senseId: string): Promise<Sense | undefined>;
-  abstract ili(iliId: string): Promise<ILI | undefined>;
+  abstract words(query?: WordQuery): Promise<Word[]>;
+  abstract synsets(query?: SynsetQuery): Promise<Synset[]>;
+  abstract synset(synsetId: string): Promise<Synset>;
+  abstract senses(query?: SenseQuery): Promise<Sense[]>;
+  abstract word(wordId: string): Promise<Word>;
+  abstract sense(senseId: string): Promise<Sense>;
+  abstract ili(iliId: string): Promise<ILI>;
   abstract ilis(status?: string): Promise<ILI[]>;
   abstract getProjects(): Promise<Project[]>;
   abstract getStatistics(): Promise<{

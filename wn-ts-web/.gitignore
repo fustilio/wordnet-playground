@@ -4,3 +4,6 @@ src/*.js.map
 
 # Ignore all files in dist
 /dist/ 
+
+screenshots
+__screenshots__

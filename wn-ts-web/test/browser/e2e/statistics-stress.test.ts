@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { createWordNetInstance } from "../../../src/factory";
-import type { WebWordnet } from "../../../src/web-wordnet";
+import type { WebWordnet } from "../../../src/client/submodules/web-wordnet";
 import type { DataLoader } from "../../../src/data-loader";
 import type { Word } from "wn-ts-core";
 import { createScopedLogger, setGlobalLogLevel } from "utils/logger";
@@ -89,7 +89,7 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
       ]);
 
       expect(results).toHaveLength(3);
-      results.forEach((stats) => {
+      results.forEach((stats: any) => {
         expect(stats).toHaveProperty("totalWords");
         expect(stats.totalWords).toBeGreaterThan(100000);
       });
@@ -111,7 +111,7 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
 
     it("should handle calls during other operations", async () => {
       // Start a heavy operation
-      const heavyOperation = wordnet.words("test");
+              const heavyOperation = wordnet.words({ form: "test" });
 
       // Make statistics calls during the heavy operation
       const statsPromises: Promise<{
@@ -133,7 +133,7 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
 
       expect(words).toBeDefined();
       expect(statsResults.length).toBeGreaterThan(0);
-      statsResults.forEach((stats) => {
+      statsResults.forEach((stats: any) => {
         expect(stats.totalWords).toBeGreaterThan(100000);
       });
     }, 60000);
@@ -230,7 +230,7 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
       ]);
 
       expect(results).toHaveLength(5);
-      results.forEach((lexiconStats) => {
+      results.forEach((lexiconStats: any) => {
         expect(Array.isArray(lexiconStats)).toBe(true);
       });
     }, 60000);
@@ -254,7 +254,7 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
 
     it("should handle calls during other operations", async () => {
       // Start a heavy operation
-      const heavyOperation = wordnet.words("test");
+      const heavyOperation = wordnet.words({ form: "test" });
 
       // Make lexicon statistics calls during the heavy operation
       const statsPromises: Promise<
@@ -279,7 +279,7 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
 
       expect(words).toBeDefined();
       expect(statsResults.length).toBeGreaterThan(0);
-      statsResults.forEach((lexiconStats) => {
+      statsResults.forEach((lexiconStats: any) => {
         expect(Array.isArray(lexiconStats)).toBe(true);
       });
     }, 60000);
@@ -302,10 +302,10 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
       const results = await Promise.all(promises);
 
       expect(results.length).toBeGreaterThan(0);
-      results.forEach((lexiconStats) => {
+      results.forEach((lexiconStats: any) => {
         expect(Array.isArray(lexiconStats)).toBe(true);
         if (lexiconStats.length > 0) {
-          lexiconStats.forEach((stat) => {
+          lexiconStats.forEach((stat: any) => {
             expect(stat.lexiconId).toBe("oewn:2024");
           });
         }
@@ -532,12 +532,12 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
       >[] = [];
       for (let i = 0; i < LONG_NUM_CALLS; i++) {
         promises.push(
-          wordnet.getStatistics().catch((error) => ({ error: error.message }))
+          wordnet.getStatistics().catch((error: any) => ({ error: error.message }))
         );
         promises.push(
           wordnet
             .getLexiconStatistics()
-            .catch((error) => ({ error: error.message }))
+            .catch((error: any) => ({ error: error.message }))
         );
       }
 
@@ -576,14 +576,14 @@ describe.skipIf(isNode)("Statistics Methods Stress Tests", () => {
       for (let i = 0; i < (STRESS_LIGHT ? 10 : 30); i++) {
         promises.push(wordnet.getStatistics());
         promises.push(wordnet.getLexiconStatistics());
-        promises.push(wordnet.words("test")); // Mix in other operations
+        promises.push(wordnet.words({ form: "test" })); // Mix in other operations
       }
 
       const results = await Promise.all(promises);
       expect(results.length).toBeGreaterThan(0);
 
       // Verify database is still functional
-      const words = await wordnet.words("test");
+      const words = await wordnet.words({ form: "test" });
       expect(Array.isArray(words)).toBe(true);
 
       const stats = await wordnet.getStatistics();

@@ -88,7 +88,7 @@ pnpm test
 The demo includes a powerful logging system that makes debugging and monitoring super simple:
 
 ```typescript
-import { createScopedLogger } from './src/logger';
+import { createScopedLogger } from 'utils/logger';
 
 const logger = createScopedLogger('MyComponent');
 
@@ -174,7 +174,7 @@ const handleLoadData = async () => {
 Control application verbosity:
 
 ```typescript
-import { setGlobalLogLevel } from './src/logger';
+import { setGlobalLogLevel } from 'utils/logger';
 
 // Development - show everything
 setGlobalLogLevel('debug');

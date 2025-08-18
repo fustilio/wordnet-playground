@@ -1,29 +1,24 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { 
-  minDepth, 
   taxonomyShortestPath,
   roots, 
   leaves, 
   taxonomyDepth, 
   hypernymPaths
 } from '../src/taxonomy';
-import { Synset } from 'wn-ts-core';
 import { Wordnet } from '../src/wordnet';
-import type { PartOfSpeech } from 'wn-ts-core';
+import type { PartOfSpeech, SynsetQuery, Synset } from 'wn-ts-core';
 
 describe('Taxonomy', () => {
-  let wordnet: Wordnet;
   let mockSynsets: Record<string, Synset>;
 
   beforeEach(async () => {
-    wordnet = new Wordnet('test-en');
-    
     // Create mock synsets for testing
     mockSynsets = {
       information: {
         id: 'test-en-0001-n',
-        partOfSpeech: 'n' as PartOfSpeech,
-        ili: undefined,
+        pos: 'n' as PartOfSpeech,
+        ili: 'i123',
         definitions: [],
         examples: [],
         relations: [
@@ -37,8 +32,8 @@ describe('Taxonomy', () => {
       },
       example: {
         id: 'test-en-0002-n',
-        partOfSpeech: 'n' as PartOfSpeech,
-        ili: undefined,
+        pos: 'n' as PartOfSpeech,
+        ili: 'i124',
         definitions: [],
         examples: [],
         relations: [
@@ -52,8 +47,8 @@ describe('Taxonomy', () => {
       },
       sample: {
         id: 'test-en-0004-n',
-        partOfSpeech: 'n' as PartOfSpeech,
-        ili: undefined,
+        pos: 'n' as PartOfSpeech,
+        ili: 'i125',
         definitions: [],
         examples: [],
         relations: [
@@ -67,8 +62,8 @@ describe('Taxonomy', () => {
       },
       'random sample': {
         id: 'test-en-0005-n',
-        partOfSpeech: 'n' as PartOfSpeech,
-        ili: undefined,
+        pos: 'n' as PartOfSpeech,
+        ili: 'i126',
         definitions: [],
         examples: [],
         relations: [
@@ -82,8 +77,8 @@ describe('Taxonomy', () => {
       },
       datum: {
         id: 'test-en-0006-n',
-        partOfSpeech: 'n' as PartOfSpeech,
-        ili: undefined,
+        pos: 'n' as PartOfSpeech,
+        ili: 'i127',
         definitions: [],
         examples: [],
         relations: [],
@@ -94,8 +89,8 @@ describe('Taxonomy', () => {
       },
       exemplify: {
         id: 'test-en-0003-v',
-        partOfSpeech: 'v' as PartOfSpeech,
-        ili: undefined,
+        pos: 'v' as PartOfSpeech,
+        ili: 'i128',
         definitions: [],
         examples: [],
         relations: [],
@@ -111,8 +106,8 @@ describe('Taxonomy', () => {
     it('should find root synsets', async () => {
       // Mock the wordnet to return our test synsets
       const mockWordnet = {
-        synsets: async (word: string, pos?: string) => {
-          if (pos === 'n') {
+        synsets: async (query?: SynsetQuery) => {
+          if (query?.pos === 'n') {
             return [mockSynsets.information, mockSynsets.example, mockSynsets.sample, mockSynsets['random sample'], mockSynsets.datum];
           }
           return Object.values(mockSynsets);
@@ -129,8 +124,8 @@ describe('Taxonomy', () => {
 
     it('should filter by part of speech', async () => {
       const mockWordnet = {
-        synsets: async (word: string, pos?: string) => {
-          if (pos === 'v') {
+        synsets: async (query?: SynsetQuery) => {
+          if (query?.pos === 'v') {
             return [mockSynsets.exemplify];
           }
           return Object.values(mockSynsets);
@@ -140,7 +135,9 @@ describe('Taxonomy', () => {
 
       const rootSynsets = await roots(mockWordnet, 'v');
       expect(rootSynsets).toHaveLength(1);
-      expect(rootSynsets[0].id).toBe('test-en-0003-v');
+      const firstRoot = rootSynsets[0];
+      expect(firstRoot).toBeDefined();
+      expect(firstRoot?.id).toBe('test-en-0003-v');
     });
   });
 
@@ -172,7 +169,7 @@ describe('Taxonomy', () => {
     it('should return 0 for empty taxonomy', async () => {
       const mockWordnet = {
         synsets: async () => [],
-        synset: async (id: string) => undefined,
+        synset: async () => undefined,
       } as unknown as Wordnet;
 
       const depth = await taxonomyDepth(mockWordnet, 'n');
@@ -185,8 +182,10 @@ describe('Taxonomy', () => {
       const mockWordnet = {
         synset: async (id: string) => Object.values(mockSynsets).find(s => s.id === id),
       } as unknown as Wordnet;
-      const paths = await hypernymPaths(mockSynsets.datum, mockWordnet);
-      expect(paths).toEqual([[mockSynsets.datum]]);
+      const datum = mockSynsets.datum;
+      expect(datum).toBeDefined();
+      const paths = await hypernymPaths(datum!, mockWordnet);
+      expect(paths).toEqual([[datum]]);
     });
 
     it('should find hypernym paths for leaf synset', async () => {
@@ -194,10 +193,12 @@ describe('Taxonomy', () => {
         synset: async (id: string) => Object.values(mockSynsets).find(s => s.id === id),
       } as unknown as Wordnet;
 
-      const paths = await hypernymPaths(mockSynsets['random sample'], mockWordnet);
+      const randomSample = mockSynsets['random sample'];
+      expect(randomSample).toBeDefined();
+      const paths = await hypernymPaths(randomSample!, mockWordnet);
       expect(paths).toEqual([
         [
-          mockSynsets['random sample'],
+          randomSample,
           mockSynsets.sample,
           mockSynsets.example,
           mockSynsets.information,
@@ -213,9 +214,11 @@ describe('Taxonomy', () => {
         synset: async (id: string) => Object.values(mockSynsets).find(s => s.id === id),
       } as unknown as Wordnet;
       
+      const information = mockSynsets.information;
+      expect(information).toBeDefined();
       const path = await taxonomyShortestPath(
-        mockSynsets.information,
-        mockSynsets.information,
+        information!,
+        information!,
         mockWordnet
       );
       expect(path).toEqual([]);
@@ -226,9 +229,13 @@ describe('Taxonomy', () => {
         synset: async (id: string) => Object.values(mockSynsets).find(s => s.id === id),
       } as unknown as Wordnet;
 
+      const information = mockSynsets.information;
+      const example = mockSynsets.example;
+      expect(information).toBeDefined();
+      expect(example).toBeDefined();
       const path = await taxonomyShortestPath(
-        mockSynsets.information,
-        mockSynsets.example,
+        information!,
+        example!,
         mockWordnet
       );
       expect(path.map(s => s.id)).toEqual(['test-en-0001-n', 'test-en-0002-n']);
@@ -239,7 +246,11 @@ describe('Taxonomy', () => {
         synset: async (id: string) => Object.values(mockSynsets).find(s => s.id === id),
       } as unknown as Wordnet;
 
-      const path = await taxonomyShortestPath(mockSynsets.sample, mockSynsets['random sample'], mockWordnet);
+      const sample = mockSynsets.sample;
+      const randomSample = mockSynsets['random sample'];
+      expect(sample).toBeDefined();
+      expect(randomSample).toBeDefined();
+      const path = await taxonomyShortestPath(sample!, randomSample!, mockWordnet);
       expect(path.map(s => s.id)).toEqual(['test-en-0004-n', 'test-en-0005-n']);
     });
 
@@ -248,8 +259,12 @@ describe('Taxonomy', () => {
         synset: async (id: string) => Object.values(mockSynsets).find(s => s.id === id),
       } as unknown as Wordnet;
       
+      const example = mockSynsets.example;
+      const exemplify = mockSynsets.exemplify;
+      expect(example).toBeDefined();
+      expect(exemplify).toBeDefined();
       await expect(
-        taxonomyShortestPath(mockSynsets.example, mockSynsets.exemplify, mockWordnet)
+        taxonomyShortestPath(example!, exemplify!, mockWordnet)
       ).rejects.toThrow('No path found');
     });
 
@@ -258,7 +273,11 @@ describe('Taxonomy', () => {
         synset: async (id: string) => Object.values(mockSynsets).find(s => s.id === id),
       } as unknown as Wordnet;
 
-      const path = await taxonomyShortestPath(mockSynsets.datum, mockSynsets.exemplify, mockWordnet, true);
+      const datum = mockSynsets.datum;
+      const exemplify = mockSynsets.exemplify;
+      expect(datum).toBeDefined();
+      expect(exemplify).toBeDefined();
+      const path = await taxonomyShortestPath(datum!, exemplify!, mockWordnet, true);
       const ids = path.map(s => s.id);
       expect(ids).toContain('test-en-0006-n'); // datum
       expect(ids).toContain('test-en-0003-v'); // exemplify
@@ -270,11 +289,17 @@ describe('Taxonomy', () => {
         synset: async (id: string) => Object.values(mockSynsets).find(s => s.id === id),
       } as unknown as Wordnet;
 
-      const path = await taxonomyShortestPath(mockSynsets.information, mockSynsets.example, mockWordnet);
+      const information = mockSynsets.information;
+      const example = mockSynsets.example;
+      expect(information).toBeDefined();
+      expect(example).toBeDefined();
+      const path = await taxonomyShortestPath(information!, example!, mockWordnet);
       
       // Path should be: information -> example (direct relation)
       expect(path).toHaveLength(2);
-      expect(path[0].id).toBe('test-en-0001-n');
+      const firstPath = path[0];
+      expect(firstPath).toBeDefined();
+      expect(firstPath?.id).toBe('test-en-0001-n');
     });
   });
 });
@@ -282,8 +307,8 @@ describe('Taxonomy', () => {
 export const mockSynsets = {
   information: {
     id: 'test-en-0001-n',
-    partOfSpeech: 'n' as PartOfSpeech,
-    ili: undefined,
+    pos: 'n' as PartOfSpeech,
+    ili: 'i123',
     definitions: [],
     examples: [],
     relations: [
@@ -297,8 +322,8 @@ export const mockSynsets = {
   },
   example: {
     id: 'test-en-0002-n',
-    partOfSpeech: 'n' as PartOfSpeech,
-    ili: undefined,
+    pos: 'n' as PartOfSpeech,
+    ili: 'i124',
     definitions: [],
     examples: [],
     relations: [
@@ -312,8 +337,8 @@ export const mockSynsets = {
   },
   sample: {
     id: 'test-en-0004-n',
-    partOfSpeech: 'n' as PartOfSpeech,
-    ili: undefined,
+    pos: 'n' as PartOfSpeech,
+    ili: 'i125',
     definitions: [],
     examples: [],
     relations: [
@@ -327,8 +352,8 @@ export const mockSynsets = {
   },
   'random sample': {
     id: 'test-en-0005-n',
-    partOfSpeech: 'n' as PartOfSpeech,
-    ili: undefined,
+    pos: 'n' as PartOfSpeech,
+    ili: 'i126',
     definitions: [],
     examples: [],
     relations: [
@@ -342,8 +367,8 @@ export const mockSynsets = {
   },
   datum: {
     id: 'test-en-0006-n',
-    partOfSpeech: 'n' as PartOfSpeech,
-    ili: undefined,
+    pos: 'n' as PartOfSpeech,
+    ili: 'i127',
     definitions: [],
     examples: [],
     relations: [],
@@ -354,8 +379,8 @@ export const mockSynsets = {
   },
   exemplify: {
     id: 'test-en-0003-v',
-    partOfSpeech: 'v' as PartOfSpeech,
-    ili: undefined,
+    pos: 'v' as PartOfSpeech,
+    ili: 'i128',
     definitions: [],
     examples: [],
     relations: [],

@@ -96,27 +96,27 @@ describe('Wordnet Operations with Real Data', () => {
   });
 
   bench('wordnet.synsets("information")', async () => {
-    await wordnet.synsets('information');
+    await wordnet.synsets({ form: 'information' });
   });
 
   bench('wordnet.words("information")', async () => {
-    await wordnet.words('information');
+    await wordnet.words({ form: 'information' });
   });
 
   bench('wordnet.synsets("example")', async () => {
-    await wordnet.synsets('example');
+    await wordnet.synsets({ form: 'example' });
   });
 
   bench('wordnet.words("example")', async () => {
-    await wordnet.words('example');
+    await wordnet.words({ form: 'example' });
   });
 
   bench('wordnet.synsets("example", "n")', async () => {
-    await wordnet.synsets('example', 'n');
+    await wordnet.synsets({ form: 'example', pos: 'n' });
   });
 
   bench('wordnet.words("example", "n")', async () => {
-    await wordnet.words('example', 'n');
+    await wordnet.words({ form: 'example', pos: 'n' });
   });
 });
 
@@ -132,7 +132,7 @@ describe('Similarity Calculations with Real Data', () => {
     wordnet = new Wordnet('test-en');
     
     // Get two synsets for similarity calculation
-    const synsets = await wordnet.synsets('information');
+    const synsets = await wordnet.synsets({ form: 'information' });
     if (synsets.length >= 2) {
       synsetA = synsets[0];
       synsetB = synsets[1];
