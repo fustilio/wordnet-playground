@@ -2,6 +2,9 @@ import { Kysely, sql, type ExpressionBuilder } from 'kysely';
 import type { Database } from '../types/database.js';
 import type { PartOfSpeech, Lexicon, Word, Synset, Sense, Definition, ILI } from 'wn-ts-core';
 import { batchInsert as batchInsertWithKysely } from './batch-insert.js';
+import { createScopedLogger } from 'utils/logger';
+
+const logger = createScopedLogger('KyselyQueryService');
 
 export class KyselyQueryService {
   constructor(private db: Kysely<Database>) {}
@@ -38,47 +41,117 @@ export class KyselyQueryService {
   async getWords(options: {
     form?: string;
     pos?: PartOfSpeech;
-    lexicon?: string;
+    lexicon?: string | string[];
     language?: string;
     searchAllForms?: boolean;
+    ili?: string;
+    fuzzy?: boolean;
+    maxResults?: number;
+    includeForms?: boolean;
+    includeInflected?: boolean;
   } = {}): Promise<Word[]> {
-    const query = this.db
+    const {
+      form,
+      pos,
+      lexicon,
+      language,
+      searchAllForms = false,
+      ili,
+      fuzzy = false,
+      maxResults,
+      includeForms = false,
+      includeInflected = false
+    } = options;
+
+    let query = this.db
       .selectFrom('words')
       .distinct()
-      .selectAll('words')
-      .$if(!!options.form && !!options.searchAllForms, (qb) => 
-        qb.leftJoin('forms', 'words.id', 'forms.word_id')
-      )
-      .$if(!!options.form, (qb) => {
-        if (options.searchAllForms) {
-          return qb.where((eb) =>
+      .selectAll('words');
+
+    // Handle lexicon filtering - support both single and multiple lexicons
+    if (lexicon && lexicon !== '*') {
+      if (Array.isArray(lexicon)) {
+        if (lexicon.length > 0) {
+          query = query.where('words.lexicon', 'in', lexicon);
+        }
+      } else {
+        query = query.where('words.lexicon', '=', lexicon);
+      }
+    }
+
+    // Handle language filtering
+    if (language) {
+      query = query.where('words.language', '=', language);
+    }
+
+    // Handle part of speech filtering
+    if (pos) {
+      query = query.where('words.pos', '=', pos);
+    }
+
+    // Handle form searching with enhanced capabilities
+    if (form) {
+      const searchTerm = fuzzy ? `%${form.toLowerCase()}%` : form.toLowerCase();
+      
+      if (searchAllForms || includeInflected) {
+        // Join with forms table to search both lemma and inflected forms
+        query = query.leftJoin('forms', 'words.id', 'forms.word_id');
+        
+        if (fuzzy) {
+          query = query.where((eb) =>
             eb.or([
-              eb(sql`lower(words.lemma)`, '=', options.form?.toLowerCase()),
-              eb(sql`lower(forms.written_form)`, '=', options.form?.toLowerCase()),
+              eb(sql`lower(words.lemma)`, 'like', searchTerm),
+              eb(sql`lower(forms.written_form)`, 'like', searchTerm),
             ])
           );
         } else {
-          return qb.where(sql`lower(words.lemma)`, '=', options.form?.toLowerCase());
+          query = query.where((eb) =>
+            eb.or([
+              eb(sql`lower(words.lemma)`, '=', searchTerm),
+              eb(sql`lower(forms.written_form)`, '=', searchTerm),
+            ])
+          );
         }
-      })
-      .$if(!!options.pos, (qb) => qb.where('words.pos', '=', options.pos!))
-      .$if(!!options.lexicon && options.lexicon !== '*', (qb) => qb.where('words.lexicon', '=', options.lexicon!))
-      .$if(!!options.language, (qb) => qb.where('words.language', '=', options.language!));
+      } else {
+        // Only search lemma
+        if (fuzzy) {
+          query = query.where(sql`lower(words.lemma)`, 'like', searchTerm);
+        } else {
+          query = query.where(sql`lower(words.lemma)`, '=', searchTerm);
+        }
+      }
+    }
+
+    // Note: ILI filtering is complex due to type issues with joins
+    // This can be implemented as a separate method if needed
+
+    // Apply limit if specified
+    if (maxResults) {
+      query = query.limit(maxResults);
+    }
 
     const started = performance.now();
     const results = await query
       .orderBy('words.lemma')
       .orderBy('words.pos')
       .execute();
-    const transformed = results.map(this.transformWordRecord.bind(this));
+    
+    const transformed = await Promise.all(results.map(this.transformWordRecord.bind(this)));
     const ms = performance.now() - started;
-    console.log(`🗃️ getWords(${JSON.stringify({
-      form: options.form,
-      pos: options.pos,
-      lexicon: options.lexicon,
-      language: options.language,
-      searchAllForms: options.searchAllForms
+    
+    logger.debug(`🗃️ getWords(${JSON.stringify({
+      form,
+      pos,
+      lexicon,
+      language,
+      searchAllForms,
+      ili,
+      fuzzy,
+      maxResults,
+      includeForms,
+      includeInflected
     })}) → ${transformed.length} in ${ms.toFixed(1)}ms`);
+    
     return transformed;
   }
 
@@ -88,7 +161,7 @@ export class KyselyQueryService {
       .selectAll()
       .where('id', '=', id)
       .executeTakeFirst();
-    return result ? this.transformWordRecord(result) : undefined;
+    return result ? await this.transformWordRecord(result) : undefined;
   }
 
   /**
@@ -145,9 +218,9 @@ export class KyselyQueryService {
       .limit(limit)
       .offset(offset)
       .execute();
-    const transformed = results.map(this.transformWordRecord.bind(this));
+    const transformed = await Promise.all(results.map(this.transformWordRecord.bind(this)));
     const ms = performance.now() - started;
-    console.log(`🗃️ searchWords(${JSON.stringify({ searchTerm, language, lexicon, limit, offset, pos, exact, caseSensitive })}) → ${transformed.length} in ${ms.toFixed(1)}ms`);
+    logger.debug(`🗃️ searchWords(${JSON.stringify({ searchTerm, language, lexicon, limit, offset, pos, exact, caseSensitive })}) → ${transformed.length} in ${ms.toFixed(1)}ms`);
     return transformed;
   }
 
@@ -155,37 +228,138 @@ export class KyselyQueryService {
   async getSynsets(options: {
     form?: string;
     pos?: PartOfSpeech;
-    lexicon?: string;
+    lexicon?: string | string[];
     language?: string;
     searchAllForms?: boolean;
+    ili?: string;
+    fuzzy?: boolean;
+    maxResults?: number;
+    includeDefinitions?: boolean;
+    includeExamples?: boolean;
+    includeRelations?: boolean;
   } = {}): Promise<Synset[]> {
-    const query = this.db
+    const {
+      form,
+      pos,
+      lexicon,
+      language,
+      searchAllForms = false,
+      ili,
+      fuzzy = false,
+      maxResults,
+      includeDefinitions = false,
+      includeExamples = false,
+      includeRelations = false
+    } = options;
+
+    let query = this.db
       .selectFrom('synsets')
       .distinct()
       .selectAll('synsets')
       .innerJoin('senses', 'synsets.id', 'senses.synset_id')
-      .innerJoin('words', 'senses.word_id', 'words.id')
-      .$if(!!options.form && !!options.searchAllForms, (qb) => 
-        qb.leftJoin('forms', 'words.id', 'forms.word_id')
-      )
-      .$if(!!options.form, (qb) => {
-        if (options.searchAllForms) {
-          return qb.where((eb: ExpressionBuilder<Database, 'synsets' | 'senses' | 'words' | 'forms'>) =>
-            eb.or([
-              eb(sql`lower(words.lemma)`, '=', options.form?.toLowerCase()),
-              eb(sql`lower(forms.written_form)`, '=', options.form?.toLowerCase()),
-            ])
-          );
-        } else {
-          return qb.where(sql`lower(words.lemma)`, '=', options.form?.toLowerCase());
+      .innerJoin('words', 'senses.word_id', 'words.id');
+
+    // Handle lexicon filtering - support both single and multiple lexicons
+    if (lexicon && lexicon !== '*') {
+      if (Array.isArray(lexicon)) {
+        if (lexicon.length > 0) {
+          query = query.where('words.lexicon', 'in', lexicon);
         }
-      })
-      .$if(!!options.pos, (qb) => qb.where('words.pos', '=', options.pos!))
-      .$if(!!options.lexicon && options.lexicon !== '*', (qb) => qb.where('words.lexicon', '=', options.lexicon!))
-      .$if(!!options.language, (qb) => qb.where('synsets.language', '=', options.language!));
+      } else {
+        query = query.where('words.lexicon', '=', lexicon);
+      }
+    }
+
+    // Handle language filtering
+    if (language) {
+      query = query.where('synsets.language', '=', language);
+    }
+
+    // Handle part of speech filtering
+    if (pos) {
+      query = query.where('words.pos', '=', pos);
+    }
+
+    // Handle ILI filtering
+    if (ili) {
+      query = query.where('synsets.ili', '=', ili);
+    }
+
+    // Handle form searching with enhanced capabilities
+    if (form) {
+      const searchTerm = fuzzy ? `%${form.toLowerCase()}%` : form.toLowerCase();
+      
+      if (searchAllForms) {
+        // For synsets, we need to handle the join differently to avoid type issues
+        // We'll search in a separate query and filter the results
+        const wordsWithForms = await this.db
+          .selectFrom('words')
+          .leftJoin('forms', 'words.id', 'forms.word_id')
+          .select('words.id')
+          .where((eb) =>
+            eb.or([
+              eb(sql`lower(words.lemma)`, 'like', searchTerm),
+              eb(sql`lower(forms.written_form)`, 'like', searchTerm),
+            ])
+          )
+          .execute();
+        
+        const wordIds = wordsWithForms.map(w => w.id);
+        if (wordIds.length > 0) {
+          query = query.where('words.id', 'in', wordIds);
+        } else {
+          // No words found with this form, return empty result
+          return [];
+        }
+      } else {
+        // Only search lemma
+        if (fuzzy) {
+          query = query.where(sql`lower(words.lemma)`, 'like', searchTerm);
+        } else {
+          query = query.where(sql`lower(words.lemma)`, '=', searchTerm);
+        }
+      }
+    }
+
+    // Apply limit if specified
+    if (maxResults) {
+      query = query.limit(maxResults);
+    }
 
     const results = await query.orderBy('synsets.id').execute();
-    return (results || []).map(this.transformSynsetRecord.bind(this));
+    const synsets = await Promise.all((results || []).map(this.transformSynsetRecord.bind(this)));
+
+    // Enhance synsets with additional data if requested
+    if (includeDefinitions || includeExamples || includeRelations) {
+      for (const synset of synsets) {
+        if (includeDefinitions) {
+          const definitions = await this.getDefinitionsBySynsetId(synset.id);
+          synset.definitions = definitions;
+        }
+        
+        if (includeExamples) {
+          const examples = await this.getExamplesBySynsetId(synset.id);
+          synset.examples = examples.map(ex => ({
+            id: ex.id,
+            language: ex.language,
+            text: ex.text,
+            source: ex.source || '',
+          }));
+        }
+        
+        if (includeRelations) {
+          const relations = await this.getRelationsBySynsetId(synset.id);
+          synset.relations = relations.map(rel => ({
+            id: rel.id,
+            type: rel.type,
+            target: rel.target_id,
+            source: rel.source || '',
+          }));
+        }
+      }
+    }
+
+    return synsets;
   }
 
   async getSynsetById(id: string): Promise<Synset | undefined> {
@@ -194,7 +368,7 @@ export class KyselyQueryService {
       .selectAll()
       .where('id', '=', id)
       .executeTakeFirst();
-    return result ? this.transformSynsetRecord(result) : undefined;
+    return result ? await this.transformSynsetRecord(result) : undefined;
   }
 
   // Sense queries
@@ -219,7 +393,7 @@ export class KyselyQueryService {
       .$if(!!options.lexicon && options.lexicon !== '*', (qb) => qb.where('words.lexicon', '=', options.lexicon!));
 
     const results = await query.execute();
-    return results.map(this.transformSenseRecord.bind(this));
+    return await Promise.all(results.map(this.transformSenseRecord.bind(this)));
   }
 
   async getSenseById(id: string): Promise<Sense | undefined> {
@@ -293,22 +467,22 @@ export class KyselyQueryService {
       };
 
       // Debug logging to help diagnose the issue
-      console.log('🗃️ Database Statistics:', stats);
+      logger.debug('🗃️ Database Statistics:', stats);
       
       // Also log some sample data to see what's actually in the database
       if (stats.totalLexicons > 0) {
         const sampleLexicons = await this.db.selectFrom('lexicons').selectAll().limit(3).execute();
-        console.log('🗃️ Sample lexicons:', sampleLexicons);
+        logger.debug('🗃️ Sample lexicons:', sampleLexicons);
       }
       
       if (stats.totalWords > 0) {
         const sampleWords = await this.db.selectFrom('words').selectAll().limit(3).execute();
-        console.log('🗃️ Sample words:', sampleWords);
+        logger.debug('🗃️ Sample words:', sampleWords);
       }
 
       return stats;
     } catch (error) {
-      console.error('❌ Error getting statistics:', error);
+      logger.error('❌ Error getting statistics:', error);
       // Return zeros if there's an error, but log it for debugging
       return {
         totalWords: 0,
@@ -327,6 +501,8 @@ export class KyselyQueryService {
     version: string;
     wordCount: number;
     synsetCount: number;
+    senseCount: number;
+    iliCount: number;
   }[]> {
     // Use correlated subqueries to avoid large join expansions and DISTINCT
     const query = this.db
@@ -346,6 +522,18 @@ export class KyselyQueryService {
           .select(eb.fn.countAll().as('sc'))
           .whereRef('synsets.lexicon', '=', 'lexicons.id')
           .as('synset_count'),
+        eb
+          .selectFrom('senses')
+          .innerJoin('words', 'senses.word_id', 'words.id')
+          .select(eb.fn.countAll().as('sc'))
+          .whereRef('words.lexicon', '=', 'lexicons.id')
+          .as('sense_count'),
+        eb
+          .selectFrom('synsets')
+          .select(eb.fn.countAll().as('ic'))
+          .whereRef('synsets.lexicon', '=', 'lexicons.id')
+          .where('synsets.ili', 'is not', null)
+          .as('ili_count'),
       ])
       .$if(!!lexiconId, (qb) => qb.where('lexicons.id', '=', lexiconId!));
 
@@ -358,6 +546,8 @@ export class KyselyQueryService {
       version: row.version ?? '',
       wordCount: Number(row.word_count ?? 0),
       synsetCount: Number(row.synset_count ?? 0),
+      senseCount: Number(row.sense_count ?? 0),
+      iliCount: Number(row.ili_count ?? 0),
     }));
   }
 
@@ -367,16 +557,26 @@ export class KyselyQueryService {
     iliCoveragePercentage: number;
     emptySynsets: number;
     synsetsWithDefinitions: number;
+    synsetsWithExamples: number;
+    averageSynsetSize: number;
   }> {
     const totalSynsetsResult = await this.db.selectFrom('synsets').select(this.db.fn.countAll().as('count')).executeTakeFirst();
     const synsetsWithILIResult = await this.db.selectFrom('synsets').where('ili', 'is not', null).select(this.db.fn.countAll().as('count')).executeTakeFirst();
     const synsetsWithSensesResult = await this.db.selectFrom('senses').select(this.db.fn.count('synset_id').distinct().as('count')).executeTakeFirst();
     const synsetsWithDefinitionsResult = await this.db.selectFrom('definitions').select(this.db.fn.count('synset_id').distinct().as('count')).executeTakeFirst();
+    const synsetsWithExamplesResult = await this.db.selectFrom('examples').select(this.db.fn.count('synset_id').distinct().as('count')).executeTakeFirst();
     
     const total = Number(totalSynsetsResult?.count ?? 0);
     const withILI = Number(synsetsWithILIResult?.count ?? 0);
     const withDefinitions = Number(synsetsWithDefinitionsResult?.count ?? 0);
     const withSenses = Number(synsetsWithSensesResult?.count ?? 0);
+    const withExamples = Number(synsetsWithExamplesResult?.count ?? 0);
+
+    // Calculate average synset size
+    let averageSynsetSize = 0;
+    if (withSenses > 0) {
+      averageSynsetSize = withSenses / total;
+    }
 
     return {
       synsetsWithILI: withILI,
@@ -384,6 +584,8 @@ export class KyselyQueryService {
       iliCoveragePercentage: total > 0 ? (withILI / total) * 100 : 0,
       emptySynsets: total - withSenses,
       synsetsWithDefinitions: withDefinitions,
+      synsetsWithExamples: withExamples,
+      averageSynsetSize,
     };
   }
 
@@ -616,7 +818,7 @@ export class KyselyQueryService {
     };
   }
 
-  private transformWordRecord(record: Database['words']): Word {
+  private async transformWordRecord(record: Database['words']): Promise<Word> {
     return {
       id: record.id,
       lemma: record.lemma,
@@ -630,18 +832,44 @@ export class KyselyQueryService {
     };
   }
 
-  private transformSynsetRecord(record: Database['synsets']): Synset {
+  private async transformSynsetRecord(record: Database['synsets']): Promise<Synset> {
+    // Get definitions for this synset
+    const definitionRecords = await this.db
+      .selectFrom('definitions')
+      .selectAll()
+      .where('synset_id', '=', record.id)
+      .execute();
+    
+    // Get member words for this synset (via senses)
+    const memberWords = await this.db
+      .selectFrom('senses')
+      .select('word_id')
+      .where('synset_id', '=', record.id)
+      .execute();
+    
+    // Get senses for this synset
+    const senseRecords = await this.db
+      .selectFrom('senses')
+      .selectAll()
+      .where('synset_id', '=', record.id)
+      .execute();
+    
     return {
       id: record.id,
       ili: record.ili,
       pos: record.pos as PartOfSpeech,
       language: record.language,
       lexicon: record.lexicon,
-      definitions: [], // Will be populated separately
+      definitions: definitionRecords.map(d => ({
+        id: d.id,
+        language: d.language,
+        text: d.text,
+        source: d.source || '',
+      })),
       examples: [],
       relations: [],
-      members: [],
-      senses: [],
+      members: memberWords.map(w => w.word_id), // Populate with actual word IDs
+      senses: senseRecords.map(s => s.id), // Populate with actual sense IDs
     };
   }
 
@@ -729,7 +957,7 @@ export class KyselyQueryService {
       .selectAll()
       .where('id', 'in', wordIds)
       .execute();
-    return rows.map(this.transformWordRecord.bind(this));
+    return await Promise.all(rows.map(this.transformWordRecord.bind(this)));
   }
 
   async getWordsBySynsetAndLanguage(synsetId: string, language?: string): Promise<Word[]> {
@@ -747,7 +975,7 @@ export class KyselyQueryService {
     for (const row of rows) {
       if (!seen.has(row.id)) {
         seen.add(row.id);
-        out.push(this.transformWordRecord(row as Database['words']));
+        out.push(await this.transformWordRecord(row as Database['words']));
       }
     }
     return out;
@@ -769,7 +997,7 @@ export class KyselyQueryService {
     for (const row of rows) {
       if (!seen.has(row.id)) {
         seen.add(row.id);
-        out.push(this.transformWordRecord(row as Database['words']));
+        out.push(await this.transformWordRecord(row as Database['words']));
       }
     }
     return out;
@@ -790,7 +1018,7 @@ export class KyselyQueryService {
     for (const row of rows) {
       if (!seen.has(row.id)) {
         seen.add(row.id);
-        out.push(this.transformWordRecord(row as Database['words']));
+        out.push(await this.transformWordRecord(row as Database['words']));
       }
     }
     return out;
@@ -801,6 +1029,17 @@ export class KyselyQueryService {
       .selectFrom('relations')
       .selectAll()
       .where('source_id', '=', synsetId)
+      .execute();
+  }
+
+  /**
+   * Get forms for a specific word
+   */
+  async getFormsByWordId(wordId: string): Promise<Database['forms'][]> {
+    return this.db
+      .selectFrom('forms')
+      .selectAll()
+      .where('word_id', '=', wordId)
       .execute();
   }
 } 

@@ -50,11 +50,13 @@ const serverConfig = {
         });
       },
     },
-    "/api/globalwordnet": {
+    "/api/globalwordnet-ewn": {
       target:
         "https://github.com/globalwordnet/english-wordnet/releases/download",
       changeOrigin: true,
-      rewrite: (path) => path.replace(/^\/api\/globalwordnet\//, "/"),
+      rewrite: (path) => {
+        return path.replace(/^\/api\/globalwordnet\//, "/")
+      },
       configure: (proxy) => {
         proxy.on("error", (err) => {
           if (shouldLog("warn")) console.log("proxy error", err);
@@ -62,6 +64,40 @@ const serverConfig = {
         proxy.on("proxyRes", (proxyRes, req, res) => {
           const url = req.url || "";
           if (shouldLog("info")) console.log("🔁 [forward]", url);
+        });
+      },
+    },
+    "/api/globalwordnet-cili/": {
+      target: "https://github.com/globalwordnet/cili/releases/download",
+      changeOrigin: true,
+      followRedirects: true,
+      rewrite: (path) => {
+        const rewritten = path.replace(/^\/api\/globalwordnet-cili\//, "/")
+
+        return rewritten;
+      },
+      configure: (proxy) => {
+        proxy.on("error", (err) => {
+          if (shouldLog("warn")) console.log("proxy error", err);
+        });
+        proxy.on("proxyRes", (proxyRes, req, res) => {
+          const url = req.url || "";
+          if (shouldLog("info")) console.log("🔁 [forward] CILI:", url);
+        });
+      },
+    },
+    "/api/omwn-releases": {
+      target: "https://github.com/omwn/omw-data/releases/download",
+      changeOrigin: true,
+      followRedirects: true,
+      rewrite: (path) => path.replace(/^\/api\/omwn-releases\//, "/"),
+      configure: (proxy) => {
+        proxy.on("error", (err) => {
+          if (shouldLog("warn")) console.log("proxy error", err);
+        });
+        proxy.on("proxyRes", (proxyRes, req, res) => {
+          const url = req.url || "";
+          if (shouldLog("info")) console.log("🔁 [forward] OMW:", url);
         });
       },
     },

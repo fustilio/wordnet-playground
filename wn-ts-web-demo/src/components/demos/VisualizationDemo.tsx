@@ -110,7 +110,7 @@ export const VisualizationDemo: React.FC = () => {
       if (!syn) break;
       hierarchy.unshift(syn);
       const hypernymRel = syn.relations.find((r: any) => r.type === 'hypernym');
-      currentId = hypernymRel ? hypernymRel.target : null;
+      currentId = hypernymRel ? (hypernymRel as any).targetId : null;
     }
     
     // Build nested structure for tree component

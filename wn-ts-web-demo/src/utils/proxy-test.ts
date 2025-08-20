@@ -6,6 +6,9 @@
  */
 
 import { testProxyConnectivity, getProxyStatus } from './cors-proxy';
+import { createScopedLogger } from 'utils/logger';
+
+const logger = createScopedLogger('ProxyTest');
 
 /**
  * Run comprehensive proxy tests
@@ -23,15 +26,15 @@ export async function runProxyTests(): Promise<{
     }>;
   };
 }> {
-  console.log('🧪 Running CORS Proxy Tests...');
+  logger.start('CORS Proxy Tests');
 
   // Test 1: Check proxy status
   const status = getProxyStatus();
-  console.log('📊 Proxy Status:', status);
+  logger.info('Proxy Status:', status);
 
   // Test 2: Test connectivity
   const connectivity = await testProxyConnectivity();
-  console.log('🔗 Connectivity Test:', connectivity);
+  logger.info('Connectivity Test:', connectivity);
 
   // Test 3: Test specific URLs
   const testUrls = [
@@ -81,7 +84,7 @@ export async function runProxyTests(): Promise<{
   const success = status.enabled && connectivity.success && 
                  testUrlResults.some(r => r.status === 'success');
 
-  console.log('✅ Proxy Tests Complete:', { success, testUrlResults });
+  logger.end('CORS Proxy Tests', { success, testUrlResults });
 
   return {
     success,

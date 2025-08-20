@@ -23,7 +23,7 @@ const ProjectDataSchema = z.union([
   }),
 ]);
 
-const IndexDataSchema = z.record(z.string(),ProjectDataSchema);
+const IndexDataSchema = z.record(z.string(), ProjectDataSchema);
 
 // Base (built-in) index parsed once
 const baseIndexData = IndexDataSchema.parse(indexData);
@@ -40,7 +40,10 @@ function deepMergeProjectData(
 
   // Merge shallow props and merge versions record
   const merged: any = { ...existing, ...incoming };
-  merged.versions = { ...(existing as any).versions, ...(incoming as any).versions };
+  merged.versions = {
+    ...(existing as any).versions,
+    ...(incoming as any).versions,
+  };
   return merged;
 }
 
@@ -95,8 +98,8 @@ export class Project {
 
       this.projectVersionData = this._projectData.versions[this.version];
 
-      if ('error' in  this.projectVersionData) {
-        throw new Error(this.projectVersionData.error)
+      if ("error" in this.projectVersionData) {
+        throw new Error(this.projectVersionData.error);
       }
     }
   }
@@ -126,7 +129,10 @@ export class Project {
    */
   static async extendIndexFromUrl(url: string): Promise<void> {
     const res = await fetch(url);
-    if (!res.ok) throw new Error(`Failed to fetch index from ${url}: ${res.status} ${res.statusText}`);
+    if (!res.ok)
+      throw new Error(
+        `Failed to fetch index from ${url}: ${res.status} ${res.statusText}`
+      );
     const json = await res.json();
     Project.extendIndex(json);
   }
@@ -147,7 +153,8 @@ export class Project {
 
   getUrls(): string[] {
     if (!this.version) {
-      if ("error" in this._projectData) throw new Error(this._projectData.error);
+      if ("error" in this._projectData)
+        throw new Error(this._projectData.error);
       throw new Error(
         `No version specified for project '${this.id}'. Available versions: ${Object.keys(
           this._projectData.versions
@@ -161,7 +168,103 @@ export class Project {
     if ("error" in this.projectVersionData) {
       throw new Error(this.projectVersionData.error);
     }
-    return this.projectVersionData.url.split(/\s+/).filter(Boolean);
+
+    // Split by whitespace and newlines, then clean up each URL
+    const urls = this.projectVersionData.url
+      .split(/\s+/)
+      .map((url) => url.trim())
+      .filter((url) => url.length > 0)
+      .filter((url) => {
+        try {
+          new URL(url);
+          return true;
+        } catch {
+          // Invalid URL format
+          return false;
+        }
+      });
+
+    return urls;
+  }
+
+  /**
+   * Get the primary (first) URL for this project version.
+   * Useful when you need a single URL to start with.
+   */
+  getPrimaryUrl(): string {
+    const urls = this.getUrls();
+    if (urls.length === 0) {
+      throw new Error(
+        `No valid URLs found for project '${this.id}' version '${this.version}'`
+      );
+    }
+    return urls[0];
+  }
+
+  /**
+   * Check if this project version has multiple URLs available.
+   * Useful for implementing fallback logic in the data loader.
+   */
+  hasMultipleUrls(): boolean {
+    return this.getUrls().length > 1;
+  }
+
+  /**
+   * Get detailed information about the URLs for this project version.
+   * Useful for debugging and understanding URL parsing.
+   */
+  getUrlInfo(): {
+    urls: string[];
+    count: number;
+    raw: string;
+    hasMultipleUrls: boolean;
+    primaryUrl: string;
+  } {
+    if (!this.version) {
+      if ("error" in this._projectData)
+        throw new Error(this._projectData.error);
+      throw new Error(
+        `No version specified for project '${this.id}'. Available versions: ${Object.keys(
+          this._projectData.versions
+        ).join(", ")}`
+      );
+    }
+    if (!this.projectVersionData) {
+      throw new Error("Project version data not available.");
+    }
+    if ("error" in this.projectVersionData) {
+      throw new Error(this.projectVersionData.error);
+    }
+
+    const urls = this.getUrls();
+    return {
+      urls,
+      count: urls.length,
+      raw: this.projectVersionData.url,
+      hasMultipleUrls: urls.length > 1,
+      primaryUrl: urls.length > 0 ? urls[0] : "",
+    };
+  }
+
+  /**
+   * Get fallback URLs for known broken packages.
+   * This provides working alternatives when the main URLs fail.
+   */
+  getFallbackUrls(): string[] {
+    const fallbacks: Record<string, string[]> = {};
+
+    const key = `${this.id}:${this.version}`;
+    return fallbacks[key] || [];
+  }
+
+  /**
+   * Get all available URLs including fallbacks.
+   * Useful for the data loader to try multiple sources.
+   */
+  getAllUrls(): string[] {
+    const primaryUrls = this.getUrls();
+    const fallbackUrls = this.getFallbackUrls();
+    return [...primaryUrls, ...fallbackUrls];
   }
 
   getError(): string | undefined {
@@ -190,7 +293,8 @@ export class Project {
       throw new Error(this._projectData.error);
     }
     return (
-      this._projectData.license || "https://creativecommons.org/licenses/by/4.0/"
+      this._projectData.license ||
+      "https://creativecommons.org/licenses/by/4.0/"
     );
   }
 

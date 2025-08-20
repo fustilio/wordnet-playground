@@ -10,7 +10,7 @@ The WordNet Project Logger makes logging **10x easier** than `console.log` while
 - **🎯 Log levels** - Control verbosity (trace, debug, info, warn, error, silent)
 - **🚀 Operation grouping** - Collapsible console groups for complex operations
 - **⏱️ Auto-timing** - Start/end operations with automatic duration measurement
-- **📍 Step logging** - Show progress within operations
+- **📍 Step logging** - Show progress within operations (debug level+)
 - **✅ Success/failure** - Special methods for common logging patterns
 - **💾 Persistent settings** - Log level persists across browser sessions
 
@@ -98,6 +98,7 @@ logger.start('database query');
 
 #### `logger.step(step, data?)`
 Log a step within an operation - shows progress with 📍 icon.
+**Only visible at debug level and above** - use for detailed progress.
 
 ```typescript
 logger.step('connecting to database');
@@ -111,6 +112,16 @@ End an operation - completes the grouped log entry with ✅ icon.
 ```typescript
 logger.end('database query', { recordCount: 25, duration: '150ms' });
 // Closes the group and shows results
+```
+
+#### `logger.milestone(milestone, data?)`
+Log a high-level operation step - shows major progress with 🎯 icon.
+**Always visible at info level and above** - use for important milestones.
+
+```typescript
+logger.milestone('XML validation completed');
+logger.milestone('Lexicon processing started', { count: 5 });
+logger.milestone('All data loaded', { totalSize: '2.5MB' });
 ```
 
 ### Traditional Methods
@@ -233,7 +244,7 @@ try {
 const logger = createScopedLogger('BackupManager');
 
 logger.start('creating backup');
-logger.step('validating data', { recordCount: 15000 });
+logger.milestone('Data validation completed', { recordCount: 15000 });
 logger.step('compressing data', { originalSize: '50MB', compressedSize: '15MB' });
 logger.step('encrypting backup', { algorithm: 'AES-256' });
 logger.step('uploading to storage', { destination: 'cloud-backup' });
@@ -265,11 +276,22 @@ console.log(`Current log level: ${currentLevel}`);
 
 **Available levels:**
 - `trace` - Show everything (most verbose)
-- `debug` - Show debug and above
-- `info` - Show info and above (default)
+- `debug` - Show debug and above (includes steps)
+- `info` - Show info and above (default, includes milestones)
 - `warn` - Show only warnings and errors
 - `error` - Show only errors
 - `silent` - Show nothing
+
+### Smart Filtering
+
+The logger automatically filters different types of messages based on log level:
+
+- **`trace`** - Shows everything including trace calls
+- **`debug`** - Shows debug info and detailed steps (📍)
+- **`info`** - Shows info, milestones (🎯), operations (🚀), and basic logs
+- **`warn`** - Shows only warnings and errors
+- **`error`** - Shows only errors
+- **`silent`** - Shows nothing
 
 ### Persistent Settings
 
@@ -341,6 +363,20 @@ items.forEach((item, index) => {
 logger.end('batch processing', { processed: items.length, success: true });
 ```
 
+### Runtime Log Level Control
+
+```typescript
+const logger = createScopedLogger('DataLoader');
+
+// Change log level at runtime for this specific logger
+logger.setLogLevel('debug');
+logger.step('This step will now be visible'); // Visible at debug level
+
+// Get current log level
+const currentLevel = logger.getLogLevel();
+console.log(`Current level: ${currentLevel}`);
+```
+
 ## 🚀 Migration from console.log
 
 ### Before (Old Way)
@@ -376,6 +412,8 @@ logger.end('Complex Operation');
 6. **Structure your data** - Use objects for complex data, simple values for basic info
 7. **NO `any` types** - Always use proper TypeScript types
 8. **Follow SOLID principles** - Single responsibility, clean interfaces
+9. **Use steps for detailed progress** - Steps only show at debug level, use milestones for important info
+10. **Set appropriate log levels** - Use `debug` for development, `warn` for production
 
 ## 🔍 Troubleshooting
 
@@ -393,6 +431,11 @@ logger.end('Complex Operation');
 - Ensure `start()` and `end()` are called in pairs
 - Check that `end()` is called in finally blocks for error handling
 
+### Steps not showing?
+- Steps only appear at `debug` level and above
+- Use `setGlobalLogLevel('debug')` to see detailed progress
+- Use `milestone()` for important progress that shows at `info` level
+
 ## 🚨 Common Pitfalls to Avoid
 
 ### ❌ Don't Do This
@@ -405,6 +448,11 @@ logger.log('Data:', anyData); // ❌
 logger.start('mixed operation');
 logger.log('unrelated info'); // ❌
 logger.end('mixed operation');
+
+// Don't expect steps to show at info level
+logger.start('operation');
+logger.step('this step'); // ❌ Only shows at debug+
+logger.end('operation');
 ```
 
 ### ✅ Do This Instead
@@ -419,9 +467,15 @@ logger.log('Data:', { userId: 123, action: 'update' } as LogData); // ✅
 
 // Keep operations focused
 logger.start('user update');
-logger.step('validating input');
-logger.step('updating database');
+logger.milestone('validation completed'); // ✅ Shows at info level
+logger.step('updating database'); // ✅ Shows at debug level
 logger.end('user update'); // ✅
+
+// Use appropriate methods for visibility
+logger.start('operation');
+logger.milestone('major step completed'); // ✅ Shows at info level
+logger.step('detailed progress'); // ✅ Shows at debug level
+logger.end('operation'); // ✅
 ```
 
 ---
@@ -431,3 +485,5 @@ logger.end('user update'); // ✅
 The WordNet Project Logger makes debugging and monitoring your application a breeze while keeping your code clean, readable, and type-safe.
 
 **Remember: Type safety first, no `any` types, and follow SOLID principles!**
+
+**Key Insight:** Use `milestone()` for important progress that should always be visible, and `step()` for detailed progress that only shows when you need it (debug level).

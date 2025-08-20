@@ -5,7 +5,7 @@ import { DataManager } from '../components/DataManager';
 import { LexiconRequirementsWidget } from '../components/widgets/LexiconRequirementsWidget';
 import { Tabs } from '../components/shared/Tabs';
 import { BasicDemo, BilingualDictionary, AdvancedDemo, DeveloperDemo, 
-  VisualizationDemo
+  VisualizationDemo, LexiconIntrospectionDemo
  } from '../components/demos';
 import { useWordNetContext } from 'wn-ts-web/react';
 import { createScopedLogger } from 'utils/logger';
@@ -26,7 +26,7 @@ function App() {
     });
   }, [wordNetState]);
 
-  const tabs = ['Basic', 'Bilingual', 'Data Catalog', 'Visualizations', 'Developer'];
+  const tabs = ['Basic', 'Bilingual', 'Data Catalog', 'Visualizations', 'Developer', 'Introspection'];
 
   const handleTabChange = (tab: string) => {
     logger.info('Tab changed', { from: activeTab, to: tab });
@@ -70,6 +70,7 @@ function App() {
               {activeTab === 'Data Catalog' && <AdvancedDemo />}
               {activeTab === 'Visualizations' && <VisualizationDemo />}
               {activeTab === 'Developer' && <DeveloperDemo />}
+              {activeTab === 'Introspection' && <LexiconIntrospectionDemo />}
             </div>
           </div>
         </div>

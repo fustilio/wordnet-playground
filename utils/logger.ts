@@ -4,6 +4,12 @@
  * This logger makes logging 10x easier than console.log while giving you 10x more power.
  * It automatically handles timestamps, component labels, grouping, timing, and formatting.
  * 
+ * By default, focuses on:
+ * - ✅ High-level operations and steps
+ * - ✅ Warnings and errors
+ * - ✅ Success/failure outcomes
+ * - ❌ Detailed debug information (only when explicitly enabled)
+ * 
  * @example
  * // Basic usage - just like console.log but better
  * const logger = createScopedLogger('MyComponent');
@@ -37,6 +43,7 @@ export type LogLevelString = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'si
  * - ✅ Handles errors (auto-formats error objects)
  * - ✅ Shows progress (step-by-step logging)
  * - ✅ Level control (trace, debug, info, warn, error, silent)
+ * - ✅ Smart filtering (steps only show at debug+, milestones at info+)
  */
 export interface ScopedLogger {
   /** Log at trace level with optional structured data */
@@ -125,6 +132,18 @@ export interface ScopedLogger {
   fail: (message: string, error?: any) => void
   
   /**
+   * Log an important warning that should always be visible
+   * Always shows at warn level and above - use for critical issues
+   * 
+   * @param message - Important warning message
+   * @param data - Optional data about the warning
+   * 
+   * @example
+   * logger.important('Missing required field', { field: 'userId', context: 'user creation' });
+   */
+  important: (message: string, data?: any) => void
+  
+  /**
    * Start an operation - creates a grouped log entry with 🚀 icon
    * Automatically starts timing and creates a collapsible group
    * 
@@ -141,7 +160,7 @@ export interface ScopedLogger {
    * End an operation - completes the grouped log entry with ✅ icon
    * Automatically ends timing, closes the group, and shows results
    * 
-   * @param message - Success message
+   * @param operation - Success message
    * @param fields - Optional structured data
    * 
    * @example
@@ -153,7 +172,7 @@ export interface ScopedLogger {
   
   /**
    * Log a step within an operation - shows progress with 📍 icon
-   * Use between start() and end() to show detailed progress
+   * Only visible at debug level and above - use for detailed progress
    * 
    * @param step - Description of the current step
    * @param data - Optional data for this step
@@ -166,6 +185,22 @@ export interface ScopedLogger {
    * logger.end('loading data');
    */
   step: (step: string, data?: any) => void
+  
+  /**
+   * Log a high-level operation step - shows major progress with 🎯 icon
+   * Always visible at info level and above - use for important milestones
+   * 
+   * @param milestone - Description of the major milestone
+   * @param data - Optional data for this milestone
+   * 
+   * @example
+   * logger.start('LMF parsing');
+   * logger.milestone('XML validation completed');
+   * logger.milestone('Lexicon processing started', { count: 5 });
+   * logger.milestone('All data loaded', { totalSize: '2.5MB' });
+   * logger.end('LMF parsing');
+   */
+  milestone: (milestone: string, data?: any) => void
   
   // 🚨 NEW: Timeout and Progress Protection Methods
   
@@ -195,7 +230,7 @@ export interface ScopedLogger {
    * Logs progress at regular intervals to show the system is alive
    * 
    * @param operation - Name of the operation
-   * @param fn - Function to execute
+   * @param fn: Function to execute
    * @param progressInterval - How often to log progress (default: 2000ms = 2s)
    * 
    * @example
@@ -229,9 +264,31 @@ export interface ScopedLogger {
     maxRetries?: number,
     timeoutMs?: number
   ) => Promise<T>
+  
+  // 🆕 NEW: Runtime Log Level Control
+  
+  /**
+   * Set the log level for this logger instance at runtime
+   * @param level - The log level to set
+   * 
+   * @example
+   * logger.setLogLevel('debug'); // Show debug and above
+   * logger.setLogLevel('warn');  // Show only warnings and errors
+   */
+  setLogLevel: (level: LogLevelString) => void
+  
+  /**
+   * Get the current log level for this logger instance
+   * @returns The current log level
+   * 
+   * @example
+   * const currentLevel = logger.getLogLevel();
+   * console.log(`Current log level: ${currentLevel}`);
+   */
+  getLogLevel: () => LogLevelString
 }
 
-let currentLevel: LogLevelString = 'info'
+let currentLevel: LogLevelString = 'warn'
 
 /**
  * Generate a formatted timestamp string (HH:mm:ss.SSS)
@@ -245,8 +302,9 @@ function nowTs(): string {
 /**
  * Check if a log level should be displayed based on current global level
  */
-function shouldLog(level: LogLevelString): boolean {
-  if (currentLevel === 'silent') return false
+function shouldLog(level: LogLevelString, instanceLevel?: LogLevelString): boolean {
+  const effectiveLevel = instanceLevel || currentLevel
+  if (effectiveLevel === 'silent') return false
   
   const levels: Record<LogLevelString, number> = {
     trace: 0,
@@ -257,7 +315,7 @@ function shouldLog(level: LogLevelString): boolean {
     silent: 5
   }
   
-  return levels[level] >= levels[currentLevel]
+  return levels[level] >= levels[effectiveLevel]
 }
 
 /**
@@ -311,6 +369,7 @@ function formatMessage(level: LogLevelString, label: string, message: string, fi
  * and provides access to all logging methods.
  * 
  * @param label - Component or module name (e.g., 'DataLoader', 'BackupManager')
+ * @param initialLogLevel - Initial log level for this logger instance (optional)
  * @returns A ScopedLogger instance with all logging methods
  * 
  * @example
@@ -328,35 +387,41 @@ function formatMessage(level: LogLevelString, label: string, message: string, fi
  * // Use it for success/failure
  * logger.success('User updated', { userId: 123 });
  * logger.fail('Update failed', error);
+ * 
+ * // Control log level at runtime
+ * logger.setLogLevel('debug');
+ * logger.step('detailed step info'); // Now visible
  */
-export function createScopedLogger(label: string): ScopedLogger {
+export function createScopedLogger(label: string, initialLogLevel?: LogLevelString): ScopedLogger {
+  let instanceLogLevel: LogLevelString = initialLogLevel ?? getGlobalLogLevel();
+  
   return {
     trace: (message, fields) => {
-      if (shouldLog('trace')) {
+      if (shouldLog('trace', instanceLogLevel)) {
         console.trace(formatMessage('trace', label, message, fields))
       }
     },
     
     debug: (message, fields) => {
-      if (shouldLog('debug')) {
+      if (shouldLog('debug', instanceLogLevel)) {
         console.debug(formatMessage('debug', label, message, fields))
       }
     },
     
     info: (message, fields) => {
-      if (shouldLog('info')) {
+      if (shouldLog('info', instanceLogLevel)) {
         console.info(formatMessage('info', label, message, fields))
       }
     },
     
     warn: (message, fields) => {
-      if (shouldLog('warn')) {
+      if (shouldLog('warn', instanceLogLevel)) {
         console.warn(formatMessage('warn', label, message, fields))
       }
     },
     
     error: (message, fields) => {
-      if (shouldLog('error')) {
+      if (shouldLog('error', instanceLogLevel)) {
         console.error(formatMessage('error', label, message, fields))
       }
     },
@@ -376,7 +441,7 @@ export function createScopedLogger(label: string): ScopedLogger {
     
     // Convenience methods - these make logging super simple!
     log: (message, data) => {
-      if (shouldLog('info')) {
+      if (shouldLog('info', instanceLogLevel)) {
         if (data !== undefined) {
           console.log(formatMessage('info', label, message), data)
         } else {
@@ -386,25 +451,25 @@ export function createScopedLogger(label: string): ScopedLogger {
     },
     
     success: (message, fields) => {
-      if (shouldLog('info')) {
+      if (shouldLog('info', instanceLogLevel)) {
         console.log(`✅ ${formatMessage('info', label, message)}`, fields || '')
       }
     },
     
     fail: (message, error) => {
-      if (shouldLog('error')) {
+      if (shouldLog('error', instanceLogLevel)) {
         console.error(`❌ ${formatMessage('error', label, message)}`, error || '')
       }
     },
     
     start: (operation) => {
-      if (shouldLog('info')) {
+      if (shouldLog('info', instanceLogLevel)) {
         console.group(`🚀 ${formatMessage('info', label, `Starting: ${operation}`)}`)
       }
     },
     
     end: (operation, result) => {
-      if (shouldLog('info')) {
+      if (shouldLog('info', instanceLogLevel)) {
         if (result !== undefined) {
           console.log(`✅ ${formatMessage('info', label, `Completed: ${operation}`)}`, result)
         } else {
@@ -415,11 +480,31 @@ export function createScopedLogger(label: string): ScopedLogger {
     },
     
     step: (step, data) => {
-      if (shouldLog('debug')) {
+      if (shouldLog('debug', instanceLogLevel)) {
         if (data !== undefined) {
           console.log(`  📍 ${step}`, data)
         } else {
           console.log(`  📍 ${step}`)
+        }
+      }
+    },
+
+    milestone: (milestone, data) => {
+      if (shouldLog('info', instanceLogLevel)) {
+        if (data !== undefined) {
+          console.log(`🎯 ${milestone}`, data)
+        } else {
+          console.log(`🎯 ${milestone}`)
+        }
+      }
+    },
+    
+    important: (message, data) => {
+      if (shouldLog('warn', instanceLogLevel)) {
+        if (data !== undefined) {
+          console.warn(`🚨 ${formatMessage('warn', label, message)}`, data)
+        } else {
+          console.warn(`🚨 ${formatMessage('warn', label, message)}`)
         }
       }
     },
@@ -499,6 +584,18 @@ export function createScopedLogger(label: string): ScopedLogger {
       }
       console.error(`❌ [${label}] Operation "${operation}" failed after ${maxRetries} retries.`, lastError)
       throw lastError
+    },
+    
+    // 🆕 NEW: Runtime Log Level Control
+    setLogLevel: (level: LogLevelString) => {
+      instanceLogLevel = level
+      if (shouldLog('info', instanceLogLevel)) {
+        console.log(`[${label}] Log level set to: ${level}`)
+      }
+    },
+    
+    getLogLevel: () => {
+      return instanceLogLevel
     }
   }
 }
@@ -543,13 +640,98 @@ export function getGlobalLogLevel(): LogLevelString {
   return currentLevel
 }
 
+/**
+ * Create a minimal logger that only shows errors and warnings
+ * 
+ * @param label - Component or module name
+ * @returns A ScopedLogger instance with minimal logging
+ * 
+ * @example
+ * const logger = createMinimalLogger('DataLoader');
+ * logger.warn('This will show'); // Visible
+ * logger.step('This will not show'); // Hidden
+ */
+export function createMinimalLogger(label: string): ScopedLogger {
+  return createScopedLogger(label, 'warn')
+}
+
+/**
+ * Create a verbose logger that shows detailed steps and progress
+ * 
+ * @param label - Component or module name
+ * @returns A ScopedLogger instance with verbose logging
+ * 
+ * @example
+ * const logger = createVerboseLogger('DataLoader');
+ * logger.step('This will show'); // Visible
+ * logger.debug('This will show'); // Visible
+ */
+export function createVerboseLogger(label: string): ScopedLogger {
+  return createScopedLogger(label, 'debug')
+}
+
+/**
+ * Create a debug logger that shows everything including debug information
+ * 
+ * @param label - Component or module name
+ * @returns A ScopedLogger instance with debug logging
+ * 
+ * @example
+ * const logger = createDebugLogger('DataLoader');
+ * logger.debug('This will show'); // Visible
+ * logger.trace('This will show if trace level is enabled'); // Visible if trace level is set
+ */
+export function createDebugLogger(label: string): ScopedLogger {
+  return createScopedLogger(label, 'debug')
+}
+
+/**
+ * Get a summary of current logging configuration
+ * 
+ * @returns An object with current log level settings
+ * 
+ * @example
+ * const config = getLoggingConfig();
+ * console.log(`Log level: ${config.logLevel}`);
+ */
+export function getLoggingConfig(): { logLevel: LogLevelString } {
+  return {
+    logLevel: currentLevel
+  }
+}
+
+/**
+ * Update logging configuration for runtime changes
+ * This affects all existing and future logger instances
+ * 
+ * @param options - Configuration options to update
+ * 
+ * @example
+ * // Change log level
+ * updateLoggingConfig({ logLevel: 'debug' });
+ */
+export function updateLoggingConfig(options: { logLevel?: LogLevelString }): void {
+  // Store the old log level to check if we should log the change
+  const oldLogLevel = currentLevel
+  
+  if (options.logLevel !== undefined) {
+    setGlobalLogLevel(options.logLevel)
+  }
+  
+  // Log the configuration change using the old log level
+  if (shouldLog('info', oldLogLevel)) {
+    console.log(`🔧 Logging configuration updated:`, getLoggingConfig())
+  }
+}
+
 // Initialize from persisted value
 try {
   if (typeof localStorage !== 'undefined') {
-    const persisted = localStorage.getItem('wnLogLevel') as LogLevelString | null
-    const boot = (globalThis as any).LOG_LEVEL as LogLevelString | undefined
-    if (persisted || boot) {
-      setGlobalLogLevel(persisted || boot || 'info')
+    const persistedLevel = localStorage.getItem('wnLogLevel') as LogLevelString | null
+    const bootLevel = (globalThis as any).LOG_LEVEL as LogLevelString | undefined
+    
+    if (persistedLevel || bootLevel) {
+      setGlobalLogLevel(persistedLevel || bootLevel || 'warn')
     }
   }
 } catch {}

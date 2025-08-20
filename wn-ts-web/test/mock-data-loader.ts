@@ -2,6 +2,9 @@ import { WebDatabase } from "../src/client/submodules/web-database.js";
 import type { WebWordnet } from "../src/client/submodules/web-wordnet.js";
 import { DataLoader, type DataLoadOptions } from "../src/data-loader.js";
 import { Project } from "../src/project.js";
+import { createScopedLogger } from 'utils/logger';
+
+const logger = createScopedLogger('MockDataLoader');
 
 /**
  * A DataLoader for testing purposes that uses mock data as a fallback or directly.
@@ -26,7 +29,7 @@ export class MockDataLoader extends DataLoader {
       // First, attempt to use the real DataLoader's logic
       await super.downloadAndLoad(projectIdWithVersion, options);
     } catch (error) {
-      console.warn(
+      logger.warn(
         `🔴 Real data loading failed, falling back to mock data for ${projectIdWithVersion}. Error: ${error}`
       );
       // If the real download/load fails, use mock data
@@ -38,27 +41,18 @@ export class MockDataLoader extends DataLoader {
    * Directly load mock data without attempting to download.
    */
   public async loadMockData(projectIdWithVersion: string): Promise<void> {
-    console.log(`📝 [MOCK] Inserting mock data for ${projectIdWithVersion}...`);
+    logger.info(`Inserting mock data for ${projectIdWithVersion}...`);
     try {
       const mockData = await this.insertMockLargeDataset(projectIdWithVersion);
       this.mockStatistics = mockData.statistics;
       this.mockIntegrity = mockData.integrity;
       this.mockDataSource = mockData.dataSource;
-      console.log(
-        `✅ Successfully loaded mock large dataset for ${projectIdWithVersion}`
-      );
+      logger.success(`Successfully loaded mock large dataset for ${projectIdWithVersion}`);
     } catch (error) {
-      console.error(
-        `❌ Failed to load mock large dataset for ${projectIdWithVersion}:`,
-        error
-      );
-      console.log(
-        `📝 Falling back to sample data for ${projectIdWithVersion}...`
-      );
+      logger.error(`Failed to load mock large dataset for ${projectIdWithVersion}:`, error);
+      logger.info(`Falling back to sample data for ${projectIdWithVersion}...`);
       await this.insertSampleData(projectIdWithVersion);
-      console.log(
-        `✅ Successfully loaded sample data for ${projectIdWithVersion}`
-      );
+      logger.success(`Successfully loaded sample data for ${projectIdWithVersion}`);
     }
   }
 
@@ -87,12 +81,12 @@ export class MockDataLoader extends DataLoader {
    * Insert sample data for testing when downloads fail
    */
   public async insertSampleData(projectIdWithVersion: string): Promise<void> {
-    console.log(`📝 Inserting sample data for ${projectIdWithVersion}...`);
+    logger.info(`📝 Inserting sample data for ${projectIdWithVersion}...`);
 
     try {
       const project = new Project(projectIdWithVersion);
-      console.log(`🔍 Debug: projectId = ${project.id}`);
-      console.log(`🔍 Debug: project =`, project);
+      logger.info(`🔍 Debug: projectId = ${project.id}`);
+      logger.info(`🔍 Debug: project =`, project);
 
       // Insert sample lexicon using real project data
       try {
@@ -102,7 +96,7 @@ export class MockDataLoader extends DataLoader {
         const language = project.getLanguage();
         const license = project.getLicense();
 
-        console.log(
+        logger.info(
           `🔍 Debug: Final values - label: "${label}", language: "${language}", license: "${license}"`
         );
 
@@ -120,11 +114,11 @@ export class MockDataLoader extends DataLoader {
             [project.projectIdWithVersion, label, language, license]
           );
         }
-        console.log(
+        logger.success(
           `✅ Sample lexicon inserted for ${project.projectIdWithVersion}`
         );
       } catch (error) {
-        console.log(
+        logger.warn(
           `✅ Lexicon ${projectIdWithVersion} already exists or insertion failed: ${error instanceof Error ? error.message : String(error)}`
         );
         return;
@@ -166,7 +160,7 @@ export class MockDataLoader extends DataLoader {
             [`${synsetId}.def.en`, synsetId, "en", `Definition of ${lemma}`]
           );
         } catch (error) {
-          console.error(`❌ Failed to insert sample word ${lemma}:`, error);
+          logger.error(`❌ Failed to insert sample word ${lemma}:`, error);
         }
       }
 
@@ -238,9 +232,9 @@ export class MockDataLoader extends DataLoader {
         );
       }
 
-      console.log(`✅ Sample data inserted for ${projectIdWithVersion}`);
+      logger.success(`✅ Sample data inserted for ${projectIdWithVersion}`);
     } catch (error) {
-      console.error(
+      logger.error(
         `❌ Failed to insert sample data for ${projectIdWithVersion}:`,
         error
       );
@@ -256,14 +250,14 @@ export class MockDataLoader extends DataLoader {
     integrity: any;
     dataSource: any;
   }> {
-    console.log(
+    logger.info(
       `📝 Inserting mock large dataset for ${projectIdWithVersion}...`
     );
 
     try {
       const project = new Project(projectIdWithVersion);
-      console.log(`🔍 Debug Mock: projectId = ${project.id}`);
-      console.log(`🔍 Debug Mock: project =`, project);
+      logger.info(`🔍 Debug Mock: projectId = ${project.id}`);
+      logger.info(`🔍 Debug Mock: project =`, project);
 
       // Insert lexicon using real project data
       try {
@@ -273,7 +267,7 @@ export class MockDataLoader extends DataLoader {
         const language = project.getLanguage();
         const license = project.getLicense();
 
-        console.log(
+        logger.info(
           `🔍 Debug Mock: Final values - label: "${label}", language: "${language}", license: "${license}"`
         );
 
@@ -293,7 +287,7 @@ export class MockDataLoader extends DataLoader {
         }
       } catch (error) {
         // If insertion fails, lexicon might already exist
-        console.log(
+        logger.info(
           `✅ Lexicon ${projectIdWithVersion} already exists, skipping insertion`
         );
         // Return mock statistics for existing data
@@ -332,7 +326,7 @@ export class MockDataLoader extends DataLoader {
       const wordCount = 5000;
       const synsetCount = 3000;
 
-      console.log(
+      logger.info(
         `📊 Generating ${wordCount} words and ${synsetCount} synsets...`
       );
 
@@ -519,7 +513,7 @@ export class MockDataLoader extends DataLoader {
         );
       }
 
-      console.log(
+      logger.success(
         `✅ Mock large dataset inserted for ${projectIdWithVersion}: ${wordCount} words, ${synsetCount} synsets`
       );
 
@@ -558,7 +552,7 @@ export class MockDataLoader extends DataLoader {
         },
       };
     } catch (error) {
-      console.error("Failed to insert mock large dataset:", error);
+      logger.error("Failed to insert mock large dataset:", error);
       throw error;
     }
   }

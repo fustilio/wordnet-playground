@@ -55,16 +55,55 @@ describe('BrowserXMLParser', () => {
       // Ensure DOMParser is available with a more realistic mock
       global.DOMParser = class MockDOMParser {
         parseFromString(xml: string, mimeType: string) {
-          // Simple mock that returns a basic structure
-          // This simulates the minimal behavior needed for tests
-          return {
-            documentElement: { 
-              nodeName: 'root',
+          // Create a more realistic mock that simulates actual DOM parsing
+          const createElement = (tagName: string, attributes: Record<string, string> = {}, textContent: string = '') => {
+            return {
+              nodeName: tagName,
               nodeType: 1,
-              attributes: [],
-              childNodes: [],
-              textContent: 'content'
-            },
+              attributes: Object.entries(attributes).map(([name, value]) => ({
+                name,
+                value,
+                length: Object.keys(attributes).length
+              })),
+              childNodes: textContent ? [{ nodeType: 3, textContent }] : [],
+              textContent,
+              getElementsByTagName: (tag: string) => {
+                if (tag === 'parsererror') return [];
+                return [];
+              }
+            };
+          };
+
+          // Parse the XML to extract basic info for the mock
+          const rootMatch = xml.match(/<([a-zA-Z][a-zA-Z0-9_:]*)([^>]*)>/);
+          if (rootMatch) {
+            const rootTagName = rootMatch[1];
+            const attrString = rootMatch[2];
+            
+            // Extract attributes
+            const attributes: Record<string, string> = {};
+            const attrRegex = /(\w+(?:-\w+)*)=["']([^"']*)["']/g;
+            let attrMatch;
+            while ((attrMatch = attrRegex.exec(attrString)) !== null) {
+              attributes[attrMatch[1]] = attrMatch[2];
+            }
+            
+            // Extract text content
+            const textMatch = xml.match(new RegExp(`<${rootTagName}[^>]*>(.*?)</${rootTagName}>`, 's'));
+            const textContent = textMatch ? textMatch[1].trim() : "";
+            
+            return {
+              documentElement: createElement(rootTagName, attributes, textContent),
+              getElementsByTagName: (tag: string) => {
+                if (tag === 'parsererror') return [];
+                return [];
+              }
+            };
+          }
+          
+          // Fallback for malformed XML
+          return {
+            documentElement: createElement('root'),
             getElementsByTagName: (tag: string) => {
               if (tag === 'parsererror') return [];
               return [];
@@ -107,11 +146,11 @@ describe('BrowserXMLParser', () => {
       const result = await parser.parse();
 
       expect(result.elementCount).toBe(1);
-      // Mock DOMParser returns 'root' as the root element name
-      expect(result.rootElements).toContain('root');
-      expect(result.data.root).toBeDefined();
+      // Mock DOMParser returns 'LexicalResource' as the root element name based on XML content
+      expect(result.rootElements).toContain('LexicalResource');
+      expect(result.data.LexicalResource).toBeDefined();
       // Mock DOMParser returns empty children
-      expect(result.data.root.children).toHaveLength(0);
+      expect(result.data.LexicalResource.children).toHaveLength(0);
     });
 
     it('should parse XML with nested elements using DOMParser', async () => {
@@ -363,10 +402,14 @@ describe('BrowserXMLParser', () => {
       parser = new BrowserXMLParser(xmlText, false);
       const result = await parser.parse();
 
-      expect(result.elementCount).toBe(1);
+      // Enhanced parser now correctly counts all elements (root + children)
+      expect(result.elementCount).toBe(2); // LexicalResource + Lexicon
       expect(result.rootElements).toContain('LexicalResource');
       expect(result.data.LexicalResource).toBeDefined();
       expect(result.data.LexicalResource.name).toBe('LexicalResource');
+      // Should now have children
+      expect(result.data.LexicalResource.children).toHaveLength(1);
+      expect(result.data.LexicalResource.children[0].name).toBe('Lexicon');
     });
 
     it('should handle XML with attributes using manual parsing', async () => {
@@ -415,7 +458,7 @@ describe('BrowserXMLParser', () => {
       parser = new BrowserXMLParser(xmlText, false);
       const result = await parser.parse();
 
-      expect(result.elementCount).toBe(1);
+      expect(result.elementCount).toBe(1); // Only root element, no children
       expect(result.rootElements).toContain('root');
       expect(result.data.root.text).toBe('content');
     });
@@ -437,8 +480,10 @@ describe('BrowserXMLParser', () => {
       const result = await parser.parse();
 
       expect(result.data.root.name).toBe('root');
-      // Manual parsing will treat self-closing tags as regular tags
-      expect(result.data.root.children).toHaveLength(0); // Manual parsing doesn't process children deeply
+      // Enhanced parser now correctly processes children
+      expect(result.data.root.children).toHaveLength(2); // self-closing + normal
+      expect(result.data.root.children[0].name).toBe('self-closing');
+      expect(result.data.root.children[1].name).toBe('normal');
     });
   });
 

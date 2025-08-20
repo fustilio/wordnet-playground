@@ -58,22 +58,35 @@ async function quickScan(filePath: string, debug = false): Promise<{ version: st
   if (debug) console.log(`[DEBUG] Quick scanning file for version and element count...`);
   
   const content = await readFile(filePath, 'utf-8');
-  const lines = content.split('\n');
   
-  // Extract version from DOCTYPE
+  // Extract version from DOCTYPE - search entire content
   let version = '1.0';
-  for (const line of lines) {
-    const match = line.match(DOCTYPE_PATTERN);
-    if (match?.[1]) {
-      const schemaUrl = match[1];
-      for (const [ver, url] of Object.entries(SCHEMAS)) {
-        if (url === schemaUrl) {
-          version = ver;
-          break;
-        }
+  const match = content.match(DOCTYPE_PATTERN);
+  if (match?.[1]) {
+    const schemaUrl = match[1];
+    if (debug) console.log(`[DEBUG] Found DOCTYPE with schema: ${schemaUrl}`);
+    
+    // First try to match against supported versions
+    let foundSupported = false;
+    for (const [ver, url] of Object.entries(SCHEMAS)) {
+      if (url === schemaUrl) {
+        version = ver;
+        foundSupported = true;
+        if (debug) console.log(`[DEBUG] Matched schema URL to supported version: ${version}`);
+        break;
       }
-      break;
     }
+    
+    // If no supported version found, extract version from URL
+    if (!foundSupported) {
+      const versionMatch = schemaUrl.match(/WN-LMF-([0-9]+\.[0-9]+)\.dtd$/);
+      if (versionMatch && versionMatch[1]) {
+        version = versionMatch[1];
+        if (debug) console.log(`[DEBUG] Extracted unsupported version from schema URL: ${version}`);
+      }
+    }
+  } else {
+    if (debug) console.log(`[DEBUG] No DOCTYPE pattern found, using default version: ${version}`);
   }
   
   // Count closing tags to estimate element count
@@ -111,7 +124,13 @@ export async function loadLMF(
     // Quick scan for version and element count
     const { version, elementCount } = await quickScan(filePath, debug);
     
+    if (debug) console.log(`[DEBUG] Quick scan returned version: ${version}`);
+    if (debug) console.log(`[DEBUG] Supported versions: ${Array.from(SUPPORTED_VERSIONS).join(', ')}`);
+    if (debug) console.log(`[DEBUG] Version ${version} supported: ${SUPPORTED_VERSIONS.has(version)}`);
+    
+    // Validate version immediately after quickScan
     if (!SUPPORTED_VERSIONS.has(version)) {
+      if (debug) console.log(`[DEBUG] Throwing error for unsupported version: ${version}`);
       throw new Error(`Unsupported LMF version: ${version}`);
     }
     
@@ -198,8 +217,8 @@ async function parseLMFStreaming(
           break;
         case 'lexicon':
           currentLexicon = {
-            id: attributes.id || 'unknown',
-            label: attributes.label || 'Unknown Lexicon',
+            id: attributes.id || '',
+            label: attributes.label || '',
             language: attributes.language || 'en',
             version: attributes.version || '1.0',
             email: attributes.email || '',
@@ -212,6 +231,23 @@ async function parseLMFStreaming(
             frames: [],
           };
           if (debug) console.log(`[DEBUG] Processing lexicon: ${currentLexicon.id}`);
+          break;
+        case 'lexiconextension':
+          currentLexicon = {
+            id: attributes.id || '',
+            label: attributes.label || '',
+            language: attributes.language || 'en',
+            version: attributes.version || '1.0',
+            email: attributes.email || '',
+            license: attributes.license || '',
+            url: attributes.url || '',
+            citation: attributes.citation || '',
+            logo: attributes.logo || '',
+            entries: [],
+            synsets: [],
+            frames: [],
+          };
+          if (debug) console.log(`[DEBUG] Processing lexicon extension: ${currentLexicon.id}`);
           break;
         case 'lexicalentry':
           currentEntry = {
@@ -234,15 +270,7 @@ async function parseLMFStreaming(
             currentEntry.lemma = attributes.writtenform || attributes.writtenForm || 'unknown';
             currentEntry.pos = (attributes.partofspeech || attributes.partOfSpeech || 'n') as PartOfSpeech;
             if (debug) console.log(`[DEBUG] Set lemma for word ${currentEntry.id}: ${currentEntry.lemma} (${currentEntry.pos})`);
-            const lemmaForm = currentEntry.lemma;
-            if (!(currentEntry.forms as any[]).some((f: any) => f.writtenForm === lemmaForm)) {
-              currentEntry.forms.push({
-                id: `${currentEntry.id}-lemma`,
-                writtenForm: lemmaForm,
-                script: attributes.script || '',
-                tag: '',
-              });
-            }
+            // Don't automatically add lemma as a form - lemma and forms are separate in LMF
           }
           break;
         case 'form':
@@ -295,9 +323,84 @@ async function parseLMFStreaming(
           if (currentSynset) {
             currentSynset.relations.push({
               id: attributes.id || '',
-              type: attributes.reltype || attributes.type || 'unknown',
+              type: attributes.reltype || attributes.relType || attributes.type || 'unknown',
               target: attributes.target || '',
               source: attributes.source || '',
+            });
+          }
+          break;
+        case 'tag':
+          if (currentEntry) {
+            currentEntry.tags.push({
+              id: attributes.id || '',
+              category: attributes.category || '',
+              value: '',
+            });
+          } else if (currentSense) {
+            currentSense.tags.push({
+              id: attributes.id || '',
+              category: attributes.category || '',
+              value: '',
+            });
+          }
+          break;
+        case 'count':
+          if (currentSense) {
+            currentSense.counts.push({
+              id: attributes.id || '',
+              value: 0,
+              writtenForm: '',
+              pos: 'n' as PartOfSpeech,
+            });
+          }
+          break;
+        case 'pronunciation':
+          if (currentEntry?.forms.length) {
+            const lastForm = currentEntry.forms[currentEntry.forms.length - 1];
+            if (lastForm) {
+              if (!lastForm.pronunciations) {
+                lastForm.pronunciations = [];
+              }
+              lastForm.pronunciations.push({
+                id: attributes.id || '',
+                variety: attributes.variety || '',
+                text: '',
+                source: attributes.source || '',
+              });
+            }
+          }
+          break;
+        case 'syntacticbehaviour':
+          if (currentEntry) {
+            currentEntry.frames.push({
+              id: attributes.id || '',
+              subcategorizationFrame: attributes.subcategorizationframe || attributes.subcategorizationFrame || '',
+              source: attributes.source || '',
+              senses: attributes.senses || '',
+            });
+          }
+          break;
+        case 'senserelation':
+          if (currentSense) {
+            if (!currentSense.relations) {
+              currentSense.relations = [];
+            }
+            currentSense.relations.push({
+              id: attributes.id || '',
+              type: attributes.reltype || attributes.relType || attributes.type || 'unknown',
+              target: attributes.target || '',
+              dc_type: attributes.dctype || attributes.dc_type || '',
+            });
+          }
+          break;
+        case 'ilidefinition':
+          if (currentSynset) {
+            if (!(currentSynset as any).iliDefinitions) {
+              (currentSynset as any).iliDefinitions = [];
+            }
+            (currentSynset as any).iliDefinitions.push({
+              id: attributes.id || '',
+              text: '',
             });
           }
           break;
@@ -321,6 +424,48 @@ async function parseLMFStreaming(
       }
       if (currentExample && currentExample.text === '') {
         currentExample.text = text.trim();
+      }
+      // Handle ILI Definition text
+      if (currentSynset && (currentSynset as any).iliDefinitions?.length) {
+        const lastIliDef = (currentSynset as any).iliDefinitions[(currentSynset as any).iliDefinitions.length - 1];
+        if (lastIliDef && lastIliDef.text === '') {
+          lastIliDef.text = text.trim();
+        }
+      }
+      // Handle Tag text
+      if (currentEntry?.tags.length) {
+        const lastTag = currentEntry.tags[currentEntry.tags.length - 1];
+        if (lastTag && lastTag.value === '') {
+          lastTag.value = text.trim();
+        }
+      }
+      if (currentSense?.tags.length) {
+        const lastTag = currentSense.tags[currentSense.tags.length - 1];
+        if (lastTag && lastTag.value === '') {
+          lastTag.value = text.trim();
+        }
+      }
+      // Handle Count text
+      if (currentSense?.counts.length) {
+        const lastCount = currentSense.counts[currentSense.counts.length - 1];
+        if (lastCount && lastCount.writtenForm === '') {
+          lastCount.writtenForm = text.trim();
+          // Try to parse the count value
+          const countValue = parseInt(text.trim());
+          if (!isNaN(countValue)) {
+            lastCount.value = countValue;
+          }
+        }
+      }
+      // Handle Pronunciation text
+      if (currentEntry?.forms.length) {
+        const lastForm = currentEntry.forms[currentEntry.forms.length - 1];
+        if (lastForm?.pronunciations?.length) {
+          const lastPron = lastForm.pronunciations[lastForm.pronunciations.length - 1];
+          if (lastPron && lastPron.text === '') {
+            lastPron.text = text.trim();
+          }
+        }
       }
     });
 
@@ -365,6 +510,13 @@ async function parseLMFStreaming(
             currentLexicon = null;
           }
           break;
+        case 'lexiconextension':
+          if (currentLexicon) {
+            lexicons.push(currentLexicon);
+            if (debug) console.log(`[DEBUG] Added lexicon extension: ${currentLexicon.id}`);
+            currentLexicon = null;
+          }
+          break;
         case 'lexicalresource':
           break;
         case 'example':
@@ -376,6 +528,24 @@ async function parseLMFStreaming(
             }
             currentExample = null;
           }
+          break;
+        case 'senserelation':
+          // SenseRelation is handled in opentag since it's an empty element
+          break;
+        case 'synsetrelation':
+          // SynsetRelation is handled in opentag since it's an empty element
+          break;
+        case 'tag':
+          // Tag is handled in opentag since it's an empty element
+          break;
+        case 'count':
+          // Count is handled in opentag since it's an empty element
+          break;
+        case 'ilidefinition':
+          // ILIDefinition is handled in opentag since it's an empty element
+          break;
+        case 'syntacticbehaviour':
+          // SyntacticBehaviour is handled in opentag since it's an empty element
           break;
       }
     });

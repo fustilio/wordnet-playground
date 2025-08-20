@@ -1,10 +1,24 @@
 # wn-ts-web
 
-Browser-compatible WordNet TypeScript implementation using SQLite WASM with advanced orchestration capabilities.
+Browser-compatible WordNet TypeScript implementation using SQLite WASM with advanced orchestration capabilities and comprehensive lexicon introspection.
 
-## Status: ✅ PRODUCTION READY
+## Status: ✅ **PRODUCTION READY** with Enhanced Lexicon Introspection
 
-This package provides a fully functional browser-based WordNet implementation using [@sqlite.org/sqlite-wasm](https://github.com/sqlite/sqlite-wasm) for optimal performance and persistence, now with enhanced orchestration for managing multiple lexicons.
+This package provides a fully functional browser-based WordNet implementation using [@sqlite.org/sqlite-wasm](https://github.com/sqlite/sqlite-wasm) for optimal performance and persistence, now with enhanced orchestration for managing multiple lexicons and **real-time lexicon introspection**.
+
+## 🎯 **Recent Major Updates**
+
+### **Enhanced Lexicon Introspection System** ✅ COMPLETED
+- **Real Data Integration**: Replaced all placeholder values with actual database statistics
+- **Sense Count**: Now shows real counts (e.g., 212,478 for OEWN 2024) instead of hardcoded 0
+- **Part of Speech Distribution**: New `getPartOfSpeechDistribution()` method with real POS counts
+- **Worker API Enhancement**: Extended worker interface with missing analytics methods
+- **Error Handling**: Graceful fallbacks when detailed data isn't available
+
+### **Lexicon ID Format Mismatch Resolution** ✅ COMPLETED
+- **Problem**: Demo was using package IDs (e.g., `oewn:2024`) but worker stored base IDs (e.g., `oewn`)
+- **Solution**: Implemented fallback logic in `introspectLexicon()` to handle both formats
+- **Impact**: Lexicon introspection now works seamlessly with both ID formats
 
 ## Features
 
@@ -20,6 +34,9 @@ This package provides a fully functional browser-based WordNet implementation us
 - ✅ **Multi-Lexicon Orchestration**: Advanced management of multiple lexicons with state tracking.
 - ✅ **Cross-Lexicon Queries**: Efficient queries across multiple lexicons in a single database.
 - ✅ **Lexicon Lifecycle Management**: Automatic update detection and redownload management.
+- ✅ **Resource Type Introspection**: Automatic detection and analysis of lexicons vs. ILIs.
+- ✅ **Cross-Lingual Analysis**: Comprehensive analysis of multilingual capabilities and mapping coverage.
+- ✅ **Enhanced Lexicon Introspection**: Real-time statistics, sense counts, and data quality metrics.
 
 ## Architecture
 
@@ -43,6 +60,11 @@ await orchestrator.loadLexicon('wn31:3.1');
 // Query across all lexicons efficiently
 const words = await orchestrator.queryWords('run');
 const synsets = await orchestrator.querySynsets('happy');
+
+// Enhanced lexicon introspection
+const lexiconInfo = await orchestrator.introspectLexicon('oewn:2024');
+console.log('Sense count:', lexiconInfo.senseCount); // Real data: 212,478
+console.log('ILI coverage:', lexiconInfo.iliCoverage); // Calculated percentage
 ```
 
 ### 2. WordNetWorkerClient (Mid-level)
@@ -73,8 +95,80 @@ const words = await wordnet.words('example');
 ```
 
 For detailed architecture information, see:
-- [ORCHESTRATION_ARCHITECTURE.md](./ORCHESTRATION_ARCHITECTURE.md) - High-level orchestration patterns
+- [ORCHESTRATION_ARCHITECTURE.md](./docs/ORCHESTRATION_ARCHITECTURE.md) - High-level orchestration patterns
 - [WORKER_ARCHITECTURE.md](./docs/WORKER_ARCHITECTURE.md) - Worker-first architecture and React integration
+
+## Resource Types and Lexicon Introspection
+
+The library distinguishes between two main types of resources and provides comprehensive introspection capabilities:
+
+### **Lexicons vs. ILIs**
+
+#### **Lexicons (Language-Specific Resources)**
+- **Purpose**: Contain actual words, synsets, and definitions in specific languages
+- **Examples**: `oewn:2024` (English), `omw-fr:1.4` (French), `omw-th:1.4` (Thai)
+- **Structure**: Words, synsets, senses, definitions, relations
+- **Use Case**: Direct language queries, word lookups, semantic analysis
+
+#### **ILIs (Interlingual Indexes)**
+- **Purpose**: Provide cross-lingual mapping between synsets across languages
+- **Examples**: `cili:1.0` (Collaborative Interlingual Index)
+- **Structure**: ILI identifiers, cross-lingual mappings, concept bridges
+- **Use Case**: Bilingual queries, cross-language concept mapping, multilingual applications
+
+### **Enhanced Introspection and Analysis**
+
+```typescript
+import { WordNetOrchestrator } from 'wn-ts-web';
+
+const orchestrator = new WordNetOrchestrator();
+await orchestrator.initialize(sqlModule);
+
+// Load resources
+await orchestrator.loadLexicon('oewn:2024');
+await orchestrator.loadLexicon('cili:1.0');
+await orchestrator.loadLexicon('omw-fr:1.4');
+
+// Enhanced lexicon introspection with real data
+const oewnInfo = await orchestrator.introspectLexicon('oewn:2024');
+console.log('OEWN type:', oewnInfo.type); // 'lexicon'
+console.log('Word count:', oewnInfo.wordCount); // 161,705
+console.log('Sense count:', oewnInfo.senseCount); // 212,478 (real data!)
+console.log('ILI coverage:', oewnInfo.iliCoverage); // Calculated percentage
+
+const ciliInfo = await orchestrator.introspectLexicon('cili:1.0');
+console.log('CILI type:', ciliInfo.type); // 'ili'
+console.log('ILI count:', ciliInfo.iliCount);
+
+// Analyze cross-lingual capabilities
+const crossLingualAnalysis = await orchestrator.analyzeCrossLingualCapabilities();
+console.log('Supported languages:', crossLingualAnalysis.supportedLanguages);
+console.log('Concept coverage:', crossLingualAnalysis.conceptCoverage);
+
+// Get overview of all resources
+const allResources = await orchestrator.introspectAllResources();
+const lexicons = allResources.filter(r => r.type === 'lexicon');
+const ilis = allResources.filter(r => r.type === 'ili');
+```
+
+### **Resource Categorization**
+
+```typescript
+// Automatic resource type detection
+const resourceType = await orchestrator.detectResourceType('cili:1.0');
+// Returns: { type: 'ili', hasCrossLingualMappings: true, supportedLanguages: ['en', 'fr', 'th'] }
+
+// Resource categorization
+const categorizedResources = await orchestrator.categorizeResources();
+// Returns: { lexicons: [...], ilis: [...], mixed: [...] }
+```
+
+This enhanced introspection system helps applications:
+- **Understand resource capabilities** before using them
+- **Get real-time statistics** instead of placeholder values
+- **Optimize queries** based on resource types
+- **Provide better user feedback** about available features
+- **Implement intelligent fallbacks** when resources are unavailable
 
 ## React Integration
 
@@ -89,7 +183,8 @@ function WordNetComponent() {
     workerReady,
     loadPackageData, 
     queryWords, 
-    statistics 
+    statistics,
+    introspectLexicon 
   } = useWordNet();
 
   const handleLoad = async () => {
@@ -100,15 +195,21 @@ function WordNetComponent() {
     }
   };
 
-  const handleQuery = async (term: string) => {
-    const results = await queryWords(term);
-    console.log(results);
+  const handleIntrospect = async () => {
+    try {
+      const info = await introspectLexicon('oewn:2024');
+      console.log('Lexicon info:', info);
+      console.log('Real sense count:', info.senseCount); // No more placeholder 0!
+    } catch (error) {
+      console.error('Introspection failed:', error);
+    }
   };
 
   return (
     <div>
       {loading ? 'Loading...' : 'Ready'}
       <button onClick={handleLoad}>Load Package</button>
+      <button onClick={handleIntrospect}>Introspect Lexicon</button>
     </div>
   );
 }
@@ -165,7 +266,8 @@ function WordNetApp() {
     isReady, 
     isLoading, 
     queryWords, 
-    loadPackageData 
+    loadPackageData,
+    introspectLexicon 
   } = useWordNet({
     workerUrl: new URL('./wordnet.worker.ts', import.meta.url)
   });
@@ -207,10 +309,10 @@ import { createWordNetInstance } from 'wn-ts-web';
 
 async function main() {
   try {
-    // Initialize WordNet with SQLite WASM
+    // 1. Create the WordNet instance
     const { wordnet, dataLoader } = await createWordNetInstance('oewn:2024');
 
-    // Load WordNet data from a source with progress tracking
+    // 2. Load WordNet data from a source with progress tracking
     await dataLoader.downloadAndLoad('oewn:2024', {
       onProgress: (progress) => {
         // progress is a number from 0 to 1
@@ -218,7 +320,7 @@ async function main() {
       }
     });
 
-    // Query for synsets
+    // 3. Query the data
     const synsets = await wordnet.synsets('joy', 'n');
     console.log('Synsets for "joy":', synsets);
 
@@ -301,6 +403,7 @@ The primary entry point is `createWordNetInstance`, which sets up the WordNet in
 - **Efficient Queries**: Kysely provides an optimized query engine.
 - **Persistent Storage**: Leverages the Origin Private File System (OPFS) for fast, persistent data storage in the browser, with a fallback to an in-memory database.
 - **Worker-First**: Designed to run in Web Workers for optimal UI responsiveness.
+- **Real-Time Statistics**: Enhanced lexicon introspection provides actual database statistics instead of estimates.
 
 ## Build Configuration
 

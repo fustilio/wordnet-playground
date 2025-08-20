@@ -2,7 +2,6 @@
 import type { 
   WebWordnet,
   DataLoader,
-  DatabaseStatistics,
   LexiconInfo as WnTsLexiconInfo,
   IntegrityInfo
 } from 'wn-ts-web';
@@ -11,7 +10,6 @@ import type {
 export type { 
   WebWordnet,
   DataLoader,
-  DatabaseStatistics,
   WnTsLexiconInfo
 };
 
@@ -73,6 +71,7 @@ export interface WordNetTotals {
   totalWords: number;
   totalSynsets: number;
   totalSenses: number;
+  totalILIs?: number;
   totalRelations?: number;
   totalDefinitions?: number;
   languages?: string[];

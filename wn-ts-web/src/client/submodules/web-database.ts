@@ -1,9 +1,19 @@
 /**
  * Browser-compatible database implementation using @sqlite.org/sqlite-wasm
  * Optimized for modern browsers with OPFS support
+ * 
+ * IMPORTANT: This class is designed to work in worker threads where OPFS is available.
+ * In the main thread, it will fall back to in-memory storage.
+ * 
+ * Usage:
+ * - Worker thread: Uses OPFS for persistent storage
+ * - Main thread: Falls back to in-memory storage (for fallback scenarios only)
  */
 
 import type { Sqlite3Static, Database } from "@sqlite.org/sqlite-wasm";
+import { createScopedLogger } from "utils/logger";
+
+const logger = createScopedLogger('WebDatabase');
 
 export class WebDatabase {
   private db: Database | null = null;
@@ -20,18 +30,25 @@ export class WebDatabase {
     this.sqlModule = sqlModule;
 
     // Enable OPFS support for persistent storage
+    // OPFS only works in worker threads, not in the main thread
     if (sqlModule.oo1?.OpfsDb) {
       try {
-        // Register OPFS VFS for persistent storage
+        // Check if we're in a worker thread (OPFS context)
+        // In a worker thread, OpfsDb constructor should work
+        // In the main thread, it will throw an error
+        const testOpfsDb = new sqlModule.oo1.OpfsDb("/test");
+        testOpfsDb.close(); // Clean up test instance
+        
         this.useOPFS = true;
-        console.log("✅ OPFS support enabled for persistent storage");
+        logger.info("OPFS support enabled for persistent storage");
       } catch (error) {
         // This is expected in main thread - OPFS requires worker thread
-        console.log(
-          "ℹ️ OPFS not available in main thread (requires worker thread)"
-        );
+        logger.info("OPFS not available in main thread (requires worker thread)");
         this.useOPFS = false;
       }
+    } else {
+      logger.info("OpfsDb not available in SQLite module");
+      this.useOPFS = false;
     }
 
     this._initialized = true;
@@ -85,9 +102,17 @@ export class WebDatabase {
     // Fall back to oo1 API if Database constructor doesn't exist
     if (this.sqlModule.oo1 && this.sqlModule.oo1.DB) {
       if (this.useOPFS && this.sqlModule.oo1.OpfsDb) {
-        this.db = new this.sqlModule.oo1.OpfsDb("/wordnet.sqlite3");
+        try {
+          this.db = new this.sqlModule.oo1.OpfsDb("/wordnet.sqlite3");
+          logger.info("Created persistent OPFS database: /wordnet.sqlite3");
+        } catch (error) {
+          logger.warn("Failed to create OPFS database, falling back to in-memory:", error);
+          this.db = new this.sqlModule.oo1.DB(":memory:", "ct");
+          logger.info("Using in-memory database as fallback");
+        }
       } else {
         this.db = new this.sqlModule.oo1.DB(":memory:", "ct");
+        logger.info("Using in-memory database (OPFS not available)");
       }
     } else {
       throw new Error(
@@ -120,7 +145,7 @@ export class WebDatabase {
         stmt.stepFinalize();
       }
     } catch (e) {
-      console.error(`SQL execution failed: ${sql}`, params, e);
+      logger.error(`SQL execution failed: ${sql}`, { params, error: e });
       throw e;
     }
   }
@@ -177,12 +202,33 @@ export class WebDatabase {
    * Get the underlying SQLite WASM database instance
    * This is needed for Kysely integration
    */
-  getDatabase() {
+  getDatabase(): Database {
     if (!this.db) {
       throw new Error("Database not initialized");
     }
-
     return this.db;
+  }
+
+  /**
+   * Check if the database is persistent (OPFS) or in-memory
+   */
+  isPersistent(): boolean {
+    return this.useOPFS && this.db !== null;
+  }
+
+  /**
+   * Get information about the database storage type
+   */
+  getStorageInfo(): { type: 'opfs' | 'memory' | 'unknown', persistent: boolean, path?: string } {
+    if (!this.db) {
+      return { type: 'unknown', persistent: false };
+    }
+    
+    if (this.useOPFS) {
+      return { type: 'opfs', persistent: true, path: '/wordnet.sqlite3' };
+    } else {
+      return { type: 'memory', persistent: false };
+    }
   }
 
   getSqlModule() {

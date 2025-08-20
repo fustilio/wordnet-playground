@@ -31,21 +31,21 @@ export const LexiconRequirementsWidget: React.FC = () => {
       label: 'CILI Index 1.0',
       description: 'Cross-lingual index for multilingual features',
       requiredFor: ['Bilingual Dictionary', 'Cross-language Search'],
-      priority: 'medium'
+      priority: 'high'
     },
     {
       id: 'omw-fr:1.4',
       label: 'French WordNet 1.4',
       description: 'French language WordNet for bilingual features',
       requiredFor: ['Bilingual Dictionary (EN→FR)', 'French Search'],
-      priority: 'medium'
+      priority: 'high'
     },
     {
       id: 'omw-th:1.4',
       label: 'Thai WordNet 1.4',
       description: 'Thai language WordNet for bilingual features',
       requiredFor: ['Bilingual Dictionary (EN→TH)', 'Thai Search'],
-      priority: 'low'
+      priority: 'high'
     }
   ];
 

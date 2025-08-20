@@ -38,6 +38,7 @@
     "test:bench": "vitest bench --run",
     "test:coverage": "vitest run --coverage --reporter=verbose --exclude \"**/*e2e.test.ts\"",
     "test:ui": "vitest --ui --exclude \"**/*e2e.test.ts\"",
+    "test:lmf": "pnpm vitest run lmf",
     "vitest": "pnpm with-debug-logs vitest run",
     "with-debug-logs": "cross-env WN_TS_LOG_LEVEL=5",
     "build": "tsc --noEmit",

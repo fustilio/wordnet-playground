@@ -6,7 +6,10 @@ import type { WordnetOptions } from 'wn-ts-core';
 import { WebWordnet } from './client/submodules/web-wordnet.js';
 import { DataLoader } from './data-loader.js';
 import sqlite3InitModule, { type Sqlite3Static }  from '@sqlite.org/sqlite-wasm';
- 
+import { createScopedLogger } from 'utils/logger';
+
+const logger = createScopedLogger('Factory');
+
 export interface CreateWebWordnetOptions {
   sqliteWasmModule?: Sqlite3Static;
   lexicon?: string;
@@ -25,11 +28,11 @@ export async function createWebWordnet(options: CreateWebWordnetOptions = {}): P
 
   // Initialize with SQLite WASM module if provided
   if (sqliteWasmModule) {
-    console.log('🔍 Factory: Initializing WebWordnet with SQLite WASM module');
+    logger.info('Initializing WebWordnet with SQLite WASM module');
     await wordnet.initialize(sqliteWasmModule);
-    console.log('🔍 Factory: WebWordnet initialization completed');
+    logger.info('WebWordnet initialization completed');
   } else {
-    console.log('🔍 Factory: No SQLite WASM module provided, skipping initialization');
+    logger.info('No SQLite WASM module provided, skipping initialization');
   }
 
   return wordnet;
@@ -67,15 +70,15 @@ export async function createWordNetInstance(
 
       // Note: I haven't figured out what this actually does yet
       print: (msg: string) => {
-        console.log("sqlite3InitModule:", msg);
+        logger.debug("sqlite3InitModule:", msg);
       },
       printErr: (msg: string) => {
-        console.error("sqlite3InitModule:", msg);
+        logger.error("sqlite3InitModule:", msg);
       }
     });
-    console.log('✅ Using @sqlite.org/sqlite-wasm (modern SQLite with OPFS support)');
+    logger.info('Using @sqlite.org/sqlite-wasm (modern SQLite with OPFS support)');
   } catch (error) {
-    console.error('❌ Failed to load @sqlite.org/sqlite-wasm:', error);
+    logger.error('Failed to load @sqlite.org/sqlite-wasm:', error);
     throw new Error('@sqlite.org/sqlite-wasm is required for wn-ts-web. Please ensure it is installed.');
   }
 

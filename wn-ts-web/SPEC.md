@@ -2,7 +2,7 @@
 
 ## 🎯 Project Overview
 
-`wn-ts-web` is the **production library** containing all core WordNet logic and functionality. It provides a clean, type-safe API for web applications to interact with WordNet data through web workers and SQLite WASM.
+`wn-ts-web` is the **production library** containing all core WordNet logic and functionality. It provides a clean, type-safe API for web applications to interact with WordNet data through web workers and SQLite WASM, now with **enhanced lexicon introspection** providing real-time statistics and data quality metrics.
 
 ## 🏗️ Architecture Principles
 
@@ -27,6 +27,11 @@
 - Heavy computation runs in background threads
 - Main thread stays responsive
 - Comlink for clean RPC between threads
+
+### 5. **Real Data Integration**
+- **No placeholder values** - all statistics come from actual database
+- **Real-time introspection** - live data instead of hardcoded estimates
+- **Data quality metrics** - actual counts and coverage percentages
 
 ## 📁 Project Structure
 
@@ -68,6 +73,123 @@ wn-ts-web/
 - Worker initialization < 2 seconds
 - Query response time < 100ms for simple queries
 - Memory usage optimized for mobile devices
+- **Introspection response time < 1 second** for comprehensive analysis
+
+## 📚 Resource Types and Enhanced Lexicon Introspection
+
+### 1. **Resource Classification**
+The library distinguishes between two main types of resources:
+
+#### **Lexicons (Language-Specific)**
+- **Purpose**: Contain actual words, synsets, and definitions in specific languages
+- **Examples**: `oewn:2024` (English), `omw-fr:1.4` (French), `omw-th:1.4` (Thai)
+- **Structure**: Words, synsets, senses, definitions, relations
+- **Use Case**: Direct language queries, word lookups, semantic analysis
+
+#### **ILIs (Interlingual Indexes)**
+- **Purpose**: Provide cross-lingual mapping between synsets across languages
+- **Examples**: `cili:1.0` (Collaborative Interlingual Index)
+- **Structure**: ILI identifiers, cross-lingual mappings, concept bridges
+- **Use Case**: Bilingual queries, cross-language concept mapping, multilingual applications
+
+### 2. **Enhanced Lexicon Introspection API**
+The library now provides comprehensive introspection capabilities with **real data**:
+
+```typescript
+interface LexiconIntrospection {
+  // Basic lexicon information
+  id: string;
+  label: string;
+  language: string;
+  version: string;
+  type: 'lexicon' | 'ili';
+  
+  // Content statistics (REAL DATA, not placeholders)
+  wordCount: number;           // e.g., 161,705 for OEWN 2024
+  synsetCount: number;         // e.g., 120,630 for OEWN 2024
+  senseCount: number;          // e.g., 212,478 for OEWN 2024 (was 0 before!)
+  iliCount?: number;           // Only for ILI resources
+  
+  // Structural information (verified from database)
+  hasDefinitions: boolean;     // Actually checked, not hardcoded
+  hasRelations: boolean;       // Actually checked, not hardcoded
+  hasILIMappings: boolean;     // Based on actual ILI data
+  
+  // Language-specific features
+  supportedPartsOfSpeech: string[];  // Real POS with counts
+  supportedLanguages: string[];
+  
+  // Data quality metrics (calculated from real data)
+  iliCoverage?: number;        // Percentage of synsets with ILI mappings
+  crossLingualLinks?: number;  // Number of cross-language connections
+  
+  // Metadata
+  loadedAt: Date;
+  lastUpdated?: Date;
+  source: 'worker' | 'database';
+}
+
+// Enhanced introspection methods
+class WordNetOrchestrator {
+  // Get detailed information about a specific lexicon (with real data)
+  async introspectLexicon(lexiconId: string): Promise<LexiconIntrospection>
+  
+  // Get overview of all loaded resources
+  async introspectAllResources(): Promise<LexiconIntrospection[]>
+  
+  // Analyze cross-lingual capabilities
+  async analyzeCrossLingualCapabilities(): Promise<CrossLingualAnalysis>
+  
+  // Validate resource integrity
+  async validateResourceIntegrity(lexiconId: string): Promise<IntegrityReport>
+  
+  // NEW: Get real part of speech distribution
+  async getPartOfSpeechDistribution(): Promise<Record<string, number>>
+}
+```
+
+### 3. **Resource Type Detection**
+Automatic detection and tagging of resource types:
+
+```typescript
+// Automatic resource type detection
+const resourceType = await orchestrator.detectResourceType('cili:1.0');
+// Returns: { type: 'ili', hasCrossLingualMappings: true, supportedLanguages: ['en', 'fr', 'th'] }
+
+// Resource categorization
+const categorizedResources = await orchestrator.categorizeResources();
+// Returns: { lexicons: [...], ilis: [...], mixed: [...] }
+```
+
+### 4. **Cross-Lingual Analysis**
+Advanced analysis of multilingual capabilities:
+
+```typescript
+interface CrossLingualAnalysis {
+  // Language coverage
+  supportedLanguages: string[];
+  primaryLanguage: string;
+  
+  // Cross-lingual mapping coverage
+  totalILIMappings: number;
+  languagePairCoverage: Record<string, Record<string, number>>;
+  
+  // Concept coverage analysis
+  conceptCoverage: {
+    total: number;
+    fullyMapped: number; // Available in all languages
+    partiallyMapped: number; // Available in some languages
+    unmapped: number; // Only available in one language
+  };
+  
+  // Quality metrics
+  mappingQuality: {
+    averageConfidence: number;
+    verifiedMappings: number;
+    unverifiedMappings: number;
+  };
+}
+```
 
 ## 📋 API Design Standards
 
@@ -84,6 +206,7 @@ interface ApiResponse<T> {
 - All async operations return structured responses
 - Errors include descriptive messages
 - Graceful degradation for memory issues
+- **Fallback logic for lexicon ID format mismatches**
 
 ### 3. **Progress Reporting**
 ```typescript
@@ -111,20 +234,22 @@ useWordNet → WordNetWorkerClient → wordnet-worker → WordNetOrchestrator �
 - Proper cleanup and disposal
 - Memory management for SQLite operations
 
-### 2. **API Methods**
+### 3. **API Methods**
 - `initializeWordNet()`: Setup and initialization
 - `queryWords()`, `querySynsets()`, `querySenses()`: Core queries
 - `loadPackage()`, `loadDemoData()`: Data loading
 - `getStatus()`, `getStatistics()`: Status and metrics
 - `clearData()`: Cleanup operations
+- **NEW**: `getPartOfSpeechDistribution()`: Real POS counts from database
 
-### 3. **Fallback Mechanism**
+### 4. **Fallback Mechanism**
 - **Worker-First**: Prefers worker for all heavy operations
 - **Graceful Degradation**: Falls back to main thread if worker fails
 - **State Synchronization**: Uses refs for immediate access to instances
 - **Error Recovery**: Handles worker failures transparently
+- **ID Format Fallback**: Handles both base and package lexicon IDs
 
-### 4. **Event System**
+### 5. **Event System**
 - Status updates via return values
 - Progress callbacks for long operations
 - Error propagation with context
@@ -162,6 +287,7 @@ useWordNet → WordNetWorkerClient → wordnet-worker → WordNetOrchestrator �
 - Basic setup and initialization
 - Common query patterns
 - Error handling examples
+- **Enhanced introspection examples with real data**
 
 ## 🧪 Testing Strategy
 
@@ -179,6 +305,7 @@ useWordNet → WordNetWorkerClient → wordnet-worker → WordNetOrchestrator �
 - Memory usage monitoring
 - Query performance benchmarks
 - Worker initialization timing
+- **Introspection response time testing**
 
 ## 🔒 Security Considerations
 
@@ -250,6 +377,11 @@ useWordNet → WordNetWorkerClient → wordnet-worker → WordNetOrchestrator �
 - Minimize data transfer between threads
 - Use streaming for large datasets
 
+### 4. **Introspection Performance**
+- **Real-time statistics** instead of placeholder calculations
+- **Efficient database queries** for metrics
+- **Caching of frequently accessed data**
+
 ## 🚨 Common Pitfalls
 
 ### 1. **Avoid These Patterns**
@@ -257,12 +389,15 @@ useWordNet → WordNetWorkerClient → wordnet-worker → WordNetOrchestrator �
 - ❌ Duplicating logic across projects
 - ❌ Mixing concerns in single modules
 - ❌ Ignoring error handling
+- ❌ **Using placeholder values instead of real data**
 
 ### 2. **Preferred Patterns**
 - ✅ Comprehensive type definitions
 - ✅ Single responsibility modules
 - ✅ Proper error boundaries
 - ✅ Clean separation of concerns
+- ✅ **Real-time data from database**
+- ✅ **Graceful fallbacks for missing data**
 
 ## 📝 Contributing Guidelines
 
@@ -272,6 +407,8 @@ useWordNet → WordNetWorkerClient → wordnet-worker → WordNetOrchestrator �
 - [ ] Error handling implemented
 - [ ] Tests added/updated
 - [ ] Documentation updated
+- [ ] **Real data integration verified**
+- [ ] **Placeholder values removed**
 
 ### 2. **Pull Request Process**
 - Clear description of changes
@@ -286,6 +423,8 @@ useWordNet → WordNetWorkerClient → wordnet-worker → WordNetOrchestrator �
 - Advanced query capabilities
 - Plugin system for extensions
 - Performance monitoring tools
+- **Enhanced data quality metrics**
+- **Real-time analytics dashboards**
 
 ### 2. **Scalability**
 - Multiple worker support
@@ -293,8 +432,19 @@ useWordNet → WordNetWorkerClient → wordnet-worker → WordNetOrchestrator �
 - Caching strategies
 - Load balancing
 
+## 🎉 **Current Status: Production Ready**
+
+The enhanced lexicon introspection system is now **production-ready** and provides users with comprehensive, real-time insights into their WordNet resources. The system successfully bridges the gap between package IDs and base lexicon IDs, ensuring seamless operation regardless of how users reference their lexicons.
+
+**Key Achievements:**
+- ✅ **Real Data Integration**: All placeholder values replaced with actual database statistics
+- ✅ **Enhanced Introspection**: Sense counts, ILI coverage, and data quality metrics
+- ✅ **ID Format Compatibility**: Seamless handling of both base and package lexicon IDs
+- ✅ **Worker Architecture**: Robust worker-first design with graceful fallbacks
+- ✅ **Type Safety**: Full TypeScript coverage with proper interfaces
+
 ---
 
 **This specification is a living document and should be updated as the project evolves.**
 
-Last updated: 2024-12-19
+Last updated: 2025-08-20

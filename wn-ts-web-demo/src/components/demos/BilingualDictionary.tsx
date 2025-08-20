@@ -23,32 +23,7 @@ function getLanguageVariants(lang: string): string[] {
   return Array.from(new Set(base.map(v => v.toLowerCase())));
 }
 
-// Some datasets encode ILI differently. Generate common variants from a single input.
-function getIliVariants(rawIli: string | undefined): string[] {
-  if (!rawIli) return [];
-  const s = String(rawIli);
-  const digits = s.replace(/[^0-9]/g, '');
-  const candidates = [
-    s,                        // as-is (e.g., "i115069" or "ili-115069")
-    digits,                   // just digits ("115069")
-    `i${digits}`,             // prefixed with i
-    `ili-${digits}`,          // prefixed with ili-
-  ].filter(Boolean) as string[];
-  return Array.from(new Set(candidates));
-}
 
-function getSynsetIdVariants(synsetId: string): string[] {
-  const variants: string[] = [synsetId];
-  const m = synsetId.match(/^([a-z0-9]+)-(.*)$/i);
-  if (m) {
-    const prefix = m[1].toLowerCase();
-    const rest = m[2];
-    if (prefix === 'oewn' || prefix === 'ewn') {
-      variants.push(`omw-${rest}`);
-    }
-  }
-  return Array.from(new Set(variants));
-}
 
 type Pair = { from: 'en' | 'fr'; to: 'fr' | 'th' } | { from: 'en'; to: 'th' };
 
@@ -60,12 +35,11 @@ export const BilingualDictionary: React.FC = () => {
     refreshPackages, 
     loading, 
     isInitializing,
-    queryWords,
     getSensesByWordIdOrForm,
     getDefinitionsBySynsetId,
     getSynsetById,
     getWordsByIliAndLanguage,
-    getWordsByIliAndLexiconPrefix,
+    searchWordsInLexicon,
   } = useWordNetContext();
   const [pair, setPair] = useState<Pair>({ from: 'en', to: 'fr' });
   const [term, setTerm] = useState('water');
@@ -92,22 +66,16 @@ export const BilingualDictionary: React.FC = () => {
       priority: 'high' as const
     },
     {
-      id: 'omw:1.4',
-      label: 'Open Multilingual Wordnet 1.4',
-      description: 'Aggregate with ILI-linked synsets across languages',
-      priority: 'high' as const
-    },
-    {
       id: 'omw-fr:1.4',
       label: 'French WordNet 1.4',
-      description: 'French target language support (optional if using OMW aggregate)',
-      priority: 'medium' as const
+      description: 'French target language support',
+      priority: 'high' as const
     },
     {
       id: 'omw-th:1.4',
       label: 'Thai WordNet 1.4',
-      description: 'Thai target language support (optional if using OMW aggregate)',
-      priority: 'low' as const
+      description: 'Thai target language support',
+      priority: 'high' as const
     }
   ];
 
@@ -133,12 +101,10 @@ export const BilingualDictionary: React.FC = () => {
   const requiredProjects = useMemo(() => {
     // English: prefer 'oewn:>=2021', else 'ewn:<2021'
     const en = findLatestByPrefix('oewn', v => toInt(v) >= 2021) || findLatestByPrefix('ewn', v => toInt(v) < 2021);
-    // Aggregate OMW (multi-language, ILI-linked)
-    const omwAll = findLatestByPrefix('omw');
-    // French/Thai from OMW where available
+    // French/Thai from OMW where available (individual packages, not aggregate)
     const fr = findLatestByPrefix('omw-fr');
     const th = findLatestByPrefix('omw-th');
-    return { en, fr, th, omwAll };
+    return { en, fr, th };
     function toInt(v: string) {
       const n = parseInt(v.replace(/[^0-9]/g, ''), 10);
       return isNaN(n) ? -Infinity : n;
@@ -173,10 +139,7 @@ export const BilingualDictionary: React.FC = () => {
     if (pair.from === 'en' && !loadedPackages.some(id => id.startsWith('oewn') || id.startsWith('ewn') || id.startsWith('omw-en'))) {
       if (requiredProjects.en) need.push(requiredProjects.en);
     }
-    // Ensure OMW aggregate is present for ILI bridging across languages
-    if (!loadedPackages.some(id => id.startsWith('omw:'))) {
-      if (requiredProjects.omwAll) need.push(requiredProjects.omwAll);
-    }
+    // Load individual language packages instead of massive OMW aggregate
     if ((pair.from === 'fr' || pair.to === 'fr') && !loadedPackages.some(id => id.startsWith('omw-fr') || id.startsWith('wn-fra') || id.startsWith('fra'))) {
       if (requiredProjects.fr) need.push(requiredProjects.fr);
     }
@@ -215,7 +178,6 @@ export const BilingualDictionary: React.FC = () => {
       const required = [
         { id: 'oewn', versions: ['2024', '2023', '2022', '2021'] },
         { id: 'cili', versions: ['1.0'] },
-        { id: 'omw', versions: ['1.4', '1.3'] },
         { id: 'omw-fr', versions: ['1.4', '1.3'] },
         { id: 'omw-th', versions: ['1.4', '1.3'] }
       ];
@@ -278,8 +240,18 @@ export const BilingualDictionary: React.FC = () => {
 
       // 1) Find source words in fromLang
       logger.step('finding source words', { term, language: fromLang });
-      const srcWords = await queryWords(term);
-      logger.step('source words found', { count: (srcWords as any[]).length, sample: (srcWords as any[]).slice(0, 5) });
+      
+      // Determine the source lexicon based on the source language
+      let sourceLexicon = 'oewn:2024'; // Default to English WordNet
+      if (fromLang === 'en') {
+        sourceLexicon = 'oewn:2024'; // Use English WordNet for English source
+      } else if (fromLang === 'fr') {
+        sourceLexicon = 'omw-fr:1.4'; // Use French WordNet for French source
+      }
+      
+      // Use searchWordsInLexicon to search in the correct source lexicon
+      const srcWords = await searchWordsInLexicon(term, sourceLexicon, fromLang);
+      logger.step('source words found', { count: (srcWords as any[]).length, sample: (srcWords as any[]).slice(0, 5), sourceLexicon });
       
       const out: Array<{ source: string; target: string; synsetId: string; defFrom?: string; defTo?: string }> = [];
 
@@ -296,12 +268,14 @@ export const BilingualDictionary: React.FC = () => {
           // 2) Try to find corresponding words in target language using multiple strategies
           let toWords: any[] = [];
           
+          // Determine target lexicon ID for both strategies
+          const targetLexiconId = toLang === 'fr' ? 'omw-fr:1.4' : toLang === 'th' ? 'omw-th:1.4' : '';
+          
           // Strategy 1: Direct word lookup in target language (simple but effective)
           try {
-            const targetLexiconId = toLang === 'fr' ? 'omw-fr:1.4' : toLang === 'th' ? 'omw-th:1.4' : '';
             if (targetLexiconId) {
               // Try the exact word first
-              const exactMatch = await queryWords(w.lemma);
+              const exactMatch = await searchWordsInLexicon(w.lemma, targetLexiconId, toLang);
               if ((exactMatch as any[]).length > 0) {
                 // Filter to target language
                 const targetWords = (exactMatch as any[]).filter(word => 
@@ -331,7 +305,7 @@ export const BilingualDictionary: React.FC = () => {
                 
                 for (const variation of variations) {
                   try {
-                    const similarWords = await queryWords(variation);
+                    const similarWords = await searchWordsInLexicon(variation, targetLexiconId, toLang);
                     const targetSimilar = (similarWords as any[]).filter(word => 
                       toLangVariants.includes(word.language?.toLowerCase())
                     );
@@ -372,7 +346,7 @@ export const BilingualDictionary: React.FC = () => {
                 
                 for (const keyTerm of keyTerms) {
                   try {
-                    const keyTermWords = await queryWords(keyTerm);
+                    const keyTermWords = await searchWordsInLexicon(keyTerm, targetLexiconId, toLang);
                     const targetKeyTerms = (keyTermWords as any[]).filter(word => 
                       toLangVariants.includes(word.language?.toLowerCase())
                     );
@@ -552,7 +526,7 @@ export const BilingualDictionary: React.FC = () => {
       
       // Check English WordNet
       try {
-        const enWords = await queryWords('water');
+        const enWords = await searchWordsInLexicon('water', 'oewn:2024', 'en');
         exploration += `English "water": ${(enWords as any[]).length} words found\n`;
         if ((enWords as any[]).length > 0) {
           const firstWord = (enWords as any[])[0];
@@ -589,7 +563,7 @@ export const BilingualDictionary: React.FC = () => {
         const frenchWords = ['eau', 'chat', 'chien', 'maison', 'voiture', 'le', 'la', 'les'];
         for (const frWord of frenchWords) {
           try {
-            const words = await queryWords(frWord);
+            const words = await searchWordsInLexicon(frWord, 'omw-fr:1.4', 'fr');
             const frResults = (words as any[]).filter(w => w.language === 'fr' || w.language === 'fra');
             exploration += `  "${frWord}": ${frResults.length} French words\n`;
             if (frResults.length > 0) {
@@ -602,7 +576,7 @@ export const BilingualDictionary: React.FC = () => {
         
         // Check if we can find ANY French words at all
         try {
-          const anyWords = await queryWords('a');
+          const anyWords = await searchWordsInLexicon('a', 'omw-fr:1.4', 'fr');
           const anyFr = (anyWords as any[]).filter(w => w.language === 'fr' || w.language === 'fra');
           exploration += `  Any French words starting with "a": ${anyFr.length}\n`;
           if (anyFr.length > 0) {
@@ -626,8 +600,8 @@ export const BilingualDictionary: React.FC = () => {
         const thaiWords = ['น้ำ', 'แมว', 'สุนัข', 'บ้าน', 'รถ', 'ของ', 'การ'];
         for (const thWord of thaiWords) {
           try {
-            const words = await queryWords(thWord);
-            const thResults = (words as any[]).filter(w => w.language === 'th' || w.language === 'tha');
+            const words = await searchWordsInLexicon(thWord, 'omw-th:1.4', 'th');
+            const thResults = (words as any[]).filter(w => w.language === 'th' || w.language === 'th');
             exploration += `  "${thWord}": ${thResults.length} Thai words\n`;
             if (thResults.length > 0) {
               exploration += `    Sample: ${thResults.slice(0, 3).map(w => `${w.lemma}(${w.lexicon})`).join(', ')}\n`;
@@ -639,8 +613,8 @@ export const BilingualDictionary: React.FC = () => {
         
         // Check if we can find ANY Thai words at all
         try {
-          const anyWords = await queryWords('ก');
-          const anyTh = (anyWords as any[]).filter(w => w.language === 'th' || w.language === 'tha');
+          const anyWords = await searchWordsInLexicon('ก', 'omw-th:1.4', 'th');
+          const anyTh = (anyWords as any[]).filter(w => w.language === 'th' || w.language === 'th');
           exploration += `  Any Thai words starting with "ก": ${anyTh.length}\n`;
           if (anyTh.length > 0) {
             exploration += `    Sample: ${anyTh.slice(0, 5).map(w => `${w.lemma}(${w.lexicon})`).join(', ')}\n`;
@@ -698,7 +672,12 @@ export const BilingualDictionary: React.FC = () => {
         
         for (const lang of testLanguages) {
           try {
-            const words = await queryWords(word);
+            // Use appropriate lexicon for each language
+            let lexiconId = 'oewn:2024'; // default to English
+            if (lang === 'fr') lexiconId = 'omw-fr:1.4';
+            else if (lang === 'th') lexiconId = 'omw-th:1.4';
+            
+            const words = await searchWordsInLexicon(word, lexiconId, lang);
             const langWords = (words as any[]).filter(w => w.language === lang);
             results += `${lang.toUpperCase()}: ${langWords.length} words found\n`;
             
@@ -738,20 +717,45 @@ export const BilingualDictionary: React.FC = () => {
       
       // Check words table
       try {
-        const sampleWords = await queryWords('a');
-        results += `Words table: ${(sampleWords as any[]).length} total words\n`;
-        if ((sampleWords as any[]).length > 0) {
-          const sample = (sampleWords as any[]).slice(0, 5);
-          results += `  Sample: ${sample.map(w => `${w.lemma}(${w.language}/${w.lexicon})`).join(', ')}\n`;
-          
-          // Group by language
-          const byLang = (sampleWords as any[]).reduce((acc, w) => {
-            const lang = w.language || 'unknown';
-            acc[lang] = (acc[lang] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>);
-          
-          results += `  By language: ${Object.entries(byLang).map(([lang, count]) => `${lang}:${count}`).join(', ')}\n`;
+        // Check English words first
+        const enWords = await searchWordsInLexicon('a', 'oewn:2024');
+        results += `English words: ${(enWords as any[]).length} found\n`;
+        
+        // Check French words if available
+        let frWords: any[] = [];
+        try {
+          frWords = await searchWordsInLexicon('a', 'omw-fr:1.4');
+          results += `French words: ${frWords.length} found\n`;
+        } catch (e) {
+          results += `French words: Not available\n`;
+        }
+        
+        // Check Thai words if available
+        let thWords: any[] = [];
+        try {
+          thWords = await searchWordsInLexicon('a', 'omw-th:1.4');
+          results += `Thai words: ${thWords.length} found\n`;
+        } catch (e) {
+          results += `Thai words: Not available\n`;
+        }
+        
+        const totalWords = (enWords as any[]).length + frWords.length + thWords.length;
+        results += `Total words: ${totalWords}\n`;
+        
+        if (totalWords > 0) {
+          // Show samples from each language
+          if ((enWords as any[]).length > 0) {
+            const sample = (enWords as any[]).slice(0, 3);
+            results += `  English sample: ${sample.map(w => `${w.lemma}(${w.lexicon})`).join(', ')}\n`;
+          }
+          if (frWords.length > 0) {
+            const sample = frWords.slice(0, 3);
+            results += `  French sample: ${sample.map(w => `${w.lemma}(${w.lexicon})`).join(', ')}\n`;
+          }
+          if (thWords.length > 0) {
+            const sample = thWords.slice(0, 3);
+            results += `  Thai sample: ${sample.map(w => `${w.lemma}(${w.lexicon})`).join(', ')}\n`;
+          }
         }
       } catch (e) {
         results += `Words table check failed: ${e instanceof Error ? e.message : String(e)}\n`;
@@ -783,13 +787,32 @@ export const BilingualDictionary: React.FC = () => {
       // Check if we can find any non-English words
       results += '🌍 MULTILINGUAL CHECK:\n';
       try {
-        const allWords = await queryWords('a');
-        const nonEn = (allWords as any[]).filter(w => w.language !== 'en');
-        results += `Non-English words: ${nonEn.length} found\n`;
-        if (nonEn.length > 0) {
-          const sample = nonEn.slice(0, 10);
-          results += `  Sample: ${sample.map(w => `${w.lemma}(${w.language}/${w.lexicon})`).join(', ')}\n`;
-        } else {
+        // Check each language individually
+        let totalNonEn = 0;
+        
+        // Check French words
+        try {
+          const frWords = await searchWordsInLexicon('a', 'omw-fr:1.4');
+          const frNonEn = (frWords as any[]).filter(w => w.language !== 'en');
+          totalNonEn += frNonEn.length;
+          results += `French non-English words: ${frNonEn.length} found\n`;
+        } catch (e) {
+          results += `French words: Not available\n`;
+        }
+        
+        // Check Thai words
+        try {
+          const thWords = await searchWordsInLexicon('a', 'omw-th:1.4');
+          const thNonEn = (thWords as any[]).filter(w => w.language !== 'en');
+          totalNonEn += thNonEn.length;
+          results += `Thai non-English words: ${thNonEn.length} found\n`;
+        } catch (e) {
+          results += `Thai words: Not available\n`;
+        }
+        
+        results += `Total non-English words: ${totalNonEn} found\n`;
+        
+        if (totalNonEn === 0) {
           results += `  No non-English words found - this explains why cross-lingual queries fail!\n`;
         }
       } catch (e) {

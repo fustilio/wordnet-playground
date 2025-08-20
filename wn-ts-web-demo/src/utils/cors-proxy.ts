@@ -5,6 +5,10 @@
  * WordNet data from external sources in the browser demo.
  */
 
+import { createScopedLogger } from 'utils/logger';
+
+const logger = createScopedLogger('CorsProxy');
+
 export interface ProxyConfig {
   enabled: boolean;
   baseUrl: string;
@@ -133,11 +137,22 @@ export function createProxiedFetch(config: ProxyConfig = defaultProxyConfig) {
   return async (url: string, options?: RequestInit): Promise<Response> => {
     const proxyUrl = toProxyUrl(url, config);
     
-    if (proxyUrl !== url) {
-      console.log(`🔄 Proxying request: ${url} -> ${proxyUrl}`);
-    }
+    // Log the proxying action
+    logger.debug(`Proxying request: ${url} -> ${proxyUrl}`);
     
-    return fetch(proxyUrl, options);
+    try {
+      const response = await fetch(proxyUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/xml, text/xml, */*',
+          'User-Agent': 'WordNet-Demo/1.0'
+        }
+      });
+      return response;
+    } catch (error) {
+      logger.error(`Error proxying request: ${url} -> ${proxyUrl}`, error);
+      throw error;
+    }
   };
 }
 

@@ -270,14 +270,10 @@ export class WordNetOrchestrator {
         needsRedownload: false
       });
 
-      // Update the WebWordnet instance's lexicon ID to match the actual loaded package
-      // This ensures that queries use the correct lexicon ID that matches the database
-      if (this.wordnet) {
-        // The actual lexicon ID in the database is "oewn", not the package ID "oewn:2019"
-        // We need to extract the base lexicon ID from the package ID
-        const actualLexiconId = lexiconId.split(':')[0]; // "oewn:2019" -> "oewn"
-        (this.wordnet as any).updateLexiconId(actualLexiconId);
-      }
+      // The WebWordnet instance now supports multiple lexicons natively
+      // No need to manipulate lexicon IDs - just track the state
+      logger.info(`✅ Lexicon ${lexiconId} loaded successfully`);
+      
     } catch (error) {
       // Update state to error
       this.updateLexiconState(lexiconId, {
@@ -491,9 +487,9 @@ export class WordNetOrchestrator {
     }
   }
 
-  // Private helper methods
+  // Helper methods
 
-  private updateLexiconState(lexiconId: string, updates: Partial<LexiconState>): void {
+  updateLexiconState(lexiconId: string, updates: Partial<LexiconState>): void {
     const current = this.lexiconStates.get(lexiconId) || {
       id: lexiconId,
       version: lexiconId.split(':')[1] || 'unknown',

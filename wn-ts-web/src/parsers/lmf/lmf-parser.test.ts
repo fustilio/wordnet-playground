@@ -10,6 +10,7 @@ vi.mock('utils/logger', () => ({
     warn: vi.fn(),
     log: vi.fn(),
   }),
+  setGlobalLogLevel: vi.fn(),
 }));
 
 describe('LmfParser', () => {
@@ -138,7 +139,7 @@ describe('LmfParser', () => {
         </LexicalResource>
       `;
       
-      parser = new LmfParser(xmlText, { debug: false });
+      parser = new LmfParser(xmlText, { debug: true });
       const result = await parser.parse(xmlText);
 
       expect(result.synsets).toBeDefined();
@@ -319,10 +320,21 @@ describe('LmfParser', () => {
                   getAttribute: (attrName: string) => {
                     const attr = [{ name: 'id', value: 'test' }, { name: 'label', value: 'Test Lexicon' }, { name: 'language', value: 'en' }].find(a => a.name === attrName);
                     return attr ? attr.value : null;
+                  },
+                  querySelectorAll: (selector: string) => {
+                    // Mock querySelectorAll to return empty array for any selector
+                    return [];
                   }
                 }
               ],
-              textContent: 'test'
+              textContent: 'test',
+              getAttribute: (attrName: string) => {
+                // Mock getAttribute for the root element
+                if (attrName === 'lmfVersion') {
+                  return '1.0';
+                }
+                return null;
+              }
             },
             getElementsByTagName: (tag: string) => []
           };

@@ -87,6 +87,16 @@ The new architecture operates at three distinct abstraction levels:
 - **After**: Coordinated resource usage with queuing and concurrency control
 - **Benefit**: Better memory management, controlled concurrent operations
 
+### 5. Resource Type Introspection
+- **Before**: No distinction between lexicons and ILIs
+- **After**: Automatic detection and categorization of resource types
+- **Benefit**: Better understanding of resource capabilities, optimized query strategies, improved user experience
+
+### 6. Cross-Lingual Analysis
+- **Before**: Manual analysis of multilingual capabilities
+- **After**: Automated analysis of cross-lingual mapping coverage and quality
+- **Benefit**: Data-driven decisions about resource usage, quality assessment, coverage analysis
+
 ## Usage Examples
 
 ### Basic Orchestrator Usage
@@ -162,6 +172,128 @@ await orchestrator.ensureLexiconLoaded('oewn:2024');
 // Use orchestrator for cross-lexicon queries
 const results = await orchestrator.queryWords('example');
 ```
+
+## Resource Introspection and Type Detection
+
+The new architecture provides comprehensive introspection capabilities to understand resource types and capabilities:
+
+### **Resource Type Classification**
+
+The system automatically detects and categorizes resources into three main types:
+
+#### **1. Lexicons (Language-Specific)**
+- **Purpose**: Contain actual words, synsets, and definitions in specific languages
+- **Examples**: `oewn:2024` (English), `omw-fr:1.4` (French), `omw-th:1.4` (Thai)
+- **Structure**: Words, synsets, senses, definitions, relations
+- **Use Case**: Direct language queries, word lookups, semantic analysis
+
+#### **2. ILIs (Interlingual Indexes)**
+- **Purpose**: Provide cross-lingual mapping between synsets across languages
+- **Examples**: `cili:1.0` (Collaborative Interlingual Index)
+- **Structure**: ILI identifiers, cross-lingual mappings, concept bridges
+- **Use Case**: Bilingual queries, cross-language concept mapping, multilingual applications
+
+#### **3. Mixed Resources**
+- **Purpose**: Resources that combine lexicon and ILI functionality
+- **Examples**: Some specialized WordNet variants
+- **Structure**: Combination of both lexicon and ILI structures
+- **Use Case**: Advanced multilingual applications requiring both capabilities
+
+### **Introspection API**
+
+```typescript
+// Basic resource introspection
+const oewnInfo = await orchestrator.introspectLexicon('oewn:2024');
+console.log('Type:', oewnInfo.type); // 'lexicon'
+console.log('Word count:', oewnInfo.wordCount);
+console.log('Has ILI mappings:', oewnInfo.hasILIMappings);
+
+const ciliInfo = await orchestrator.introspectLexicon('cili:1.0');
+console.log('Type:', ciliInfo.type); // 'ili'
+console.log('ILI count:', ciliInfo.iliCount);
+console.log('Cross-lingual links:', ciliInfo.crossLingualLinks);
+
+// Resource categorization
+const categorized = await orchestrator.categorizeResources();
+console.log('Lexicons:', categorized.lexicons.length);
+console.log('ILIs:', categorized.ilis.length);
+console.log('Mixed:', categorized.mixed.length);
+
+// Cross-lingual analysis
+const analysis = await orchestrator.analyzeCrossLingualCapabilities();
+console.log('Supported languages:', analysis.supportedLanguages);
+console.log('Concept coverage:', analysis.conceptCoverage);
+console.log('Mapping quality:', analysis.mappingQuality);
+```
+
+### **Automatic Type Detection**
+
+The system automatically detects resource types based on their structure and content:
+
+```typescript
+// Automatic detection
+const resourceType = await orchestrator.detectResourceType('cili:1.0');
+// Returns: { 
+//   type: 'ili', 
+//   hasCrossLingualMappings: true, 
+//   supportedLanguages: ['en', 'fr', 'th'],
+//   mappingConfidence: 0.95
+// }
+
+// Resource compatibility checking
+const compatibility = await orchestrator.checkResourceCompatibility(['oewn:2024', 'omw-fr:1.4']);
+if (compatibility.compatible) {
+  console.log('Resources are compatible for cross-lingual operations');
+} else {
+  console.warn('Compatibility issues:', compatibility.conflicts);
+}
+```
+
+### **Cross-Lingual Analysis**
+
+Advanced analysis of multilingual capabilities and mapping coverage:
+
+```typescript
+interface CrossLingualAnalysis {
+  // Language coverage
+  supportedLanguages: string[];
+  primaryLanguage: string;
+  
+  // Cross-lingual mapping coverage
+  totalILIMappings: number;
+  languagePairCoverage: Record<string, Record<string, number>>;
+  
+  // Concept coverage analysis
+  conceptCoverage: {
+    total: number;
+    fullyMapped: number; // Available in all languages
+    partiallyMapped: number; // Available in some languages
+    unmapped: number; // Only available in one language
+  };
+  
+  // Quality metrics
+  mappingQuality: {
+    averageConfidence: number;
+    verifiedMappings: number;
+    unverifiedMappings: number;
+  };
+}
+
+// Get comprehensive analysis
+const analysis = await orchestrator.analyzeCrossLingualCapabilities();
+console.log('Total concepts:', analysis.conceptCoverage.total);
+console.log('Fully mapped concepts:', analysis.conceptCoverage.fullyMapped);
+console.log('Average mapping confidence:', analysis.mappingQuality.averageConfidence);
+```
+
+### **Benefits of Introspection**
+
+1. **Resource Understanding**: Applications can understand what each resource provides
+2. **Optimized Queries**: Choose the right resource type for specific operations
+3. **Quality Assessment**: Evaluate the quality and coverage of cross-lingual mappings
+4. **User Experience**: Provide better feedback about available features and capabilities
+5. **Resource Planning**: Make informed decisions about which resources to load
+6. **Compatibility Checking**: Ensure resources work together effectively
 
 ## Migration Guide
 

@@ -3,6 +3,7 @@ import { WebWordnet } from '../src/client/submodules/web-wordnet.js';
 import { WordNetEvents } from '../src/event-emitter.js';
 import { mockSqliteWasm } from './setup.js';
 import type { Sqlite3Static } from '@sqlite.org/sqlite-wasm';
+import type { PartOfSpeech } from 'wn-ts-core';
 
 // Create a stateful in-memory database for functional testing
 const memoryDb = {
@@ -98,9 +99,194 @@ describe('WebWordnet Functional Tests', () => {
   });
 
   afterEach(async () => {
-    if ((wordnet as any).initialized) {
+    if (wordnet) {
       await wordnet.close();
     }
+  });
+
+  describe('Multi-lexicon support', () => {
+    it('should handle single lexicon string in constructor', () => {
+      const singleLexiconWordnet = new WebWordnet('oewn:2024');
+      expect(singleLexiconWordnet.getLexiconIds()).toEqual(['oewn:2024']);
+    });
+
+    it('should handle multiple lexicons array in constructor', () => {
+      const multiLexiconWordnet = new WebWordnet(['oewn:2024', 'omw-fr:1.4', 'cili:1.0']);
+      expect(multiLexiconWordnet.getLexiconIds()).toEqual(['oewn:2024', 'omw-fr:1.4', 'cili:1.0']);
+      expect(multiLexiconWordnet.getLexiconIds()).toHaveLength(3);
+    });
+
+    it('should handle wildcard lexicon specifier', () => {
+      const wildcardWordnet = new WebWordnet('*');
+      expect(wildcardWordnet.getLexiconIds()).toEqual(['*']);
+    });
+
+    it('should handle expand options correctly', () => {
+      const expandedWordnet = new WebWordnet('oewn:2024', {
+        expand: ['omw-fr:1.4', 'cili:1.0']
+      });
+      // Note: expand is not directly accessible, but we can test the constructor accepts it
+      expect(expandedWordnet).toBeDefined();
+    });
+  });
+
+  describe('Special lexicon presets', () => {
+    it('should support English-Thai dictionary preset', () => {
+      const enThWordnet = new WebWordnet('en-th');
+      expect(enThWordnet.getLexiconIds()).toEqual(['oewn:2024', 'omw-th:1.4', 'cili:1.0']);
+      expect(enThWordnet.getLexiconIds()).toContain('oewn:2024');
+      expect(enThWordnet.getLexiconIds()).toContain('omw-th:1.4');
+      expect(enThWordnet.getLexiconIds()).toContain('cili:1.0');
+    });
+
+    it('should support English-French dictionary preset', () => {
+      const enFrWordnet = new WebWordnet('en-fr');
+      expect(enFrWordnet.getLexiconIds()).toEqual(['oewn:2024', 'omw-fr:1.4', 'cili:1.0']);
+      expect(enFrWordnet.getLexiconIds()).toContain('oewn:2024');
+      expect(enFrWordnet.getLexiconIds()).toContain('omw-fr:1.4');
+      expect(enFrWordnet.getLexiconIds()).toContain('cili:1.0');
+    });
+
+    it('should support English-German dictionary preset', () => {
+      const enDeWordnet = new WebWordnet('en-de');
+      expect(enDeWordnet.getLexiconIds()).toEqual(['oewn:2024', 'odenet:1.4', 'cili:1.0']);
+      expect(enDeWordnet.getLexiconIds()).toContain('oewn:2024');
+      expect(enDeWordnet.getLexiconIds()).toContain('odenet:1.4');
+      expect(enDeWordnet.getLexiconIds()).toContain('cili:1.0');
+    });
+
+    it('should support multilingual preset', () => {
+      const multilingualWordnet = new WebWordnet('multilingual');
+      expect(multilingualWordnet.getLexiconIds()).toEqual(['omw:1.4', 'cili:1.0']);
+      expect(multilingualWordnet.getLexiconIds()).toContain('omw:1.4');
+      expect(multilingualWordnet.getLexiconIds()).toContain('cili:1.0');
+    });
+
+    it('should handle custom lexicon specifiers', () => {
+      const customWordnet = new WebWordnet('custom:lexicon:1.0');
+      expect(customWordnet.getLexiconIds()).toEqual(['custom:lexicon:1.0']);
+    });
+  });
+
+  describe('Multi-lexicon query support', () => {
+    it('should support lexicon filtering in WordQuery', async () => {
+      const query = {
+        form: 'happy',
+        pos: 'a' as PartOfSpeech,
+        lexicon: ['oewn:2024', 'omw-fr:1.4'],
+        lang: 'en'
+      };
+
+      expect(query.lexicon).toEqual(['oewn:2024', 'omw-fr:1.4']);
+      expect(Array.isArray(query.lexicon)).toBe(true);
+      expect(query.lexicon).toHaveLength(2);
+
+      // Test that the query can be passed to the words method
+      await expect(wordnet.words(query)).resolves.toBeDefined();
+    });
+
+    it('should support single lexicon in WordQuery', async () => {
+      const query = {
+        form: 'happy',
+        pos: 'a' as PartOfSpeech,
+        lexicon: 'oewn:2024',
+        lang: 'en'
+      };
+
+      expect(query.lexicon).toBe('oewn:2024');
+      expect(typeof query.lexicon).toBe('string');
+
+      // Test that the query can be passed to the words method
+      await expect(wordnet.words(query)).resolves.toBeDefined();
+    });
+
+    it('should support lexicon filtering in SynsetQuery', async () => {
+      const query = {
+        form: 'happiness',
+        pos: 'n' as PartOfSpeech,
+        lexicon: ['oewn:2024', 'cili:1.0'],
+        lang: 'en'
+      };
+
+      expect(query.lexicon).toEqual(['oewn:2024', 'cili:1.0']);
+      expect(Array.isArray(query.lexicon)).toBe(true);
+
+      // Test that the query can be passed to the synsets method
+      await expect(wordnet.synsets(query)).resolves.toBeDefined();
+    });
+
+    it('should support lexicon filtering in SenseQuery', async () => {
+      const query = {
+        form: 'happy',
+        pos: 'a' as PartOfSpeech,
+        lexicon: ['oewn:2024', 'omw-fr:1.4', 'cili:1.0'],
+        lang: 'en',
+        wordIdOrForm: 'w-happy'
+      };
+
+      expect(query.lexicon).toEqual(['oewn:2024', 'omw-fr:1.4', 'cili:1.0']);
+      expect(Array.isArray(query.lexicon)).toBe(true);
+      expect(query.lexicon).toHaveLength(3);
+
+      // Test that the query can be passed to the senses method
+      await expect(wordnet.senses(query)).resolves.toBeDefined();
+    });
+
+    it('should handle undefined lexicon in queries', async () => {
+      const query = {
+        form: 'happy',
+        pos: 'a' as PartOfSpeech,
+        lexicon: undefined,
+        lang: 'en'
+      };
+
+      expect(query.lexicon).toBeUndefined();
+
+      // Test that the query can be passed to the words method
+      await expect(wordnet.words(query)).resolves.toBeDefined();
+    });
+  });
+
+  describe('Lexicon management', () => {
+    it('should add new lexicons dynamically', () => {
+      const multiLexiconWordnet = new WebWordnet(['oewn:2024']);
+      expect(multiLexiconWordnet.getLexiconIds()).toEqual(['oewn:2024']);
+
+      multiLexiconWordnet.addLexicon('omw-fr:1.4');
+      expect(multiLexiconWordnet.getLexiconIds()).toEqual(['oewn:2024', 'omw-fr:1.4']);
+
+      multiLexiconWordnet.addLexicon('cili:1.0');
+      expect(multiLexiconWordnet.getLexiconIds()).toEqual(['oewn:2024', 'omw-fr:1.4', 'cili:1.0']);
+    });
+
+    it('should not add duplicate lexicons', () => {
+      const multiLexiconWordnet = new WebWordnet(['oewn:2024']);
+      expect(multiLexiconWordnet.getLexiconIds()).toEqual(['oewn:2024']);
+
+      multiLexiconWordnet.addLexicon('oewn:2024');
+      expect(multiLexiconWordnet.getLexiconIds()).toEqual(['oewn:2024']);
+
+      multiLexiconWordnet.addLexicon('omw-fr:1.4');
+      expect(multiLexiconWordnet.getLexiconIds()).toEqual(['oewn:2024', 'omw-fr:1.4']);
+
+      multiLexiconWordnet.addLexicon('omw-fr:1.4');
+      expect(multiLexiconWordnet.getLexiconIds()).toEqual(['oewn:2024', 'omw-fr:1.4']);
+    });
+
+    it('should get primary lexicon ID', () => {
+      const multiLexiconWordnet = new WebWordnet(['oewn:2024', 'omw-fr:1.4', 'cili:1.0']);
+      expect(multiLexiconWordnet.getPrimaryLexiconId()).toBe('oewn:2024');
+    });
+
+    it('should get primary lexicon ID for single lexicon', () => {
+      const singleLexiconWordnet = new WebWordnet('oewn:2024');
+      expect(singleLexiconWordnet.getPrimaryLexiconId()).toBe('oewn:2024');
+    });
+
+    it('should get primary lexicon ID for wildcard', () => {
+      const wildcardWordnet = new WebWordnet('*');
+      expect(wildcardWordnet.getPrimaryLexiconId()).toBe('*');
+    });
   });
 
   describe('Initialization', () => {
@@ -165,7 +351,7 @@ describe('WebWordnet Functional Tests', () => {
       const eventedWordnet = new WebWordnet('oewn:2024');
       eventedWordnet.on(WordNetEvents.INITIALIZED, initSpy);
       await eventedWordnet.initialize(sqlModule);
-      expect(initSpy).toHaveBeenCalledWith({ lexicon: 'oewn:2024' });
+      expect(initSpy).toHaveBeenCalledWith({ lexicons: ['oewn:2024'] });
     });
   });
 });

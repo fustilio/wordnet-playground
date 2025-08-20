@@ -11,8 +11,7 @@ export { createWebWordnet, createDataLoader, createWordNetInstance } from './fac
 export { WebWordnet } from './client/submodules/web-wordnet.js';
 export { WebDatabase } from './client/submodules/web-database.js';
 export { DataLoader } from './data-loader.js';
-export { OPFSManager } from './opfs-manager.js';
-export { DataManager } from './data-manager.js';
+
 
 // Orchestration and worker exports
 export { WordNetOrchestrator } from './workers/wordnet-orchestrator.js';
@@ -32,6 +31,8 @@ export type { WordNetWorkerAPI } from './workers/type.js';
 
 // Worker factory exports (framework-agnostic)
 export { createWordNetWorker } from './client/utils/worker-factory.js';
+export { parsePackageId, formatPackageId, isValidPackageId, getPackageBase, getPackageVersion } from 'wn-ts-core';
+export type { PackageIdParts } from 'wn-ts-core';
 
 // React hooks and types (framework-specific)
 export type {
@@ -53,7 +54,15 @@ export type {
   DataSourceInfo,
   IntegrityInfo,
   WordNetState,
-  ProgressCallback
+  ProgressCallback,
+  // Lexicon introspection types
+  LexiconIntrospection,
+  ResourceTypeInfo,
+  CategorizedResources,
+  CrossLingualAnalysis,
+  MappingCoverage,
+  IntegrityReport,
+  CompatibilityReport
 } from './react/hooks/useWordNet.js';
 
 // Note: React hooks are not exported here to keep wn-ts-web framework-agnostic
@@ -131,19 +140,7 @@ export function getProjectDetails(projectId: string): ProjectInfo | null {
   };
 }
 
-// Export OPFS and data management types
-export type { 
-  OPFSStorageInfo,
-  DownloadProgress,
-  DownloadOptions,
-  OPFSFileInfo
-} from './opfs-manager.js';
 
-export type {
-  DatabaseStatistics,
-  ExportOptions,
-  CleanupOptions
-} from './data-manager.js';
 
 // Export Kysely-related functionality
 export { KyselyQueryService } from './database/kysely-query-service.js';

@@ -30,10 +30,8 @@ export interface LMFDocument {
 export interface LMFLoadOptions {
   progress?: (progress: number) => void;
   debug?: boolean; // Add debug flag to control logging
+  strictForeignKeys?: boolean; // If false, include all senses even with invalid references (for testing)
 }
-
-// Supported LMF versions
-const SUPPORTED_VERSIONS = new Set(['1.0', '1.1', '1.2', '1.3', '1.4']);
 
 /**
  * Common LMF Parser Interface

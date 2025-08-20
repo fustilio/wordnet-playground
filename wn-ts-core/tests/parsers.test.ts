@@ -4,7 +4,6 @@ import {
   getParser, 
   getParserNames, 
   getAllParserInfo,
-  PARSER_REGISTRY,
   getRecommendedParsers,
   getParsersByCategory,
   getDefaultParser
@@ -75,15 +74,9 @@ describe('LMF Parsers Module', () => {
     expect(result.senses).toBeDefined();
   });
 
-  it('should parse with legacy parser', async () => {
+  it('should throw error for legacy parser in core (deprecated function)', async () => {
     const parser = getParser('legacy');
-    const result = await parser.parse(sampleFile);
-    
-    expect(result.lmfVersion).toBe('1.0');
-    expect(result.lexicons.length).toBe(1);
-    expect(result.words.length).toBe(2);
-    expect(result.synsets.length).toBe(1);
-    expect(result.senses.length).toBe(2);
+    await expect(parser.parse(sampleFile)).rejects.toThrow('parseLMFXML is deprecated. Use a specific parser implementation instead.');
   });
 
   it('should throw an error for full streaming parser in core', async () => {

@@ -1,53 +1,80 @@
 import React, { createContext, useContext, type ReactNode } from 'react';
 import { useWordNet } from '../hooks/useWordNet';
-import type { WordNetState } from '../hooks/useWordNet';
+import type { 
+	WordNetState,
+	WordQueryResult,
+	SynsetQueryResult,
+	SenseInfo,
+	DefinitionInfo,
+	WordInfo,
+	MemoryQueryTestResult,
+	CacheInfo,
+	ProgressCallback,
+	LexiconIntrospection,
+	ResourceTypeInfo,
+	CategorizedResources,
+	CrossLingualAnalysis,
+	MappingCoverage,
+	IntegrityReport,
+	CompatibilityReport
+} from '../hooks/useWordNet';
+import type { LexiconInfo } from '../../';
 import { useWordNetConfig } from './WordNetConfigContext';
 
 interface WordNetContextValue extends WordNetState {
-  loadPackageData: (packageId: string, progress?: (progress: number) => void) => Promise<void>;
-  loadDemoData: (progress?: (progress: number) => void) => Promise<void>;
-  queryWords: (term: string) => Promise<unknown[]>;
-  querySynsets: (term: string) => Promise<unknown[]>;
-  querySenses: (term: string) => Promise<any[]>;
-  unloadData: () => Promise<void>;
-  refreshPackages: () => Promise<void>;
-  getLexiconInfo: (id?: string) => any[] | undefined;
-  getCurrentLexicons: () => any[];
-  testMemoryQueries: () => Promise<any>;
-  // New helpers for bilingual flows
-  getSensesByWordIdOrForm: (wordIdOrForm: string) => Promise<any[]>;
-  getWordsBySynsetAndLanguage: (synsetId: string, language: string) => Promise<any[]>;
-  getDefinitionsBySynsetId: (synsetId: string) => Promise<any[]>;
-  getSynsetById: (synsetId: string) => Promise<any | undefined>;
-  getWordsByIliAndLanguage: (ili: string, language: string) => Promise<any[]>;
-  getWordsByIliAndLexiconPrefix: (ili: string, lexiconPrefix: string) => Promise<any[]>;
-  searchWordsInLexicon: (term: string, lexicon: string, language?: string) => Promise<any[]>;
-  // Data management
-  clearCacheAndUnload: () => Promise<void>;
-  getCacheInfo: () => Promise<any>;
+	loadPackageData: (packageId: string, progress?: ProgressCallback) => Promise<void>;
+	loadDemoData: (progress?: ProgressCallback) => Promise<void>;
+	queryWords: (term: string) => Promise<WordQueryResult[]>;
+	querySynsets: (term: string) => Promise<SynsetQueryResult[]>;
+	querySenses: (term: string) => Promise<SenseInfo[]>;
+	unloadData: () => Promise<void>;
+	refreshPackages: () => Promise<void>;
+	getLexiconInfo: (id?: string) => LexiconInfo[] | undefined;
+	getCurrentLexicons: () => LexiconInfo[];
+	testMemoryQueries: () => Promise<MemoryQueryTestResult>;
+	// New helpers for bilingual flows
+	getSensesByWordIdOrForm: (wordIdOrForm: string) => Promise<SenseInfo[]>;
+	getWordsBySynsetAndLanguage: (synsetId: string, language: string) => Promise<WordInfo[]>;
+	getDefinitionsBySynsetId: (synsetId: string) => Promise<DefinitionInfo[]>;
+	getSynsetById: (synsetId: string) => Promise<SynsetQueryResult | undefined>;
+	getWordsByIliAndLanguage: (ili: string, language: string) => Promise<WordInfo[]>;
+	getWordsByIliAndLexiconPrefix: (ili: string, lexiconPrefix: string) => Promise<WordInfo[]>;
+	searchWordsInLexicon: (term: string, lexicon: string, language?: string) => Promise<WordQueryResult[]>;
+	// Data management
+	clearCacheAndUnload: () => Promise<void>;
+	getCacheInfo: () => Promise<CacheInfo>;
+	// Lexicon introspection and resource analysis
+	introspectLexicon: (lexiconId: string) => Promise<LexiconIntrospection>;
+	introspectAllResources: () => Promise<LexiconIntrospection[]>;
+	detectResourceType: (lexiconId: string) => Promise<ResourceTypeInfo>;
+	categorizeResources: () => Promise<CategorizedResources>;
+	analyzeCrossLingualCapabilities: () => Promise<CrossLingualAnalysis>;
+	getCrossLingualMappingCoverage: () => Promise<MappingCoverage>;
+	validateResourceIntegrity: (lexiconId: string) => Promise<IntegrityReport>;
+	checkResourceCompatibility: (lexiconIds: string[]) => Promise<CompatibilityReport>;
 }
 
 const WordNetContext = createContext<WordNetContextValue | null>(null);
 
 interface WordNetProviderProps {
-  children: ReactNode;
+	children: ReactNode;
 }
 
 export const WordNetProvider: React.FC<WordNetProviderProps> = ({ children }) => {
-  const config = useWordNetConfig();
-  const wordNetService = useWordNet(config);
+	const config = useWordNetConfig();
+	const wordNetService = useWordNet(config);
 
-  return (
-    <WordNetContext.Provider value={wordNetService}>
-      {children}
-    </WordNetContext.Provider>
-  );
+	return (
+		<WordNetContext.Provider value={wordNetService}>
+			{children}
+		</WordNetContext.Provider>
+	);
 };
 
 export const useWordNetContext = (): WordNetContextValue => {
-  const context = useContext(WordNetContext);
-  if (!context) {
-    throw new Error('useWordNetContext must be used within a WordNetProvider');
-  }
-  return context;
+	const context = useContext(WordNetContext);
+	if (!context) {
+		throw new Error('useWordNetContext must be used within a WordNetProvider');
+	}
+	return context;
 };

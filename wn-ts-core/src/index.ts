@@ -20,6 +20,10 @@ export { logger, Logger, LogLevel } from './utils/logger.js';
 // Archive utilities (environment-agnostic)
 export { extractTarArchive, decompressXz, decompressGz, findLMFiles } from './utils/archive.js';
 
+// Package ID utilities (environment-agnostic)
+export { parsePackageId, formatPackageId, isValidPackageId, getPackageBase, getPackageVersion } from './utils/package-id.js';
+export type { PackageIdParts } from './utils/package-id.js';
+
 // Data management functions - environment-agnostic
 export {
   download,
@@ -92,6 +96,9 @@ export {
 // LMF Parsers module (environment-agnostic)
 export * from './parsers/index.js';
 export { parseLMFXML, diagnoseDownloadIssue, analyzeXMLContent } from './lmf.js';
+
+// LMF Validation system (environment-agnostic)
+export * from './validation.js';
 
 // Database interface (environment-agnostic)
 export * from './db/interface.js';

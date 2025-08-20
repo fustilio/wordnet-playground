@@ -4,12 +4,9 @@
  * This parser uses file streams to parse large LMF files without loading
  * the entire file into memory.
  */
-import fs from 'fs';
 import sax from 'sax';
 import type { LMFParser, LMFDocument, LMFLoadOptions } from 'wn-ts-core';
 import type { Synset, Word, Sense, Lexicon } from 'wn-ts-core';
-
-const { createReadStream } = fs;
 
 /**
  * Streaming SAX parser for memory-efficient parsing of large LMF files
@@ -38,7 +35,9 @@ export class StreamingSaxParser implements LMFParser {
       let currentLexicon: Lexicon | null = null;
       let currentEntry: Word | null = null;
       let currentSynset: Synset | null = null;
+      let currentSense: Sense | null = null;
       let elementCount = 0;
+      let lastProgressUpdate = 0;
       
       const parser = sax.createStream(true, {
         trim: true,
@@ -48,8 +47,18 @@ export class StreamingSaxParser implements LMFParser {
         xmlns: false,
       });
       
+      // Helper function to update progress periodically
+      const updateProgress = () => {
+        if (progress && elementCount - lastProgressUpdate >= 100) {
+          const progressValue = Math.min(0.9, elementCount / 10000); // Estimate progress
+          progress(progressValue);
+          lastProgressUpdate = elementCount;
+        }
+      };
+      
       parser.on('opentag', (node) => {
         elementCount++;
+        updateProgress();
         
         if (debug && elementCount % 10000 === 0) {
           console.log(`[DEBUG] ${this.name}: Processed ${elementCount} elements`);
@@ -126,8 +135,37 @@ export class StreamingSaxParser implements LMFParser {
             }
             break;
             
+          case 'Example':
+            if (currentSynset) {
+              const example = {
+                id: getAttr('id') || '',
+                language: getAttr('language') || currentLexicon?.language || 'en',
+                text: '',
+              };
+              currentSynset.examples.push(example);
+            } else if (currentSense) {
+              const example = {
+                id: getAttr('id') || '',
+                language: getAttr('language') || currentLexicon?.language || 'en',
+                text: '',
+              };
+              currentSense.examples.push(example);
+            }
+            break;
+            
+          case 'SynsetRelation':
+            if (currentSynset) {
+              const relation = {
+                id: getAttr('id') || '',
+                type: getAttr('relType') || 'unknown',
+                target: getAttr('target') || '',
+              };
+              currentSynset.relations.push(relation);
+            }
+            break;
+            
           case 'Sense':
-            const sense: Sense = {
+            currentSense = {
               id: getAttr('id') || 'unknown-sense',
               word: currentEntry?.id || 'unknown-word',
               synset: getAttr('synset') || currentSynset?.id || 'unknown-synset',
@@ -135,7 +173,19 @@ export class StreamingSaxParser implements LMFParser {
               examples: [],
               tags: [],
             };
-            senses.push(sense);
+            senses.push(currentSense);
+            break;
+            
+          case 'Count':
+            if (currentSense) {
+              const count = {
+                id: getAttr('id') || '',
+                value: 0, // Will be set in text handler
+                writtenForm: currentEntry?.lemma || 'unknown',
+                pos: currentEntry?.pos || 'n',
+              };
+              currentSense.counts.push(count);
+            }
             break;
         }
       });
@@ -148,13 +198,39 @@ export class StreamingSaxParser implements LMFParser {
             lastDef.text = (lastDef.text + text).trim();
           }
         }
+        
+        // Handle text content for examples
+        if (currentSynset && currentSynset.examples.length > 0) {
+          const lastExample = currentSynset.examples[currentSynset.examples.length - 1];
+          if (lastExample) {
+            lastExample.text = (lastExample.text + text).trim();
+          }
+        }
+        
+        if (currentSense && currentSense.examples.length > 0) {
+          const lastExample = currentSense.examples[currentSense.examples.length - 1];
+          if (lastExample) {
+            lastExample.text = (lastExample.text + text).trim();
+          }
+        }
+        
+        // Handle text content for counts
+        if (currentSense && currentSense.counts.length > 0) {
+          const lastCount = currentSense.counts[currentSense.counts.length - 1];
+          if (lastCount) {
+            const textValue = text.trim();
+            if (textValue) {
+              lastCount.value = parseInt(textValue, 10) || 0;
+            }
+          }
+        }
       });
       
       parser.on('end', () => {
         if (debug) console.log(`[DEBUG] ${this.name}: Found ${elementCount} elements`);
         if (debug) console.log(`[DEBUG] ${this.name}: Parsed ${lexicons.length} lexicons, ${words.length} words, ${synsets.length} synsets, ${senses.length} senses`);
         
-        // Update progress
+        // Final progress update
         if (progress) progress(1.0);
         
         resolve({

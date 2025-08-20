@@ -21,7 +21,11 @@ interface TestResult {
 }
 
 export const SequentialRunner: React.FC = () => {
-  const { wordnet } = useWordNetContext();
+  const { 
+    workerReady, 
+    statistics, 
+    queryWords
+  } = useWordNetContext();
   const [results, setResults] = useState<TestResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [currentStep, setCurrentStep] = useState<string | null>(null);
@@ -31,7 +35,7 @@ export const SequentialRunner: React.FC = () => {
       key: 'init',
       name: 'Initialize WordNet',
       fn: async () => {
-        if (!wordnet) throw new Error('WordNet not initialized');
+        if (!workerReady) throw new Error('WordNet worker not ready');
         return { success: true };
       },
       required: true
@@ -40,17 +44,16 @@ export const SequentialRunner: React.FC = () => {
       key: 'stats',
       name: 'Get Statistics',
       fn: async () => {
-        if (!wordnet) throw new Error('WordNet not initialized');
-        const stats = await wordnet.getStatistics();
-        return stats;
+        if (!workerReady) throw new Error('WordNet worker not ready');
+        return statistics || { message: 'No statistics available' };
       }
     },
     {
       key: 'search',
       name: 'Search for "water"',
       fn: async () => {
-        if (!wordnet) throw new Error('WordNet not initialized');
-        const results = await wordnet?.getQueryService()?.getWords({ form: 'water', searchAllForms: true }) || [];
+        if (!workerReady) throw new Error('WordNet worker not ready');
+        const results = await queryWords('water');
         return results;
       }
     }
@@ -144,7 +147,7 @@ export const SequentialRunner: React.FC = () => {
           <div className="flex space-x-2">
             <button
               onClick={runTests}
-              disabled={isRunning || !wordnet}
+              disabled={isRunning || !workerReady}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
               {isRunning ? 'Running...' : 'Run Tests'}

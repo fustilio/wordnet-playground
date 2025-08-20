@@ -534,6 +534,260 @@ export function useWordNetContext() {
 }
 ```
 
+### Lexicon Introspection and Resource Analysis
+
+The library provides comprehensive introspection capabilities for understanding resource types and capabilities:
+
+```typescript
+import React, { useState, useEffect } from 'react';
+import { useWordNet } from 'wn-ts-web/react';
+
+interface LexiconIntrospection {
+  id: string;
+  label: string;
+  language: string;
+  version: string;
+  type: 'lexicon' | 'ili';
+  wordCount: number;
+  synsetCount: number;
+  senseCount: number;
+  iliCount?: number;
+  hasILIMappings: boolean;
+  crossLingualLinks?: number;
+}
+
+interface CrossLingualAnalysis {
+  supportedLanguages: string[];
+  primaryLanguage: string;
+  totalILIMappings: number;
+  conceptCoverage: {
+    total: number;
+    fullyMapped: number;
+    partiallyMapped: number;
+    unmapped: number;
+  };
+}
+
+function LexiconIntrospectionDemo() {
+  const { 
+    introspectLexicon, 
+    introspectAllResources, 
+    categorizeResources,
+    analyzeCrossLingualCapabilities 
+  } = useWordNet();
+  
+  const [lexiconInfo, setLexiconInfo] = useState<LexiconIntrospection | null>(null);
+  const [allResources, setAllResources] = useState<LexiconIntrospection[]>([]);
+  const [crossLingualAnalysis, setCrossLingualAnalysis] = useState<CrossLingualAnalysis | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleIntrospectLexicon = async (lexiconId: string) => {
+    try {
+      setLoading(true);
+      const info = await introspectLexicon(lexiconId);
+      setLexiconInfo(info);
+      console.log(`${lexiconId} introspection:`, info);
+    } catch (error) {
+      console.error('Introspection failed:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleIntrospectAll = async () => {
+    try {
+      setLoading(true);
+      const [resources, analysis] = await Promise.all([
+        introspectAllResources(),
+        analyzeCrossLingualCapabilities()
+      ]);
+      
+      setAllResources(resources);
+      setCrossLingualAnalysis(analysis);
+      
+      console.log('All resources:', resources);
+      console.log('Cross-lingual analysis:', analysis);
+    } catch (error) {
+      console.error('Full introspection failed:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <h3 className="text-lg font-semibold">Lexicon Introspection</h3>
+      
+      <div className="space-y-4">
+        <div className="flex gap-2">
+          <button 
+            onClick={() => handleIntrospectLexicon('oewn:2024')}
+            disabled={loading}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+          >
+            Introspect OEWN
+          </button>
+          <button 
+            onClick={() => handleIntrospectLexicon('cili:1.0')}
+            disabled={loading}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+          >
+            Introspect CILI
+          </button>
+          <button 
+            onClick={handleIntrospectAll}
+            disabled={loading}
+            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50"
+          >
+            Introspect All Resources
+          </button>
+        </div>
+
+        {loading && <div className="text-gray-600">Loading introspection data...</div>}
+
+        {lexiconInfo && (
+          <div className="border border-gray-200 p-4 rounded-lg bg-gray-50">
+            <h4 className="font-medium text-gray-900 mb-3">
+              Lexicon Info: {lexiconInfo.id}
+            </h4>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="font-medium">Type:</span> 
+                <span className={`ml-2 px-2 py-1 rounded text-xs ${
+                  lexiconInfo.type === 'lexicon' 
+                    ? 'bg-blue-100 text-blue-800' 
+                    : 'bg-green-100 text-green-800'
+                }`}>
+                  {lexiconInfo.type.toUpperCase()}
+                </span>
+              </div>
+              <div><span className="font-medium">Language:</span> {lexiconInfo.language}</div>
+              <div><span className="font-medium">Version:</span> {lexiconInfo.version}</div>
+              <div><span className="font-medium">Words:</span> {lexiconInfo.wordCount.toLocaleString()}</div>
+              <div><span className="font-medium">Synsets:</span> {lexiconInfo.synsetCount.toLocaleString()}</div>
+              <div><span className="font-medium">Senses:</span> {lexiconInfo.senseCount.toLocaleString()}</div>
+              {lexiconInfo.type === 'ili' && (
+                <div><span className="font-medium">ILI Count:</span> {lexiconInfo.iliCount?.toLocaleString()}</div>
+              )}
+              <div><span className="font-medium">Has ILI Mappings:</span> {lexiconInfo.hasILIMappings ? '✅ Yes' : '❌ No'}</div>
+              {lexiconInfo.crossLingualLinks && (
+                <div><span className="font-medium">Cross-lingual Links:</span> {lexiconInfo.crossLingualLinks.toLocaleString()}</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {allResources.length > 0 && (
+          <div className="border border-gray-200 p-4 rounded-lg">
+            <h4 className="font-medium text-gray-900 mb-3">All Resources ({allResources.length})</h4>
+            <div className="space-y-2">
+              {allResources.map((resource) => (
+                <div key={resource.id} className="flex items-center justify-between p-2 bg-white rounded border">
+                  <div>
+                    <span className="font-medium">{resource.id}</span>
+                    <span className={`ml-2 px-2 py-1 rounded text-xs ${
+                      resource.type === 'lexicon' 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : 'bg-green-100 text-green-800'
+                    }`}>
+                      {resource.type}
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-600">
+                    {resource.language} • {resource.wordCount.toLocaleString()} words
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {crossLingualAnalysis && (
+          <div className="border border-gray-200 p-4 rounded-lg bg-blue-50">
+            <h4 className="font-medium text-gray-900 mb-3">Cross-Lingual Analysis</h4>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="font-medium">Supported Languages:</span>
+                <div className="mt-1">
+                  {crossLingualAnalysis.supportedLanguages.map(lang => (
+                    <span key={lang} className="inline-block px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs mr-1 mb-1">
+                      {lang}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div><span className="font-medium">Primary Language:</span> {crossLingualAnalysis.primaryLanguage}</div>
+              <div><span className="font-medium">Total ILI Mappings:</span> {crossLingualAnalysis.totalILIMappings.toLocaleString()}</div>
+              <div><span className="font-medium">Fully Mapped Concepts:</span> {crossLingualAnalysis.conceptCoverage.fullyMapped.toLocaleString()}</div>
+              <div><span className="font-medium">Partially Mapped Concepts:</span> {crossLingualAnalysis.conceptCoverage.partiallyMapped.toLocaleString()}</div>
+              <div><span className="font-medium">Unmapped Concepts:</span> {crossLingualAnalysis.conceptCoverage.unmapped.toLocaleString()}</div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+### Resource Type-Aware Components
+
+Create components that automatically adapt based on resource types:
+
+```typescript
+function ResourceTypeIndicator({ lexiconId }: { lexiconId: string }) {
+  const { introspectLexicon } = useWordNet();
+  const [resourceType, setResourceType] = useState<'lexicon' | 'ili' | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const getResourceType = async () => {
+      try {
+        const info = await introspectLexicon(lexiconId);
+        setResourceType(info.type);
+      } catch (error) {
+        console.error('Failed to get resource type:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getResourceType();
+  }, [lexiconId, introspectLexicon]);
+
+  if (loading) return <div className="text-gray-400">...</div>;
+
+  if (!resourceType) return null;
+
+  const typeConfig = {
+    lexicon: { label: 'Lexicon', color: 'bg-blue-100 text-blue-800', icon: '📚' },
+    ili: { label: 'ILI Index', color: 'bg-green-100 text-green-800', icon: '🌐' }
+  };
+
+  const config = typeConfig[resourceType];
+
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs ${config.color}`}>
+      <span>{config.icon}</span>
+      {config.label}
+    </span>
+  );
+}
+
+// Usage in other components
+function LexiconCard({ lexiconId }: { lexiconId: string }) {
+  return (
+    <div className="border rounded-lg p-4">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="font-medium">{lexiconId}</h3>
+        <ResourceTypeIndicator lexiconId={lexiconId} />
+      </div>
+      {/* Rest of component */}
+    </div>
+  );
+}
+```
+
 ### Usage with Context
 
 ```typescript

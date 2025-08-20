@@ -34,14 +34,15 @@
       "default": "./dist/wn-ts-web-react.mjs"
     },
     "./worker": {
-      "types": "./dist/worker-factory.d.ts",
-      "import": "./dist/worker-factory.mjs",
-      "default": "./dist/worker-factory.mjs"
+      "types": "./dist/wordnet-worker.d.ts",
+      "import": "./dist/wordnet-worker.mjs",
+      "default": "./dist/wordnet-worker.mjs"
     }
   },
   "main": "./dist/wn-ts-web.mjs",
   "types": "./dist/wn-ts-web.d.ts",
   "scripts": {
+    "prebuild": "node ./scripts/build-index.js",
     "bench": "pnpm with-memory-limit vitest --config=vitest.e2e.config.ts bench --run",
     "build": "vite build",
     "build:dev": "vite build --config vite.dev.config.ts",
@@ -68,18 +69,21 @@
     "test:node:fast": "pnpx --node-options=--max-old-space-size=8192 vitest run test/factory.test.ts test/kysely-integration.test.ts test/demo-utils.test.ts",
     "test:ui": "vitest --ui",
     "test:watch": "vitest",
+    "test:lmf": "pnpm test:browser lmf",
     "typecheck": "tsc --noEmit",
     "vitest": "pnpm with-memory-limit vitest run",
     "with-memory-limit": "cross-env NODE_OPTIONS=--max-old-space-size=16384"
   },
   "dependencies": {
     "comlink": "catalog:",
+    "fast-xml-parser": "^5.2.5",
     "kysely": "^0.28.3",
     "kysely-sqlite-builder": "^1.0.0",
     "kysely-wasm": "^1.2.1",
     "pako": "^2.1.0",
     "smol-toml": "^1.4.1",
     "sqlite-wasm-kysely": "^0.3.0",
+    "tar-stream": "^3.1.7",
     "utils": "workspace:*",
     "wn-ts-core": "workspace:*",
     "xz-decompress": "^0.2.3",
@@ -93,6 +97,7 @@
     "@types/pako": "^2.0.3",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@types/tar-stream": "^3.1.4",
     "@typescript-eslint/eslint-plugin": "catalog:",
     "@typescript-eslint/parser": "catalog:",
     "@vitest/browser": "catalog:",
@@ -100,7 +105,6 @@
     "@vitest/ui": "catalog:",
     "cross-env": "catalog:",
     "eslint": "catalog:",
-    "fast-xml-parser": "^5.2.5",
     "playwright": "^1.54.1",
     "prettier": "catalog:",
     "react": "catalog:",

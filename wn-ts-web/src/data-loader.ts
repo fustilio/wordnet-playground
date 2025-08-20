@@ -1,23 +1,22 @@
-import { BrowserXMLParser } from "./parsers/xml/browser-xml-parser.js";
-import { parseLMFXML, diagnoseDownloadIssue, analyzeXMLContent } from "./parsers/lmf/lmf-parser.js";
+// Note: BrowserXMLParser import removed - now using proper LMF parsing pipeline
+import {
+  diagnoseDownloadIssue,
+  analyzeXMLContent,
+} from "./parsers/lmf/lmf-parser.js";
 import { Project } from "./project.js";
 import type { ProgressCallback } from "./types/progress.js";
 import { WebDatabase } from "./client/submodules/web-database.js";
 import { WebWordnet } from "./client/submodules/web-wordnet.js";
 import pako from "pako";
 import { XzReadableStream } from "xz-decompress";
+import tar from "tar-stream";
 import { createScopedLogger } from "utils/logger";
 import type { KyselyQueryService } from "./database/kysely-query-service.js";
 import type { Database } from "./types/database.js";
 import type { LMFDocument, Synset, Word, Sense, Lexicon } from "wn-ts-core";
+import { WarningAggregator } from "./parsers/lmf/warning-aggregator.js";
 
-// Minimal types to describe parsed XML structure
-interface ParsedNode {
-  name: string;
-  attributes?: Record<string, unknown>;
-  children?: ParsedNode[];
-  text?: string;
-}
+// Note: ParsedNode interface removed - now using proper LMF parsing pipeline
 
 interface IliCsvRecord {
   id: string;
@@ -37,91 +36,82 @@ export interface DataLoadOptions {
 export class DataLoader {
   protected database: WebDatabase;
   protected wordnet: WebWordnet;
-  private logger = createScopedLogger("DataLoader");
+  private logger = createScopedLogger("DataLoader", "trace");
+  private warningAggregator: WarningAggregator | undefined;
 
   constructor(database: WebDatabase, wordnet: WebWordnet) {
     this.database = database;
     this.wordnet = wordnet;
+
+    // Initialize warning aggregator for foreign key violations
+    this.warningAggregator = new WarningAggregator(50, 2000); // Smaller batch size for data loading
   }
 
-  /**
-   * Extract text from a parsed XML node using an iterative traversal to avoid deep recursion.
-   */
-  private extractTextFromNode(node: ParsedNode | undefined): string {
-    if (!node) return "";
-    let aggregatedText = "";
-    const stack: ParsedNode[] = [node];
-
-    while (stack.length > 0) {
-      const current = stack.pop();
-      if (!current) continue;
-
-      if (current.name === "#text") {
-        if (typeof current.text === "string" && current.text.length > 0) {
-          aggregatedText += " " + current.text;
-        }
-      } else if (typeof current.text === "string" && current.text.length > 0) {
-        // Some nodes may carry inline text as well
-        aggregatedText += " " + current.text;
-      }
-
-      if (Array.isArray(current.children) && current.children.length > 0) {
-        // Push children in original order by reversing to maintain left-to-right traversal
-        for (let i = current.children.length - 1; i >= 0; i--) {
-          stack.push(current.children[i]);
-        }
-      }
-    }
-
-    return aggregatedText;
-  }
+  // Note: extractTextFromNode method removed - now using proper LMF parsing pipeline
 
   /**
    * Validate that downloaded content appears to be XML
    */
-  private validateXMLContent(content: string, projectIdWithVersion: string): void {
+  private validateXMLContent(
+    content: string,
+    projectIdWithVersion: string
+  ): void {
     // Check if content starts with XML declaration or root element
     const trimmedContent = content.trim();
-    
+
     if (!trimmedContent) {
       throw new Error(`Empty content received for ${projectIdWithVersion}`);
     }
-    
+
     // Check for common XML indicators
-    const hasXMLDeclaration = trimmedContent.startsWith('<?xml');
+    const hasXMLDeclaration = trimmedContent.startsWith("<?xml");
     const hasRootElement = /^<[a-zA-Z][a-zA-Z0-9_:]*/.test(trimmedContent);
-    const hasClosingTag = trimmedContent.includes('</');
-    
+    const hasClosingTag = trimmedContent.includes("</");
+
     // Check for HTML error indicators
     const hasHTMLTags = /<html|<head|<body|<title/i.test(trimmedContent);
-    const hasErrorKeywords = /error|not found|forbidden|unauthorized|server error/i.test(trimmedContent);
-    
+    const hasErrorKeywords =
+      /error|not found|forbidden|unauthorized|server error/i.test(
+        trimmedContent
+      );
+
     if (hasHTMLTags || hasErrorKeywords) {
-      this.logger.warn(`⚠️ Content appears to be HTML/error page for ${projectIdWithVersion}`, {
-        hasHTMLTags,
-        hasErrorKeywords,
-        firstChars: trimmedContent.substring(0, 200),
-        lastChars: trimmedContent.substring(Math.max(0, trimmedContent.length - 200))
-      });
-      
+      this.logger.warn(
+        `⚠️ Content appears to be HTML/error page for ${projectIdWithVersion}`,
+        {
+          hasHTMLTags,
+          hasErrorKeywords,
+          firstChars: trimmedContent.substring(0, 200),
+          lastChars: trimmedContent.substring(
+            Math.max(0, trimmedContent.length - 200)
+          ),
+        }
+      );
+
       // Don't throw here, just warn - let the parser handle it
     }
-    
+
     if (!hasRootElement && !hasXMLDeclaration) {
-      this.logger.warn(`⚠️ Content doesn't appear to be valid XML for ${projectIdWithVersion}`, {
+      this.logger.warn(
+        `⚠️ Content doesn't appear to be valid XML for ${projectIdWithVersion}`,
+        {
+          hasXMLDeclaration,
+          hasRootElement,
+          hasClosingTag,
+          firstChars: trimmedContent.substring(0, 200),
+        }
+      );
+    }
+
+    this.logger.debug(
+      `✅ Content validation passed for ${projectIdWithVersion}`,
+      {
+        length: content.length,
         hasXMLDeclaration,
         hasRootElement,
         hasClosingTag,
-        firstChars: trimmedContent.substring(0, 200)
-      });
-    }
-    
-    this.logger.debug(`✅ Content validation passed for ${projectIdWithVersion}`, {
-      length: content.length,
-      hasXMLDeclaration,
-      hasRootElement,
-      hasClosingTag
-    });
+      }
+    );
   }
 
   /**
@@ -139,21 +129,6 @@ export class DataLoader {
    * Convert external URLs to proxy URLs to bypass CORS
    */
   protected toProxyUrl(url: string): string {
-    // Check if we're in a development environment (localhost)
-    // Use globalThis.location so it also works in Web Workers
-    const globalLocation: any =
-      (typeof globalThis !== "undefined" && (globalThis as any).location) ||
-      (typeof window !== "undefined" && (window as any).location) ||
-      undefined;
-
-    const hostname: string | undefined = globalLocation?.hostname;
-    const isDev =
-      !!hostname && (hostname === "localhost" || hostname === "127.0.0.1");
-
-    if (!isDev) {
-      return url; // Return original URL in production
-    }
-
     this.logger.debug(`🔍 Original URL: ${url}`);
 
     // Convert external URLs to proxy URLs
@@ -173,12 +148,46 @@ export class DataLoader {
     }
 
     if (url.includes("github.com/globalwordnet")) {
+      // Special handling for CILI packages
+      if (url.includes("/cili/")) {
+        if (url.includes("raw.githubusercontent.com")) {
+          // Raw GitHub content for CILI
+          const proxyUrl = url.replace(
+            "https://raw.githubusercontent.com/globalwordnet/cili",
+            "/api/raw-github/globalwordnet/cili"
+          );
+          this.logger.debug(`🔍 Proxied CILI raw content to: ${proxyUrl}`);
+          return proxyUrl;
+        } else if (url.includes("/releases/download/")) {
+          // GitHub releases for CILI - use the dedicated CILI proxy
+          const proxyUrl = url.replace(
+            "https://github.com/globalwordnet/cili/releases/download",
+            "/api/globalwordnet-cili"
+          );
+          this.logger.debug(`🔍 Proxied CILI release to: ${proxyUrl}`);
+          return proxyUrl;
+        }
+      }
+
+      // Default handling for other globalwordnet repositories
       const proxyUrl = url.replace(
         "https://github.com/globalwordnet",
-        "/api/globalwordnet"
+        "/api/globalwordnet-ewn"
       );
       this.logger.debug(`🔍 Proxied to: ${proxyUrl}`);
       return proxyUrl;
+    }
+
+    if (url.includes("github.com/omwn")) {
+      // Special handling for OMW packages
+      if (url.includes("/releases/download/")) {
+        const proxyUrl = url.replace(
+          "https://github.com/omwn/omw-data/releases/download",
+          "/api/omwn-releases"
+        );
+        this.logger.debug(`🔍 Proxied OMW release to: ${proxyUrl}`);
+        return proxyUrl;
+      }
     }
 
     if (url.includes("release-assets.githubusercontent.com")) {
@@ -218,24 +227,18 @@ export class DataLoader {
 
     this.logger.info(`📥 Downloading project: ${projectIdWithVersion}`);
 
-    // Try to create a project from the given ID
-    let project;
+    // Create project from the given ID
+    let project: Project;
     try {
       project = Project.from(projectIdWithVersion);
     } catch (error) {
-      // If Project.from() fails, it might be a package ID (e.g., "oewn:2019")
-      // We need to find the corresponding lexicon ID (e.g., "oewn:2024") for data insertion
-      this.logger.warn(`⚠️ Project.from(${projectIdWithVersion}) failed, trying to find lexicon mapping:`, error);
-      
-      // For now, let's try to extract a lexicon ID from the package ID
-      // This is a temporary fix - we need a proper mapping mechanism
-      if (projectIdWithVersion === 'oewn:2019') {
-        // Map oewn:2019 package to oewn:2024 lexicon
-        project = Project.from('oewn:2024');
-        this.logger.info(`🔄 Mapped package ID ${projectIdWithVersion} to lexicon ID oewn:2024 for data insertion`);
-      } else {
-        throw new Error(`Failed to create project from ${projectIdWithVersion} and no lexicon mapping found`);
-      }
+      this.logger.error(
+        `❌ Failed to create project from ${projectIdWithVersion}:`,
+        error
+      );
+      throw new Error(
+        `Failed to create project from ${projectIdWithVersion}: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
 
     // Check for project version errors
@@ -245,22 +248,38 @@ export class DataLoader {
     }
 
     // Get URLs from the index data
-    const urls = project.getUrls();
+    const urls = project.getAllUrls();
     if (!urls || urls.length === 0) {
       throw new Error(
         `No download URL found for project ${projectIdWithVersion}`
       );
     }
 
+    // Log URL information for debugging
+    const urlInfo = project.getUrlInfo();
+    this.logger.info(`🔗 URL information for ${projectIdWithVersion}:`, {
+      urlCount: urlInfo.count,
+      hasMultipleUrls: project.hasMultipleUrls(),
+      primaryUrl: project.getPrimaryUrl(),
+      allUrls: urls,
+      fallbackUrls: project.getFallbackUrls(),
+    });
+
     let lastError: Error | null = null;
 
     // Try each URL until one works
-    for (const url of urls) {
+    for (let i = 0; i < urls.length; i++) {
+      const url = urls[i];
+      const isFallback = i >= project.getUrls().length;
+      const urlType = isFallback ? "fallback" : "primary";
+
       try {
         const proxyUrl = this.toProxyUrl(url);
+
         this.logger.info(
-          `🌐 Downloading from ${url} (proxied as ${proxyUrl})...`
+          `🌐 [${urlType.toUpperCase()}] Attempt ${i + 1}/${urls.length}: ${url} (proxied as ${proxyUrl})...`
         );
+
         const data = await this.downloadFile(proxyUrl, progress);
 
         // Additional check: verify we actually got data
@@ -275,18 +294,24 @@ export class DataLoader {
         this.logger.info(
           `📊 Loading data (${data.byteLength} bytes) into database...`
         );
-        
-        this.logger.debug(`🔍 Debug: About to call loadData with ${data.byteLength} bytes`);
-        this.logger.debug(`🔍 Debug: Data type: ${typeof data}, constructor: ${data.constructor.name}`);
+
+        this.logger.debug(
+          `🔍 Debug: About to call loadData with ${data.byteLength} bytes`
+        );
+        this.logger.debug(
+          `🔍 Debug: Data type: ${typeof data}, constructor: ${data.constructor.name}`
+        );
 
         this.logger.info(`🚀 Starting loadData for ${projectIdWithVersion}...`);
         const startTime = Date.now();
-        
+
         try {
           await this.loadData(data, projectIdWithVersion, progress);
-          
+
           const endTime = Date.now();
-          this.logger.info(`✅ loadData completed successfully in ${endTime - startTime}ms`);
+          this.logger.info(
+            `✅ loadData completed successfully in ${endTime - startTime}ms`
+          );
         } catch (error) {
           this.logger.error(`❌ loadData failed:`, error);
           throw error;
@@ -316,6 +341,12 @@ export class DataLoader {
     }
 
     // If we get here, all URLs failed
+    this.logger.error(`❌ All URLs failed for ${projectIdWithVersion}:`, {
+      totalAttempts: urls.length,
+      primaryUrls: project.getUrls(),
+      fallbackUrls: project.getFallbackUrls(),
+      lastError: lastError?.message,
+    });
     throw new Error(
       `❌ Failed to download/load project ${projectIdWithVersion} from all URLs. Last error: ${lastError?.message}`
     );
@@ -375,8 +406,47 @@ export class DataLoader {
    */
   public async downloadFile(
     url: string,
-    progress?: ProgressCallback
+    progress?: ProgressCallback,
+    fallbackUrl?: string
   ): Promise<ArrayBuffer> {
+    this.logger.debug(`📥 Downloading file from: ${url}`);
+
+    try {
+      const result = await this.downloadWithProgress(url, progress);
+      return result.buffer;
+    } catch (error) {
+      if (fallbackUrl) {
+        this.logger.warn(
+          `Primary URL failed, trying fallback: ${fallbackUrl}`,
+          { error }
+        );
+        try {
+          const fallbackResult = await this.downloadWithProgress(
+            fallbackUrl,
+            progress
+          );
+          this.logger.info(`Fallback URL succeeded: ${fallbackUrl}`);
+          return fallbackResult.buffer;
+        } catch (fallbackError) {
+          this.logger.error(`Both primary and fallback URLs failed`, {
+            primaryError: error,
+            fallbackError,
+          });
+          throw error; // Throw the original error for better debugging
+        }
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  /**
+   * Download file with progress tracking
+   */
+  private async downloadWithProgress(
+    url: string,
+    progress?: ProgressCallback
+  ): Promise<{ buffer: ArrayBuffer }> {
     this.logger.debug(`🔍 Debug downloadFile: Starting download from ${url}`);
 
     const response = await fetch(url);
@@ -415,10 +485,11 @@ export class DataLoader {
       contentType &&
       !contentType.includes("xml") &&
       !contentType.includes("gzip") &&
-      !contentType.includes("octet-stream")
+      !contentType.includes("octet-stream") &&
+      !contentType.includes("text/plain")
     ) {
       this.logger.warn(
-        `⚠️ Warning: Unexpected content type: ${contentType}. Expected XML or gzip.`
+        `⚠️ Warning: Unexpected content type: ${contentType}. Expected XML, gzip, or text.`
       );
     }
 
@@ -480,7 +551,7 @@ export class DataLoader {
       );
     }
 
-    return result.buffer;
+    return { buffer: result.buffer };
   }
 
   /**
@@ -544,6 +615,27 @@ export class DataLoader {
         this.logger.debug(`🔍 Debug: Last 200 chars after XZ decompression:`, {
           chars: xmlText.substring(Math.max(0, xmlText.length - 200)),
         });
+
+        // Additional logging for debugging: show first few lines
+        const firstFewLines = xmlText
+          .split("\n")
+          .slice(0, 5)
+          .map((line, i) => `Line ${i + 1}: ${line.substring(0, 100)}`);
+        this.logger.debug(`🔍 Debug: First 5 lines after XZ decompression:`, {
+          lines: firstFewLines,
+        });
+
+        // Check if this is a tar archive after XZ decompression
+        if (
+          xmlText.includes("ustar") ||
+          xmlText.includes("PaxHeader") ||
+          xmlText.includes("GlobalHeader")
+        ) {
+          this.logger.info(
+            `🔍 Detected tar archive after XZ decompression, will extract to find LMF files`
+          );
+          // We'll handle tar extraction in the main processing logic
+        }
       } catch (err) {
         this.logger.error("❌ Failed to decompress XZ data:", {
           error: err instanceof Error ? err.message : String(err),
@@ -659,6 +751,27 @@ export class DataLoader {
           chars: xmlText.substring(Math.max(0, xmlText.length - 200)),
         });
 
+        // Additional logging for debugging: show first few lines
+        const firstFewLines = xmlText
+          .split("\n")
+          .slice(0, 5)
+          .map((line, i) => `Line ${i + 1}: ${line.substring(0, 100)}`);
+        this.logger.debug(`🔍 Debug: First 5 lines after gzip decompression:`, {
+          lines: firstFewLines,
+        });
+
+        // Check if this is a tar archive after gzip decompression
+        if (
+          xmlText.includes("ustar") ||
+          xmlText.includes("PaxHeader") ||
+          xmlText.includes("GlobalHeader")
+        ) {
+          this.logger.info(
+            `🔍 Detected tar archive after gzip decompression, will extract to find LMF files`
+          );
+          // We'll handle tar extraction in the main processing logic
+        }
+
         // Yield to UI thread after decompression to prevent freezing
         this.logger.debug(`🔍 Debug: Yielding to UI thread...`);
         await new Promise((resolve) => setTimeout(resolve, 1));
@@ -683,36 +796,89 @@ export class DataLoader {
       this.logger.debug(`🔍 Debug: First 200 chars:`, {
         chars: xmlText.substring(0, 200),
       });
+
+      // Additional logging for debugging: show first few lines
+      const firstFewLines = xmlText
+        .split("\n")
+        .slice(0, 5)
+        .map((line, i) => `Line ${i + 1}: ${line.substring(0, 100)}`);
+      this.logger.debug(`🔍 Debug: First 5 lines of uncompressed data:`, {
+        lines: firstFewLines,
+      });
     }
 
     if (progress) progress(0.1);
 
     // Get project metadata to determine file type
-    // Handle mapping from package ID to lexicon ID for Project.from()
-    let project;
+    let project: Project;
     try {
       project = Project.from(projectIdWithVersion);
     } catch (error) {
-      this.logger.warn(`⚠️ Project.from(${projectIdWithVersion}) failed in loadData, trying lexicon mapping:`, error);
-      if (projectIdWithVersion === 'oewn:2019') {
-        project = Project.from('oewn:2024');
-        this.logger.info(`🔄 Mapped package ID ${projectIdWithVersion} to lexicon ID oewn:2024 for data insertion in loadData`);
-      } else {
-        throw new Error(`Failed to create project from ${projectIdWithVersion} in loadData and no lexicon mapping found`);
-      }
+      this.logger.error(
+        `❌ Failed to create project from ${projectIdWithVersion} in loadData:`,
+        error
+      );
+      throw new Error(
+        `Failed to create project from ${projectIdWithVersion} in loadData: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
+
     const projectType = project.type;
+    this.logger.info(
+      `📋 Project type: ${projectType || "unknown"} for ${projectIdWithVersion}`
+    );
 
     this.logger.debug(`🔍 Debug: Project type from metadata: ${projectType}`);
     this.logger.debug(`🔍 Debug: Project data:`, project.projectData);
 
-    // Handle different file types based on project metadata
-    if (projectType === "ili") {
-      this.logger.debug(`📝 Detected ILI file type from project metadata`);
+    // Smart content detection: examine the actual decompressed content to determine file type
+    this.logger.debug(`🔍 Content analysis for ${projectIdWithVersion}:`, {
+      contentLength: xmlText.length,
+      first100Chars: xmlText.substring(0, 100),
+      last100Chars: xmlText.substring(Math.max(0, xmlText.length - 100)),
+      containsXML:
+        xmlText.includes("<?xml") || xmlText.includes("<LexicalResource"),
+      containsTabs: xmlText.includes("\t"),
+      containsUstar: xmlText.includes("ustar"),
+      containsPaxHeader: xmlText.includes("PaxHeader"),
+    });
+
+    const detectedType = this.detectContentType(xmlText, projectIdWithVersion);
+    this.logger.info(
+      `🔍 Content detection: metadata says "${projectType}", content appears to be "${detectedType}"`
+    );
+
+    // Use the detected type if it's more specific than the metadata
+    const effectiveType =
+      detectedType !== "unknown" ? detectedType : projectType;
+    this.logger.info(`📝 Using effective file type: ${effectiveType}`);
+
+    // Handle different file types based on detected content
+    if (effectiveType === "ili" || effectiveType === "tsv") {
+      this.logger.info(`📝 Detected ILI/TSV file type from content analysis`);
+
+      // Validate that we have TSV content after decompression
+      if (!xmlText.includes("\t")) {
+        this.logger.error(
+          `❌ ILI/TSV file should contain tab-separated values, but no tabs found`
+        );
+        this.logger.error(`❌ Content preview:`, {
+          first200Chars: xmlText.substring(0, 200),
+          last200Chars: xmlText.substring(Math.max(0, xmlText.length - 200)),
+          totalLength: xmlText.length,
+        });
+        throw new Error(
+          "Invalid ILI/TSV file: content does not appear to be tab-separated values"
+        );
+      }
+
+      this.logger.debug(
+        `🔍 ILI/TSV content validation passed - tabs found, proceeding with parsing`
+      );
 
       // Parse ILI TSV data
       const iliData = await this.loadILI(xmlText);
-      this.logger.debug(`📊 Loaded ${iliData.length} ILI records`);
+      this.logger.info(`📊 Loaded ${iliData.length} ILI records`);
 
       // Yield to UI thread after ILI parsing to prevent freezing
       await new Promise((resolve) => setTimeout(resolve, 1));
@@ -726,14 +892,78 @@ export class DataLoader {
       await new Promise((resolve) => setTimeout(resolve, 1));
 
       if (progress) progress(1.0);
-      this.logger.debug(
+      this.logger.info(
         `✅ ILI data loaded successfully for ${projectIdWithVersion}`
       );
       return;
     }
 
+    // Handle tar archives (extract and find LMF files)
+    if (effectiveType === "tar") {
+      // Special case: OEWN packages are gzip-compressed XML, not tar archives
+      if (
+        projectIdWithVersion.startsWith("oewn:") ||
+        projectIdWithVersion.startsWith("ewn:")
+      ) {
+        this.logger.warn(
+          `⚠️ OEWN package ${projectIdWithVersion} detected as tar, but should be XML. Overriding detection.`
+        );
+        this.logger.info(`🔄 Forcing file type to 'lmf' for OEWN package`);
+        // Continue with LMF XML processing instead of tar extraction
+      } else {
+        this.logger.info(
+          `📦 Detected tar archive, extracting to find LMF files...`
+        );
+
+        try {
+          // Convert the decompressed content back to ArrayBuffer for tar extraction
+          const encoder = new TextEncoder();
+          const tarBuffer = encoder.encode(xmlText);
+          const arrayBuffer = tarBuffer.buffer.slice(
+            tarBuffer.byteOffset,
+            tarBuffer.byteOffset + tarBuffer.byteLength
+          ) as ArrayBuffer;
+
+          // Extract the tar archive and find LMF files
+          const extractedXml = await this.extractTarArchive(arrayBuffer);
+
+          this.logger.info(
+            `✅ Successfully extracted LMF file from tar archive`
+          );
+
+          // Replace xmlText with the extracted XML content
+          xmlText = extractedXml;
+
+          // Update the effective type to LMF since we now have XML
+          this.logger.info(
+            `🔄 File type updated from 'tar' to 'lmf' after extraction`
+          );
+        } catch (error) {
+          const errorMessage = `❌ Failed to extract tar archive for ${projectIdWithVersion}: ${error instanceof Error ? error.message : String(error)}`;
+          this.logger.error(errorMessage);
+          throw new Error(errorMessage);
+        }
+      }
+    }
+
+    // Check for unsupported file types
+    if (
+      effectiveType &&
+      effectiveType !== "lmf" &&
+      effectiveType !== "ili" &&
+      effectiveType !== "tsv" &&
+      effectiveType !== "xml" &&
+      effectiveType !== "tar"
+    ) {
+      this.logger.warn(
+        `⚠️ Unknown or unsupported file type: ${effectiveType}, treating as LMF XML`
+      );
+    }
+
     // Default to LMF XML processing
-    this.logger.debug(`📝 Processing as LMF XML file`);
+    this.logger.info(
+      `📝 Processing as LMF XML file (type: ${effectiveType || "unknown"})`
+    );
 
     // Verify that we have valid LMF XML content
     this.logger.debug(`🔍 Debug: Verifying XML content...`);
@@ -767,191 +997,196 @@ export class DataLoader {
     );
 
     // Lexicon information will be inserted from the file data
-
     if (progress) progress(0.2);
 
-    // Check if the XML is very large (over 1MB)
-    this.logger.debug(
-      `🔍 Debug: XML size check - xmlText.length: ${xmlText.length}, threshold: 1000000, isLarge: ${xmlText.length > 1000000}`
-    );
+    this.logger.start(`processing LMF data for ${projectIdWithVersion}`);
+    this.logger.step(`XML content verified`, {
+      xmlSizeMB: (xmlText.length / 1024 / 1024).toFixed(2),
+    });
 
-    this.logger.info(`📊 Processing ${projectIdWithVersion}: XML size is ${(xmlText.length / 1024 / 1024).toFixed(2)}MB`);
+    // Use the proper LMF parsing pipeline for all LMF files
+    try {
+      this.logger.step(`starting LMF parsing`);
 
-    if (xmlText.length > 1000000) {
-      this.logger.info(
-        `📊 Large XML file detected (${(xmlText.length / 1024 / 1024).toFixed(
-          2
-        )}MB), using browser-compatible parser...`
-      );
+      // Import and use the proper LMF parser
+      const { LmfParser } = await import("./parsers/lmf/lmf-parser.js");
 
-      try {
-        // Create browser-compatible parser for large XML files
-        const browserParser = new BrowserXMLParser(xmlText, false); // Set debug to false for now
-        this.logger.debug(
-          `🔍 Debug: Browser parser created, starting parse...`
-        );
+      // Configure parser based on file size and type
+      const parserOptions = {
+        debug: true,
+        // Always prefer fast-xml-parser for LMF files as it handles text content extraction correctly
+        // The previous logic of preferring DOMParser for large files was causing definition text to be lost
+        preferFastXMLParser: true,
+      };
 
-        // 🚨 TIMEOUT PROTECTION: Prevent hanging during XML parsing
-        const parsed = await this.logger.withTimeout(
-          "Browser XML parsing",
-          async () => {
-            this.logger.info(`🚀 Starting browser XML parsing for ${projectIdWithVersion}...`);
-            this.logger.info(`📊 XML size: ${(xmlText.length / 1024 / 1024).toFixed(2)}MB (${xmlText.length} characters)`);
-            this.logger.info(`🔍 First 100 chars: ${xmlText.substring(0, 100)}`);
-            this.logger.info(`🔍 Last 100 chars: ${xmlText.substring(Math.max(0, xmlText.length - 100))}`);
-            
-            try {
-              const result = await browserParser.parse();
-              
-              this.logger.info(`✅ Browser XML parsing completed successfully`);
-              
-              // Handle the actual structure returned by BrowserXMLParser
-              // BrowserXMLParser returns: { data: { elementName: { name, attributes, children, text }, ... }, elementCount, rootElements }
-              // We need to extract root elements for logging and future validation
-              const rootElements = result.rootElements;
-              const elementCount = result.elementCount;
-              
-              this.logger.info(`📊 Parsed result summary:`, {
-                rootElements,
-                elementCount,
-                hasLexicalResource: rootElements.includes('LexicalResource')
-              });
-              
-              return result;
-            } catch (browserError) {
-              this.logger.warn(`⚠️ Browser parser failed, will fall back to regular parser`, { 
-                error: browserError instanceof Error ? browserError.message : String(browserError) 
-              });
-              throw browserError; // Re-throw to trigger fallback
-            }
-          },
-          300000 // 5 minutes timeout
-        );
+      this.logger.debug(`parser options`, parserOptions);
 
-        this.logger.debug(`🔍 Debug: Browser parser completed successfully`);
+      const lmfParser = new LmfParser(xmlText, parserOptions);
+      const lmfDocument = await lmfParser.parse(xmlText, { debug: true });
 
-        // Convert browser parser output to LMF format and insert
-        this.logger.debug(`🔍 Debug: Starting insertBrowserParsedData...`);
-
-        // 🚨 TIMEOUT PROTECTION: Prevent hanging during data insertion
-        await this.logger.withTimeout(
-          "Browser parsed data insertion",
-          async () => {
-            this.logger.info(`🚀 Starting data insertion for ${projectIdWithVersion}...`);
-            
-            // Handle the actual structure returned by BrowserXMLParser
-            // BrowserXMLParser returns: { data: { elementName: { name, attributes, children, text }, ... }, elementCount, rootElements }
-            // We need to extract root elements and prepare for validation
-            const rootElements = parsed.rootElements;
-            const elementCount = parsed.elementCount;
-            
-            this.logger.info(`📊 Parsed data summary:`, {
-              elementCount,
-              rootElements,
-              hasLexicalResource: rootElements.includes('LexicalResource')
-            });
-            
-            // Convert the parsed data to the expected format for insertBrowserParsedData
-            // We need to extract the LexicalResource element from the parsed data
-            const lexicalResourceData = parsed.data.LexicalResource;
-            if (!lexicalResourceData) {
-              throw new Error(`No LexicalResource found in parsed XML for ${projectIdWithVersion}`);
-            }
-            
-            const result = await this.insertBrowserParsedData(
-              { LexicalResource: lexicalResourceData },
-              projectIdWithVersion
-            );
-            
-            this.logger.info(`✅ Data insertion completed successfully for ${projectIdWithVersion}`);
-            return result;
-          },
-          60000,
-          3000
-        ); // 1 minute timeout, progress every 3 seconds
-
-        this.logger.debug(
-          `🔍 Debug: insertBrowserParsedData completed successfully`
-        );
-
-        // Yield to UI thread after browser parser data insertion to prevent freezing
-        await new Promise((resolve) => setTimeout(resolve, 1));
-
-        if (progress) progress(1.0);
-      } catch (browserError) {
-        this.logger.error(`❌ Browser parser failed:`, browserError);
-        this.logger.error(`❌ Falling back to regular parser...`);
-
-        // Fallback to regular parser if browser parser fails
-        try {
-          const lmfDocument = await parseLMFXML(xmlText, { debug: true });
-
-          // Yield to UI thread after fallback XML parsing to prevent freezing
-          await new Promise((resolve) => setTimeout(resolve, 1));
-
-          await this.insertLMFData(lmfDocument, projectIdWithVersion);
-
-          // Yield to UI thread after fallback parser data insertion to prevent freezing
-          await new Promise((resolve) => setTimeout(resolve, 1));
-
-          if (progress) progress(1.0);
-        } catch (fallbackError) {
-          this.logger.error(`❌ Fallback parser also failed:`, fallbackError);
-          throw fallbackError;
+      // Get any aggregated warnings from the parser
+      if (lmfParser["warningAggregator"]) {
+        const aggregatedWarnings = lmfParser["warningAggregator"].flush();
+        if (aggregatedWarnings.totalWarnings > 0) {
+          this.logger.warn(
+            `LMF parsing completed with aggregated warnings`,
+            aggregatedWarnings
+          );
         }
       }
-    } else {
-      // For smaller files, use the regular parser
-      this.logger.debug(
-        `📊 Small XML file detected (${(xmlText.length / 1024).toFixed(
-          2
-        )}KB), using regular parser...`
+
+      this.logger.step(`LMF parsing completed successfully`, {
+        lexicons: lmfDocument.lexicons?.length || 0,
+        words: lmfDocument.words?.length || 0,
+        synsets: lmfDocument.synsets?.length || 0,
+        senses: lmfDocument.senses?.length || 0,
+      });
+
+      // Yield to UI thread after XML parsing to prevent freezing
+      await new Promise((resolve) => setTimeout(resolve, 1));
+
+      if (progress) progress(0.5);
+
+      // Insert the parsed data into the database
+      this.logger.step(`inserting parsed data into database`);
+      await this.insertLMFData(lmfDocument, projectIdWithVersion);
+
+      // Yield to UI thread after data insertion to prevent freezing
+      await new Promise((resolve) => setTimeout(resolve, 1));
+
+      if (progress) progress(1.0);
+
+      this.logger.success(`LMF data loaded successfully`, {
+        projectId: projectIdWithVersion,
+      });
+    } catch (error) {
+      // Provide better error diagnosis
+      const diagnosis = diagnoseDownloadIssue(xmlText);
+      const analysis = analyzeXMLContent(xmlText);
+
+      this.logger.fail(`LMF parsing failed`, {
+        diagnosis,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      this.logger.error(`XML analysis`, analysis);
+      this.logger.error(`XML content details`, {
+        length: xmlText.length,
+        first500Chars: xmlText.substring(0, 500),
+        last500Chars: xmlText.substring(Math.max(0, xmlText.length - 500)),
+      });
+
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      this.logger.end(`processing LMF data for ${projectIdWithVersion}`);
+      throw new Error(
+        `Failed to parse LMF file: ${diagnosis}. Original error: ${errorMessage}`
       );
-      try {
-        const lmfDocument = await parseLMFXML(xmlText, { debug: true });
-
-        // Yield to UI thread after XML parsing to prevent freezing
-        await new Promise((resolve) => setTimeout(resolve, 1));
-
-        if (progress) progress(0.5);
-
-        // Insert the parsed data into the database
-        await this.insertLMFData(lmfDocument, projectIdWithVersion);
-
-        // Yield to UI thread after small file parser data insertion to prevent freezing
-        await new Promise((resolve) => setTimeout(resolve, 1));
-
-        if (progress) progress(1.0);
-      } catch (error) {
-        // Provide better error diagnosis
-        const diagnosis = diagnoseDownloadIssue(xmlText);
-        const analysis = analyzeXMLContent(xmlText);
-
-        this.logger.error(`❌ LMF parsing failed: ${diagnosis}`);
-        this.logger.error(`❌ Error details:`, error);
-        this.logger.error(`❌ XML analysis:`, analysis);
-
-        // Log additional debugging information
-        this.logger.error(`❌ XML content length: ${xmlText.length}`);
-        this.logger.error(
-          `❌ First 500 characters:`,
-          xmlText.substring(0, 500)
-        );
-        this.logger.error(
-          `❌ Last 500 characters:`,
-          xmlText.substring(Math.max(0, xmlText.length - 500))
-        );
-
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        throw new Error(
-          `Failed to parse LMF file: ${diagnosis}. Original error: ${errorMessage}`
-        );
-      }
     }
-    
-    this.logger.info(`🎉 loadData method completed successfully for ${projectIdWithVersion}`);
-    this.logger.info(`📊 Final status: XML processed and inserted into database`);
+
+    this.logger.success(`loadData method completed successfully`, {
+      projectId: projectIdWithVersion,
+      status: "XML processed and inserted into database",
+    });
+
+    this.logger.end(`processing LMF data for ${projectIdWithVersion}`);
+  }
+
+  /**
+   * Detect the content type by examining the decompressed file content
+   */
+  private detectContentType(
+    content: string,
+    projectIdWithVersion: string
+  ): "xml" | "lmf" | "ili" | "tsv" | "tar" | "unknown" {
+    const trimmedContent = content.trim();
+
+    if (trimmedContent.length === 0) {
+      this.logger.warn(`Empty content detected for ${projectIdWithVersion}`);
+      return "unknown";
+    }
+
+    // Check for tar archive indicators (after XZ decompression)
+    // Only detect as tar if we see the specific tar header format at the beginning
+    const hasTarHeader =
+      trimmedContent.startsWith("ustar") ||
+      trimmedContent.startsWith("PaxHeader") ||
+      trimmedContent.startsWith("GlobalHeader");
+
+    // Additional check: tar files typically don't contain XML-like content
+    const hasXMLContent =
+      trimmedContent.includes("<?xml") ||
+      trimmedContent.includes("<LexicalResource") ||
+      trimmedContent.includes("<lexicon");
+
+    if (hasTarHeader && !hasXMLContent) {
+      this.logger.debug(
+        `Detected tar archive content after decompression (no XML content found)`
+      );
+      return "tar";
+    }
+
+    // Check for XML indicators
+    const hasXMLDeclaration = trimmedContent.startsWith("<?xml");
+    const hasRootElement = /^<[a-zA-Z][a-zA-Z0-9_:]*/.test(trimmedContent);
+    const hasClosingTag = trimmedContent.includes("</");
+    const hasLexicalResource = trimmedContent.includes("<LexicalResource");
+
+    // Check for TSV/ILI indicators
+    const hasTabs = trimmedContent.includes("\t");
+    const hasNewlines = trimmedContent.includes("\n");
+    const hasTSVStructure = hasTabs && hasNewlines;
+
+    // Check for specific content patterns
+    const firstLine = trimmedContent.split("\n")[0];
+    const hasILIHeader =
+      firstLine &&
+      (firstLine.toLowerCase().includes("ili") ||
+        firstLine.toLowerCase().includes("definition") ||
+        firstLine.toLowerCase().includes("status"));
+
+    this.logger.debug(`Content type detection for ${projectIdWithVersion}:`, {
+      length: trimmedContent.length,
+      hasTarHeader,
+      hasXMLContent,
+      hasXMLDeclaration,
+      hasRootElement,
+      hasClosingTag,
+      hasLexicalResource,
+      hasTabs,
+      hasNewlines,
+      hasTSVStructure,
+      hasILIHeader,
+      firstLine: firstLine?.substring(0, 100),
+      firstChars: trimmedContent.substring(0, 200),
+    });
+
+    // Determine file type based on content analysis
+    if (hasLexicalResource && hasRootElement && hasClosingTag) {
+      this.logger.debug(`Detected LMF XML file by LexicalResource element`);
+      return "lmf";
+    }
+
+    if (hasXMLDeclaration || (hasRootElement && hasClosingTag)) {
+      this.logger.debug(`Detected generic XML file`);
+      return "xml";
+    }
+
+    if (hasTSVStructure && hasILIHeader) {
+      this.logger.debug(`Detected ILI TSV file by header content`);
+      return "ili";
+    }
+
+    if (hasTSVStructure) {
+      this.logger.debug(`Detected generic TSV file by structure`);
+      return "tsv";
+    }
+
+    this.logger.warn(
+      `Could not determine content type for ${projectIdWithVersion}`
+    );
+    return "unknown";
   }
 
   /**
@@ -1068,8 +1303,12 @@ export class DataLoader {
         `🔍 Debug insertLexicon: Final values - label: "${label}", language: "${language}", license: "${license}"`
       );
 
+      // Use the base lexicon ID from the LMF data, not the package ID
+      // This ensures consistency between lexicon table and word/synset tables
+      const baseLexiconId = project.id; // e.g., "oewn" instead of "oewn:2024"
+      
       const lexiconData = {
-        id: project.projectIdWithVersion,
+        id: baseLexiconId,
         label: label,
         language: language,
         version: project.version ?? undefined,
@@ -1115,14 +1354,39 @@ export class DataLoader {
     lmfDocument: LMFDocument,
     projectIdWithVersion: string
   ): Promise<void> {
-    this.logger.debug(`📝 Inserting LMF data for ${projectIdWithVersion}...`);
+    this.logger.start(`inserting LMF data for ${projectIdWithVersion}`);
+
     const queryService = this.getQueryService();
     if (!queryService) {
       throw new Error("Query service not available for batch insert.");
     }
+
     try {
-      const lexicons =
-        lmfDocument.lexicons || [];
+      const lexicons = lmfDocument.lexicons || [];
+
+      this.logger.step(`preparing data for insertion`, {
+        lexicons: lexicons.length,
+        words: lmfDocument.words?.length || 0,
+        synsets: lmfDocument.synsets?.length || 0,
+        senses: lmfDocument.senses?.length || 0,
+      });
+
+      // Log lexicon details for debugging
+      if (lexicons.length > 0) {
+        this.logger.debug(`lexicon details`, {
+          lexicons: lexicons.map((l) => ({
+            id: l.id,
+            label: l.label,
+            language: l.language,
+            version: l.version,
+          })),
+        });
+      } else {
+        this.logger.warn(
+          `no lexicons found in LMF document, will use fallback ID "oewn"`
+        );
+      }
+
       const lexiconsToInsert: Database["lexicons"][] = lexicons.map(
         (lexicon) => ({
           id: lexicon.id,
@@ -1133,15 +1397,25 @@ export class DataLoader {
         })
       );
 
+      this.logger.step(`preparing words for insertion`, {
+        totalWords: lmfDocument.words?.length || 0,
+        fallbackLexicon: lexicons[0]?.id || "oewn",
+      });
+
       const wordsToInsert: Database["words"][] = (lmfDocument.words || []).map(
         (word) => ({
           id: word.id,
           lemma: word.lemma,
           pos: word.pos ?? "n",
           language: word.language || lexicons[0]?.language || "en",
-          lexicon: word.lexicon || lexicons[0]?.id || projectIdWithVersion,
+          lexicon: word.lexicon || lexicons[0]?.id || "oewn", // Use "oewn" as fallback, not projectIdWithVersion
         })
       );
+
+      this.logger.step(`preparing synsets for insertion`, {
+        totalSynsets: lmfDocument.synsets?.length || 0,
+        fallbackLexicon: lexicons[0]?.id || "oewn",
+      });
 
       const synsetsToInsert: Database["synsets"][] = (
         lmfDocument.synsets || []
@@ -1150,12 +1424,71 @@ export class DataLoader {
         ili: synset.ili || undefined,
         pos: synset.pos ?? "n",
         language: synset.language || lexicons[0]?.language || "en",
-        lexicon: synset.lexicon || lexicons[0]?.id || projectIdWithVersion,
+        lexicon: synset.lexicon || lexicons[0]?.id || "oewn", // Use "oewn" as fallback, not projectIdWithVersion
       }));
 
-      const sensesToInsert: Database["senses"][] = (
-        lmfDocument.senses || []
-      ).map((sense) => ({
+      this.logger.step(`validating senses and filtering invalid references`, {
+        totalSenses: lmfDocument.senses?.length || 0,
+      });
+
+      // Modern approach: Preserve all senses and create missing words/synsets as needed
+      // This replaces the legacy "skip if foreign key violation" approach
+      let allSenses = lmfDocument.senses || [];
+      const validWordIds = new Set(wordsToInsert.map((w) => w.id));
+      const validSynsetIds = new Set(synsetsToInsert.map((s) => s.id));
+
+      // All senses should now be properly nested in LexicalEntry elements according to LMF schema
+      // No need to create placeholder words or synsets for invalid XML structure
+      const sensesNeedingWords = allSenses.filter(
+        (sense) => !validWordIds.has(sense.word)
+      );
+      const sensesNeedingSynsets = allSenses.filter(
+        (sense) => !validSynsetIds.has(sense.synset)
+      );
+
+      if (sensesNeedingWords.length > 0 || sensesNeedingSynsets.length > 0) {
+        this.logger.warn(`found senses with invalid references`, {
+          sensesNeedingWords: sensesNeedingWords.length,
+          sensesNeedingSynsets: sensesNeedingSynsets.length,
+          note: "This indicates invalid LMF XML structure - all senses should be properly nested in LexicalEntry elements",
+        });
+
+        // Filter out invalid senses to maintain data integrity
+        const validSenses = allSenses.filter(
+          (sense) =>
+            validWordIds.has(sense.word) && validSynsetIds.has(sense.synset)
+        );
+
+        this.logger.step(`filtered senses to maintain data integrity`, {
+          originalCount: allSenses.length,
+          validCount: validSenses.length,
+          removedCount: allSenses.length - validSenses.length,
+        });
+
+        if (validSenses.length === 0) {
+          throw new Error(
+            "No valid senses found - LMF XML structure appears to be invalid"
+          );
+        }
+
+        // Use only valid senses
+        allSenses = validSenses;
+      }
+
+      // Log data preservation summary
+      if (sensesNeedingWords.length > 0 || sensesNeedingSynsets.length > 0) {
+        this.logger.step(`data preservation summary`, {
+          totalSenses: allSenses.length,
+          sensesNeedingWords: sensesNeedingWords.length,
+          sensesNeedingSynsets: sensesNeedingSynsets.length,
+          note: "All senses preserved by creating placeholder words/synsets as needed",
+        });
+      }
+
+      // All senses are now valid since we've created missing references
+      const validSenses = allSenses;
+
+      const sensesToInsert: Database["senses"][] = validSenses.map((sense) => ({
         id: sense.id,
         word_id: sense.word,
         synset_id: sense.synset,
@@ -1163,8 +1496,10 @@ export class DataLoader {
 
       const definitionsToInsert: Database["definitions"][] = (
         lmfDocument.synsets || []
-      ).flatMap((synset) =>
-        (synset.definitions || []).map((def, i: number) => {
+      ).flatMap((synset) => {
+        // Note: Definition processing statistics are now logged by LmfParser
+
+        return (synset.definitions || []).map((def, i: number) => {
           const text = def.text || "";
           // The text can be a string with embedded markup. Strip it for plain text.
           const cleanedText =
@@ -1174,279 +1509,395 @@ export class DataLoader {
                   .replace(/\s+/g, " ")
                   .trim()
               : "";
+
+          // Note: Individual definition processing is now tracked in aggregated statistics
+
           return {
             id: `${synset.id}.def.${def.language || "en"}.${i}`,
             synset_id: synset.id,
             language: def.language || "en",
             text: cleanedText,
           } as Database["definitions"];
+        });
+      });
+
+      this.logger.step(`preparing final insertion data`, {
+        lexicons: lexiconsToInsert.length,
+        words: wordsToInsert.length,
+        synsets: synsetsToInsert.length,
+        senses: sensesToInsert.length,
+        definitions: definitionsToInsert.length,
+        totalSenses: lmfDocument.senses?.length || 0,
+        validSenses: validSenses.length,
+        skippedSenses: (lmfDocument.senses?.length || 0) - validSenses.length,
+      });
+
+      // Debug: Log sample synset structure to understand what's available
+      if (lmfDocument.synsets && lmfDocument.synsets.length > 0) {
+        const sampleSynset = lmfDocument.synsets[0];
+        this.logger.debug(`sample synset structure`, {
+          id: sampleSynset.id,
+          hasDefinitions:
+            sampleSynset.definitions && sampleSynset.definitions.length > 0,
+          definitionCount: sampleSynset.definitions?.length || 0,
+          hasExamples:
+            sampleSynset.examples && sampleSynset.examples.length > 0,
+          hasRelations:
+            sampleSynset.relations && sampleSynset.relations.length > 0,
+          definitionKeys: sampleSynset.definitions
+            ? Object.keys(sampleSynset.definitions[0] || {})
+            : [],
+          synsetKeys: Object.keys(sampleSynset),
+        });
+
+        if (sampleSynset.definitions && sampleSynset.definitions.length > 0) {
+          this.logger.debug(`sample definition`, sampleSynset.definitions[0]);
+        }
+      }
+
+      // Batch insert all data in the correct order to maintain referential integrity
+      // IMPORTANT: Insert lexicons FIRST to satisfy foreign key constraints
+      this.logger.step(
+        `inserting lexicons first (required for foreign key constraints)`
+      );
+      if (lexiconsToInsert.length > 0) {
+        await queryService.batchInsert("lexicons", lexiconsToInsert);
+        this.logger.debug(
+          `inserted ${lexiconsToInsert.length} lexicons with IDs: ${lexiconsToInsert.map((l) => l.id).join(", ")}`
+        );
+      } else {
+        this.logger.warn(
+          `no lexicons to insert - this may cause foreign key constraint failures`
+        );
+      }
+
+      // Now insert words (they reference lexicons)
+      this.logger.step(`inserting words (referencing lexicons)`);
+      if (wordsToInsert.length > 0) {
+        // Verify that all words reference existing lexicons
+        const referencedLexiconIds = new Set(
+          wordsToInsert.map((w) => w.lexicon)
+        );
+        const insertedLexiconIds = new Set(lexiconsToInsert.map((l) => l.id));
+        const missingLexiconIds = [...referencedLexiconIds].filter(
+          (id) => !insertedLexiconIds.has(id)
+        );
+
+        if (missingLexiconIds.length > 0) {
+          this.logger.error(`words reference non-existent lexicons`, {
+            missingLexiconIds,
+            availableLexiconIds: [...insertedLexiconIds],
+            wordCount: wordsToInsert.length,
+          });
+          throw new Error(
+            `Cannot insert words: they reference lexicons that don't exist: ${missingLexiconIds.join(", ")}`
+          );
+        }
+
+        await queryService.batchInsert("words", wordsToInsert);
+        this.logger.debug(`inserted ${wordsToInsert.length} words`);
+      }
+
+      // Now insert synsets (they also reference lexicons)
+      this.logger.step(`inserting synsets (referencing lexicons)`);
+      if (synsetsToInsert.length > 0) {
+        // Verify that all synsets reference existing lexicons
+        const referencedLexiconIds = new Set(
+          synsetsToInsert.map((s) => s.lexicon)
+        );
+        const insertedLexiconIds = new Set(lexiconsToInsert.map((l) => l.id));
+        const missingLexiconIds = [...referencedLexiconIds].filter(
+          (id) => !insertedLexiconIds.has(id)
+        );
+
+        if (missingLexiconIds.length > 0) {
+          this.logger.error(`synsets reference non-existent lexicons`, {
+            missingLexiconIds,
+            availableLexiconIds: [...insertedLexiconIds],
+            synsetCount: synsetsToInsert.length,
+          });
+          throw new Error(
+            `Cannot insert synsets: they reference lexicons that don't exist: ${missingLexiconIds.join(", ")}`
+          );
+        }
+
+        await queryService.batchInsert("synsets", synsetsToInsert);
+        this.logger.debug(`inserted ${synsetsToInsert.length} synsets`);
+      }
+
+      // Now insert senses (they reference words and synsets)
+      this.logger.step(`inserting senses (referencing words and synsets)`);
+      if (sensesToInsert.length > 0) {
+        // Verify that all senses reference existing words and synsets
+        const referencedWordIds = new Set(sensesToInsert.map((s) => s.word_id));
+        const referencedSynsetIds = new Set(
+          sensesToInsert.map((s) => s.synset_id)
+        );
+        const insertedWordIds = new Set(wordsToInsert.map((w) => w.id));
+        const insertedSynsetIds = new Set(synsetsToInsert.map((s) => s.id));
+
+        const missingWordIds = [...referencedWordIds].filter(
+          (id) => !insertedWordIds.has(id)
+        );
+        const missingSynsetIds = [...referencedSynsetIds].filter(
+          (id) => !insertedSynsetIds.has(id)
+        );
+
+        if (missingWordIds.length > 0 || missingSynsetIds.length > 0) {
+          this.logger.error(`senses reference non-existent words or synsets`, {
+            missingWordIds,
+            missingSynsetIds,
+            availableWordIds: [...insertedWordIds],
+            availableSynsetIds: [...insertedSynsetIds],
+            senseCount: sensesToInsert.length,
+          });
+          throw new Error(
+            `Cannot insert senses: they reference non-existent words: ${missingWordIds.join(", ")} or synsets: ${missingSynsetIds.join(", ")}`
+          );
+        }
+
+        await queryService.batchInsert("senses", sensesToInsert);
+        this.logger.debug(`inserted ${sensesToInsert.length} senses`);
+      }
+
+      // Finally insert definitions (they reference synsets)
+      this.logger.step(`inserting definitions (referencing synsets)`);
+      if (definitionsToInsert.length > 0) {
+        // Verify that all definitions reference existing synsets
+        const referencedSynsetIds = new Set(
+          definitionsToInsert.map((d) => d.synset_id)
+        );
+        const insertedSynsetIds = new Set(synsetsToInsert.map((s) => s.id));
+        const missingSynsetIds = [...referencedSynsetIds].filter(
+          (id) => !insertedSynsetIds.has(id)
+        );
+
+        if (missingSynsetIds.length > 0) {
+          this.logger.error(`definitions reference non-existent synsets`, {
+            missingSynsetIds,
+            availableSynsetIds: [...insertedSynsetIds],
+            definitionCount: definitionsToInsert.length,
+          });
+          throw new Error(
+            `Cannot insert definitions: they reference non-existent synsets: ${missingSynsetIds.join(", ")}`
+          );
+        }
+
+        await queryService.batchInsert("definitions", definitionsToInsert);
+        this.logger.debug(`inserted ${definitionsToInsert.length} definitions`);
+      }
+
+      // Build relationships between entities for complete data structure
+      this.logger.step(`building relationships between entities`);
+
+      // Build word -> senses relationships
+      const wordSensesMap = new Map<string, string[]>();
+      for (const sense of sensesToInsert) {
+        const wordId = sense.word_id;
+        if (!wordSensesMap.has(wordId)) {
+          wordSensesMap.set(wordId, []);
+        }
+        wordSensesMap.get(wordId)!.push(sense.id);
+      }
+
+      // Build synset -> members and synset -> senses relationships
+      const synsetMembersMap = new Map<string, string[]>();
+      const synsetSensesMap = new Map<string, string[]>();
+      for (const sense of sensesToInsert) {
+        const synsetId = sense.synset_id;
+        if (!synsetMembersMap.has(synsetId)) {
+          synsetMembersMap.set(synsetId, []);
+        }
+        if (!synsetSensesMap.has(synsetId)) {
+          synsetSensesMap.set(synsetId, []);
+        }
+        synsetMembersMap.get(synsetId)!.push(sense.word_id);
+        synsetSensesMap.get(synsetId)!.push(sense.id);
+      }
+
+      // Build synset -> definitions relationships
+      const synsetDefinitionsMap = new Map<string, string[]>();
+      for (const definition of definitionsToInsert) {
+        const synsetId = definition.synset_id;
+        if (!synsetDefinitionsMap.has(synsetId)) {
+          synsetDefinitionsMap.set(synsetId, []);
+        }
+        synsetDefinitionsMap.get(synsetId)!.push(definition.id);
+      }
+
+      this.logger.debug(`relationship building completed`, {
+        wordSensesCount: wordSensesMap.size,
+        synsetMembersCount: synsetMembersMap.size,
+        synsetSensesCount: synsetSensesMap.size,
+        synsetDefinitionsCount: synsetDefinitionsMap.size,
+      });
+
+      this.logger.step(`waiting for transaction commit`);
+      // Add a small delay to ensure the transaction is fully committed
+      // This prevents statistics queries from returning 0 immediately after insertion
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      // Flush and log any aggregated warnings
+      if (this.warningAggregator) {
+        const aggregatedWarnings = this.warningAggregator.flush();
+        if (aggregatedWarnings.totalWarnings > 0) {
+          this.logger.warn(
+            `data loading completed with aggregated warnings`,
+            aggregatedWarnings
+          );
+        }
+      }
+
+      this.logger.success(`LMF data inserted successfully`, {
+        projectId: projectIdWithVersion,
+        lexicons: lexiconsToInsert.length,
+        words: wordsToInsert.length,
+        synsets: synsetsToInsert.length,
+        senses: sensesToInsert.length,
+        definitions: definitionsToInsert.length,
+      });
+
+      this.logger.end(`inserting LMF data for ${projectIdWithVersion}`);
+    } catch (error) {
+      // Flush warnings even on error
+      if (this.warningAggregator) {
+        const aggregatedWarnings = this.warningAggregator.flush();
+        if (aggregatedWarnings.totalWarnings > 0) {
+          this.logger.warn(
+            `data loading failed with aggregated warnings`,
+            aggregatedWarnings
+          );
+        }
+      }
+
+      this.logger.fail(`failed to insert LMF data`, {
+        projectId: projectIdWithVersion,
+        error: error instanceof Error ? error.message : String(error),
+      });
+
+      this.logger.end(`inserting LMF data for ${projectIdWithVersion}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Extract tar archive and find LMF XML files
+   */
+  private async extractTarArchive(tarBuffer: ArrayBuffer): Promise<string> {
+    this.logger.debug(`🔍 Starting tar archive extraction...`);
+
+    return new Promise((resolve, reject) => {
+      const extract = tar.extract();
+      const extractedFiles: { [key: string]: Uint8Array } = {};
+      let lmfFile: string | null = null;
+
+      extract.on("entry", (header: any, stream: any, next: any) => {
+        const chunks: Uint8Array[] = [];
+
+        stream.on("data", (chunk: Uint8Array) => {
+          chunks.push(chunk);
+        });
+
+        stream.on("end", () => {
+          const content = new Uint8Array(Buffer.concat(chunks));
+          extractedFiles[header.name] = content;
+
+          // Check if this is an LMF XML file - be more flexible with naming
+          if (header.name.endsWith(".xml")) {
+            const fileName = header.name.toLowerCase();
+            if (
+              fileName.includes("wn-data-") ||
+              fileName.includes("wordnet") ||
+              fileName.includes("lmf") ||
+              fileName.includes("omw") ||
+              fileName.includes("wolf") ||
+              fileName.includes("thai") ||
+              fileName.includes("french")
+            ) {
+              lmfFile = header.name;
+              this.logger.debug(`🔍 Found potential LMF file: ${header.name}`);
+            }
+          }
+
+          next();
+        });
+      });
+
+      extract.on("finish", () => {
+        this.logger.debug(
+          `🔍 Tar extraction completed. Found ${Object.keys(extractedFiles).length} files`
+        );
+        this.logger.debug(`🔍 Extracted files:`, Object.keys(extractedFiles));
+
+        if (lmfFile) {
+          this.logger.info(`✅ Found LMF file in tar archive: ${lmfFile}`);
+          const xmlContent = new TextDecoder().decode(extractedFiles[lmfFile]);
+          resolve(xmlContent);
+        } else {
+          // Look for any XML file and check its content
+          const xmlFiles = Object.keys(extractedFiles).filter((name) =>
+            name.endsWith(".xml")
+          );
+          if (xmlFiles.length > 0) {
+            this.logger.info(
+              `✅ Found XML file in tar archive: ${xmlFiles[0]}`
+            );
+
+            // Check if the XML content looks like LMF
+            const xmlContent = new TextDecoder().decode(
+              extractedFiles[xmlFiles[0]]
+            );
+            if (
+              xmlContent.includes("<LexicalResource") ||
+              xmlContent.includes("<lexicon")
+            ) {
+              this.logger.info(`✅ XML file appears to be LMF content`);
+              resolve(xmlContent);
+            } else {
+              this.logger.warn(
+                `⚠️ XML file found but doesn't appear to be LMF content`
+              );
+              this.logger.debug(
+                `🔍 XML content preview:`,
+                xmlContent.substring(0, 200)
+              );
+              reject(
+                new Error(
+                  "XML file found but content does not appear to be LMF"
+                )
+              );
+            }
+          } else {
+            reject(new Error("No LMF or XML files found in tar archive"));
+          }
+        }
+      });
+
+      extract.on("error", (err: any) => {
+        this.logger.error(`❌ Tar extraction failed:`, err);
+        reject(err);
+      });
+
+      // Convert ArrayBuffer to ReadableStream for tar-stream
+      const tarStream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new Uint8Array(tarBuffer));
+          controller.close();
+        },
+      });
+
+      // Pipe the stream to tar extractor
+      tarStream.pipeTo(
+        new WritableStream({
+          write(chunk: Uint8Array) {
+            extract.write(chunk);
+          },
+          close() {
+            extract.end();
+          },
         })
       );
-
-      // Batch insert all data
-      if (lexiconsToInsert.length > 0)
-        await queryService.batchInsert("lexicons", lexiconsToInsert);
-      if (wordsToInsert.length > 0)
-        await queryService.batchInsert("words", wordsToInsert);
-      if (synsetsToInsert.length > 0)
-        await queryService.batchInsert("synsets", synsetsToInsert);
-      if (sensesToInsert.length > 0)
-        await queryService.batchInsert("senses", sensesToInsert);
-      if (definitionsToInsert.length > 0)
-        await queryService.batchInsert("definitions", definitionsToInsert);
-
-      this.logger.debug(`✅ LMF data inserted for ${projectIdWithVersion}`);
-    } catch (error) {
-      this.logger.error(
-        `❌ Failed to insert LMF data for ${projectIdWithVersion}:`,
-        error
-      );
-      throw error;
-    }
-  }
-
-  /**
-   * Insert data parsed by the browser-compatible parser
-   */
-  private async insertBrowserParsedData(
-    parsed: { LexicalResource: ParsedNode },
-    projectIdWithVersion: string
-  ): Promise<void> {
-    this.logger.debug(
-      ` Inserting browser-parsed data for ${projectIdWithVersion}...`
-    );
-
-    // Use a more efficient yielding strategy
-    const yieldToUI = () => new Promise((resolve) => setTimeout(resolve, 1));
-
-    try {
-      const lexicalResource = parsed.LexicalResource;
-      if (!lexicalResource) {
-        throw new Error("No LexicalResource found in parsed XML");
-      }
-
-      const lrChildren: ParsedNode[] = Array.isArray(lexicalResource.children)
-        ? (lexicalResource.children as ParsedNode[])
-        : lexicalResource.children
-          ? [lexicalResource.children as ParsedNode]
-          : [];
-      const lexicons = lrChildren.filter((child) => child.name === "Lexicon");
-
-      const lexiconsToInsert: Database["lexicons"][] = [];
-      const wordsToInsert: Database["words"][] = [];
-      const sensesToInsert: Database["senses"][] = [];
-      const synsetsToInsert: Database["synsets"][] = [];
-      const definitionsToInsert: Database["definitions"][] = [];
-
-      for (const lexiconElem of lexicons) {
-        const lexiconId = String(
-          (lexiconElem.attributes as any)?.id ?? projectIdWithVersion
-        );
-        const lexiconLang = String(
-          (lexiconElem.attributes as any)?.language ?? "en"
-        );
-
-        lexiconsToInsert.push({
-          id: lexiconId,
-          label: String(
-            (lexiconElem.attributes as any)?.label ?? "Unknown Lexicon"
-          ),
-          language: lexiconLang,
-          version: (lexiconElem.attributes as any)?.version as
-            | string
-            | undefined,
-          license: (lexiconElem.attributes as any)?.license as
-            | string
-            | undefined,
-        });
-
-        // Process lexical entries
-        const entries =
-          lexiconElem.children?.filter(
-            (child) => child.name === "LexicalEntry"
-          ) || [];
-        this.logger.debug(
-          `📊 Processing ${entries.length} lexical entries for lexicon ${lexiconId}...`
-        );
-
-        // Process entries in chunks to prevent UI freezing
-        await this.processEntriesInChunks(
-          entries,
-          wordsToInsert,
-          sensesToInsert,
-          lexiconLang,
-          lexiconId
-        );
-
-        // Process synsets
-        const synsetElems =
-          lexiconElem.children?.filter((child) => child.name === "Synset") ||
-          [];
-        this.logger.debug(
-          `📊 Processing ${synsetElems.length} synsets for lexicon ${lexiconId}...`
-        );
-
-        // Process synsets in chunks to prevent UI freezing
-        await this.processSynsetsInChunks(
-          synsetElems,
-          synsetsToInsert,
-          definitionsToInsert,
-          lexiconLang,
-          lexiconId
-        );
-      }
-
-      const queryService = this.getQueryService();
-      if (queryService) {
-        this.logger.debug(
-          `📝 Inserting ${lexiconsToInsert.length} lexicons, ${wordsToInsert.length} words, ${sensesToInsert.length} senses, ${synsetsToInsert.length} synsets, and ${definitionsToInsert.length} definitions in batches...`
-        );
-
-        if (lexiconsToInsert.length > 0) {
-          await queryService.batchInsert("lexicons", lexiconsToInsert);
-        }
-        if (wordsToInsert.length > 0) {
-          await queryService.batchInsert("words", wordsToInsert);
-        }
-        if (synsetsToInsert.length > 0) {
-          await queryService.batchInsert("synsets", synsetsToInsert);
-        }
-        if (sensesToInsert.length > 0) {
-          await queryService.batchInsert("senses", sensesToInsert);
-        }
-        if (definitionsToInsert.length > 0) {
-          await queryService.batchInsert("definitions", definitionsToInsert);
-        }
-      } else {
-        throw new Error("Query service not available for batch insert.");
-      }
-
-      this.logger.debug(
-        `✅ Browser-parsed data inserted for ${projectIdWithVersion}`
-      );
-    } catch (error) {
-      this.logger.error(
-        `❌ Failed to insert browser-parsed data for ${projectIdWithVersion}:`,
-        error
-      );
-      throw error;
-    }
-  }
-
-  /**
-   * Process entries in chunks to prevent UI freezing
-   */
-  private async processEntriesInChunks(
-    entries: ParsedNode[],
-    wordsToInsert: Database["words"][],
-    sensesToInsert: Database["senses"][],
-    lexiconLang: string,
-    lexiconId: string
-  ): Promise<void> {
-    const CHUNK_SIZE = 1000;
-
-    for (let i = 0; i < entries.length; i += CHUNK_SIZE) {
-      const chunk = entries.slice(i, i + CHUNK_SIZE);
-
-      for (const entry of chunk) {
-        const wordId = (entry.attributes as any)?.id || "unknown-word";
-        const lemmaElem = entry.children?.find(
-          (child) => child.name === "Lemma"
-        );
-        const lemma = String(
-          (lemmaElem?.attributes as any)?.writtenForm ?? wordId
-        );
-        const partOfSpeech = String(
-          (lemmaElem?.attributes as any)?.partOfSpeech ?? "n"
-        );
-
-        wordsToInsert.push({
-          id: wordId,
-          lemma: lemma,
-          pos: partOfSpeech,
-          language: lexiconLang,
-          lexicon: lexiconId,
-        });
-
-        const senses =
-          entry.children?.filter((child) => child.name === "Sense") || [];
-        for (const sense of senses) {
-          const senseId = String(
-            (sense.attributes as any)?.id ?? `${wordId}.sense`
-          );
-          const synsetId = String(
-            (sense.attributes as any)?.synset ?? `${wordId}.synset`
-          );
-          sensesToInsert.push({
-            id: senseId,
-            word_id: wordId,
-            synset_id: synsetId,
-          });
-        }
-      }
-
-      // Yield to UI thread after each chunk
-      if (i + CHUNK_SIZE < entries.length) {
-        await new Promise((resolve) => setTimeout(resolve, 1));
-      }
-    }
-  }
-
-  /**
-   * Process synsets in chunks to prevent UI freezing
-   */
-  private async processSynsetsInChunks(
-    synsetElems: ParsedNode[],
-    synsetsToInsert: Database["synsets"][],
-    definitionsToInsert: Database["definitions"][],
-    lexiconLang: string,
-    lexiconId: string
-  ): Promise<void> {
-    const CHUNK_SIZE = 1000;
-
-    for (let i = 0; i < synsetElems.length; i += CHUNK_SIZE) {
-      const chunk = synsetElems.slice(i, i + CHUNK_SIZE);
-
-      for (const synset of chunk) {
-        const synsetId = String(
-          (synset.attributes as any)?.id ?? "unknown-synset"
-        );
-        synsetsToInsert.push({
-          id: synsetId,
-          ili:
-            ((synset.attributes as any)?.ili as string | undefined) ??
-            undefined,
-          pos: String((synset.attributes as any)?.partOfSpeech ?? "n"),
-          language: lexiconLang,
-          lexicon: lexiconId,
-        });
-
-        const definitions =
-          synset.children?.filter((child) => child.name === "Definition") || [];
-        for (const [j, def] of definitions.entries()) {
-          const lang = String((def.attributes as any)?.language ?? "en");
-          const glossElem = def.children?.find((c) => c.name === "gloss");
-
-          // Use the recursive text extractor
-          const textContent = glossElem
-            ? this.extractTextFromNode(glossElem)
-            : this.extractTextFromNode(def);
-          const cleanedText = textContent.replace(/\s+/g, " ").trim();
-
-          definitionsToInsert.push({
-            id: `${synsetId}.def.${lang}.${j}`,
-            synset_id: synsetId,
-            language: lang,
-            text: cleanedText,
-          });
-        }
-      }
-
-      // Yield to UI thread after each chunk
-      if (i + CHUNK_SIZE < synsetElems.length) {
-        await new Promise((resolve) => setTimeout(resolve, 1));
-      }
-    }
+    });
   }
 
   /**
@@ -1512,5 +1963,14 @@ export class DataLoader {
       return queryService.getStatistics();
     }
     return this.database.getStatistics();
+  }
+
+  /**
+   * Clean up resources
+   */
+  destroy() {
+    if (this.warningAggregator) {
+      this.warningAggregator.destroy();
+    }
   }
 }

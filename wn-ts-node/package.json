@@ -60,6 +60,8 @@
     "test:e2e": "pnpm with-debug-logs vitest run --no-file-parallelism tests/e2e",
     "test:ui": "vitest --ui --exclude \"**/*e2e.test.ts\"",
     "test:verbose": "node scripts/test-verbose.js",
+    "test:lmf": "pnpm vitest lmf",
+    "test:validation": "pnpm vitest validation",
     "vitest": "pnpm with-debug-logs vitest run",
     "with-debug-logs": "cross-env WN_TS_LOG_LEVEL=5",
     "typecheck": "tsc --noEmit"

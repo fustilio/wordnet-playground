@@ -642,9 +642,13 @@ export class WordNetWorkerClient {
     
     try {
       console.log(`Searching words in lexicon: ${lexicon}, term: ${term}, language: ${language}`);
-      // For now, use the existing queryWords method as a fallback
-      const result = await this.queryWords(term);
-      return result || [];
+      const result = await this.remote!.searchWordsInLexicon(term, lexicon, language);
+      
+      if (result.success) {
+        return result.data || [];
+      } else {
+        throw new Error(result.error || 'Search words in lexicon failed');
+      }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error(`Failed to search words in lexicon: ${lexicon}, term: ${term}`, { error: errorMessage });
@@ -743,14 +747,30 @@ export class WordNetWorkerClient {
    * Get a specific lexicon by ID
    */
   getLexicon(id: string): LexiconInfo | undefined {
-    return this.loadedLexicons.get(id);
+    // Try exact match first
+    let lexicon = this.loadedLexicons.get(id);
+    
+    if (!lexicon) {
+      // If exact match fails, try to find by base lexicon ID (e.g., "oewn" from "oewn:2024")
+      const baseLexiconId = id.split(':')[0];
+      lexicon = this.loadedLexicons.get(baseLexiconId);
+    }
+    
+    return lexicon;
   }
 
   /**
    * Check if a specific lexicon is loaded
    */
   hasLexicon(id: string): boolean {
-    return this.loadedLexicons.has(id);
+    // Try exact match first
+    if (this.loadedLexicons.has(id)) {
+      return true;
+    }
+    
+    // If exact match fails, try to find by base lexicon ID (e.g., "oewn" from "oewn:2024")
+    const baseLexiconId = id.split(':')[0];
+    return this.loadedLexicons.has(baseLexiconId);
   }
 
   /**
@@ -786,5 +806,28 @@ export class WordNetWorkerClient {
     // Clear lexicon tracking
     this.loadedLexicons.clear();
     this.statistics = null;
+  }
+
+  /**
+   * Get part of speech distribution
+   */
+  async getPartOfSpeechDistribution(): Promise<any> {
+    await this.ensureInitialized();
+    
+    try {
+      logger.info('Getting part of speech distribution from worker');
+      const result = await this.remote!.getPartOfSpeechDistribution();
+      
+      if (result.success) {
+        return result.data;
+      } else {
+        throw new Error(result.error || 'Failed to get part of speech distribution');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(`Failed to get part of speech distribution`, { error: errorMessage });
+      this.emit('error', { error: errorMessage, context: 'getPartOfSpeechDistribution' });
+      throw error;
+    }
   }
 }

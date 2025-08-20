@@ -51,6 +51,14 @@ export interface Relation {
   type: string;
   target: string;
   source?: string;
+  dc_type?: string;
+}
+
+export interface SyntacticBehaviour {
+  id: string;
+  subcategorizationFrame: string;
+  source?: string;
+  senses: string;
 }
 
 export interface Word {
@@ -61,6 +69,7 @@ export interface Word {
   pronunciations: Pronunciation[];
   tags: Tag[];
   counts: Count[];
+  frames?: SyntacticBehaviour[];
   language: string;
   lexicon: string;
 }
@@ -72,6 +81,7 @@ export interface Sense {
   examples: Example[];
   counts: Count[];
   tags: Tag[];
+  relations?: Relation[];
   source?: string;
   sensekey?: string;
   adjposition?: string;
@@ -87,6 +97,7 @@ export interface Synset {
   definitions: Definition[];
   examples: Example[];
   relations: Relation[];
+  iliDefinitions?: Definition[];
   language: string;
   lexicon: string;
   members: string[];
@@ -127,7 +138,7 @@ export interface Project {
 export interface WordQuery {
   form?: string;
   pos?: PartOfSpeech;
-  lexicon?: string;
+  lexicon?: string | string[]; // Support single lexicon or array of lexicons
   lang?: string;
 }
 
@@ -135,14 +146,14 @@ export interface SynsetQuery {
   form?: string;
   pos?: PartOfSpeech;
   ili?: string | ILI;
-  lexicon?: string;
+  lexicon?: string | string[]; // Support single lexicon or array of lexicons
   lang?: string;
 }
 
 export interface SenseQuery {
   form?: string;
   pos?: PartOfSpeech;
-  lexicon?: string;
+  lexicon?: string | string[]; // Support single lexicon or array of lexicons
   lang?: string;
   wordIdOrForm?: string;
 }
@@ -154,7 +165,7 @@ export interface WordnetConfig {
 }
 
 export interface WordnetOptions {
-  lexicon?: string;
+  lexicon?: string | string[]; // Support single lexicon or array of lexicons
   version?: string;
   expand?: string | string[];
   normalizer?: (form: string) => string;

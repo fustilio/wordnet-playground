@@ -26,6 +26,47 @@ describe("Project", () => {
     );
   });
 
+  it("should get primary URL correctly", () => {
+    const project = new Project("oewn:2024");
+    const primaryUrl = project.getPrimaryUrl();
+    expect(primaryUrl).toBe("https://en-word.net/static/english-wordnet-2024.xml.gz");
+  });
+
+  it("should detect multiple URLs correctly", () => {
+    const project = new Project("oewn:2024");
+    expect(project.hasMultipleUrls()).toBe(true);
+  });
+
+  it("should provide detailed URL information", () => {
+    const project = new Project("oewn:2024");
+    const urlInfo = project.getUrlInfo();
+    expect(urlInfo.count).toBe(2);
+    expect(urlInfo.hasMultipleUrls).toBe(true);
+    expect(urlInfo.primaryUrl).toBe("https://en-word.net/static/english-wordnet-2024.xml.gz");
+    expect(urlInfo.urls).toHaveLength(2);
+    expect(urlInfo.raw).toContain("https://en-word.net/static/english-wordnet-2024.xml.gz");
+  });
+
+  it("should provide fallback URLs for known broken packages", () => {
+    const ciliProject = new Project("cili:1.0");
+    const fallbackUrls = ciliProject.getFallbackUrls();
+    // Currently no fallback URLs are implemented
+    expect(fallbackUrls).toHaveLength(0);
+  });
+
+  it("should get all URLs including fallbacks", () => {
+    const ciliProject = new Project("cili:1.0");
+    const allUrls = ciliProject.getAllUrls();
+    const primaryUrls = ciliProject.getUrls();
+    const fallbackUrls = ciliProject.getFallbackUrls();
+    
+    expect(allUrls.length).toBe(primaryUrls.length + fallbackUrls.length);
+    expect(allUrls).toContain(primaryUrls[0]);
+    // Currently no fallback URLs are implemented, so fallbackUrls should be empty
+    expect(fallbackUrls).toHaveLength(0);
+    expect(allUrls).toEqual(primaryUrls); // All URLs should equal primary URLs when no fallbacks
+  });
+
   it("should handle projects with errors", () => {
     expect(() => new Project("pwn:3.0")).toThrow(
       "'pwn:3.0' is no longer indexed; use 'omw-en:1.4' instead (https://github.com/goodmami/wn#changes-to-the-index)"

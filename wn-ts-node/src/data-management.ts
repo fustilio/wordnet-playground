@@ -563,9 +563,196 @@ async function _addLmf(
         ['id', 'synset_id', 'sense_id', 'language', 'text', 'source'],
         [...synsetExampleData, ...senseExampleData],
         p => {
-          progress?.(0.8 + p * 0.19); // 0.8-0.99
+          progress?.(0.8 + p * 0.05); // 0.8-0.85
 
           logger.insert('example progress', p);
+        }
+      );
+
+      logger.insert('Inserting word tags...');
+      const wordTagData = (lmfData.words || []).flatMap(word =>
+        (word.tags || []).map((tag: any, index: number) => [
+          tag.id || `tag_${word.id}_${index}`,
+          word.id,
+          null, // form_id
+          tag.category,
+          tag.value,
+        ])
+      );
+      batchInsert(
+        'tags',
+        ['id', 'word_id', 'form_id', 'category', 'text'],
+        wordTagData,
+        p => {
+          progress?.(0.85 + p * 0.02); // 0.85-0.87
+
+          logger.insert('word tag progress', p);
+        }
+      );
+
+      logger.insert('Inserting form tags...');
+      const formTagData = (lmfData.words || []).flatMap(word =>
+        (word.forms || []).flatMap(form =>
+          form.tag ? [[
+            `tag_${form.id}_0`,
+            null, // word_id
+            form.id,
+            'tag-category', // Default category
+            form.tag,
+          ]] : []
+        )
+      );
+      batchInsert(
+        'tags',
+        ['id', 'word_id', 'form_id', 'category', 'text'],
+        formTagData,
+        p => {
+          progress?.(0.87 + p * 0.02); // 0.87-0.89
+
+          logger.insert('form tag progress', p);
+        }
+      );
+
+      logger.insert('Inserting sense tags...');
+      const senseTagData = (lmfData.senses || []).flatMap(sense =>
+        (sense.tags || []).map((tag: any, index: number) => [
+          tag.id || `tag_${sense.id}_${index}`,
+          null, // word_id
+          null, // form_id
+          tag.category,
+          tag.value,
+        ])
+      );
+      batchInsert(
+        'tags',
+        ['id', 'word_id', 'form_id', 'category', 'text'],
+        senseTagData,
+        p => {
+          progress?.(0.89 + p * 0.02); // 0.89-0.91
+
+          logger.insert('sense tag progress', p);
+        }
+      );
+
+      logger.insert('Inserting word counts...');
+      const wordCountData = (lmfData.words || []).flatMap(word =>
+        (word.counts || []).map((count: any, index: number) => [
+          count.id || `count_${word.id}_${index}`,
+          null, // sense_id
+          count.value,
+          count.dc_source,
+        ])
+      );
+      batchInsert(
+        'counts',
+        ['id', 'sense_id', 'value', 'dc_source'],
+        wordCountData,
+        p => {
+          progress?.(0.91 + p * 0.02); // 0.91-0.93
+
+          logger.insert('word count progress', p);
+        }
+      );
+
+      logger.insert('Inserting sense counts...');
+      const senseCountData = (lmfData.senses || []).flatMap(sense =>
+        (sense.counts || []).map((count: any, index: number) => [
+          count.id || `count_${sense.id}_${index}`,
+          sense.id,
+          count.value,
+          count.dc_source,
+        ])
+      );
+      batchInsert(
+        'counts',
+        ['id', 'sense_id', 'value', 'dc_source'],
+        senseCountData,
+        p => {
+          progress?.(0.93 + p * 0.02); // 0.93-0.95
+
+          logger.insert('sense count progress', p);
+        }
+      );
+
+      logger.insert('Inserting sense relations...');
+      const senseRelationData = (lmfData.senses || []).flatMap(sense =>
+        (sense.relations || []).map((rel: any, index: number) => [
+          rel.id || `sense_rel_${sense.id}_${index}`,
+          sense.id,
+          rel.type,
+          rel.target,
+          rel.dc_type,
+        ])
+      );
+      batchInsert(
+        'sense_relations',
+        ['id', 'sense_id', 'rel_type', 'target', 'dc_type'],
+        senseRelationData,
+        p => {
+          progress?.(0.95 + p * 0.02); // 0.95-0.97
+
+          logger.insert('sense relation progress', p);
+        }
+      );
+
+      logger.insert('Inserting ILI definitions...');
+      const iliDefinitionData = (lmfData.synsets || []).flatMap(synset =>
+        (synset.iliDefinitions || []).map((def: any, index: number) => [
+          def.id || `ili_def_${synset.id}_${index}`,
+          synset.id,
+          def.text,
+          def.language || 'en',
+        ])
+      );
+      batchInsert(
+        'ili_definitions',
+        ['id', 'synset_id', 'text', 'language'],
+        iliDefinitionData,
+        p => {
+          progress?.(0.97 + p * 0.015); // 0.97-0.985
+
+          logger.insert('ili definition progress', p);
+        }
+      );
+
+      logger.insert('Inserting syntactic behaviours...');
+      const syntacticBehaviourData = (lmfData.words || []).flatMap(word =>
+        (word.frames || []).map((frame: any, index: number) => [
+          frame.id || `sb_${word.id}_${index}`,
+          word.id,
+          frame.senses,
+          frame.subcategorizationFrame,
+          frame.source || '',
+        ])
+      );
+      batchInsert(
+        'syntactic_behaviours',
+        ['id', 'word_id', 'senses', 'subcategorization_frame', 'source'],
+        syntacticBehaviourData,
+        p => {
+          progress?.(0.97 + p * 0.015); // 0.97-0.985
+
+          logger.insert('syntactic behaviour progress', p);
+        }
+      );
+
+      logger.insert('Inserting synset relations...');
+      const synsetRelationData = (lmfData.synsets || []).flatMap(synset =>
+        (synset.relations || []).map((rel: any, index: number) => [
+          rel.id || `synset_rel_${synset.id}_${index}`,
+          synset.id,
+          rel.type,
+          rel.target,
+        ])
+      );
+      batchInsert(
+        'synset_relations',
+        ['id', 'synset_id', 'rel_type', 'target'],
+        synsetRelationData,
+        p => {
+          progress?.(0.985 + p * 0.015); // 0.985-1.0
+
+          logger.insert('synset relation progress', p);
         }
       );
 
@@ -798,63 +985,229 @@ async function exportToJSON(lexicons: unknown[]): Promise<string> {
 }
 
 /**
- * Export data to XML format
+ * Export data to XML format following LMF schema
  */
 async function exportToXML(lexicons: unknown[]): Promise<string> {
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-  xml += '<lexical-resources>\n';
+  xml += '<!DOCTYPE LexicalResource SYSTEM "http://globalwordnet.github.io/schemas/WN-LMF-1.0.dtd">\n';
+  xml += '<LexicalResource xmlns:dc="http://purl.org/dc/elements/1.1/">\n';
 
   for (const lexicon of lexicons as Record<string, any>[]) {
-    xml += `  <lexicon id="${lexicon.id}" label="${lexicon.label}" language="${lexicon.language}">\n`;
+    // Export lexicon with all required attributes
+    xml += `  <Lexicon id="${lexicon.id}" label="${lexicon.label}" language="${lexicon.language}"`;
+    xml += ` email="${lexicon.email || 'maintainer@example.com'}"`;
+    xml += ` license="${lexicon.license || 'https://creativecommons.org/licenses/by/4.0/'}"`;
+    xml += ` version="${lexicon.version || '1'}"`;
+    if (lexicon.url) xml += ` url="${lexicon.url}"`;
+    if (lexicon.citation) xml += ` citation="${lexicon.citation}"`;
+    if (lexicon.dc_contributor) xml += ` dc:contributor="${lexicon.dc_contributor}"`;
+    if (lexicon.dc_coverage) xml += ` dc:coverage="${lexicon.dc_coverage}"`;
+    if (lexicon.dc_creator) xml += ` dc:creator="${lexicon.dc_creator}"`;
+    if (lexicon.dc_date) xml += ` dc:date="${lexicon.dc_date}"`;
+    if (lexicon.dc_description) xml += ` dc:description="${lexicon.dc_description}"`;
+    if (lexicon.dc_format) xml += ` dc:format="${lexicon.dc_format}"`;
+    if (lexicon.dc_identifier) xml += ` dc:identifier="${lexicon.dc_identifier}"`;
+    if (lexicon.dc_publisher) xml += ` dc:publisher="${lexicon.dc_publisher}"`;
+    if (lexicon.dc_relation) xml += ` dc:relation="${lexicon.dc_relation}"`;
+    if (lexicon.dc_rights) xml += ` dc:rights="${lexicon.dc_rights}"`;
+    if (lexicon.dc_source) xml += ` dc:source="${lexicon.dc_source}"`;
+    if (lexicon.dc_subject) xml += ` dc:subject="${lexicon.dc_subject}"`;
+    if (lexicon.dc_title) xml += ` dc:title="${lexicon.dc_title}"`;
+    if (lexicon.dc_type) xml += ` dc:type="${lexicon.dc_type}"`;
+    if (lexicon.status) xml += ` status="${lexicon.status}"`;
+    if (lexicon.note) xml += ` note="${lexicon.note}"`;
+    if (lexicon.confidence_score) xml += ` confidenceScore="${lexicon.confidence_score}"`;
+    xml += '>\n';
 
-    // Get words for this lexicon
+    // Get words (LexicalEntry) for this lexicon
     const words = db.all('SELECT * FROM words WHERE lexicon = ?', [lexicon.id]);
     for (const word of words as any[]) {
-      xml += `    <word id="${word.id}" lemma="${word.lemma}" pos="${word.pos}">\n`;
+      xml += `    <LexicalEntry id="${word.id}"`;
+      if (word.dc_contributor) xml += ` dc:contributor="${word.dc_contributor}"`;
+      if (word.dc_coverage) xml += ` dc:coverage="${word.dc_coverage}"`;
+      if (word.dc_creator) xml += ` dc:creator="${word.dc_creator}"`;
+      if (word.dc_date) xml += ` dc:date="${word.dc_date}"`;
+      if (word.dc_description) xml += ` dc:description="${word.dc_description}"`;
+      if (word.dc_format) xml += ` dc:format="${word.dc_format}"`;
+      if (word.dc_identifier) xml += ` dc:identifier="${word.dc_identifier}"`;
+      if (word.dc_publisher) xml += ` dc:publisher="${word.dc_publisher}"`;
+      if (word.dc_relation) xml += ` dc:relation="${word.dc_relation}"`;
+      if (word.dc_rights) xml += ` dc:rights="${word.dc_rights}"`;
+      if (word.dc_source) xml += ` dc:source="${word.dc_source}"`;
+      if (word.dc_subject) xml += ` dc:subject="${word.dc_subject}"`;
+      if (word.dc_title) xml += ` dc:title="${word.dc_title}"`;
+      if (word.dc_type) xml += ` dc:type="${word.dc_type}"`;
+      if (word.status) xml += ` status="${word.status}"`;
+      if (word.note) xml += ` note="${word.note}"`;
+      if (word.confidence_score) xml += ` confidenceScore="${word.confidence_score}"`;
+      xml += '>\n';
+
+      // Export Lemma
+      xml += `      <Lemma partOfSpeech="${word.pos}" writtenForm="${word.lemma}"`;
+      if (word.script) xml += ` script="${word.script}"`;
+      xml += '>\n';
+      
+      // Get tags for this word
+      const tags = db.all('SELECT * FROM tags WHERE word_id = ?', [word.id]);
+      for (const tag of tags as any[]) {
+        xml += `        <Tag category="${tag.category}">${tag.text}</Tag>\n`;
+      }
+      xml += '      </Lemma>\n';
 
       // Get forms for this word
       const forms = db.all('SELECT * FROM forms WHERE word_id = ?', [word.id]);
       for (const form of forms as any[]) {
-        xml += `      <form written="${form.written_form}" script="${form.script || ''}" tag="${form.tag || ''}"/>\n`;
+        xml += `      <Form writtenForm="${form.written_form}"`;
+        if (form.script) xml += ` script="${form.script}"`;
+        xml += '>\n';
+        
+        // Get tags for this form
+        const formTags = db.all('SELECT * FROM tags WHERE form_id = ?', [form.id]);
+        for (const tag of formTags as any[]) {
+          xml += `        <Tag category="${tag.category}">${tag.text}</Tag>\n`;
+        }
+        xml += '      </Form>\n';
       }
 
       // Get senses for this word
       const senses = db.all('SELECT * FROM senses WHERE word_id = ?', [word.id]);
       for (const sense of senses as any[]) {
-        xml += `      <sense id="${sense.id}" synset="${sense.synset_id}"/>\n`;
+        xml += `      <Sense id="${sense.id}" synset="${sense.synset_id}"`;
+        if (sense.lexicalized !== undefined) xml += ` lexicalized="${sense.lexicalized}"`;
+        if (sense.adjposition) xml += ` adjposition="${sense.adjposition}"`;
+        if (sense.dc_contributor) xml += ` dc:contributor="${sense.dc_contributor}"`;
+        if (sense.dc_coverage) xml += ` dc:coverage="${sense.dc_coverage}"`;
+        if (sense.dc_creator) xml += ` dc:creator="${sense.dc_creator}"`;
+        if (sense.dc_date) xml += ` dc:date="${sense.dc_date}"`;
+        if (sense.dc_description) xml += ` dc:description="${sense.dc_description}"`;
+        if (sense.dc_format) xml += ` dc:format="${sense.dc_format}"`;
+        if (sense.dc_identifier) xml += ` dc:identifier="${sense.dc_identifier}"`;
+        if (sense.dc_publisher) xml += ` dc:publisher="${sense.dc_publisher}"`;
+        if (sense.dc_relation) xml += ` dc:relation="${sense.dc_relation}"`;
+        if (sense.dc_rights) xml += ` dc:rights="${sense.dc_rights}"`;
+        if (sense.dc_source) xml += ` dc:source="${sense.dc_source}"`;
+        if (sense.dc_subject) xml += ` dc:subject="${sense.dc_subject}"`;
+        if (sense.dc_title) xml += ` dc:title="${sense.dc_title}"`;
+        if (sense.dc_type) xml += ` dc:type="${sense.dc_type}"`;
+        if (sense.status) xml += ` status="${sense.status}"`;
+        if (sense.note) xml += ` note="${sense.note}"`;
+        if (sense.confidence_score) xml += ` confidenceScore="${sense.confidence_score}"`;
+        xml += '>\n';
+
+        // Get sense relations
+        const senseRelations = db.all('SELECT * FROM sense_relations WHERE sense_id = ?', [sense.id]);
+        for (const rel of senseRelations as any[]) {
+          xml += `        <SenseRelation relType="${rel.rel_type}" target="${rel.target}"`;
+          if (rel.dc_type) xml += ` dc:type="${rel.dc_type}"`;
+          xml += ' />\n';
+        }
+
+        // Get examples for this sense
+        const senseExamples = db.all('SELECT * FROM examples WHERE sense_id = ?', [sense.id]);
+        for (const example of senseExamples as any[]) {
+          xml += `        <Example`;
+          if (example.language) xml += ` language="${example.language}"`;
+          xml += `>${example.text}</Example>\n`;
+        }
+
+        // Get counts for this sense
+        const counts = db.all('SELECT * FROM counts WHERE sense_id = ?', [sense.id]);
+        for (const count of counts as any[]) {
+          xml += `        <Count`;
+          if (count.dc_source) xml += ` dc:source="${count.dc_source}"`;
+          xml += `>${count.value}</Count>\n`;
+        }
+
+        xml += '      </Sense>\n';
       }
 
-      xml += '    </word>\n';
+      // Get syntactic behaviours for this word
+      const syntacticBehaviours = db.all('SELECT * FROM syntactic_behaviours WHERE word_id = ?', [word.id]);
+      for (const sb of syntacticBehaviours as any[]) {
+        xml += `      <SyntacticBehaviour senses="${sb.senses}" subcategorizationFrame="${sb.subcategorization_frame}"`;
+        if (sb.dc_contributor) xml += ` dc:contributor="${sb.dc_contributor}"`;
+        if (sb.dc_coverage) xml += ` dc:coverage="${sb.dc_coverage}"`;
+        if (sb.dc_creator) xml += ` dc:creator="${sb.dc_creator}"`;
+        if (sb.dc_date) xml += ` dc:date="${sb.dc_date}"`;
+        if (sb.dc_description) xml += ` dc:description="${sb.dc_description}"`;
+        if (sb.dc_format) xml += ` dc:format="${sb.dc_format}"`;
+        if (sb.dc_identifier) xml += ` dc:identifier="${sb.dc_identifier}"`;
+        if (sb.dc_publisher) xml += ` dc:publisher="${sb.dc_publisher}"`;
+        if (sb.dc_relation) xml += ` dc:relation="${sb.dc_relation}"`;
+        if (sb.dc_rights) xml += ` dc:rights="${sb.dc_rights}"`;
+        if (sb.dc_source) xml += ` dc:source="${sb.dc_source}"`;
+        if (sb.dc_subject) xml += ` dc:subject="${sb.dc_subject}"`;
+        if (sb.dc_title) xml += ` dc:title="${sb.dc_title}"`;
+        if (sb.dc_type) xml += ` dc:type="${sb.dc_type}"`;
+        if (sb.status) xml += ` status="${sb.status}"`;
+        if (sb.note) xml += ` note="${sb.note}"`;
+        if (sb.confidence_score) xml += ` confidenceScore="${sb.confidence_score}"`;
+        xml += ' />\n';
+      }
+
+      xml += '    </LexicalEntry>\n';
     }
 
     // Get synsets for this lexicon
     const synsets = db.all('SELECT * FROM synsets WHERE lexicon = ?', [lexicon.id]);
     for (const synset of synsets as any[]) {
-      xml += `    <synset id="${synset.id}" pos="${synset.pos}">\n`;
+      xml += `    <Synset id="${synset.id}" ili="${synset.ili || ''}" partOfSpeech="${synset.pos}"`;
+      if (synset.lexicalized !== undefined) xml += ` lexicalized="${synset.lexicalized}"`;
+      if (synset.dc_contributor) xml += ` dc:contributor="${synset.dc_contributor}"`;
+      if (synset.dc_coverage) xml += ` dc:coverage="${synset.dc_coverage}"`;
+      if (synset.dc_creator) xml += ` dc:creator="${synset.dc_creator}"`;
+      if (synset.dc_date) xml += ` dc:date="${synset.dc_date}"`;
+      if (synset.dc_description) xml += ` dc:description="${synset.dc_description}"`;
+      if (synset.dc_format) xml += ` dc:format="${synset.dc_format}"`;
+      if (synset.dc_identifier) xml += ` dc:identifier="${synset.dc_identifier}"`;
+      if (synset.dc_publisher) xml += ` dc:publisher="${synset.dc_publisher}"`;
+      if (synset.dc_relation) xml += ` dc:relation="${synset.dc_relation}"`;
+      if (synset.dc_rights) xml += ` dc:rights="${synset.dc_rights}"`;
+      if (synset.dc_source) xml += ` dc:source="${synset.dc_source}"`;
+      if (synset.dc_subject) xml += ` dc:subject="${synset.dc_subject}"`;
+      if (synset.dc_title) xml += ` dc:title="${synset.dc_title}"`;
+      if (synset.dc_type) xml += ` dc:type="${synset.dc_type}"`;
+      if (synset.status) xml += ` status="${synset.status}"`;
+      if (synset.note) xml += ` note="${synset.note}"`;
+      if (synset.confidence_score) xml += ` confidenceScore="${synset.confidence_score}"`;
+      xml += '>\n';
 
       // Get definitions for this synset
-      const definitions = db.all('SELECT * FROM definitions WHERE synset_id = ?', [
-        synset.id,
-      ]);
+      const definitions = db.all('SELECT * FROM definitions WHERE synset_id = ?', [synset.id]);
       for (const def of definitions as any[]) {
-        xml += `      <definition language="${def.language}">${def.text}</definition>\n`;
+        xml += `      <Definition`;
+        if (def.language) xml += ` language="${def.language}"`;
+        if (def.source_sense) xml += ` sourceSense="${def.source_sense}"`;
+        xml += `>${def.text}</Definition>\n`;
+      }
+
+      // Get ILI definitions for this synset
+      const iliDefinitions = db.all('SELECT * FROM ili_definitions WHERE synset_id = ?', [synset.id]);
+      for (const iliDef of iliDefinitions as any[]) {
+        xml += `      <ILIDefinition>${iliDef.text}</ILIDefinition>\n`;
+      }
+
+      // Get synset relations
+      const synsetRelations = db.all('SELECT * FROM synset_relations WHERE synset_id = ?', [synset.id]);
+      for (const rel of synsetRelations as any[]) {
+        xml += `      <SynsetRelation relType="${rel.rel_type}" target="${rel.target}" />\n`;
       }
 
       // Get examples for this synset
-      const examples = db.all('SELECT * FROM examples WHERE synset_id = ?', [
-        synset.id,
-      ]);
+      const examples = db.all('SELECT * FROM examples WHERE synset_id = ?', [synset.id]);
       for (const example of examples as any[]) {
-        xml += `      <example language="${example.language}">${example.text}</example>\n`;
+        xml += `      <Example`;
+        if (example.language) xml += ` language="${example.language}"`;
+        xml += `>${example.text}</Example>\n`;
       }
 
-      xml += '    </synset>\n';
+      xml += '    </Synset>\n';
     }
 
-    xml += '  </lexicon>\n';
+    xml += '  </Lexicon>\n';
   }
 
-  xml += '</lexical-resources>';
+  xml += '</LexicalResource>';
   return xml;
 }
 
