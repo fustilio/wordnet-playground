@@ -52,19 +52,19 @@ class MockWordnetClient extends BaseWordnet {
     return [];
   }
 
-  async word(wordId: string): Promise<Word> {
+  async word(wordId: string): Promise<Word | undefined> {
     throw new Error(`Mock word not implemented for ${wordId}`);
   }
 
-  async sense(senseId: string): Promise<Sense> {
+  async sense(senseId: string): Promise<Sense | undefined> {
     throw new Error(`Mock sense not implemented for ${senseId}`);
   }
 
-  async synset(synsetId: string): Promise<Synset> {
+  async synset(synsetId: string): Promise<Synset | undefined> {
     throw new Error(`Mock synset not implemented for ${synsetId}`);
   }
 
-  async ili(iliId: string): Promise<ILI> {
+  async ili(iliId: string): Promise<ILI | undefined> {
     throw new Error(`Mock ili not implemented for ${iliId}`);
   }
 
@@ -72,7 +72,71 @@ class MockWordnetClient extends BaseWordnet {
     return [];
   }
 
-  async getProjects(): Promise<Project[]> {
+  async lexicon(lexiconId: string): Promise<Lexicon | undefined> {
+    return undefined;
+  }
+
+  async projects(): Promise<Project[]> {
+    return [];
+  }
+
+  async project(projectId: string): Promise<Project | undefined> {
+    return undefined;
+  }
+
+  async searchWords(query: string): Promise<Word[]> {
+    return [];
+  }
+
+  async searchSynsets(query: string): Promise<Synset[]> {
+    return [];
+  }
+
+  async wordsByForm(form: string): Promise<Word[]> {
+    return [];
+  }
+
+  async synsetsByILI(ili: string): Promise<Synset[]> {
+    return [];
+  }
+
+  async wordsByILI(ili: string): Promise<Word[]> {
+    return [];
+  }
+
+  async wordsBySynset(synsetId: string): Promise<Word[]> {
+    return [];
+  }
+
+  async sensesByWord(wordId: string): Promise<Sense[]> {
+    return [];
+  }
+
+  async sensesBySynset(synsetId: string): Promise<Sense[]> {
+    return [];
+  }
+
+  async relationsBySynset(synsetId: string): Promise<any[]> {
+    return [];
+  }
+
+  async relationsByWord(wordId: string): Promise<any[]> {
+    return [];
+  }
+
+  async examplesBySynset(synsetId: string): Promise<any[]> {
+    return [];
+  }
+
+  async examplesByWord(wordId: string): Promise<any[]> {
+    return [];
+  }
+
+  async definitionsBySynset(synsetId: string): Promise<any[]> {
+    return [];
+  }
+
+  async formsByWord(wordId: string): Promise<any[]> {
     return [];
   }
 
@@ -87,7 +151,16 @@ class MockWordnetClient extends BaseWordnet {
   }
 
   async getLexiconStatistics(lexiconId?: string) {
-    return [];
+    return [{
+      lexiconId: 'test',
+      label: 'Test',
+      language: 'en',
+      version: '1.0',
+      wordCount: 0,
+      synsetCount: 0,
+      senseCount: 0,
+      iliCount: 0
+    }];
   }
 
   async getDataQualityMetrics() {
@@ -97,6 +170,8 @@ class MockWordnetClient extends BaseWordnet {
       iliCoveragePercentage: 0,
       emptySynsets: 0,
       synsetsWithDefinitions: 0,
+      synsetsWithExamples: 0,
+      averageSynsetSize: 0
     };
   }
 
@@ -111,10 +186,6 @@ class MockWordnetClient extends BaseWordnet {
       minSize: 0,
       sizeDistribution: {},
     };
-  }
-
-  async close() {
-    // Mock implementation - no-op
   }
 }
 

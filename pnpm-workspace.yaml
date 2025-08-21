@@ -1,15 +1,4 @@
-packages:
-  - wn-ts-core
-  - wn-ts-node
-  - wn-ts-web
-  - demo
-  - benchmark
-  - wn-pybridge
-  - wn-cli
-  - wn-ts-web-demo
-  - sqlite-opfs-demo
-  - utils
-
+---
 catalog:
   '@sqlite.org/sqlite-wasm': 3.50.3-build1
   '@types/node': ^20.10.0
@@ -23,6 +12,7 @@ catalog:
   comlink: ^4.4.2
   cross-env: ^7.0.3
   eslint: ^9.30.1
+  kysely: ^0.28.3
   prettier: ^3.6.2
   pythonia: ^1.2.2
   react: ^19.1.0
@@ -35,7 +25,6 @@ catalog:
   vite-plugin-dts: ^4.5.4
   vitest: 3.2.4
   zod: ^4.0.17
-
 onlyBuiltDependencies:
   - '@tailwindcss/oxide'
   - better-sqlite3
@@ -45,3 +34,14 @@ onlyBuiltDependencies:
   - sqlite3
   - wndb-with-exceptions
   - wordpos
+packages:
+  - wn-ts-core
+  - wn-ts-node
+  - wn-ts-web
+  - demo
+  - benchmark
+  - wn-pybridge
+  - wn-cli
+  - wn-ts-web-demo
+  - sqlite-opfs-demo
+  - utils

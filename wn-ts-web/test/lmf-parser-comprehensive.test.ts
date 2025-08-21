@@ -114,7 +114,8 @@ describe('LMF Parser - Comprehensive Tests with Real Data', () => {
 
     it('should parse mini-lmf-1.4.xml correctly', async () => {
       const xmlContent = readFileSync(join(TEST_DATA_DIR, 'mini-lmf-1.4.xml'), 'utf-8');
-      const result = await parser.parse(xmlContent);
+      // Use mergeStrategy: 'none' to preserve duplicate indices for testing
+      const result = await parser.parse(xmlContent, { mergeStrategy: 'none' });
 
       const stats = getTestFileStats('mini-lmf-1.4.xml');
       expect(stats).toBeDefined();
@@ -138,7 +139,7 @@ describe('LMF Parser - Comprehensive Tests with Real Data', () => {
   describe('Error Cases - Duplicate IDs', () => {
     it('should handle duplicate lexical entry IDs (E101-0.xml)', async () => {
       const xmlContent = readFileSync(join(TEST_DATA_DIR, 'E101-0.xml'), 'utf-8');
-      const result = await parser.parse(xmlContent);
+      const result = await parser.parse(xmlContent, { mergeStrategy: 'none' });
 
       const stats = getTestFileStats('E101-0.xml');
       expect(stats).toBeDefined();
@@ -157,7 +158,7 @@ describe('LMF Parser - Comprehensive Tests with Real Data', () => {
 
     it('should handle duplicate sense IDs (E101-1.xml)', async () => {
       const xmlContent = readFileSync(join(TEST_DATA_DIR, 'E101-1.xml'), 'utf-8');
-      const result = await parser.parse(xmlContent);
+      const result = await parser.parse(xmlContent, { mergeStrategy: 'none' });
 
       const stats = getTestFileStats('E101-1.xml');
       expect(stats).toBeDefined();
@@ -175,7 +176,7 @@ describe('LMF Parser - Comprehensive Tests with Real Data', () => {
 
     it('should handle duplicate synset IDs (E101-2.xml)', async () => {
       const xmlContent = readFileSync(join(TEST_DATA_DIR, 'E101-2.xml'), 'utf-8');
-      const result = await parser.parse(xmlContent);
+      const result = await parser.parse(xmlContent, { mergeStrategy: 'none' });
 
       const stats = getTestFileStats('E101-2.xml');
       expect(stats).toBeDefined();
@@ -193,7 +194,7 @@ describe('LMF Parser - Comprehensive Tests with Real Data', () => {
 
     it('should handle duplicate IDs across different entity types (E101-3.xml)', async () => {
       const xmlContent = readFileSync(join(TEST_DATA_DIR, 'E101-3.xml'), 'utf-8');
-      const result = await parser.parse(xmlContent);
+      const result = await parser.parse(xmlContent, { mergeStrategy: 'none' });
 
       const stats = getTestFileStats('E101-3.xml');
       expect(stats).toBeDefined();
@@ -425,7 +426,11 @@ describe('LMF Parser - Comprehensive Tests with Real Data', () => {
       
       for (const fileStats of testFiles) {
         const xmlContent = readFileSync(join(TEST_DATA_DIR, fileStats.name), 'utf-8');
-        const result = await parser.parse(xmlContent);
+        // Use mergeStrategy: 'none' for test files that expect duplicate IDs or indices to be preserved
+        const parseOptions = (fileStats.characteristics?.includes('duplicate-ids') || 
+                             fileStats.characteristics?.includes('duplicate-indices')) ? 
+          { mergeStrategy: 'none' } : {};
+        const result = await parser.parse(xmlContent, parseOptions);
         
         // Verify the basic structure
         expect(result.lexicons).toHaveLength(fileStats.lexicons);

@@ -1,5 +1,5 @@
 /**
- * Kysely database schema types for wn-ts-web
+ * Kysely database schema types for wn-ts-node
  * 
  * This file re-exports the shared database types from wn-ts-core.
  */

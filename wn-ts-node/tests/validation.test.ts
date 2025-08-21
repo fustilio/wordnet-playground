@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { validateLMFDataIntegrityFromSQLite } from '../src/validation.js';
-import { add } from '../src/data-management.js';
+import { add } from '../src/data-management-new.js';
 import path from 'path';
 import fs from 'fs/promises';
 import { config } from '../src/config.js';
@@ -33,7 +33,7 @@ describe('LMF Data Integrity Validation - Real Data Test', () => {
     try {
       // Use the actual LMF loading system to load the test data
       console.log('🔧 Loading test LMF data using production system...');
-      await add(miniLmfPath, { debug: true });
+      await add(miniLmfPath);
       console.log('✅ Test data loaded into database using production system');
       
     } catch (error) {

@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { StreamingSaxParser, FullStreamingParser, createStreamingSaxParser } from '../../src/parsers/streaming-sax.js';
-import type { LMFDocument, LMFLoadOptions } from 'wn-ts-core';
+import type { LMFLoadOptions } from 'wn-ts-core';
 
 describe('Streaming SAX Parser', () => {
   let parser: StreamingSaxParser;
@@ -42,6 +42,10 @@ describe('Streaming SAX Parser', () => {
       
       // Check lexicon
       const lexicon = result.lexicons[0];
+      if (!lexicon) {
+        expect(lexicon).toBeDefined();
+        return;
+      }
       expect(lexicon.id).toBe('test-en');
       expect(lexicon.language).toBe('en');
       expect(lexicon.version).toBe('1.0');
@@ -49,6 +53,10 @@ describe('Streaming SAX Parser', () => {
       
       // Check word
       const word = result.words[0];
+      if (!word) {
+        expect(word).toBeDefined();
+        return;
+      }
       expect(word.id).toBe('test-word');
       expect(word.lemma).toBe('test');
       expect(word.pos).toBe('n');
@@ -57,6 +65,10 @@ describe('Streaming SAX Parser', () => {
       
       // Check synset
       const synset = result.synsets[0];
+      if (!synset) {
+        expect(synset).toBeDefined();
+        return;
+      }
       expect(synset.id).toBe('test-synset');
       expect(synset.pos).toBe('n');
       expect(synset.language).toBe('en');
@@ -64,6 +76,10 @@ describe('Streaming SAX Parser', () => {
       
       // Check sense
       const sense = result.senses[0];
+      if (!sense) {
+        expect(sense).toBeDefined();
+        return;
+      }
       expect(sense.id).toBe('test-sense');
       expect(sense.word).toBe('test-word');
       expect(sense.synset).toBe('test-synset');
@@ -213,6 +229,11 @@ ${entries}
       expect(result.synsets).toHaveLength(1);
       const synset = result.synsets[0];
       
+      if (!synset) {
+        expect(synset).toBeDefined();
+        return;
+      }
+      
       expect(synset.definitions).toHaveLength(2);
       expect(synset.examples).toHaveLength(1);
       expect(synset.relations).toHaveLength(2);
@@ -239,6 +260,11 @@ ${entries}
       
       expect(result.senses).toHaveLength(1);
       const sense = result.senses[0];
+      
+      if (!sense) {
+        expect(sense).toBeDefined();
+        return;
+      }
       
       expect(sense.examples).toHaveLength(1);
       expect(sense.counts).toHaveLength(1);

@@ -73,7 +73,7 @@ export { WordNetEventEmitter, WordNetEvents } from './event-emitter.js';
 export type { EventCallback, WordNetEventName } from './event-emitter.js';
 
 // Export database types and interfaces
-export type { Database, WordRecord, SynsetRecord, SenseRecord, DefinitionRecord, RelationRecord, ExampleRecord, IliRecord, LexiconRecord } from './types/database.js';
+export type { Database } from './types/database.js';
 
 // Export the index data for browser environments
 // TODO: I don't think we need this as we should get the info from project class

@@ -74,6 +74,7 @@
     "better-sqlite3": "^12.2.0",
     "commander": "^14.0.0",
     "fast-xml-parser": "^5.2.5",
+    "kysely": "catalog:",
     "lzma-native": "^8.0.6",
     "pythonia": "catalog:",
     "sax": "^1.4.1",

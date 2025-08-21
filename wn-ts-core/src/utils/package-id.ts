@@ -19,21 +19,25 @@ export function parsePackageId(packageId: string): PackageIdParts {
   const parts = packageId.split(":");
 
   if (parts.length === 2) {
-    return { base: parts[0], version: parts[1] };
+    const result: PackageIdParts = { base: parts[0]! };
+    if (parts[1]) {
+      result.version = parts[1];
+    }
+    return result;
   }
 
   if (parts.length === 1) {
-    return { base: parts[0] };
+    return { base: parts[0]! };
   }
 
   // For any other format, treat as invalid and return just the base
   // This provides backward compatibility while encouraging proper format
   if (parts.length > 2) {
     console.warn(`Invalid package ID format: ${packageId}. Expected format: base:version or base`);
-    return { base: parts[0] };
+    return { base: parts[0]! };
   }
 
-  return { base: parts[0] };
+  return { base: parts[0]! };
 }
 
 /**

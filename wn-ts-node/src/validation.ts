@@ -43,39 +43,47 @@ export class NodeDatabaseAdapter implements DatabaseAdapter {
   }
 
   async getWordTags(wordId: string): Promise<any[]> {
-    return this.db.prepare('SELECT * FROM tags WHERE word_id = ?').all(wordId) as any[];
+    // In the new schema, tag information is stored in the forms table's 'tag' column
+    return this.db.prepare('SELECT tag FROM forms WHERE word_id = ? AND tag IS NOT NULL').all(wordId) as any[];
   }
 
   async getFormTags(formId: string): Promise<any[]> {
-    return this.db.prepare('SELECT * FROM tags WHERE form_id = ?').all(formId) as any[];
+    // In the new schema, tag information is stored in the forms table's 'tag' column
+    return this.db.prepare('SELECT tag FROM forms WHERE id = ? AND tag IS NOT NULL').all(formId) as any[];
   }
 
   async getSenseRelations(senseId: string): Promise<any[]> {
-    return this.db.prepare('SELECT * FROM sense_relations WHERE sense_id = ?').all(senseId) as any[];
+    // In the new schema, sense relations are stored in the relations table
+    return this.db.prepare('SELECT * FROM relations WHERE source_id = ?').all(senseId) as any[];
   }
 
   async getSenseExamples(senseId: string): Promise<any[]> {
     return this.db.prepare('SELECT * FROM examples WHERE sense_id = ?').all(senseId) as any[];
   }
 
-  async getSenseCounts(senseId: string): Promise<any[]> {
-    return this.db.prepare('SELECT * FROM counts WHERE sense_id = ?').all(senseId) as any[];
+  async getSenseCounts(_senseId: string): Promise<any[]> {
+    // The new schema doesn't have a counts table - return empty array
+    return [];
   }
 
-  async getSyntacticBehaviours(wordId: string): Promise<any[]> {
-    return this.db.prepare('SELECT * FROM syntactic_behaviours WHERE word_id = ?').all(wordId) as any[];
+  async getSyntacticBehaviours(_wordId: string): Promise<any[]> {
+    // The new schema doesn't have a syntactic_behaviours table - return empty array
+    return [];
   }
 
   async getDefinitions(synsetId: string): Promise<any[]> {
     return this.db.prepare('SELECT * FROM definitions WHERE synset_id = ?').all(synsetId) as any[];
   }
 
-  async getILIDefinitions(synsetId: string): Promise<any[]> {
-    return this.db.prepare('SELECT * FROM ili_definitions WHERE synset_id = ?').all(synsetId) as any[];
+  async getILIDefinitions(_synsetId: string): Promise<any[]> {
+    // The new schema doesn't have a separate ili_definitions table - return empty array
+    // ILI definitions are handled differently in the new schema
+    return [];
   }
 
   async getSynsetRelations(synsetId: string): Promise<any[]> {
-    return this.db.prepare('SELECT * FROM synset_relations WHERE synset_id = ?').all(synsetId) as any[];
+    // In the new schema, synset relations are stored in the relations table
+    return this.db.prepare('SELECT * FROM relations WHERE source_id = ?').all(synsetId) as any[];
   }
 
   async getSynsetExamples(synsetId: string): Promise<any[]> {

@@ -5,8 +5,9 @@ import {
   addLexicalResource,
   remove,
   exportData,
-} from '../src/data-management';
-import { db } from '../src/db/database';
+  setDataManagementDb,
+} from '../src/data-management-new';
+import { KyselyWordnet } from '../src/kysely-wordnet';
 import { config } from '../src/config';
 import { testUtils } from './setup';
 import { ProjectError } from 'wn-ts-core';
@@ -25,15 +26,26 @@ vi.mock('../src/utils/fetch', () => ({
 }));
 
 describe('Data Management', () => {
+  let testDb: KyselyWordnet;
+
   beforeEach(async () => {
     config.dataDirectory = testUtils.getTestDataDir();
-    // Initialize database for tests
-    await db.initialize();
+    // Initialize Kysely database for tests with forceRecreate to avoid schema conflicts
+    testDb = new KyselyWordnet('*', { 
+      filename: config.databasePath,
+      forceRecreate: true
+    });
+    await testDb.initialize();
+    
+    // Inject the test database into the data management system
+    setDataManagementDb(testDb);
   });
 
   afterEach(async () => {
     // Close database connection after each test
-    await db.close();
+    if (testDb) {
+      await testDb.close();
+    }
   });
 
   describe('download', () => {
@@ -58,12 +70,10 @@ describe('Data Management', () => {
 
       await add(xmlPath, { force: true });
 
-      await db.initialize();
-      // Verify lexicons were added to database
-      const lexicons = (await db.all('SELECT * FROM lexicons WHERE id IN (?, ?)', [
-        'test-en',
-        'test-es',
-      ])) as { id: string; label: string; language: string; version: string }[];
+      // Verify lexicons were added to database using Kysely
+      const queryService = testDb.getQueryService();
+      const allLexicons = await queryService.getLexicons();
+      const lexicons = allLexicons.filter(l => ['test-en', 'test-es'].includes(l.id));
       expect(lexicons).toHaveLength(2);
       expect(lexicons.find(l => l.id === 'test-en')?.label).toBe(
         'Testing English WordNet'
@@ -71,7 +81,6 @@ describe('Data Management', () => {
       expect(lexicons.find(l => l.id === 'test-es')?.label).toBe(
         'Testing Spanish WordNet'
       );
-      await db.close();
     });
 
     it('should handle force option', async () => {
@@ -86,14 +95,11 @@ describe('Data Management', () => {
       // Should succeed with force again
       await add(xmlPath, { force: true });
 
-      await db.initialize();
-      // Verify lexicons are still there
-      const lexicons = (await db.all('SELECT * FROM lexicons WHERE id IN (?, ?)', [
-        'test-en',
-        'test-es',
-      ])) as { id: string; label: string; language: string; version: string }[];
+      // Verify lexicons are still there using Kysely
+      const queryService = testDb.getQueryService();
+      const allLexicons = await queryService.getLexicons();
+      const lexicons = allLexicons.filter(l => ['test-en', 'test-es'].includes(l.id));
       expect(lexicons).toHaveLength(2);
-      await db.close();
     });
 
     it('should call progress callback', async () => {
@@ -114,14 +120,11 @@ describe('Data Management', () => {
 
       await addLexicalResource(xmlPath, { force: true });
 
-      await db.initialize();
-      // Verify lexicons were added
-      const lexicons = (await db.all('SELECT * FROM lexicons WHERE id IN (?, ?)', [
-        'test-en',
-        'test-es',
-      ])) as { id: string; label: string; language: string; version: string }[];
+      // Verify lexicons were added using Kysely
+      const queryService = testDb.getQueryService();
+      const allLexicons = await queryService.getLexicons();
+      const lexicons = allLexicons.filter(l => ['test-en', 'test-es'].includes(l.id));
       expect(lexicons).toHaveLength(2);
-      await db.close();
     });
   });
 
@@ -136,38 +139,21 @@ describe('Data Management', () => {
       expect(existsSync(xmlPath)).toBe(true);
       await add(xmlPath, { force: true });
 
-      await db.initialize();
-      // Verify it exists
-      let lexicons = (await db.all('SELECT * FROM lexicons WHERE id = ?', [
-        'test-en',
-      ])) as { id: string; label: string; language: string; version: string }[];
-
-      await db.close();
-
-      expect(lexicons).toHaveLength(1);
+      // Verify it exists using Kysely
+      const queryService = testDb.getQueryService();
+      let testEnLexicon = await queryService.getLexiconById('test-en');
+      expect(testEnLexicon).toBeDefined();
 
       // Remove it
       await remove('test-en');
 
-      await db.initialize();
       // Verify it's gone
-      lexicons = (await db.all('SELECT * FROM lexicons WHERE id = ?', ['test-en'])) as {
-        id: string;
-        label: string;
-        language: string;
-        version: string;
-      }[];
-      expect(lexicons).toHaveLength(0);
+      testEnLexicon = await queryService.getLexiconById('test-en');
+      expect(testEnLexicon).toBeUndefined();
 
       // Verify the other lexicon is still there
-      lexicons = (await db.all('SELECT * FROM lexicons WHERE id = ?', ['test-es'])) as {
-        id: string;
-        label: string;
-        language: string;
-        version: string;
-      }[];
-      expect(lexicons).toHaveLength(1);
-      await db.close();
+      const testEsLexicon = await queryService.getLexiconById('test-es');
+      expect(testEsLexicon).toBeDefined();
     });
   });
 
@@ -307,9 +293,12 @@ describe.skip('SLOW: Real download and add of OEWN:2024 (network dependent)', ()
     config.dataDirectory = testDataDir;
     const filePath = await download('oewn:2024', { force: true });
     await add(filePath, { force: true });
-    await db.initialize();
-    const lexicons = (await db.all('SELECT * FROM lexicons WHERE id LIKE ?', ['oewn%'])) as { id: string }[];
-    expect(lexicons.length).toBeGreaterThan(0);
-    await db.close();
+    const testDb = new KyselyWordnet('*', { filename: config.databasePath });
+    await testDb.initialize();
+    const queryService = testDb.getQueryService();
+    const allLexicons = await queryService.getLexicons();
+    const oewnLexicons = allLexicons.filter(l => l.id.startsWith('oewn'));
+    expect(oewnLexicons.length).toBeGreaterThan(0);
+    await testDb.close();
   }, 300000); // 5 min timeout
 });

@@ -23,6 +23,10 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./shared": {
+      "types": "./src/shared/index.ts",
+      "default": "./src/shared/index.ts"
+    },
     "./utils": {
       "types": "./src/utils/index.ts",
       "default": "./src/utils/index.ts"
@@ -50,6 +54,7 @@
   "dependencies": {
     "commander": "^14.0.0",
     "fast-xml-parser": "^5.2.5",
+    "kysely": "catalog:",
     "smol-toml": "^1.4.1",
     "sax": "^1.4.1"
   },

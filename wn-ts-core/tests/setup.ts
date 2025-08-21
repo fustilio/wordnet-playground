@@ -2,7 +2,6 @@ import { beforeEach, afterEach } from 'vitest';
 import { join, dirname } from 'path';
 import { mkdtempSync, rmSync, existsSync } from 'fs';
 import { tmpdir } from 'os';
-import { db } from '../src/db/database';
 import { fileURLToPath } from 'url';
 
 let testDataDir: string;
@@ -18,16 +17,6 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  // Ensure database is properly closed before cleanup
-  try {
-    await db.close();
-  } catch (error) {
-    // Ignore errors if database is already closed
-  }
-  
-  // Add a small delay to allow file handles to be released
-  await new Promise(resolve => setTimeout(resolve, 10));
-  
   // Clean up test directory after each test
   if (testDataDir && existsSync(testDataDir)) {
     try {

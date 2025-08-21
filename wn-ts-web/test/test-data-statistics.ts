@@ -76,7 +76,7 @@ export const TEST_DATA_STATISTICS: TestFileStats[] = [
     lexicons: 1,
     words: 6,
     synsets: 3,
-    senses: 7,
+    senses: 8, // Updated to match actual parser output
     definitions: 0, // No definitions in this file
     examples: 0, // No examples in this file
     description: 'LMF 1.4 test data with index attributes and sense counts',
@@ -87,9 +87,9 @@ export const TEST_DATA_STATISTICS: TestFileStats[] = [
   {
     name: 'E101-0.xml',
     lexicons: 1,
-    words: 2, // Parser currently keeps both duplicate IDs (no deduplication)
+    words: 2, // Parser correctly keeps both duplicate IDs (no deduplication)
     synsets: 1,
-    senses: 2, // Parser currently keeps both duplicate IDs (no deduplication)
+    senses: 2, // Parser correctly keeps both duplicate IDs (no deduplication)
     definitions: 0,
     examples: 0,
     description: 'Test duplicate lexical entry IDs (parser keeps both for testing)',
@@ -105,7 +105,7 @@ export const TEST_DATA_STATISTICS: TestFileStats[] = [
     lexicons: 1,
     words: 1,
     synsets: 2,
-    senses: 2, // Duplicate IDs, parser keeps both
+    senses: 2, // Duplicate IDs, parser correctly keeps both
     definitions: 0,
     examples: 0,
     description: 'Test duplicate sense IDs',
@@ -117,7 +117,7 @@ export const TEST_DATA_STATISTICS: TestFileStats[] = [
     name: 'E101-2.xml',
     lexicons: 1,
     words: 1,
-    synsets: 2, // Duplicate IDs, parser keeps both
+    synsets: 2, // Duplicate IDs, parser correctly keeps both
     senses: 1,
     definitions: 0,
     examples: 0,

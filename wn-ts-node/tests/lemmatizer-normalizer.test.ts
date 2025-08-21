@@ -1,18 +1,26 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { Wordnet } from '../src/wordnet.js';
-import { db } from '../src/db/database.js';
+import { config } from '../src/config.js';
+import { testUtils } from './setup.js';
 import type { PartOfSpeech } from 'wn-ts-core';
 
 describe('Lemmatizer and Normalizer System', () => {
   let wordnet: Wordnet;
 
   beforeEach(async () => {
-    wordnet = new Wordnet('test-lexicon');
-    await db.initialize();
+    // Setup test environment
+    config.dataDirectory = testUtils.getTestDataDir();
+    
+    // Create Wordnet instance - the new implementation doesn't need explicit initialization
+    wordnet = new Wordnet('*');
   });
 
   afterEach(async () => {
-    await wordnet.close();
+    // The new implementation handles cleanup automatically
+    // but we can still call close if needed
+    if (wordnet && typeof wordnet.close === 'function') {
+      await wordnet.close();
+    }
   });
 
   describe('Default Behavior', () => {
@@ -40,7 +48,7 @@ describe('Lemmatizer and Normalizer System', () => {
 
   describe('Custom Normalizer', () => {
     it('should use custom normalizer when provided', async () => {
-      const customWordnet = new Wordnet('test', {
+      const customWordnet = new Wordnet('*', {
         normalizer: (form: string) => form.toUpperCase()
       });
 
@@ -51,7 +59,7 @@ describe('Lemmatizer and Normalizer System', () => {
     });
 
     it('should use custom normalizer for word queries', async () => {
-      const customWordnet = new Wordnet('test', {
+      const customWordnet = new Wordnet('*', {
         normalizer: (form: string) => form.replace(/[aeiou]/g, '*')
       });
 
@@ -63,7 +71,7 @@ describe('Lemmatizer and Normalizer System', () => {
     });
 
     it('should handle aggressive normalizer', async () => {
-      const aggressiveWordnet = new Wordnet('test', {
+      const aggressiveWordnet = new Wordnet('*', {
         normalizer: (form: string) => form.toLowerCase().replace(/[^a-z0-9]/g, '')
       });
 
@@ -74,7 +82,7 @@ describe('Lemmatizer and Normalizer System', () => {
     });
 
     it('should handle identity normalizer', async () => {
-      const identityWordnet = new Wordnet('test', {
+      const identityWordnet = new Wordnet('*', {
         normalizer: (form: string) => form
       });
 
@@ -87,7 +95,7 @@ describe('Lemmatizer and Normalizer System', () => {
 
   describe('Custom Lemmatizer', () => {
     it('should use custom lemmatizer when provided', async () => {
-      const customWordnet = new Wordnet('test', {
+      const customWordnet = new Wordnet('*', {
         lemmatizer: (form: string, pos?: PartOfSpeech) => {
           const result: Record<PartOfSpeech, Set<string>> = {
             'n': new Set(),
@@ -119,8 +127,8 @@ describe('Lemmatizer and Normalizer System', () => {
     });
 
     it('should handle lemmatizer with specific POS', async () => {
-      const posSpecificWordnet = new Wordnet('test', {
-        lemmatizer: (form: string, pos?: PartOfSpeech) => {
+      const posSpecificWordnet = new Wordnet('*', {
+        lemmatizer: (_form: string, pos?: PartOfSpeech) => {
           const result: Record<PartOfSpeech, Set<string>> = {
             'n': new Set(),
             'v': new Set(),
@@ -156,7 +164,7 @@ describe('Lemmatizer and Normalizer System', () => {
     });
 
     it('should handle lemmatizer with no POS specified', async () => {
-      const generalWordnet = new Wordnet('test', {
+      const generalWordnet = new Wordnet('*', {
         lemmatizer: (form: string) => {
           const result: Record<PartOfSpeech, Set<string>> = {
             'n': new Set([`${form}-noun`]),
@@ -281,7 +289,7 @@ describe('Lemmatizer and Normalizer System', () => {
 
   describe('Integration with Word Queries', () => {
     it('should use normalizer in word queries', async () => {
-      const customWordnet = new Wordnet('test', {
+      const customWordnet = new Wordnet('*', {
         normalizer: (form: string) => form.toLowerCase()
       });
 
@@ -293,8 +301,8 @@ describe('Lemmatizer and Normalizer System', () => {
     });
 
     it('should use lemmatizer in word queries when searchAllForms is enabled', async () => {
-      const customWordnet = new Wordnet('test', {
-        lemmatizer: (form: string, pos?: PartOfSpeech) => {
+      const customWordnet = new Wordnet('*', {
+        lemmatizer: (_form: string, _pos?: PartOfSpeech) => {
           const result: Record<PartOfSpeech, Set<string>> = {
             'n': new Set(),
             'v': new Set(),
@@ -308,7 +316,7 @@ describe('Lemmatizer and Normalizer System', () => {
             'i': new Set()
           };
 
-          if (pos === 'v') {
+          if (_pos === 'v') {
             result.v = new Set(['run']);
           }
 

@@ -10,6 +10,11 @@
 export { BaseWordnet } from './wordnet.js';
 export { config, ConfigManager } from './config.js';
 
+// Abstract query classes have been replaced by Kysely-based implementations
+
+// Shared Kysely-based implementations
+export * from './shared/index.js';
+
 // Download utilities (environment-agnostic)
 export { downloadFile, DownloadError } from './utils/download.js';
 export type { DownloadOptions } from './types.js';
@@ -31,7 +36,7 @@ export {
 } from './data-management.js';
 
 // ILI functions (environment-agnostic)
-export { isILI, loadILI } from './ili.js';
+export { isILI, loadILI, type IliRecord } from './ili.js';
 
 // Module functions - environment-agnostic stubs
 export {
@@ -100,13 +105,10 @@ export { parseLMFXML, diagnoseDownloadIssue, analyzeXMLContent } from './lmf.js'
 // LMF Validation system (environment-agnostic)
 export * from './validation.js';
 
-// Database interface (environment-agnostic)
-export * from './db/interface.js';
-export * from './db/database.js';
+// Database types are now exported from shared
 
 // Abstract database interfaces and query builders (environment-agnostic)
-export * from './types/database.js';
-export * from './queries/abstract-word-queries.js';
+// export * from './queries/abstract-word-queries.js'; // Removed - no longer needed with Kysely
 
 // Utility functions (environment-agnostic)
 export { Morphy, createMorphy } from './morphy.js';

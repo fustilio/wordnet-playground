@@ -870,43 +870,81 @@ export class LmfParser implements LMFParser {
       const lexiconHasAnyDefinition = Object.values(synsetHasDefinition).some(Boolean);
 
       // Modern approach: All senses should be properly nested, no placeholders needed
-      const filteredSenses = pendingSensesGlobal.slice(); // Keep all properly nested senses
-      const filteredWords = pendingWords.slice(); // Keep all words
+      let filteredSenses = pendingSensesGlobal.slice(); // Keep all properly nested senses
+      let filteredWords = pendingWords.slice(); // Keep all words
       
       // Log data preservation approach
       if (options.debug) {
         this.logger.debug(`Using correct LMF processing order - all senses properly nested in LexicalEntry`);
       }
-
-      // Deduplicate senses for entries sharing index within same POS and synset
-      const wordIdToIndex: Record<string, string | undefined> = {};
-      const wordIdToPos: Record<string, string | undefined> = {};
-      for (const w of filteredWords) {
-        // capture optional index if present on word
-        wordIdToIndex[w.id] = (w as any).index as string | undefined;
-        wordIdToPos[w.id] = (w.pos as unknown as string);
-      }
-      const pickSmallestTail = (id: string) => {
-        const m = id.match(/(\d+)(?!.*\d)/);
-        return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER;
-      };
-      const dedupMap = new Map<string, Sense>();
-      for (const s of filteredSenses) {
-        const idx = wordIdToIndex[s.word] || s.word; // fall back to word id when no index
-        const pos = wordIdToPos[s.word] || '';
-        // Only dedupe across words sharing the same index when the index contains a separator
-        // (e.g., underscores or spaces). This aligns with 1.4 expectations (foo_bar pair dedupes; baz/BAZ do not).
-        const dedupeEligible = /[_\s]/.test(idx);
-        const key = dedupeEligible ? `${idx}::${pos}::${s.synset}` : `${s.word}::${s.synset}`;
-        const existing = dedupMap.get(key);
-        if (!existing || pickSmallestTail(s.id) < pickSmallestTail(existing.id)) {
-          dedupMap.set(key, s);
+      
+      // Skip deduplication if mergeStrategy is 'none'
+      if (options.mergeStrategy === 'none') {
+        if (options.debug) {
+          this.logger.debug(`Skipping word and sense deduplication due to mergeStrategy: 'none'`);
         }
+      } else {
+        // Deduplicate words based on index (LMF 1.4 feature)
+        const wordIdToIndex: Record<string, string | undefined> = {};
+        const wordIdToPos: Record<string, string | undefined> = {};
+        for (const w of filteredWords) {
+          // capture optional index if present on word
+          wordIdToIndex[w.id] = (w as any).index as string | undefined;
+          wordIdToPos[w.id] = (w.pos as unknown as string);
+        }
+        
+        const pickSmallestTail = (id: string) => {
+          const m = id.match(/(\d+)(?!.*\d)/);
+          return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER;
+        };
+        
+        // Deduplicate words sharing the same index within same POS
+        const wordDedupMap = new Map<string, Word>();
+        for (const w of filteredWords) {
+          const idx = wordIdToIndex[w.id] || w.id; // fall back to word id when no index
+          const pos = wordIdToPos[w.id] || '';
+          // Only dedupe across words sharing the same index when the index contains a separator
+          // (e.g., underscores or spaces). This aligns with 1.4 expectations (foo_bar pair dedupes; baz/BAZ do not).
+          const dedupeEligible = /[_\s]/.test(idx);
+          const key = dedupeEligible ? `${idx}::${pos}` : `${w.id}::${pos}`;
+          const existing = wordDedupMap.get(key);
+          if (!existing || pickSmallestTail(w.id) < pickSmallestTail(existing.id)) {
+            wordDedupMap.set(key, w);
+          }
+        }
+        
+        // Update filtered words to deduplicated version
+        filteredWords = Array.from(wordDedupMap.values());
+        
+        // Also deduplicate senses based on the deduplicated words
+        const wordIdToIndexDedup: Record<string, string | undefined> = {};
+        for (const w of filteredWords) {
+          wordIdToIndexDedup[w.id] = (w as any).index as string | undefined;
+        }
+        
+        const senseDedupMap = new Map<string, Sense>();
+        for (const s of filteredSenses) {
+          const idx = wordIdToIndexDedup[s.word] || s.word; // fall back to word id when no index
+          const pos = wordIdToPos[s.word] || '';
+          // Only dedupe across words sharing the same index when the index contains a separator
+          const dedupeEligible = /[_\s]/.test(idx);
+          const key = dedupeEligible ? `${idx}::${pos}::${s.synset}` : `${s.word}::${s.synset}`;
+          const existing = senseDedupMap.get(key);
+          if (!existing || pickSmallestTail(s.id) < pickSmallestTail(existing.id)) {
+            senseDedupMap.set(key, s);
+          }
+        }
+        
+        // Update filtered senses to deduplicated version
+        filteredSenses = Array.from(senseDedupMap.values());
       }
+
+      // finalSenses is now set above in the deduplication logic
+      const finalSenses = filteredSenses;
 
       // No need to create placeholder words - all senses should be properly nested
       // If we have any senses with word === id, that indicates a bug in our processing
-      const orphanedSenses = Array.from(dedupMap.values()).filter(s => s.word === s.id);
+      const orphanedSenses = finalSenses.filter(s => s.word === s.id);
       if (orphanedSenses.length > 0 && options.debug) {
         this.logger.warn(
           `Found ${orphanedSenses.length} senses that appear to be orphaned (word === id). This may indicate invalid LMF XML or a processing bug.`,
@@ -917,7 +955,7 @@ export class LmfParser implements LMFParser {
       // Commit
       for (const w of filteredWords) words.push(w);
       for (const syn of pendingSynsets) synsets.push(syn);
-      for (const s of dedupMap.values()) senses.push(s);
+      for (const s of finalSenses) senses.push(s);
     } else {
       // Old structure - process object properties
 

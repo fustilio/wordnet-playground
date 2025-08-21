@@ -1,5 +1,12 @@
-import { type Kysely, sql } from 'kysely';
-import type { Database } from '../types/database.js';
+/**
+ * Shared batch insert function for wn-ts ecosystem
+ * 
+ * This provides a common batch insert implementation that both Node.js and Web
+ * implementations can use, eliminating duplication across packages.
+ */
+
+import type { Kysely } from 'kysely';
+import type { Database } from './database-types.js';
 
 /**
  * Generic batch insert function using Kysely.

@@ -9,6 +9,10 @@ export { Wordnet } from './wordnet.js';
 export { config, ConfigManager } from './config.js';
 // Note: db export is for internal debugging only - use Wordnet instance methods instead
 
+// New Kysely-based implementation
+export { KyselyWordnet, type NodeWordnetConfig } from './kysely-wordnet.js';
+export * from './database/index.js';
+
 // Download utilities
 export { downloadFile, DownloadError } from 'wn-ts-core';
 export type { DownloadOptions } from 'wn-ts-core';
@@ -21,7 +25,7 @@ export {
   addLexicalResource,
   remove,
   exportData as export,
-} from './data-management.js';
+} from './data-management-new.js';
 
 // Module functions - matching Python wn API exactly
 export {
@@ -91,9 +95,8 @@ export {
 } from './lmf.js';
 export type { LMFDocument, LMFLoadOptions } from 'wn-ts-core';
 
-// Database exports
-export * from './db/database.js';
-export { isDatabaseLocked } from './db/database.js';
+// Database exports - removed during Kysely migration
+// Use KyselyWordnet or Wordnet instance methods instead
 
 // Version
 export const __version__ = '0.1.1';

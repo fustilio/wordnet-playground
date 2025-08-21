@@ -1392,8 +1392,8 @@ export class DataLoader {
           id: lexicon.id,
           label: lexicon.label,
           language: lexicon.language,
-          version: lexicon.version,
           license: lexicon.license,
+          version: lexicon.version,
         })
       );
 

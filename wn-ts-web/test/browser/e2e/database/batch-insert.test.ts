@@ -1,10 +1,17 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { Kysely } from 'kysely';
 import { createSqliteWasmDialect } from '../../../../src/database/sqlite-wasm-dialect.js';
-import { KyselyQueryService } from '../../../../src/database/kysely-query-service.js';
-import type { Database } from '../../../../src/types/database.js';
+import type { Database as SharedDatabase } from 'wn-ts-core';
 import { WebDatabase } from '../../../../src/client/submodules/web-database.js';
-import { batchInsert } from '../../../../src/database/batch-insert.js';
+import { batchInsert } from 'wn-ts-core';
+
+// Extend the shared Database interface to include our test table
+interface TestDatabase extends SharedDatabase {
+  temp_batch: {
+    id: string;
+    value: string;
+  };
+}
 
 const isNode =
   typeof process !== 'undefined' &&
@@ -13,8 +20,7 @@ const isNode =
 
 describe.skipIf(isNode)('batchInsert E2E', () => {
   let webDb: WebDatabase;
-  let kyselyDb: Kysely<Database>;
-  let queryService: KyselyQueryService;
+  let kyselyDb: Kysely<TestDatabase>;
 
   beforeAll(async () => {
     const sqlite3 = (await import('@sqlite.org/sqlite-wasm')).default;
@@ -24,23 +30,20 @@ describe.skipIf(isNode)('batchInsert E2E', () => {
     
     webDb = new WebDatabase();
     await webDb.initializeWithModule(sqlModule);
-    await webDb.createDatabase();
-    
-    const dialect = createSqliteWasmDialect({ database: webDb.getDatabase(), sqlModule });
-    kyselyDb = new Kysely<Database>({ dialect });
-    queryService = new KyselyQueryService(kyselyDb);
-    
-    await queryService.createTables();
   }, 30000);
 
   beforeEach(async () => {
-    await queryService.clearAllData();
-    await queryService.insertLexicon({
-      id: 'test-lexicon',
-      label: 'Test',
-      language: 'en',
-      version: '1.0'
-    });
+    await webDb.createDatabase();
+    
+    const dialect = createSqliteWasmDialect({ database: webDb.getDatabase(), sqlModule: (webDb as any).sqlModule });
+    kyselyDb = new Kysely<TestDatabase>({ dialect });
+    
+    // Create test table using Kysely schema
+    await kyselyDb.schema
+      .createTable('temp_batch')
+      .addColumn('id', 'text', (col) => col.primaryKey())
+      .addColumn('value', 'text')
+      .execute();
   });
 
   afterAll(async () => {
@@ -52,68 +55,59 @@ describe.skipIf(isNode)('batchInsert E2E', () => {
   it('should insert all rows in a single chunk if smaller than chunkSize', async () => {
     const testData = Array.from({ length: 10 }, (_, i) => ({
       id: `word-${i}`,
-      lemma: `lemma-${i}`,
-      pos: 'n',
-      language: 'en',
-      lexicon: 'test-lexicon'
+      value: `val-${i}`
     }));
 
-    await batchInsert(kyselyDb, 'words', testData, 20);
+    // Cast to shared Database type for batchInsert, then back to TestDatabase for queries
+    await batchInsert(kyselyDb as unknown as Kysely<SharedDatabase>, 'temp_batch' as keyof SharedDatabase, testData, 20);
 
-    const countResult = await kyselyDb.selectFrom('words').select(kyselyDb.fn.countAll().as('count')).executeTakeFirst();
+    const countResult = await kyselyDb.selectFrom('temp_batch').select(kyselyDb.fn.countAll().as('count')).executeTakeFirst();
     expect(Number(countResult?.count)).toBe(10);
   });
 
   it('should insert all rows in multiple chunks', async () => {
     const testData = Array.from({ length: 25 }, (_, i) => ({
       id: `word-${i}`,
-      lemma: `lemma-${i}`,
-      pos: 'n',
-      language: 'en',
-      lexicon: 'test-lexicon'
+      value: `val-${i}`
     }));
 
-    await batchInsert(kyselyDb, 'words', testData, 10); // 3 chunks: 10, 10, 5
+    await batchInsert(kyselyDb as unknown as Kysely<SharedDatabase>, 'temp_batch' as keyof SharedDatabase, testData, 10); // 3 chunks: 10, 10, 5
 
-    const countResult = await kyselyDb.selectFrom('words').select(kyselyDb.fn.countAll().as('count')).executeTakeFirst();
+    const countResult = await kyselyDb.selectFrom('temp_batch').select(kyselyDb.fn.countAll().as('count')).executeTakeFirst();
     expect(Number(countResult?.count)).toBe(25);
   });
 
   it('should handle empty data array gracefully', async () => {
-    await batchInsert(kyselyDb, 'words', [], 10);
-    const countResult = await kyselyDb.selectFrom('words').select(kyselyDb.fn.countAll().as('count')).executeTakeFirst();
+    await batchInsert(kyselyDb as unknown as Kysely<SharedDatabase>, 'temp_batch' as keyof SharedDatabase, [], 10);
+    const countResult = await kyselyDb.selectFrom('temp_batch').select(kyselyDb.fn.countAll().as('count')).executeTakeFirst();
     expect(Number(countResult?.count)).toBe(0);
   });
   
   it('should handle conflicts using onConflict...doNothing', async () => {
     const initialData = [{
       id: `word-1`,
-      lemma: `lemma-1`,
-      pos: 'n',
-      language: 'en',
-      lexicon: 'test-lexicon'
+      value: `val-1`
     }];
 
     // Insert initial data
-    await batchInsert(kyselyDb, 'words', initialData, 10);
-    let countResult = await kyselyDb.selectFrom('words').select(kyselyDb.fn.countAll().as('count')).executeTakeFirst();
+    await batchInsert(kyselyDb as unknown as Kysely<SharedDatabase>, 'temp_batch' as keyof SharedDatabase, initialData, 10);
+    let countResult = await kyselyDb.selectFrom('temp_batch').select(kyselyDb.fn.countAll().as('count')).executeTakeFirst();
     expect(Number(countResult?.count)).toBe(1);
 
     const conflictData = [
-        { id: `word-1`, lemma: `lemma-1-conflict`, pos: 'v', language: 'en', lexicon: 'test-lexicon' },
-        { id: `word-2`, lemma: `lemma-2`, pos: 'n', language: 'en', lexicon: 'test-lexicon' }
+        { id: `word-1`, value: `val-1-conflict` },
+        { id: `word-2`, value: `val-2` }
     ];
 
     // Attempt to insert data with a conflict
-    await batchInsert(kyselyDb, 'words', conflictData, 10);
+    await batchInsert(kyselyDb as unknown as Kysely<SharedDatabase>, 'temp_batch' as keyof SharedDatabase, conflictData, 10);
 
     // Check total count
-    countResult = await kyselyDb.selectFrom('words').select(kyselyDb.fn.countAll().as('count')).executeTakeFirst();
+    countResult = await kyselyDb.selectFrom('temp_batch').select(kyselyDb.fn.countAll().as('count')).executeTakeFirst();
     expect(Number(countResult?.count)).toBe(2);
 
     // Check that the conflicted row was not updated
-    const word1 = await kyselyDb.selectFrom('words').selectAll().where('id', '=', 'word-1').executeTakeFirst();
-    expect(word1?.lemma).toBe('lemma-1');
-    expect(word1?.pos).toBe('n');
+    const word1 = await kyselyDb.selectFrom('temp_batch').selectAll().where('id', '=', 'word-1').executeTakeFirst();
+    expect(word1?.value).toBe('val-1');
   });
 });

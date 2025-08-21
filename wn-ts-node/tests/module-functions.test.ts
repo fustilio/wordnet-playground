@@ -11,16 +11,26 @@ import {
   ili,
   ilis,
 } from '../src/module-functions';
-import { add } from '../src/data-management';
+import { add, setDataManagementDb } from '../src/data-management-new';
 import { testUtils } from './setup';
+import { config } from '../src/config';
 import { join } from 'path';
 import { existsSync } from 'fs';
-import { Wordnet } from '../src/wordnet';
+import { KyselyWordnet } from '../src/kysely-wordnet';
 
 describe('Module Functions', () => {
+  let testDb: KyselyWordnet;
+
   beforeEach(async () => {
-    // The global setup hook creates a new temp directory for each test
-    // We need to ensure our test data is loaded into this new directory
+    // Create a test database instance and inject it into data management FIRST
+    testDb = new KyselyWordnet('*', { 
+      filename: config.databasePath,
+      forceRecreate: true
+    });
+    await testDb.initialize();
+    setDataManagementDb(testDb);
+    
+    // THEN add the test data to the injected database
     const xmlPath = join(testUtils.getActualTestDataDir(), 'mini-lmf-1.0.xml');
     if (existsSync(xmlPath)) {
       await add(xmlPath, { force: true });
@@ -29,8 +39,8 @@ describe('Module Functions', () => {
 
   describe('projects', () => {
     it('should return list of known projects', async () => {
-      const wordnet = new Wordnet('test-en');
-      const result = await projects(wordnet);
+      // Use the test database directly for projects test
+      const result = await projects();
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBeGreaterThan(0);
     });

@@ -77,7 +77,7 @@
   "dependencies": {
     "comlink": "catalog:",
     "fast-xml-parser": "^5.2.5",
-    "kysely": "^0.28.3",
+    "kysely": "catalog:",
     "kysely-sqlite-builder": "^1.0.0",
     "kysely-wasm": "^1.2.1",
     "pako": "^2.1.0",
