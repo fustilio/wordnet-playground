@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="https://globalwordnet.github.io/schemas/dc/" elementFormDefault="qualified" attributeFormDefault="unqualified" xmlns:dc="https://globalwordnet.github.io/schemas/dc/" xmlns:xml="http://www.w3.org/XML/1998/namespace">
+  <xs:element name="LexicalResource">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="Lexicon" minOccurs="0" maxOccurs="unbounded" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="Lexicon">
+    <xs:complexType>
+      <xs:attribute name="id" type="xs:string" />
+      <xs:attribute name="label" type="xs:string" />
+      <xs:attribute name="language" type="xs:string" />
+      <xs:attribute name="email" type="xs:string" />
+      <xs:attribute name="license" type="xs:string" />
+      <xs:attribute name="version" type="xs:string" />
+      <xs:attribute name="url" type="xs:string" />
+      <xs:sequence>
+        <xs:element ref="LexicalEntry" minOccurs="0" maxOccurs="unbounded" />
+        <xs:element ref="Synset" minOccurs="0" maxOccurs="unbounded" />
+        <xs:element ref="SyntacticBehaviour" minOccurs="0" maxOccurs="unbounded" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="LexicalEntry">
+    <xs:complexType>
+      <xs:attribute name="id" type="xs:string" />
+      <xs:sequence>
+        <xs:element ref="Lemma" minOccurs="0" maxOccurs="unbounded" />
+        <xs:element ref="Sense" minOccurs="0" maxOccurs="unbounded" />
+        <xs:element ref="Form" minOccurs="0" maxOccurs="unbounded" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="Lemma">
+    <xs:complexType>
+      <xs:attribute name="writtenForm" type="xs:string" />
+      <xs:attribute name="partOfSpeech" type="xs:string" />
+      <xs:sequence>
+        <xs:element ref="Pronunciation" minOccurs="0" maxOccurs="unbounded" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="Sense">
+    <xs:complexType>
+      <xs:attribute name="id" type="xs:string" />
+      <xs:attribute name="synset" type="xs:string" />
+      <xs:attribute name="subcat" type="xs:string" />
+      <xs:attribute name="adjposition" type="xs:string" />
+      <xs:sequence>
+        <xs:element ref="SenseRelation" minOccurs="0" maxOccurs="unbounded" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="SenseRelation">
+    <xs:complexType>
+      <xs:attribute name="relType" type="xs:string" />
+      <xs:attribute name="target" type="xs:string" />
+      <xs:attribute name="dc:type" type="xs:string" />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="Pronunciation">
+    <xs:complexType>
+      <xs:attribute name="variety" type="xs:string" />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="Form">
+    <xs:complexType>
+      <xs:attribute name="writtenForm" type="xs:string" />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="Synset">
+    <xs:complexType>
+      <xs:attribute name="id" type="xs:string" />
+      <xs:attribute name="ili" type="xs:string" />
+      <xs:attribute name="members" type="xs:string" />
+      <xs:attribute name="partOfSpeech" type="xs:string" />
+      <xs:attribute name="lexfile" type="xs:string" />
+      <xs:attribute name="dc:source" type="xs:string" />
+      <xs:sequence>
+        <xs:element ref="Definition" minOccurs="0" maxOccurs="unbounded" />
+        <xs:element ref="SynsetRelation" minOccurs="0" maxOccurs="unbounded" />
+        <xs:element ref="Example" minOccurs="0" maxOccurs="unbounded" />
+        <xs:element ref="ILIDefinition" minOccurs="0" maxOccurs="unbounded" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="Definition" />
+  <xs:element name="SynsetRelation">
+    <xs:complexType>
+      <xs:attribute name="relType" type="xs:string" />
+      <xs:attribute name="target" type="xs:string" />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="Example">
+    <xs:complexType>
+      <xs:attribute name="dc:source" type="xs:string" />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="ILIDefinition" />
+  <xs:element name="SyntacticBehaviour">
+    <xs:complexType>
+      <xs:attribute name="id" type="xs:string" />
+      <xs:attribute name="subcategorizationFrame" type="xs:string" />
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

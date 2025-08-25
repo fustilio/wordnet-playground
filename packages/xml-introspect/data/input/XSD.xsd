@@ -1,0 +1,744 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" 
+           targetNamespace="http://www.w3.org/2001/XMLSchema"
+           elementFormDefault="qualified"
+           attributeFormDefault="unqualified">
+
+  <!-- Root element for XSD documents -->
+  <xs:element name="schema" type="xs:schemaType"/>
+
+  <!-- Schema type definition -->
+  <xs:complexType name="schemaType">
+    <xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="xs:include"/>
+        <xs:element ref="xs:import"/>
+        <xs:element ref="xs:redefine"/>
+        <xs:element ref="xs:override"/>
+        <xs:element ref="xs:annotation"/>
+        <xs:element ref="xs:simpleType"/>
+        <xs:element ref="xs:complexType"/>
+        <xs:element ref="xs:group"/>
+        <xs:element ref="xs:attributeGroup"/>
+        <xs:element ref="xs:element"/>
+        <xs:element ref="xs:attribute"/>
+        <xs:element ref="xs:notation"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="version" type="xs:token"/>
+    <xs:attribute name="targetNamespace" type="xs:anyURI"/>
+    <xs:attribute name="xmlns" type="xs:anyURI"/>
+    <xs:attribute name="elementFormDefault" type="xs:formChoice" default="unqualified"/>
+    <xs:attribute name="attributeFormDefault" type="xs:formChoice" default="unqualified"/>
+    <xs:attribute name="blockDefault" type="xs:blockSet" default=""/>
+    <xs:attribute name="finalDefault" type="xs:fullDerivationSet" default=""/>
+    <xs:attribute name="lang" type="xs:language"/>
+  </xs:complexType>
+
+  <!-- Form choice enumeration -->
+  <xs:simpleType name="formChoice">
+    <xs:restriction base="xs:NMTOKEN">
+      <xs:enumeration value="qualified"/>
+      <xs:enumeration value="unqualified"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Block set type -->
+  <xs:simpleType name="blockSet">
+    <xs:restriction base="xs:NMTOKENS">
+      <xs:enumeration value="substitution"/>
+      <xs:enumeration value="extension"/>
+      <xs:enumeration value="restriction"/>
+      <xs:enumeration value="#all"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Full derivation set -->
+  <xs:simpleType name="fullDerivationSet">
+    <xs:restriction base="xs:NMTOKENS">
+      <xs:enumeration value="substitution"/>
+      <xs:enumeration value="extension"/>
+      <xs:enumeration value="restriction"/>
+      <xs:enumeration value="list"/>
+      <xs:enumeration value="union"/>
+      <xs:enumeration value="#all"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Element definition -->
+  <xs:element name="element" type="xs:elementType"/>
+  
+  <xs:complexType name="elementType">
+    <xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="xs:annotation"/>
+        <xs:element ref="xs:simpleType"/>
+        <xs:element ref="xs:complexType"/>
+        <xs:element ref="xs:unique"/>
+        <xs:element ref="xs:key"/>
+        <xs:element ref="xs:keyref"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="name" type="xs:NCName"/>
+    <xs:attribute name="ref" type="xs:QName"/>
+    <xs:attribute name="type" type="xs:QName"/>
+    <xs:attribute name="substitutionGroup" type="xs:QName"/>
+    <xs:attribute name="default" type="xs:string"/>
+    <xs:attribute name="fixed" type="xs:string"/>
+    <xs:attribute name="form" type="xs:formChoice"/>
+    <xs:attribute name="maxOccurs" type="xs:nonNegativeInteger"/>
+    <xs:attribute name="minOccurs" type="xs:nonNegativeInteger"/>
+    <xs:attribute name="nillable" type="xs:boolean" default="false"/>
+    <xs:attribute name="abstract" type="xs:boolean" default="false"/>
+    <xs:attribute name="block" type="xs:blockSet"/>
+    <xs:attribute name="final" type="xs:fullDerivationSet"/>
+  </xs:complexType>
+
+  <!-- Complex type definition -->
+  <xs:element name="complexType" type="xs:complexTypeType"/>
+  
+  <xs:complexType name="complexTypeType">
+    <xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="xs:annotation"/>
+        <xs:element ref="xs:simpleContent"/>
+        <xs:element ref="xs:complexContent"/>
+        <xs:element ref="xs:group"/>
+        <xs:element ref="xs:all"/>
+        <xs:element ref="xs:choice"/>
+        <xs:element ref="xs:sequence"/>
+        <xs:element ref="xs:attribute"/>
+        <xs:element ref="xs:attributeGroup"/>
+        <xs:element ref="xs:anyAttribute"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="name" type="xs:NCName"/>
+    <xs:attribute name="abstract" type="xs:boolean" default="false"/>
+    <xs:attribute name="block" type="xs:blockSet"/>
+    <xs:attribute name="final" type="xs:fullDerivationSet"/>
+    <xs:attribute name="mixed" type="xs:boolean" default="false"/>
+  </xs:complexType>
+
+  <!-- Simple type definition -->
+  <xs:element name="simpleType" type="xs:simpleTypeType"/>
+  
+  <xs:complexType name="simpleTypeType">
+    <xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="xs:annotation"/>
+        <xs:element ref="xs:restriction"/>
+        <xs:element ref="xs:list"/>
+        <xs:element ref="xs:union"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="name" type="xs:NCName"/>
+    <xs:attribute name="final" type="xs:fullDerivationSet"/>
+  </xs:complexType>
+
+  <!-- Restriction element -->
+  <xs:element name="restriction" type="xs:restrictionType"/>
+  
+  <xs:complexType name="restrictionType">
+    <xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="xs:annotation"/>
+        <xs:element ref="xs:simpleType"/>
+        <xs:element ref="xs:minExclusive"/>
+        <xs:element ref="xs:minInclusive"/>
+        <xs:element ref="xs:maxExclusive"/>
+        <xs:element ref="xs:maxInclusive"/>
+        <xs:element ref="xs:totalDigits"/>
+        <xs:element ref="xs:fractionDigits"/>
+        <xs:element ref="xs:length"/>
+        <xs:element ref="xs:minLength"/>
+        <xs:element ref="xs:maxLength"/>
+        <xs:element ref="xs:enumeration"/>
+        <xs:element ref="xs:whiteSpace"/>
+        <xs:element ref="xs:pattern"/>
+        <xs:element ref="xs:assertion"/>
+        <xs:element ref="xs:explicitTimezone"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="base" type="xs:QName"/>
+  </xs:complexType>
+
+  <!-- List element -->
+  <xs:element name="list" type="xs:listType"/>
+  
+  <xs:complexType name="listType">
+    <xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="xs:annotation"/>
+        <xs:element ref="xs:simpleType"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="itemType" type="xs:QName"/>
+  </xs:complexType>
+
+  <!-- Union element -->
+  <xs:element name="union" type="xs:unionType"/>
+  
+  <xs:complexType name="unionType">
+    <xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="xs:annotation"/>
+        <xs:element ref="xs:simpleType"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="memberTypes" type="xs:QNames"/>
+  </xs:complexType>
+
+  <!-- Sequence element -->
+  <xs:element name="sequence" type="xs:sequenceType"/>
+  
+  <xs:complexType name="sequenceType">
+    <xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="xs:annotation"/>
+        <xs:element ref="xs:element"/>
+        <xs:element ref="xs:group"/>
+        <xs:element ref="xs:choice"/>
+        <xs:element ref="xs:sequence"/>
+        <xs:element ref="xs:any"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="minOccurs" type="xs:nonNegativeInteger" default="1"/>
+    <xs:attribute name="maxOccurs" type="xs:allNNI" default="1"/>
+  </xs:complexType>
+
+  <!-- Choice element -->
+  <xs:element name="choice" type="xs:choiceType"/>
+  
+  <xs:complexType name="choiceType">
+    <xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="xs:annotation"/>
+        <xs:element ref="xs:element"/>
+        <xs:element ref="xs:group"/>
+        <xs:element ref="xs:choice"/>
+        <xs:element ref="xs:sequence"/>
+        <xs:element ref="xs:any"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="minOccurs" type="xs:nonNegativeInteger" default="1"/>
+    <xs:attribute name="maxOccurs" type="xs:allNNI" default="1"/>
+  </xs:complexType>
+
+  <!-- All element -->
+  <xs:element name="all" type="xs:allType"/>
+  
+  <xs:complexType name="allType">
+    <xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="xs:annotation"/>
+        <xs:element ref="xs:element"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="minOccurs" type="xs:nonNegativeInteger" default="1"/>
+    <xs:attribute name="maxOccurs" type="xs:allNNI" default="1"/>
+  </xs:complexType>
+
+  <!-- Group element -->
+  <xs:element name="group" type="xs:groupType"/>
+  
+  <xs:complexType name="groupType">
+    <xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="xs:annotation"/>
+        <xs:element ref="xs:all"/>
+        <xs:element ref="xs:choice"/>
+        <xs:element ref="xs:sequence"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="name" type="xs:NCName"/>
+    <xs:attribute name="ref" type="xs:QName"/>
+    <xs:attribute name="minOccurs" type="xs:nonNegativeInteger" default="1"/>
+    <xs:attribute name="maxOccurs" type="xs:allNNI" default="1"/>
+  </xs:complexType>
+
+  <!-- Attribute element -->
+  <xs:element name="attribute" type="xs:attributeType"/>
+  
+  <xs:complexType name="attributeType">
+    <xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="xs:annotation"/>
+        <xs:element ref="xs:simpleType"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="name" type="xs:NCName"/>
+    <xs:attribute name="ref" type="xs:QName"/>
+    <xs:attribute name="type" type="xs:QName"/>
+    <xs:attribute name="use" type="xs:useType" default="optional"/>
+    <xs:attribute name="default" type="xs:string"/>
+    <xs:attribute name="fixed" type="xs:string"/>
+    <xs:attribute name="form" type="xs:formChoice"/>
+  </xs:complexType>
+
+  <!-- Use type enumeration -->
+  <xs:simpleType name="useType">
+    <xs:restriction base="xs:NMTOKEN">
+      <xs:enumeration value="prohibited"/>
+      <xs:enumeration value="optional"/>
+      <xs:enumeration value="required"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Attribute group element -->
+  <xs:element name="attributeGroup" type="xs:attributeGroupType"/>
+  
+  <xs:complexType name="attributeGroupType">
+    <xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="xs:annotation"/>
+        <xs:element ref="xs:attribute"/>
+        <xs:element ref="xs:attributeGroup"/>
+        <xs:element ref="xs:anyAttribute"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="name" type="xs:NCName"/>
+    <xs:attribute name="ref" type="xs:QName"/>
+  </xs:complexType>
+
+  <!-- Any element -->
+  <xs:element name="any" type="xs:anyType"/>
+  
+  <xs:complexType name="anyType">
+    <xs:sequence>
+      <xs:element ref="xs:annotation" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="namespace" type="xs:namespaceList"/>
+    <xs:attribute name="processContents" type="xs:processContents" default="strict"/>
+    <xs:attribute name="minOccurs" type="xs:nonNegativeInteger" default="1"/>
+    <xs:attribute name="maxOccurs" type="xs:allNNI" default="1"/>
+  </xs:complexType>
+
+  <!-- Any attribute element -->
+  <xs:element name="anyAttribute" type="xs:anyAttributeType"/>
+  
+  <xs:complexType name="anyAttributeType">
+    <xs:sequence>
+      <xs:element ref="xs:annotation" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="namespace" type="xs:namespaceList"/>
+    <xs:attribute name="processContents" type="xs:processContents" default="strict"/>
+  </xs:complexType>
+
+  <!-- Process contents enumeration -->
+  <xs:simpleType name="processContents">
+    <xs:restriction base="xs:NMTOKEN">
+      <xs:enumeration value="skip"/>
+      <xs:enumeration value="lax"/>
+      <xs:enumeration value="strict"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Namespace list type -->
+  <xs:simpleType name="namespaceList">
+    <xs:union>
+      <xs:simpleType>
+        <xs:restriction base="xs:NMTOKEN">
+          <xs:enumeration value="##any"/>
+          <xs:enumeration value="##other"/>
+          <xs:enumeration value="##local"/>
+          <xs:enumeration value="##targetNamespace"/>
+        </xs:restriction>
+      </xs:simpleType>
+      <xs:simpleType>
+        <xs:list itemType="xs:anyURI"/>
+      </xs:simpleType>
+    </xs:union>
+  </xs:simpleType>
+
+  <!-- All NNI type (non-negative integer or unbounded) -->
+  <xs:simpleType name="allNNI">
+    <xs:union>
+      <xs:simpleType>
+        <xs:restriction base="xs:nonNegativeInteger"/>
+      </xs:simpleType>
+      <xs:simpleType>
+        <xs:restriction base="xs:NMTOKEN">
+          <xs:enumeration value="unbounded"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:union>
+  </xs:simpleType>
+
+  <!-- QNames type -->
+  <xs:simpleType name="QNames">
+    <xs:list itemType="xs:QName"/>
+  </xs:simpleType>
+
+  <!-- Annotation element -->
+  <xs:element name="annotation" type="xs:annotationType"/>
+  
+  <xs:complexType name="annotationType">
+    <xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="xs:documentation"/>
+        <xs:element ref="xs:appinfo"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+  </xs:complexType>
+
+  <!-- Documentation element -->
+  <xs:element name="documentation" type="xs:documentationType"/>
+  
+  <xs:complexType name="documentationType" mixed="true">
+    <xs:sequence>
+      <xs:any processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="source" type="xs:anyURI"/>
+    <xs:attribute name="xml:lang" type="xs:language"/>
+  </xs:complexType>
+
+  <!-- Appinfo element -->
+  <xs:element name="appinfo" type="xs:appinfoType"/>
+  
+  <xs:complexType name="appinfoType" mixed="true">
+    <xs:sequence>
+      <xs:any processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="source" type="xs:anyURI"/>
+  </xs:complexType>
+
+  <!-- Include element -->
+  <xs:element name="include" type="xs:includeType"/>
+  
+  <xs:complexType name="includeType">
+    <xs:sequence>
+      <xs:element ref="xs:annotation" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="schemaLocation" type="xs:anyURI" use="required"/>
+  </xs:complexType>
+
+  <!-- Import element -->
+  <xs:element name="import" type="xs:importType"/>
+  
+  <xs:complexType name="importType">
+    <xs:sequence>
+      <xs:element ref="xs:annotation" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="namespace" type="xs:anyURI"/>
+    <xs:attribute name="schemaLocation" type="xs:anyURI"/>
+  </xs:complexType>
+
+  <!-- Redefine element -->
+  <xs:element name="redefine" type="xs:redefineType"/>
+  
+  <xs:complexType name="redefineType">
+    <xs:sequence>
+      <xs:element ref="xs:annotation" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="xs:annotation"/>
+        <xs:element ref="xs:simpleType"/>
+        <xs:element ref="xs:complexType"/>
+        <xs:element ref="xs:group"/>
+        <xs:element ref="xs:attributeGroup"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="schemaLocation" type="xs:anyURI" use="required"/>
+  </xs:complexType>
+
+  <!-- Override element -->
+  <xs:element name="override" type="xs:overrideType"/>
+  
+  <xs:complexType name="overrideType">
+    <xs:sequence>
+      <xs:element ref="xs:annotation" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="xs:annotation"/>
+        <xs:element ref="xs:simpleType"/>
+        <xs:element ref="xs:complexType"/>
+        <xs:element ref="xs:group"/>
+        <xs:element ref="xs:attributeGroup"/>
+        <xs:element ref="xs:element"/>
+        <xs:element ref="xs:attribute"/>
+        <xs:element ref="xs:notation"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="schemaLocation" type="xs:anyURI" use="required"/>
+  </xs:complexType>
+
+  <!-- Simple content element -->
+  <xs:element name="simpleContent" type="xs:simpleContentType"/>
+  
+  <xs:complexType name="simpleContentType">
+    <xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="xs:annotation"/>
+        <xs:element ref="xs:restriction"/>
+        <xs:element ref="xs:extension"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+  </xs:complexType>
+
+  <!-- Complex content element -->
+  <xs:element name="complexContent" type="xs:complexContentType"/>
+  
+  <xs:complexType name="complexContentType">
+    <xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="xs:annotation"/>
+        <xs:element ref="xs:restriction"/>
+        <xs:element ref="xs:extension"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="mixed" type="xs:boolean"/>
+  </xs:complexType>
+
+  <!-- Extension element -->
+  <xs:element name="extension" type="xs:extensionType"/>
+  
+  <xs:complexType name="extensionType">
+    <xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="xs:annotation"/>
+        <xs:element ref="xs:group"/>
+        <xs:element ref="xs:all"/>
+        <xs:element ref="xs:choice"/>
+        <xs:element ref="xs:sequence"/>
+        <xs:element ref="xs:attribute"/>
+        <xs:element ref="xs:attributeGroup"/>
+        <xs:element ref="xs:anyAttribute"/>
+      </xs:choice>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="base" type="xs:QName" use="required"/>
+  </xs:complexType>
+
+  <!-- Notation element -->
+  <xs:element name="notation" type="xs:notationType"/>
+  
+  <xs:complexType name="notationType">
+    <xs:sequence>
+      <xs:element ref="xs:annotation" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="name" type="xs:NCName" use="required"/>
+    <xs:attribute name="public" type="xs:token"/>
+    <xs:attribute name="system" type="xs:anyURI"/>
+  </xs:complexType>
+
+  <!-- Facet elements for restrictions -->
+  <xs:element name="minExclusive" type="xs:facetType"/>
+  <xs:element name="minInclusive" type="xs:facetType"/>
+  <xs:element name="maxExclusive" type="xs:facetType"/>
+  <xs:element name="maxInclusive" type="xs:facetType"/>
+  <xs:element name="totalDigits" type="xs:totalDigitsType"/>
+  <xs:element name="fractionDigits" type="xs:fractionDigitsType"/>
+  <xs:element name="length" type="xs:lengthType"/>
+  <xs:element name="minLength" type="xs:lengthType"/>
+  <xs:element name="maxLength" type="xs:lengthType"/>
+  <xs:element name="enumeration" type="xs:enumerationType"/>
+  <xs:element name="whiteSpace" type="xs:whiteSpaceType"/>
+  <xs:element name="pattern" type="xs:patternType"/>
+  <xs:element name="assertion" type="xs:assertionType"/>
+  <xs:element name="explicitTimezone" type="xs:explicitTimezoneType"/>
+
+  <!-- Facet type -->
+  <xs:complexType name="facetType">
+    <xs:sequence>
+      <xs:element ref="xs:annotation" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="fixed" type="xs:boolean" default="false"/>
+    <xs:attribute name="value" type="xs:anySimpleType" use="required"/>
+  </xs:complexType>
+
+  <!-- Total digits type -->
+  <xs:complexType name="totalDigitsType">
+    <xs:sequence>
+      <xs:element ref="xs:annotation" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="fixed" type="xs:boolean" default="false"/>
+    <xs:attribute name="value" type="xs:positiveInteger" use="required"/>
+  </xs:complexType>
+
+  <!-- Fraction digits type -->
+  <xs:complexType name="fractionDigitsType">
+    <xs:sequence>
+      <xs:element ref="xs:annotation" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="fixed" type="xs:boolean" default="false"/>
+    <xs:attribute name="value" type="xs:nonNegativeInteger" use="required"/>
+  </xs:complexType>
+
+  <!-- Length type -->
+  <xs:complexType name="lengthType">
+    <xs:sequence>
+      <xs:element ref="xs:annotation" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="fixed" type="xs:boolean" default="false"/>
+    <xs:attribute name="value" type="xs:nonNegativeInteger" use="required"/>
+  </xs:complexType>
+
+  <!-- Enumeration type -->
+  <xs:complexType name="enumerationType">
+    <xs:sequence>
+      <xs:element ref="xs:annotation" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="value" type="xs:anySimpleType" use="required"/>
+  </xs:complexType>
+
+  <!-- White space type -->
+  <xs:complexType name="whiteSpaceType">
+    <xs:sequence>
+      <xs:element ref="xs:annotation" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="fixed" type="xs:boolean" default="false"/>
+    <xs:attribute name="value" type="xs:whiteSpace" use="required"/>
+  </xs:complexType>
+
+  <!-- White space enumeration -->
+  <xs:simpleType name="whiteSpace">
+    <xs:restriction base="xs:NMTOKEN">
+      <xs:enumeration value="preserve"/>
+      <xs:enumeration value="replace"/>
+      <xs:enumeration value="collapse"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Pattern type -->
+  <xs:complexType name="patternType">
+    <xs:sequence>
+      <xs:element ref="xs:annotation" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="value" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <!-- Assertion type -->
+  <xs:complexType name="assertionType">
+    <xs:sequence>
+      <xs:element ref="xs:annotation" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="test" type="xs:anySimpleType" use="required"/>
+    <xs:attribute name="xpathDefaultNamespace" type="xs:anyURI"/>
+  </xs:complexType>
+
+  <!-- Explicit timezone type -->
+  <xs:complexType name="explicitTimezoneType">
+    <xs:sequence>
+      <xs:element ref="xs:annotation" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="fixed" type="xs:boolean" default="false"/>
+    <xs:attribute name="value" type="xs:explicitTimezone" use="required"/>
+  </xs:complexType>
+
+  <!-- Explicit timezone enumeration -->
+  <xs:simpleType name="explicitTimezone">
+    <xs:restriction base="xs:NMTOKEN">
+      <xs:enumeration value="required"/>
+      <xs:enumeration value="prohibited"/>
+      <xs:enumeration value="optional"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Key elements -->
+  <xs:element name="key" type="xs:keyType"/>
+  <xs:element name="unique" type="xs:uniqueType"/>
+  <xs:element name="keyref" type="xs:keyrefType"/>
+
+  <!-- Key type -->
+  <xs:complexType name="keyType">
+    <xs:sequence>
+      <xs:element ref="xs:annotation" maxOccurs="unbounded"/>
+      <xs:element ref="xs:selector" maxOccurs="unbounded"/>
+      <xs:element ref="xs:field" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="name" type="xs:NCName" use="required"/>
+  </xs:complexType>
+
+  <!-- Unique type -->
+  <xs:complexType name="uniqueType">
+    <xs:sequence>
+      <xs:element ref="xs:annotation" maxOccurs="unbounded"/>
+      <xs:element ref="xs:selector" maxOccurs="unbounded"/>
+      <xs:element ref="xs:field" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="name" type="xs:NCName" use="required"/>
+  </xs:complexType>
+
+  <!-- Keyref type -->
+  <xs:complexType name="keyrefType">
+    <xs:sequence>
+      <xs:element ref="xs:annotation" maxOccurs="unbounded"/>
+      <xs:element ref="xs:selector" maxOccurs="unbounded"/>
+      <xs:element ref="xs:field" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="name" type="xs:NCName" use="required"/>
+    <xs:attribute name="refer" type="xs:QName" use="required"/>
+  </xs:complexType>
+
+  <!-- Selector element -->
+  <xs:element name="selector" type="xs:selectorType"/>
+  
+  <xs:complexType name="selectorType">
+    <xs:sequence>
+      <xs:element ref="xs:annotation" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="xpath" type="xs:selectorXPath" use="required"/>
+  </xs:complexType>
+
+  <!-- Field element -->
+  <xs:element name="field" type="xs:fieldType"/>
+  
+  <xs:complexType name="fieldType">
+    <xs:sequence>
+      <xs:element ref="xs:annotation" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:ID"/>
+    <xs:attribute name="xpath" type="xs:fieldXPath" use="required"/>
+  </xs:complexType>
+
+  <!-- Selector XPath type -->
+  <xs:simpleType name="selectorXPath">
+    <xs:restriction base="xs:token">
+      <xs:pattern value="\.\.?|\.\./.*|.*/.*|.*"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Field XPath type -->
+  <xs:simpleType name="fieldXPath">
+    <xs:restriction base="xs:token">
+      <xs:pattern value="\.\.?|\.\./.*|.*/.*|.*"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+</xs:schema>

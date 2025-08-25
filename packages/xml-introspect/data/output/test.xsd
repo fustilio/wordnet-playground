@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" attributeFormDefault="unqualified" xmlns:dc="https://globalwordnet.github.io/schemas/dc/">
+  <xs:element name="LexicalResource" type="LexicalResourceType"/>
+  <xs:element name="Lexicon" type="LexiconType"/>
+  <xs:element name="Requires" type="RequiresType"/>
+  <xs:element name="LexicalEntry" type="LexicalEntryType"/>
+  <xs:element name="Lemma" type="LemmaType"/>
+  <xs:element name="Sense" type="SenseType"/>
+  <xs:element name="Synset" type="SynsetType"/>
+
+  <xs:complexType name="LexicalResourceType">
+    <xs:sequence>
+      <xs:element ref="Lexicon" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute ref="xmlns:dc"/>
+  </xs:complexType>
+  <xs:complexType name="LexiconType">
+    <xs:sequence>
+      <xs:element ref="Requires" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element ref="LexicalEntry" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element ref="Synset" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string"/>
+    <xs:attribute name="label" type="xs:string"/>
+    <xs:attribute name="language" type="xs:string"/>
+    <xs:attribute name="email" type="xs:string"/>
+    <xs:attribute name="license" type="xs:string"/>
+    <xs:attribute name="version" type="xs:string"/>
+    <xs:attribute name="url" type="xs:string"/>
+    <xs:attribute name="citation" type="xs:string"/>
+  </xs:complexType>
+  <xs:complexType name="RequiresType">
+    <xs:attribute name="id" type="xs:string"/>
+    <xs:attribute name="version" type="xs:string"/>
+  </xs:complexType>
+  <xs:complexType name="LexicalEntryType">
+    <xs:sequence>
+      <xs:element ref="Lemma" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element ref="Sense" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string"/>
+  </xs:complexType>
+  <xs:complexType name="LemmaType">
+    <xs:attribute name="writtenForm" type="xs:string"/>
+    <xs:attribute name="partOfSpeech" type="xs:string"/>
+  </xs:complexType>
+  <xs:complexType name="SenseType">
+    <xs:attribute name="id" type="xs:string"/>
+    <xs:attribute name="synset" type="xs:string"/>
+  </xs:complexType>
+  <xs:complexType name="SynsetType">
+    <xs:attribute name="id" type="xs:string"/>
+    <xs:attribute name="ili" type="xs:string"/>
+    <xs:attribute name="partOfSpeech" type="xs:string"/>
+    <xs:attribute name="members" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:attribute name="dc:type" type="xs:string"/>
+  <xs:attribute name="dc:source" type="xs:string"/>
+  <xs:attribute name="dc:subject" type="xs:string"/>
+</xs:schema>

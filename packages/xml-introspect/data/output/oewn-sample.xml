@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE LexicalResource SYSTEM "http://globalwordnet.github.io/schemas/WN-LMF-1.3.dtd">
+<LexicalResource xmlns:dc="https://globalwordnet.github.io/schemas/dc/">
+  <GlobalInformation>
+    <label>Open English WordNet</label>
+    <dc:title>Open English WordNet</dc:title>
+    <dc:description>Open English WordNet is a large lexical database of English</dc:description>
+    <dc:creator>Open English WordNet</dc:creator>
+    <dc:contributor>Princeton University</dc:contributor>
+    <dc:date>2023</dc:date>
+    <dc:format>WN-LMF 1.3</dc:format>
+    <dc:language>en</dc:language>
+    <dc:identifier>oewn</dc:identifier>
+    <dc:version>2023</dc:version>
+    <dc:license>https://creativecommons.org/licenses/by/4.0/</dc:license>
+  </GlobalInformation>
+  
+  <Lexicon id="oewn" label="Open English WordNet" language="en" email="wordnet@princeton.edu" license="https://creativecommons.org/licenses/by/4.0/" version="2023" url="https://github.com/globalwordnet/english-wordnet">
+    <feat att="lexicalized" val="true"/>
+    <feat att="dc:subject" val="WordNet"/>
+    
+    <LexicalEntry id="oewn-aardvark-n">
+      <feat att="dc:subject" val="noun.animal"/>
+      <Lemma writtenForm="aardvark" partOfSpeech="n"/>
+      <Sense id="oewn-aardvark-n-1" synset="oewn-00001740-n">
+        <feat att="dc:subject" val="noun.animal"/>
+        <feat att="lexicalized" val="true"/>
+      </Sense>
+    </LexicalEntry>
+    
+    <LexicalEntry id="oewn-aardwolf-n">
+      <feat att="dc:subject" val="noun.animal"/>
+      <Lemma writtenForm="aardwolf" partOfSpeech="n"/>
+      <Sense id="oewn-aardwolf-n-1" synset="oewn-00001740-n">
+        <feat att="dc:subject" val="noun.animal"/>
+        <feat att="lexicalized" val="true"/>
+      </Sense>
+    </LexicalEntry>
+    
+    <LexicalEntry id="oewn-able-a">
+      <feat att="dc:subject" val="adj.all"/>
+      <Lemma writtenForm="able" partOfSpeech="a"/>
+      <Sense id="oewn-able-a-1" synset="oewn-00001740-a">
+        <feat att="dc:subject" val="adj.all"/>
+        <feat att="lexicalized" val="true"/>
+      </Sense>
+    </LexicalEntry>
+    
+    <LexicalEntry id="oewn-breathe-v">
+      <feat att="dc:subject" val="verb.body"/>
+      <Lemma writtenForm="breathe" partOfSpeech="v"/>
+      <Sense id="oewn-breathe-v-1" synset="oewn-00001740-v">
+        <feat att="dc:subject" val="verb.body"/>
+        <feat att="lexicalized" val="true"/>
+      </Sense>
+    </LexicalEntry>
+    
+    <Synset id="oewn-00001740-a" ili="i1" members="oewn-able-a" partOfSpeech="a" lexfile="adj.all">
+      <feat att="dc:subject" val="adj.all"/>
+      <feat att="lexicalized" val="true"/>
+      <Definition>having the necessary means or skill or know-how or authority to do something</Definition>
+      <SynsetRelation relType="attribute" target="oewn-05207437-n"/>
+      <SynsetRelation relType="attribute" target="oewn-05624029-n"/>
+    </Synset>
+    
+    <Synset id="oewn-00001740-n" ili="i35545" members="oewn-entity-n" partOfSpeech="n" lexfile="noun.Tops">
+      <feat att="dc:subject" val="noun.Tops"/>
+      <feat att="lexicalized" val="true"/>
+      <Definition>that which is perceived or known to have its own distinct existence</Definition>
+      <SynsetRelation relType="hyponym" target="oewn-00001930-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-00002137-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-04431553-n"/>
+    </Synset>
+    
+    <Synset id="oewn-00001740-v" ili="i21778" members="oewn-breathe-v oewn-take_a_breath-v oewn-respire-v oewn-suspire-v" partOfSpeech="v" lexfile="verb.body">
+      <feat att="dc:subject" val="verb.body"/>
+      <feat att="lexicalized" val="true"/>
+      <Definition>draw air into, and expel out of, the lungs</Definition>
+      <SynsetRelation relType="entails" target="oewn-00005041-v"/>
+      <SynsetRelation relType="entails" target="oewn-00004227-v"/>
+      <SynsetRelation relType="hypernym" target="oewn-02372362-v"/>
+      <SynsetRelation relType="similar" target="oewn-00002325-v"/>
+      <SynsetRelation relType="similar" target="oewn-00002573-v"/>
+      <SynsetRelation relType="hyponym" target="oewn-00002573-v"/>
+      <SynsetRelation relType="hyponym" target="oewn-00002724-v"/>
+      <SynsetRelation relType="hyponym" target="oewn-00002942-v"/>
+      <SynsetRelation relType="hyponym" target="oewn-00003826-v"/>
+      <SynsetRelation relType="hyponym" target="oewn-00004032-v"/>
+      <SynsetRelation relType="hyponym" target="oewn-00004227-v"/>
+      <SynsetRelation relType="hyponym" target="oewn-00005041-v"/>
+      <SynsetRelation relType="hyponym" target="oewn-00006697-v"/>
+      <SynsetRelation relType="hyponym" target="oewn-00007328-v"/>
+      <SynsetRelation relType="hyponym" target="oewn-00017024-v"/>
+    </Synset>
+    
+    <Synset id="oewn-00001930-n" ili="i35546" members="oewn-physical_entity-n" partOfSpeech="n" lexfile="noun.Tops">
+      <feat att="dc:subject" val="noun.Tops"/>
+      <feat att="lexicalized" val="true"/>
+      <Definition>an entity that has physical existence</Definition>
+      <SynsetRelation relType="hypernym" target="oewn-00001740-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-14604577-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-00002452-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-00002684-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-00007347-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-00021007-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-00029976-n"/>
+    </Synset>
+    
+    <Synset id="oewn-00002137-n" ili="i35547" members="oewn-abstraction-n oewn-abstract_entity-n" partOfSpeech="n" lexfile="noun.Tops">
+      <feat att="dc:subject" val="noun.Tops"/>
+      <feat att="lexicalized" val="true"/>
+      <Definition>a general concept formed by extracting common features from specific examples</Definition>
+      <SynsetRelation relType="hypernym" target="oewn-00001740-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-08016141-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-05818169-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-00023280-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-00024444-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-00029677-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-00031563-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-00032220-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-00033319-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-00033914-n"/>
+    </Synset>
+    
+    <Synset id="oewn-00002452-n" ili="i35548" members="oewn-thing-n" partOfSpeech="n" lexfile="noun.Tops">
+      <feat att="dc:subject" val="noun.Tops"/>
+      <feat att="lexicalized" val="true"/>
+      <Definition>a separate and self-contained entity</Definition>
+      <SynsetRelation relType="hypernym" target="oewn-00001930-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-09248053-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-09335551-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-09390100-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-09408804-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-09430745-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-09488589-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-09492089-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-04354303-n"/>
+    </Synset>
+    
+    <Synset id="oewn-00002684-n" ili="i35549" members="oewn-object-n oewn-physical_object-n" partOfSpeech="n" lexfile="noun.Tops">
+      <feat att="dc:subject" val="noun.Tops"/>
+      <feat att="lexicalized" val="true"/>
+      <Definition>a tangible and visible entity; an entity that can cast a shadow</Definition>
+      <SynsetRelation relType="hypernym" target="oewn-00001930-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-07867030-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-09261049-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-09274595-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-09290396-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-09302364-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-09304683-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-09306099-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-09310874-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-09318244-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-09323811-n"/>
+      <SynsetRelation relType="hyponym" target="oewn-09324937-n"/>
+    </Synset>
+  </Lexicon>
+</LexicalResource>
