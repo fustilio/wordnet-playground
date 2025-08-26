@@ -297,6 +297,12 @@ setGlobalLogLevel("trace");
  * }
  * ```
  */
+export interface DatabaseStorageInfo {
+  type: 'opfs' | 'memory' | 'unknown';
+  persistent: boolean;
+  path?: string;
+}
+
 export interface WordNetState {
   loading: boolean;
   isInitializing: boolean;
@@ -345,6 +351,7 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
     ili: string,
     lexiconPrefix: string
   ) => Promise<WordInfo[]>;
+  getIliForSynset: (synsetId: string) => Promise<string | null>;
   searchWordsInLexicon: (
     term: string,
     lexicon: string,
@@ -365,6 +372,9 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
   getCrossLingualMappingCoverage: () => Promise<MappingCoverage>;
   validateResourceIntegrity: (lexiconId: string) => Promise<IntegrityReport>;
   checkResourceCompatibility: (lexiconIds: string[]) => Promise<CompatibilityReport>;
+  // Database persistence methods
+  isDatabasePersistent: () => Promise<boolean>;
+  getDatabaseStorageInfo: () => Promise<DatabaseStorageInfo>;
 } {
   const logger = createScopedLogger("useWordNet");
 
@@ -711,6 +721,22 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
       if (wc?.initialized) {
         try {
           return await wc.getWordsByIliAndLexiconPrefix(ili, lexiconPrefix);
+        } catch (error) {
+          logger.warn("Worker query failed", { error });
+          throw error;
+        }
+      }
+      throw new Error("Worker not available");
+    },
+    []
+  );
+
+  const getIliForSynset = useCallback(
+    async (synsetId: string) => {
+      const wc = workerClientRef.current;
+      if (wc?.initialized) {
+        try {
+          return await wc.getIliForSynset(synsetId);
         } catch (error) {
           logger.warn("Worker query failed", { error });
           throw error;
@@ -1805,6 +1831,7 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
     getSynsetById,
     getWordsByIliAndLanguage,
     getWordsByIliAndLexiconPrefix,
+    getIliForSynset,
     searchWordsInLexicon,
     clearCacheAndUnload,
     getCacheInfo,
@@ -1819,6 +1846,9 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
     getCrossLingualMappingCoverage,
     validateResourceIntegrity,
     checkResourceCompatibility,
+    // Database persistence methods
+    isDatabasePersistent: () => workerClientRef.current?.isDatabasePersistent() || Promise.resolve(false),
+    getDatabaseStorageInfo: () => workerClientRef.current?.getDatabaseStorageInfo() || Promise.resolve({ type: 'unknown', persistent: false } as DatabaseStorageInfo),
   };
 }
 

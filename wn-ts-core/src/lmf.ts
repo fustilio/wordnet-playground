@@ -31,6 +31,31 @@ export interface LMFLoadOptions {
   progress?: (progress: number) => void;
   debug?: boolean; // Add debug flag to control logging
   strictForeignKeys?: boolean; // If false, include all senses even with invalid references (for testing)
+  
+  // Duplicate handling options
+  duplicateHandling?: {
+    strategy: 'keep-first' | 'keep-last' | 'merge' | 'skip' | 'error';
+    // For 'merge' strategy, specify which fields to merge
+    mergeFields?: {
+      definitions?: boolean;
+      examples?: boolean;
+      relations?: boolean;
+      forms?: boolean;
+      pronunciations?: boolean;
+      tags?: boolean;
+      counts?: boolean;
+    };
+    // For deduplication, specify which fields to use as unique keys
+    uniqueKeys?: {
+      words?: ('id' | 'lemma' | 'index' | 'pos')[];
+      synsets?: ('id' | 'ili')[];
+      senses?: ('id' | 'wordId-synsetId')[];
+    };
+    // Whether to log duplicate information
+    logDuplicates?: boolean;
+    // Whether to aggregate statistics about duplicates
+    trackStatistics?: boolean;
+  };
 }
 
 /**
@@ -195,8 +220,8 @@ export function createMinimalLMF(): LMFDocument {
         relations: [],
         language: 'en',
         lexicon: 'test-en',
-        members: [],
-        senses: [],
+        memberIds: [],
+        senseIds: [],
       }
     ],
     words: [
@@ -215,8 +240,8 @@ export function createMinimalLMF(): LMFDocument {
     senses: [
       {
         id: 'test-en-example-n-0001-01',
-        word: 'test-en-example-n',
-        synset: 'test-en-0001-n',
+        wordId: 'test-en-example-n',
+        synsetId: 'test-en-0001-n',
         counts: [],
         examples: [],
         tags: [],

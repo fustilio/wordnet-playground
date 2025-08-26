@@ -28,10 +28,19 @@ export class PythonParser implements LMFParser {
   readonly name = 'Python Parser';
   readonly description = 'Parser using Python via pythonia library';
 
-  async parse(filePath: string, options: LMFLoadOptions = {}): Promise<LMFDocument> {
-    const { debug = false } = options;
+  async parse(input: string, options: LMFLoadOptions = {}): Promise<LMFDocument> {
+    const { debug = false, duplicateHandling } = options;
     
     if (debug) console.log(`[DEBUG] ${this.name}: Starting parse`);
+    
+    // This parser expects a file path, not XML content
+    const filePath = input;
+    
+    // Note: This parser doesn't implement duplicate handling as it's designed for benchmarking
+    // For production use with duplicate handling, use the web or node parsers
+    if (duplicateHandling && debug) {
+      console.log(`[DEBUG] ${this.name}: Duplicate handling options ignored (parser not designed for production use)`);
+    }
     
     try {
       const pythonParser = await getOrSetupPythonParser();

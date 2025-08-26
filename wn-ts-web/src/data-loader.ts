@@ -7,14 +7,12 @@ import { Project } from "./project.js";
 import type { ProgressCallback } from "./types/progress.js";
 import { WebDatabase } from "./client/submodules/web-database.js";
 import { WebWordnet } from "./client/submodules/web-wordnet.js";
-import pako from "pako";
-import { XzReadableStream } from "xz-decompress";
-import tar from "tar-stream";
 import { createScopedLogger } from "utils/logger";
 import type { KyselyQueryService } from "./database/kysely-query-service.js";
 import type { Database } from "./types/database.js";
 import type { LMFDocument, Synset, Word, Sense, Lexicon } from "wn-ts-core";
 import { WarningAggregator } from "./parsers/lmf/warning-aggregator.js";
+import { FormatProcessor } from "./formats/index.js";
 
 // Note: ParsedNode interface removed - now using proper LMF parsing pipeline
 
@@ -562,252 +560,34 @@ export class DataLoader {
     projectIdWithVersion: string,
     progress?: ProgressCallback
   ): Promise<void> {
-    let xmlText: string;
-    const view = new Uint8Array(data);
+    if (progress) progress(0.1);
 
-    this.logger.debug(`🔍 Debug loadData: Received ${data.byteLength} bytes`);
-    this.logger.debug(`🔍 Debug loadData: First 16 bytes:`, {
-      bytes: Array.from(view.slice(0, 16))
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join(" "),
+    // Use the new format processor to handle all decompression and format detection
+    const formatProcessor = new FormatProcessor();
+    
+    this.logger.info(`🚀 Starting format processing for ${projectIdWithVersion}...`);
+    const formatResult = await formatProcessor.processData(data, {
+      projectId: projectIdWithVersion,
+      enableTarExtraction: true
     });
 
+    if (!formatResult.success) {
+      throw new Error(`Format processing failed: ${formatResult.error}`);
+    }
+
+    this.logger.info(`✅ Format processing completed successfully`, {
+      contentType: formatResult.contentType,
+      confidence: formatResult.confidence,
+      processingSteps: formatResult.processingSteps,
+      totalProcessingTime: formatResult.totalProcessingTime,
+      originalSize: formatResult.originalSize,
+      finalSize: formatResult.finalSize
+    });
+
+    const xmlText = formatResult.xmlContent!;
+
     // Check for XZ magic numbers: 0xfd 0x37 0x7a 0x58 0x5a 0x00
-    if (
-      view.length > 6 &&
-      view[0] === 0xfd &&
-      view[1] === 0x37 &&
-      view[2] === 0x7a &&
-      view[3] === 0x58 &&
-      view[4] === 0x5a &&
-      view[5] === 0x00
-    ) {
-      this.logger.debug(
-        `🔍 Debug: XZ magic numbers detected: ${view[0].toString(16).padStart(2, "0")} ${view[1].toString(16).padStart(2, "0")} ${view[2].toString(16).padStart(2, "0")} ${view[3].toString(16).padStart(2, "0")} ${view[4].toString(16).padStart(2, "0")} ${view[5].toString(16).padStart(2, "0")}`
-      );
-      try {
-        this.logger.debug(`🔍 Debug: Starting XZ decompression...`);
 
-        const viewStream = new ReadableStream({
-          start(controller) {
-            controller.enqueue(view);
-            controller.close();
-          },
-        });
-        const decompressed = await new Response(
-          new XzReadableStream(viewStream)
-        ).text();
-
-        this.logger.debug(
-          `🔍 Debug: XZ decompression completed: ${decompressed.length} bytes`
-        );
-        if (typeof decompressed === "string") {
-          xmlText = decompressed;
-        } else {
-          xmlText = new TextDecoder().decode(decompressed);
-        }
-        this.logger.debug(
-          `📊 Decompressed XZ data: ${view.length} bytes -> ${xmlText.length} characters`
-        );
-        this.logger.debug(`🔍 Debug: First 200 chars after XZ decompression:`, {
-          chars: xmlText.substring(0, 200),
-        });
-        this.logger.debug(`🔍 Debug: Last 200 chars after XZ decompression:`, {
-          chars: xmlText.substring(Math.max(0, xmlText.length - 200)),
-        });
-
-        // Additional logging for debugging: show first few lines
-        const firstFewLines = xmlText
-          .split("\n")
-          .slice(0, 5)
-          .map((line, i) => `Line ${i + 1}: ${line.substring(0, 100)}`);
-        this.logger.debug(`🔍 Debug: First 5 lines after XZ decompression:`, {
-          lines: firstFewLines,
-        });
-
-        // Check if this is a tar archive after XZ decompression
-        if (
-          xmlText.includes("ustar") ||
-          xmlText.includes("PaxHeader") ||
-          xmlText.includes("GlobalHeader")
-        ) {
-          this.logger.info(
-            `🔍 Detected tar archive after XZ decompression, will extract to find LMF files`
-          );
-          // We'll handle tar extraction in the main processing logic
-        }
-      } catch (err) {
-        this.logger.error("❌ Failed to decompress XZ data:", {
-          error: err instanceof Error ? err.message : String(err),
-        });
-        throw err;
-      }
-    }
-    // Check for gzip magic numbers: 0x1f 0x8b
-    else if (view.length > 2 && view[0] === 0x1f && view[1] === 0x8b) {
-      this.logger.debug(
-        `🔍 Debug: Gzip magic numbers detected: ${view[0].toString(16).padStart(2, "0")} ${view[1].toString(16).padStart(2, "0")}`
-      );
-      this.logger.debug(`🔍 Debug: Starting gzip decompression with pako...`);
-      this.logger.debug(`🔍 Debug: Input data length: ${view.length} bytes`);
-      this.logger.debug(`🔍 Debug: Input data type: ${typeof view}`);
-      this.logger.debug(
-        `🔍 Debug: Input data constructor: ${view.constructor.name}`
-      );
-
-      try {
-        // Use pako for gzip decompression
-        let workingView = view;
-        this.logger.debug(`🔍 Debug: Checking for trailing byte...`);
-
-        if (view[view.length - 1] === 0x3b) {
-          this.logger.warn("🔍 Debug: Removing last byte (0x3b)");
-          workingView = view.slice(0, -1);
-          this.logger.debug(
-            `🔍 Debug: Working view length after slice: ${workingView.length} bytes`
-          );
-        } else {
-          this.logger.debug(
-            `🔍 Debug: No trailing byte removal needed, last byte: 0x${view[view.length - 1].toString(16).padStart(2, "0")}`
-          );
-        }
-
-        this.logger.debug(`🔍 Debug: About to call pako.inflate()...`);
-        this.logger.debug(`🔍 Debug: Working view first 16 bytes:`, {
-          bytes: Array.from(workingView.slice(0, 16))
-            .map((b) => b.toString(16).padStart(2, "0"))
-            .join(" "),
-        });
-        this.logger.debug(`🔍 Debug: Working view last 16 bytes:`, {
-          bytes: Array.from(workingView.slice(-16))
-            .map((b) => b.toString(16).padStart(2, "0"))
-            .join(" "),
-        });
-
-        const startTime = Date.now();
-        this.logger.debug(
-          `🔍 Debug: pako.inflate() call started at ${startTime}`
-        );
-
-        // 🚨 TIMEOUT PROTECTION: Prevent hanging during decompression
-        const decompressed = await this.logger.withTimeout(
-          "pako.inflate()",
-          async () => {
-            return pako.inflate(workingView);
-          },
-          30000,
-          2000
-        ); // 30 second timeout, progress every 2 seconds
-
-        const endTime = Date.now();
-        this.logger.debug(
-          `🔍 Debug: pako.inflate() completed in ${endTime - startTime}ms`
-        );
-        this.logger.debug(
-          `🔍 Debug: Decompression result type: ${typeof decompressed}`
-        );
-        this.logger.debug(
-          `🔍 Debug: Decompression result constructor: ${decompressed.constructor.name}`
-        );
-        this.logger.debug(
-          `🔍 Debug: Decompression result length: ${decompressed.length} bytes`
-        );
-
-        this.logger.debug("🔍 Debug: Decompressed data sample:", {
-          sample: Array.from(decompressed.slice(0, 100)),
-        });
-        this.logger.debug(
-          `🔍 Debug: Decompression completed: ${decompressed.length} bytes`
-        );
-
-        this.logger.debug(`🔍 Debug: About to decode with TextDecoder...`);
-        const decodeStartTime = Date.now();
-
-        // 🚨 TIMEOUT PROTECTION: Prevent hanging during TextDecoder
-        xmlText = await this.logger.withTimeout(
-          "TextDecoder.decode()",
-          async () => {
-            return new TextDecoder().decode(decompressed);
-          },
-          15000,
-          1000
-        ); // 15 second timeout, progress every 1 second
-
-        const decodeEndTime = Date.now();
-        this.logger.debug(
-          `🔍 Debug: TextDecoder completed in ${decodeEndTime - decodeStartTime}ms`
-        );
-        this.logger.debug(
-          `🔍 Debug: Decoded text length: ${xmlText.length} characters`
-        );
-
-        this.logger.debug(
-          `📊 Decompressed gzipped data: ${decompressed.length} bytes -> ${xmlText.length} characters`
-        );
-        this.logger.debug(`🔍 Debug: First 200 chars after decompression:`, {
-          chars: xmlText.substring(0, 200),
-        });
-        this.logger.debug(`🔍 Debug: Last 200 chars after decompression:`, {
-          chars: xmlText.substring(Math.max(0, xmlText.length - 200)),
-        });
-
-        // Additional logging for debugging: show first few lines
-        const firstFewLines = xmlText
-          .split("\n")
-          .slice(0, 5)
-          .map((line, i) => `Line ${i + 1}: ${line.substring(0, 100)}`);
-        this.logger.debug(`🔍 Debug: First 5 lines after gzip decompression:`, {
-          lines: firstFewLines,
-        });
-
-        // Check if this is a tar archive after gzip decompression
-        if (
-          xmlText.includes("ustar") ||
-          xmlText.includes("PaxHeader") ||
-          xmlText.includes("GlobalHeader")
-        ) {
-          this.logger.info(
-            `🔍 Detected tar archive after gzip decompression, will extract to find LMF files`
-          );
-          // We'll handle tar extraction in the main processing logic
-        }
-
-        // Yield to UI thread after decompression to prevent freezing
-        this.logger.debug(`🔍 Debug: Yielding to UI thread...`);
-        await new Promise((resolve) => setTimeout(resolve, 1));
-        this.logger.debug(`🔍 Debug: UI thread yield completed`);
-      } catch (err) {
-        this.logger.error("❌ Failed to decompress gzipped data:", {
-          error: err instanceof Error ? err.message : String(err),
-        });
-        this.logger.error("❌ Error details:", {
-          name: err instanceof Error ? err.name : "Unknown",
-          message: err instanceof Error ? err.message : String(err),
-          stack: err instanceof Error ? err.stack : "No stack trace",
-        });
-        throw err;
-      }
-    } else {
-      // Data is not compressed
-      xmlText = new TextDecoder().decode(data);
-      this.logger.debug(
-        `📊 Data is not compressed: ${data.byteLength} bytes -> ${xmlText.length} characters`
-      );
-      this.logger.debug(`🔍 Debug: First 200 chars:`, {
-        chars: xmlText.substring(0, 200),
-      });
-
-      // Additional logging for debugging: show first few lines
-      const firstFewLines = xmlText
-        .split("\n")
-        .slice(0, 5)
-        .map((line, i) => `Line ${i + 1}: ${line.substring(0, 100)}`);
-      this.logger.debug(`🔍 Debug: First 5 lines of uncompressed data:`, {
-        lines: firstFewLines,
-      });
-    }
-
-    if (progress) progress(0.1);
 
     // Get project metadata to determine file type
     let project: Project;
@@ -831,30 +611,8 @@ export class DataLoader {
     this.logger.debug(`🔍 Debug: Project type from metadata: ${projectType}`);
     this.logger.debug(`🔍 Debug: Project data:`, project.projectData);
 
-    // Smart content detection: examine the actual decompressed content to determine file type
-    this.logger.debug(`🔍 Content analysis for ${projectIdWithVersion}:`, {
-      contentLength: xmlText.length,
-      first100Chars: xmlText.substring(0, 100),
-      last100Chars: xmlText.substring(Math.max(0, xmlText.length - 100)),
-      containsXML:
-        xmlText.includes("<?xml") || xmlText.includes("<LexicalResource"),
-      containsTabs: xmlText.includes("\t"),
-      containsUstar: xmlText.includes("ustar"),
-      containsPaxHeader: xmlText.includes("PaxHeader"),
-    });
-
-    const detectedType = this.detectContentType(xmlText, projectIdWithVersion);
-    this.logger.info(
-      `🔍 Content detection: metadata says "${projectType}", content appears to be "${detectedType}"`
-    );
-
-    // Use the detected type if it's more specific than the metadata
-    const effectiveType =
-      detectedType !== "unknown" ? detectedType : projectType;
-    this.logger.info(`📝 Using effective file type: ${effectiveType}`);
-
     // Handle different file types based on detected content
-    if (effectiveType === "ili" || effectiveType === "tsv") {
+    if (formatResult.contentType === "ili" || formatResult.contentType === "tsv") {
       this.logger.info(`📝 Detected ILI/TSV file type from content analysis`);
 
       // Validate that we have TSV content after decompression
@@ -895,299 +653,182 @@ export class DataLoader {
       this.logger.info(
         `✅ ILI data loaded successfully for ${projectIdWithVersion}`
       );
-      return;
-    }
+      
+      // Continue to common completion code instead of early return
+    } else if (formatResult.contentType === "lmf" || formatResult.contentType === "xml") {
+      // Process as LMF XML file
+      this.logger.info(
+        `📝 Processing as LMF XML file (type: ${formatResult.contentType})`
+      );
 
-    // Handle tar archives (extract and find LMF files)
-    if (effectiveType === "tar") {
-      // Special case: OEWN packages are gzip-compressed XML, not tar archives
+      // Verify that we have valid LMF XML content
+      this.logger.debug(`🔍 Debug: Verifying XML content...`);
+
+      // Check for empty content first
+      if (xmlText.length === 0) {
+        this.logger.error(
+          `❌ CRITICAL: Decompressed XML is empty (0 characters)!`
+        );
+        throw new Error(
+          "Decompressed XML is empty - file may be corrupted or download failed"
+        );
+      }
+
+      if (!xmlText.includes("<LexicalResource")) {
+        this.logger.error(
+          `❌ CRITICAL: Decompressed XML does not contain LexicalResource element!`
+        );
+        this.logger.error(`❌ XML length: ${xmlText.length}`);
+        this.logger.error(`❌ First 500 chars:`, xmlText.substring(0, 500));
+        this.logger.error(
+          `❌ Last 500 chars:`,
+          xmlText.substring(Math.max(0, xmlText.length - 500))
+        );
+        throw new Error(
+          "Decompressed XML does not contain LexicalResource element - file may be corrupted"
+        );
+      }
+      this.logger.debug(
+        `✅ XML content verification passed - LexicalResource element found`
+      );
+
+      // Lexicon information will be inserted from the file data
+      if (progress) progress(0.2);
+
+      this.logger.start(`processing LMF data for ${projectIdWithVersion}`);
+      this.logger.step(`XML content verified`, {
+        xmlSizeMB: (xmlText.length / 1024 / 1024).toFixed(2),
+      });
+
+      // Use the proper LMF parsing pipeline for all LMF files
+      try {
+        this.logger.step(`starting LMF parsing`);
+
+        // Import and use the proper LMF parser
+        const { LmfParser } = await import("./parsers/lmf/lmf-parser.js");
+
+        // Configure parser based on file size and type
+        const parserOptions = {
+          debug: true,
+          // Always prefer fast-xml-parser for LMF files as it handles text content extraction correctly
+          // The previous logic of preferring DOMParser for large files was causing definition text to be lost
+          preferFastXMLParser: true,
+        };
+
+        this.logger.debug(`parser options`, parserOptions);
+
+        const lmfParser = new LmfParser(xmlText, parserOptions);
+        const lmfDocument = await lmfParser.parse(xmlText, { debug: true });
+
+        // Get any aggregated warnings from the parser
+        if (lmfParser["warningAggregator"]) {
+          const aggregatedWarnings = lmfParser["warningAggregator"].flush();
+          if (aggregatedWarnings.totalWarnings > 0) {
+            this.logger.warn(
+              `LMF parsing completed with aggregated warnings`,
+              aggregatedWarnings
+            );
+          }
+        }
+
+        this.logger.step(`LMF parsing completed successfully`, {
+          lexicons: lmfDocument.lexicons?.length || 0,
+          words: lmfDocument.words?.length || 0,
+          synsets: lmfDocument.synsets?.length || 0,
+          senses: lmfDocument.senses?.length || 0,
+        });
+
+        // Yield to UI thread after XML parsing to prevent freezing
+        await new Promise((resolve) => setTimeout(resolve, 1));
+
+        if (progress) progress(0.5);
+
+        // Insert the parsed data into the database
+        this.logger.step(`inserting parsed data into database`);
+        await this.insertLMFData(lmfDocument, projectIdWithVersion);
+
+        // Yield to UI thread after data insertion to prevent freezing
+        await new Promise((resolve) => setTimeout(resolve, 1));
+
+        if (progress) progress(1.0);
+
+        this.logger.success(`LMF data loaded successfully`, {
+          projectId: projectIdWithVersion,
+        });
+      } catch (error) {
+        // Provide better error diagnosis
+        const diagnosis = diagnoseDownloadIssue(xmlText);
+        const analysis = analyzeXMLContent(xmlText);
+
+        this.logger.fail(`LMF parsing failed`, {
+          diagnosis,
+          error: error instanceof Error ? error.message : String(error),
+        });
+
+        throw error;
+      }
+    } else {
+      // Check for unsupported file types
       if (
-        projectIdWithVersion.startsWith("oewn:") ||
-        projectIdWithVersion.startsWith("ewn:")
+        formatResult.contentType &&
+        formatResult.contentType !== "tar"
       ) {
         this.logger.warn(
-          `⚠️ OEWN package ${projectIdWithVersion} detected as tar, but should be XML. Overriding detection.`
+          `⚠️ Unknown or unsupported file type: ${formatResult.contentType}, treating as LMF XML`
         );
-        this.logger.info(`🔄 Forcing file type to 'lmf' for OEWN package`);
-        // Continue with LMF XML processing instead of tar extraction
-      } else {
-        this.logger.info(
-          `📦 Detected tar archive, extracting to find LMF files...`
-        );
-
-        try {
-          // Convert the decompressed content back to ArrayBuffer for tar extraction
-          const encoder = new TextEncoder();
-          const tarBuffer = encoder.encode(xmlText);
-          const arrayBuffer = tarBuffer.buffer.slice(
-            tarBuffer.byteOffset,
-            tarBuffer.byteOffset + tarBuffer.byteLength
-          ) as ArrayBuffer;
-
-          // Extract the tar archive and find LMF files
-          const extractedXml = await this.extractTarArchive(arrayBuffer);
-
-          this.logger.info(
-            `✅ Successfully extracted LMF file from tar archive`
-          );
-
-          // Replace xmlText with the extracted XML content
-          xmlText = extractedXml;
-
-          // Update the effective type to LMF since we now have XML
-          this.logger.info(
-            `🔄 File type updated from 'tar' to 'lmf' after extraction`
-          );
-        } catch (error) {
-          const errorMessage = `❌ Failed to extract tar archive for ${projectIdWithVersion}: ${error instanceof Error ? error.message : String(error)}`;
-          this.logger.error(errorMessage);
-          throw new Error(errorMessage);
-        }
       }
-    }
 
-    // Check for unsupported file types
-    if (
-      effectiveType &&
-      effectiveType !== "lmf" &&
-      effectiveType !== "ili" &&
-      effectiveType !== "tsv" &&
-      effectiveType !== "xml" &&
-      effectiveType !== "tar"
-    ) {
+      // Default to LMF XML processing for unknown types
+      this.logger.info(
+        `📝 Processing as LMF XML file (type: ${formatResult.contentType || "unknown"})`
+      );
+
+      // For unknown types, we need to validate that the content is at least valid XML
+      // since the FormatProcessor should have detected the correct type
       this.logger.warn(
-        `⚠️ Unknown or unsupported file type: ${effectiveType}, treating as LMF XML`
+        `⚠️ Unknown content type '${formatResult.contentType}', attempting XML processing`
       );
-    }
-
-    // Default to LMF XML processing
-    this.logger.info(
-      `📝 Processing as LMF XML file (type: ${effectiveType || "unknown"})`
-    );
-
-    // Verify that we have valid LMF XML content
-    this.logger.debug(`🔍 Debug: Verifying XML content...`);
-
-    // Check for empty content first
-    if (xmlText.length === 0) {
-      this.logger.error(
-        `❌ CRITICAL: Decompressed XML is empty (0 characters)!`
-      );
-      throw new Error(
-        "Decompressed XML is empty - file may be corrupted or download failed"
-      );
-    }
-
-    if (!xmlText.includes("<LexicalResource")) {
-      this.logger.error(
-        `❌ CRITICAL: Decompressed XML does not contain LexicalResource element!`
-      );
-      this.logger.error(`❌ XML length: ${xmlText.length}`);
-      this.logger.error(`❌ First 500 chars:`, xmlText.substring(0, 500));
-      this.logger.error(
-        `❌ Last 500 chars:`,
-        xmlText.substring(Math.max(0, xmlText.length - 500))
-      );
-      throw new Error(
-        "Decompressed XML does not contain LexicalResource element - file may be corrupted"
-      );
-    }
-    this.logger.debug(
-      `✅ XML content verification passed - LexicalResource element found`
-    );
-
-    // Lexicon information will be inserted from the file data
-    if (progress) progress(0.2);
-
-    this.logger.start(`processing LMF data for ${projectIdWithVersion}`);
-    this.logger.step(`XML content verified`, {
-      xmlSizeMB: (xmlText.length / 1024 / 1024).toFixed(2),
-    });
-
-    // Use the proper LMF parsing pipeline for all LMF files
-    try {
-      this.logger.step(`starting LMF parsing`);
-
-      // Import and use the proper LMF parser
-      const { LmfParser } = await import("./parsers/lmf/lmf-parser.js");
-
-      // Configure parser based on file size and type
-      const parserOptions = {
-        debug: true,
-        // Always prefer fast-xml-parser for LMF files as it handles text content extraction correctly
-        // The previous logic of preferring DOMParser for large files was causing definition text to be lost
-        preferFastXMLParser: true,
-      };
-
-      this.logger.debug(`parser options`, parserOptions);
-
-      const lmfParser = new LmfParser(xmlText, parserOptions);
-      const lmfDocument = await lmfParser.parse(xmlText, { debug: true });
-
-      // Get any aggregated warnings from the parser
-      if (lmfParser["warningAggregator"]) {
-        const aggregatedWarnings = lmfParser["warningAggregator"].flush();
-        if (aggregatedWarnings.totalWarnings > 0) {
-          this.logger.warn(
-            `LMF parsing completed with aggregated warnings`,
-            aggregatedWarnings
-          );
-        }
+      
+      // Validate that unknown content types contain valid XML structure
+      if (!xmlText.includes("<LexicalResource")) {
+        this.logger.error(
+          `❌ CRITICAL: Unknown content type does not contain LexicalResource element!`
+        );
+        this.logger.error(`❌ Content length: ${xmlText.length}`);
+        this.logger.error(`❌ First 500 chars:`, xmlText.substring(0, 500));
+        throw new Error(
+          "Unknown content type does not contain LexicalResource element - file may be corrupted or in unsupported format"
+        );
       }
-
-      this.logger.step(`LMF parsing completed successfully`, {
-        lexicons: lmfDocument.lexicons?.length || 0,
-        words: lmfDocument.words?.length || 0,
-        synsets: lmfDocument.synsets?.length || 0,
-        senses: lmfDocument.senses?.length || 0,
-      });
-
-      // Yield to UI thread after XML parsing to prevent freezing
-      await new Promise((resolve) => setTimeout(resolve, 1));
-
-      if (progress) progress(0.5);
-
-      // Insert the parsed data into the database
-      this.logger.step(`inserting parsed data into database`);
-      await this.insertLMFData(lmfDocument, projectIdWithVersion);
-
-      // Yield to UI thread after data insertion to prevent freezing
-      await new Promise((resolve) => setTimeout(resolve, 1));
-
-      if (progress) progress(1.0);
-
-      this.logger.success(`LMF data loaded successfully`, {
-        projectId: projectIdWithVersion,
-      });
-    } catch (error) {
-      // Provide better error diagnosis
-      const diagnosis = diagnoseDownloadIssue(xmlText);
-      const analysis = analyzeXMLContent(xmlText);
-
-      this.logger.fail(`LMF parsing failed`, {
-        diagnosis,
-        error: error instanceof Error ? error.message : String(error),
-      });
-
-      this.logger.error(`XML analysis`, analysis);
-      this.logger.error(`XML content details`, {
-        length: xmlText.length,
-        first500Chars: xmlText.substring(0, 500),
-        last500Chars: xmlText.substring(Math.max(0, xmlText.length - 500)),
-      });
-
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-
-      this.logger.end(`processing LMF data for ${projectIdWithVersion}`);
-      throw new Error(
-        `Failed to parse LMF file: ${diagnosis}. Original error: ${errorMessage}`
-      );
     }
 
-    this.logger.success(`loadData method completed successfully`, {
-      projectId: projectIdWithVersion,
-      status: "XML processed and inserted into database",
-    });
+    // Common completion code for all paths
+    this.logger.info(`✅ Successfully loaded ${projectIdWithVersion}`);
 
-    this.logger.end(`processing LMF data for ${projectIdWithVersion}`);
+    // Update statistics after successful load
+    const queryService = this.getQueryService();
+    if (queryService && queryService.getStatistics) {
+      try {
+        await queryService.getStatistics();
+        this.logger.debug(`📊 Statistics updated after loading ${projectIdWithVersion}`);
+      } catch (error) {
+        this.logger.warn(`⚠️ Failed to update statistics after loading ${projectIdWithVersion}:`, error);
+      }
+    }
+
+    // Emit events after successful load
+    if (this.wordnet.emitDataChanged) {
+      this.wordnet.emitDataChanged("packageLoaded", {
+        packageId: projectIdWithVersion,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Emit statistics updated event
+      await this.wordnet.emitStatisticsUpdated();
+    }
   }
 
-  /**
-   * Detect the content type by examining the decompressed file content
-   */
-  private detectContentType(
-    content: string,
-    projectIdWithVersion: string
-  ): "xml" | "lmf" | "ili" | "tsv" | "tar" | "unknown" {
-    const trimmedContent = content.trim();
 
-    if (trimmedContent.length === 0) {
-      this.logger.warn(`Empty content detected for ${projectIdWithVersion}`);
-      return "unknown";
-    }
-
-    // Check for tar archive indicators (after XZ decompression)
-    // Only detect as tar if we see the specific tar header format at the beginning
-    const hasTarHeader =
-      trimmedContent.startsWith("ustar") ||
-      trimmedContent.startsWith("PaxHeader") ||
-      trimmedContent.startsWith("GlobalHeader");
-
-    // Additional check: tar files typically don't contain XML-like content
-    const hasXMLContent =
-      trimmedContent.includes("<?xml") ||
-      trimmedContent.includes("<LexicalResource") ||
-      trimmedContent.includes("<lexicon");
-
-    if (hasTarHeader && !hasXMLContent) {
-      this.logger.debug(
-        `Detected tar archive content after decompression (no XML content found)`
-      );
-      return "tar";
-    }
-
-    // Check for XML indicators
-    const hasXMLDeclaration = trimmedContent.startsWith("<?xml");
-    const hasRootElement = /^<[a-zA-Z][a-zA-Z0-9_:]*/.test(trimmedContent);
-    const hasClosingTag = trimmedContent.includes("</");
-    const hasLexicalResource = trimmedContent.includes("<LexicalResource");
-
-    // Check for TSV/ILI indicators
-    const hasTabs = trimmedContent.includes("\t");
-    const hasNewlines = trimmedContent.includes("\n");
-    const hasTSVStructure = hasTabs && hasNewlines;
-
-    // Check for specific content patterns
-    const firstLine = trimmedContent.split("\n")[0];
-    const hasILIHeader =
-      firstLine &&
-      (firstLine.toLowerCase().includes("ili") ||
-        firstLine.toLowerCase().includes("definition") ||
-        firstLine.toLowerCase().includes("status"));
-
-    this.logger.debug(`Content type detection for ${projectIdWithVersion}:`, {
-      length: trimmedContent.length,
-      hasTarHeader,
-      hasXMLContent,
-      hasXMLDeclaration,
-      hasRootElement,
-      hasClosingTag,
-      hasLexicalResource,
-      hasTabs,
-      hasNewlines,
-      hasTSVStructure,
-      hasILIHeader,
-      firstLine: firstLine?.substring(0, 100),
-      firstChars: trimmedContent.substring(0, 200),
-    });
-
-    // Determine file type based on content analysis
-    if (hasLexicalResource && hasRootElement && hasClosingTag) {
-      this.logger.debug(`Detected LMF XML file by LexicalResource element`);
-      return "lmf";
-    }
-
-    if (hasXMLDeclaration || (hasRootElement && hasClosingTag)) {
-      this.logger.debug(`Detected generic XML file`);
-      return "xml";
-    }
-
-    if (hasTSVStructure && hasILIHeader) {
-      this.logger.debug(`Detected ILI TSV file by header content`);
-      return "ili";
-    }
-
-    if (hasTSVStructure) {
-      this.logger.debug(`Detected generic TSV file by structure`);
-      return "tsv";
-    }
-
-    this.logger.warn(
-      `Could not determine content type for ${projectIdWithVersion}`
-    );
-    return "unknown";
-  }
 
   /**
    * Load ILI data from TSV content
@@ -1209,12 +850,15 @@ export class DataLoader {
           status: values[2]?.trim() || "active",
         };
 
-        // Skip records with empty IDs or definitions, and skip header-like lines
+        // Skip records with empty IDs or definitions
         if (
           record.id &&
           record.definition &&
-          !record.id.toLowerCase().includes("ili") &&
-          !record.id.toLowerCase().includes("definition")
+          // Don't skip records just because they contain "ili" - that's the point!
+          // Only skip obvious header lines
+          !record.id.toLowerCase().includes("definition") &&
+          !record.id.toLowerCase().includes("status") &&
+          !record.id.toLowerCase().includes("id")
         ) {
           records.push(record);
         }
@@ -1224,6 +868,13 @@ export class DataLoader {
     this.logger.debug(
       `📊 Parsed ${records.length} valid ILI records from ${dataLines.length} total lines`
     );
+    
+    // Log some sample records for debugging
+    if (records.length > 0) {
+      const sampleRecords = records.slice(0, 5);
+      this.logger.debug(`📊 Sample ILI records:`, sampleRecords);
+    }
+    
     return records;
   }
 
@@ -1440,10 +1091,10 @@ export class DataLoader {
       // All senses should now be properly nested in LexicalEntry elements according to LMF schema
       // No need to create placeholder words or synsets for invalid XML structure
       const sensesNeedingWords = allSenses.filter(
-        (sense) => !validWordIds.has(sense.word)
+        (sense) => !validWordIds.has(sense.wordId)
       );
       const sensesNeedingSynsets = allSenses.filter(
-        (sense) => !validSynsetIds.has(sense.synset)
+        (sense) => !validSynsetIds.has(sense.synsetId)
       );
 
       if (sensesNeedingWords.length > 0 || sensesNeedingSynsets.length > 0) {
@@ -1456,7 +1107,7 @@ export class DataLoader {
         // Filter out invalid senses to maintain data integrity
         const validSenses = allSenses.filter(
           (sense) =>
-            validWordIds.has(sense.word) && validSynsetIds.has(sense.synset)
+            validWordIds.has(sense.wordId) && validSynsetIds.has(sense.synsetId)
         );
 
         this.logger.step(`filtered senses to maintain data integrity`, {
@@ -1490,8 +1141,8 @@ export class DataLoader {
 
       const sensesToInsert: Database["senses"][] = validSenses.map((sense) => ({
         id: sense.id,
-        word_id: sense.word,
-        synset_id: sense.synset,
+        word_id: sense.wordId,
+        synset_id: sense.synsetId,
       }));
 
       const definitionsToInsert: Database["definitions"][] = (
@@ -1737,6 +1388,16 @@ export class DataLoader {
       // This prevents statistics queries from returning 0 immediately after insertion
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
+      // Flush database to ensure data is persisted to OPFS storage
+      this.logger.step(`flushing database to ensure persistence`);
+      try {
+        await this.database.flush();
+        this.logger.debug(`database flushed successfully`);
+      } catch (error) {
+        this.logger.warn(`failed to flush database:`, error);
+        // Don't fail the entire operation if flushing fails
+      }
+
       // Flush and log any aggregated warnings
       if (this.warningAggregator) {
         const aggregatedWarnings = this.warningAggregator.flush();
@@ -1780,125 +1441,7 @@ export class DataLoader {
     }
   }
 
-  /**
-   * Extract tar archive and find LMF XML files
-   */
-  private async extractTarArchive(tarBuffer: ArrayBuffer): Promise<string> {
-    this.logger.debug(`🔍 Starting tar archive extraction...`);
 
-    return new Promise((resolve, reject) => {
-      const extract = tar.extract();
-      const extractedFiles: { [key: string]: Uint8Array } = {};
-      let lmfFile: string | null = null;
-
-      extract.on("entry", (header: any, stream: any, next: any) => {
-        const chunks: Uint8Array[] = [];
-
-        stream.on("data", (chunk: Uint8Array) => {
-          chunks.push(chunk);
-        });
-
-        stream.on("end", () => {
-          const content = new Uint8Array(Buffer.concat(chunks));
-          extractedFiles[header.name] = content;
-
-          // Check if this is an LMF XML file - be more flexible with naming
-          if (header.name.endsWith(".xml")) {
-            const fileName = header.name.toLowerCase();
-            if (
-              fileName.includes("wn-data-") ||
-              fileName.includes("wordnet") ||
-              fileName.includes("lmf") ||
-              fileName.includes("omw") ||
-              fileName.includes("wolf") ||
-              fileName.includes("thai") ||
-              fileName.includes("french")
-            ) {
-              lmfFile = header.name;
-              this.logger.debug(`🔍 Found potential LMF file: ${header.name}`);
-            }
-          }
-
-          next();
-        });
-      });
-
-      extract.on("finish", () => {
-        this.logger.debug(
-          `🔍 Tar extraction completed. Found ${Object.keys(extractedFiles).length} files`
-        );
-        this.logger.debug(`🔍 Extracted files:`, Object.keys(extractedFiles));
-
-        if (lmfFile) {
-          this.logger.info(`✅ Found LMF file in tar archive: ${lmfFile}`);
-          const xmlContent = new TextDecoder().decode(extractedFiles[lmfFile]);
-          resolve(xmlContent);
-        } else {
-          // Look for any XML file and check its content
-          const xmlFiles = Object.keys(extractedFiles).filter((name) =>
-            name.endsWith(".xml")
-          );
-          if (xmlFiles.length > 0) {
-            this.logger.info(
-              `✅ Found XML file in tar archive: ${xmlFiles[0]}`
-            );
-
-            // Check if the XML content looks like LMF
-            const xmlContent = new TextDecoder().decode(
-              extractedFiles[xmlFiles[0]]
-            );
-            if (
-              xmlContent.includes("<LexicalResource") ||
-              xmlContent.includes("<lexicon")
-            ) {
-              this.logger.info(`✅ XML file appears to be LMF content`);
-              resolve(xmlContent);
-            } else {
-              this.logger.warn(
-                `⚠️ XML file found but doesn't appear to be LMF content`
-              );
-              this.logger.debug(
-                `🔍 XML content preview:`,
-                xmlContent.substring(0, 200)
-              );
-              reject(
-                new Error(
-                  "XML file found but content does not appear to be LMF"
-                )
-              );
-            }
-          } else {
-            reject(new Error("No LMF or XML files found in tar archive"));
-          }
-        }
-      });
-
-      extract.on("error", (err: any) => {
-        this.logger.error(`❌ Tar extraction failed:`, err);
-        reject(err);
-      });
-
-      // Convert ArrayBuffer to ReadableStream for tar-stream
-      const tarStream = new ReadableStream({
-        start(controller) {
-          controller.enqueue(new Uint8Array(tarBuffer));
-          controller.close();
-        },
-      });
-
-      // Pipe the stream to tar extractor
-      tarStream.pipeTo(
-        new WritableStream({
-          write(chunk: Uint8Array) {
-            extract.write(chunk);
-          },
-          close() {
-            extract.end();
-          },
-        })
-      );
-    });
-  }
 
   /**
    * Check if any data exists in the database

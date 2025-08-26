@@ -78,7 +78,7 @@ describe(`Data Validation and Integrity Tests (Real + Mock Data)`, () => {
         expect(word.lemma).toBeDefined();
         expect(word.pos).toBeDefined();
         expect(word.language).toBe('en');
-        expect(word.lexicon).toBe('oewn');
+        expect(word.lexicon).toBe('oewn:2024');
       }
     });
 
@@ -94,7 +94,7 @@ describe(`Data Validation and Integrity Tests (Real + Mock Data)`, () => {
         expect(synset.id).toBeDefined();
         expect(synset.pos).toBeDefined();
         expect(synset.language).toBe('en');
-        expect(synset.lexicon).toBe('oewn');
+        expect(synset.lexicon).toBe('oewn:2024');
         expect(synset.definitions).toBeDefined();
         expect(Array.isArray(synset.definitions)).toBe(true);
       }
@@ -213,7 +213,7 @@ describe(`Data Validation and Integrity Tests (Real + Mock Data)`, () => {
         const words = await wordnet.words({ form: lemma });
         
         for (const word of words) {
-          expect(word.lexicon).toBe('oewn');
+          expect(word.lexicon).toBe('oewn:2024');
           
           const senses = await wordnet.senses({ form: word.lemma, pos: word.pos });
           for (const sense of senses) {
@@ -222,11 +222,11 @@ describe(`Data Validation and Integrity Tests (Real + Mock Data)`, () => {
               const referencedSynset = await wordnet.getSynset(sense.synset);
               
               if (referencedWord) {
-                expect(referencedWord.lexicon).toBe('oewn');
+                expect(referencedWord.lexicon).toBe('oewn:2024');
               }
               
               if (referencedSynset) {
-                expect(referencedSynset.lexicon).toBe('oewn');
+                expect(referencedSynset.lexicon).toBe('oewn:2024');
               }
             } catch (error) {
               // Handle broken references gracefully

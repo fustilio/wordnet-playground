@@ -2,7 +2,7 @@
 
 ## 🏗️ System Overview
 
-`wn-ts-web` is designed as a layered, worker-first architecture that provides high-performance WordNet operations while maintaining reliability through graceful fallbacks.
+`wn-ts-web` is designed as a layered, worker-first architecture that provides high-performance WordNet operations while maintaining reliability through graceful fallbacks. The system operates at three distinct abstraction levels for optimal resource management and cross-lingual capabilities.
 
 ## 📊 Architecture Diagram
 
@@ -15,15 +15,20 @@
 │  ├─ Worker Coordination                                        │
 │  └─ Fallback Logic                                            │
 ├─────────────────────────────────────────────────────────────────┤
-│  WordNetWorkerClient (Main Thread)                             │
+│  WordNetOrchestrator (High-level orchestration)                │
+│  ├─ Multi-lexicon management                                  │
+│  ├─ Cross-lexicon operations                                  │
+│  └─ Resource lifecycle management                             │
+├─────────────────────────────────────────────────────────────────┤
+│  WordNetWorkerClient (Mid-level worker communication)          │
 │  ├─ Comlink Communication                                      │
 │  ├─ Event Management                                           │
 │  └─ State Tracking                                             │
 ├─────────────────────────────────────────────────────────────────┤
 │  wordnet-worker (Web Worker)                                   │
-│  ├─ WordNetOrchestrator                                        │
+│  ├─ Heavy Computation                                          │
 │  ├─ SQLite WASM Management                                     │
-│  └─ Heavy Computation                                          │
+│  └─ Background Processing                                      │
 ├─────────────────────────────────────────────────────────────────┤
 │  WebWordnet (Database Layer)                                   │
 │  ├─ Kysely Query Service                                       │
@@ -31,6 +36,55 @@
 │  └─ Data Persistence                                           │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+## 🏛️ Layer Responsibilities
+
+### **1. WordNetOrchestrator (High-level)**
+
+**Purpose**: Manages a single WordNet instance with multiple lexicons, provides cross-lexicon operations, and handles lexicon lifecycle management.
+
+**Key Features**:
+- Single WebWordnet instance management
+- Cross-lexicon query optimization
+- Lexicon state tracking and lifecycle management
+- Update checking and redownload detection
+- Concurrent lexicon loading with queuing
+- Resource type introspection and categorization
+- Cross-lingual analysis capabilities
+
+**Use Cases**:
+- Applications that need to work with multiple lexicons
+- Cross-lexicon search and analysis
+- Lexicon version management
+- Resource optimization for large-scale operations
+- Multilingual applications requiring cross-lingual mapping
+
+### **2. WordNetWorkerClient (Mid-level)**
+
+**Purpose**: Handles worker communication, lexicon state tracking, and provides a clean API for WordNet operations via Comlink workers.
+
+**Key Features**:
+- Worker communication via Comlink
+- Lexicon state tracking and synchronization
+- Event-driven architecture for state changes
+- Progress tracking and error handling
+- Memory-efficient operations
+
+**Use Cases**:
+- Browser applications that need background processing
+- Memory-intensive operations
+- Real-time lexicon state updates
+- Worker-based architecture requirements
+
+### **3. WebWordnet (Low-level)**
+
+**Purpose**: Individual lexicon instance operations and database management.
+
+**Key Features**:
+- Direct database operations
+- Lexicon-specific queries
+- SQLite WASM integration
+- Event emission for state changes
 
 ## 🔄 Request Flow
 
@@ -101,37 +155,37 @@ async downloadAndLoad(packageId: string) {
 }
 ```
 
-## 🏛️ Layer Responsibilities
+## 🚀 Key Benefits of the Architecture
 
-### **React Layer (useWordNet)**
-- **State Management**: Manages React state for UI updates
-- **Worker Coordination**: Coordinates between worker and main thread
-- **Fallback Logic**: Handles worker failures gracefully
-- **API Surface**: Provides clean interface for components
+### **1. Single Database Instance**
+- **Before**: Multiple WebWordnet instances, each with their own database connection
+- **After**: Single WebWordnet instance managing multiple lexicons in one database
+- **Benefit**: Better resource utilization, no database conflicts, efficient cross-lexicon queries
 
-### **Communication Layer (WordNetWorkerClient)**
-- **Comlink Integration**: Manages Comlink communication with worker
-- **Event Management**: Handles worker events and state updates
-- **Lifecycle Management**: Manages worker initialization and cleanup
-- **State Tracking**: Tracks loaded lexicons and statistics
+### **2. Cross-Lexicon Query Optimization**
+- **Before**: Manual iteration across multiple instances
+- **After**: Single query that can span multiple lexicons
+- **Benefit**: Better performance, optimized SQL queries, reduced memory usage
 
-### **Worker Layer (wordnet-worker)**
-- **Heavy Computation**: Handles CPU-intensive operations
-- **SQLite Management**: Manages SQLite WASM instances
-- **Orchestrator Coordination**: Coordinates WordNet operations
-- **Memory Management**: Manages memory for large datasets
+### **3. Lexicon State Management**
+- **Before**: No centralized state tracking
+- **After**: Comprehensive state management with update detection
+- **Benefit**: Know when lexicons need updates, track loading states, monitor health
 
-### **Orchestration Layer (WordNetOrchestrator)**
-- **High-Level Logic**: Manages cross-lexicon operations
-- **Lifecycle Management**: Handles lexicon loading/unloading
-- **State Coordination**: Coordinates between multiple lexicons
-- **Event Emission**: Emits events for state changes
+### **4. Resource Management**
+- **Before**: Potential resource conflicts between instances
+- **After**: Coordinated resource usage with queuing and concurrency control
+- **Benefit**: Better memory management, controlled concurrent operations
 
-### **Database Layer (WebWordnet)**
-- **Low-Level Operations**: Performs actual database operations
-- **Query Optimization**: Optimizes SQL queries for performance
-- **Data Persistence**: Manages data storage and retrieval
-- **Type Safety**: Provides type-safe database operations via Kysely
+### **5. Resource Type Introspection**
+- **Before**: No distinction between lexicons and ILIs
+- **After**: Automatic detection and categorization of resource types
+- **Benefit**: Better understanding of resource capabilities, optimized query strategies, improved user experience
+
+### **6. Cross-Lingual Analysis**
+- **Before**: Manual analysis of multilingual capabilities
+- **After**: Automated analysis of cross-lingual mapping coverage and quality
+- **Benefit**: Data-driven decisions about resource usage, quality assessment, coverage analysis
 
 ## 🔧 Key Design Patterns
 
@@ -226,9 +280,9 @@ async downloadAndLoad(packageId: string) {
 ## 📚 Related Documentation
 
 - [SPEC.md](../SPEC.md) - Project specification
-- [React README](../src/react/README.md) - React integration guide
-- [API Documentation](../docs/API.md) - Complete API reference
-- [Performance Guide](../docs/PERFORMANCE.md) - Performance optimization tips
+- [React Integration](./REACT_INTEGRATION.md) - React integration guide
+- [API Documentation](./API.md) - Complete API reference
+- [Worker Architecture](./WORKER_ARCHITECTURE.md) - Detailed worker implementation
 
 ---
 

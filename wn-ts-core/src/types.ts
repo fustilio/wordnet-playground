@@ -1,201 +1,64 @@
 /**
  * Core types and interfaces for the wn-ts library
+ * 
+ * These types are inferred from Zod schemas to ensure consistency
+ * between runtime validation and TypeScript types.
  */
+
+import type { z } from 'zod';
+import {
+  FormSchema,
+  PronunciationSchema,
+  TagSchema,
+  CountSchema,
+  ExampleSchema,
+  DefinitionSchema,
+  RelationSchema,
+  SyntacticBehaviourSchema,
+  WordSchema,
+  SenseSchema,
+  SynsetSchema,
+  ILISchema,
+  LexiconSchema,
+  ProjectSchema,
+  WordQuerySchema,
+  SynsetQuerySchema,
+  SenseQuerySchema,
+  WordnetConfigSchema,
+  WordnetOptionsSchema,
+  DownloadOptionsSchema,
+  AddOptionsSchema,
+  ExportOptionsSchema,
+} from './schemas.js';
 
 export type PartOfSpeech = 'n' | 'v' | 'a' | 'r' | 's' | 'c' | 'p' | 'i' | 'x' | 'u';
 
-export interface Form {
-  id: string;
-  writtenForm: string;
-  script?: string;
-  tag?: string;
-}
+// Re-export the PartOfSpeech schema for backward compatibility
+export { PartOfSpeechSchema } from './schemas.js';
 
-export interface Pronunciation {
-  id: string;
-  value: string;
-  variety?: string;
-  notation?: string;
-  geographic?: string;
-}
-
-export interface Tag {
-  id: string;
-  category: string;
-  value: string;
-}
-
-export interface Count {
-  id: string;
-  value: number;
-  writtenForm: string;
-  pos: PartOfSpeech;
-}
-
-export interface Example {
-  id: string;
-  language: string;
-  text: string;
-  source?: string;
-}
-
-export interface Definition {
-  id: string;
-  language: string;
-  text: string;
-  source?: string;
-}
-
-export interface Relation {
-  id: string;
-  type: string;
-  target: string;
-  source?: string;
-  dc_type?: string;
-}
-
-export interface SyntacticBehaviour {
-  id: string;
-  subcategorizationFrame: string;
-  source?: string;
-  senses: string;
-}
-
-export interface Word {
-  id:string;
-  lemma: string;
-  pos: PartOfSpeech;
-  forms: Form[];
-  pronunciations: Pronunciation[];
-  tags: Tag[];
-  counts: Count[];
-  frames?: SyntacticBehaviour[];
-  language: string;
-  lexicon: string;
-}
-
-export interface Sense {
-  id: string;
-  word: string;
-  synset: string;
-  examples: Example[];
-  counts: Count[];
-  tags: Tag[];
-  relations?: Relation[];
-  source?: string;
-  sensekey?: string;
-  adjposition?: string;
-  subcategory?: string;
-  domain?: string;
-  register?: string;
-}
-
-export interface Synset {
-  id: string;
-  ili?: string;
-  pos: PartOfSpeech;
-  definitions: Definition[];
-  examples: Example[];
-  relations: Relation[];
-  iliDefinitions?: Definition[];
-  language: string;
-  lexicon: string;
-  members: string[];
-  senses: string[];
-}
-
-export interface ILI {
-  id: string;
-  definition?: string;
-  status: 'standard' | 'proposed' | 'deprecated';
-  supersededBy?: string;
-  note?: string;
-}
-
-export interface Lexicon {
-  id: string;
-  label: string;
-  language: string;
-  email?: string;
-  license?: string;
-  version?: string;
-  url?: string;
-  citation?: string;
-  logo?: string;
-  metadata?: Record<string, unknown>;
-}
-
-export interface Project {
-  id: string;
-  label: string;
-  description?: string;
-  url?: string;
-  license?: string;
-  citation?: string;
-  metadata?: Record<string, unknown>;
-}
-
-export interface WordQuery {
-  form?: string;
-  pos?: PartOfSpeech;
-  lexicon?: string | string[]; // Support single lexicon or array of lexicons
-  lang?: string;
-}
-
-export interface SynsetQuery {
-  form?: string;
-  pos?: PartOfSpeech;
-  ili?: string | ILI;
-  lexicon?: string | string[]; // Support single lexicon or array of lexicons
-  lang?: string;
-}
-
-export interface SenseQuery {
-  form?: string;
-  pos?: PartOfSpeech;
-  lexicon?: string | string[]; // Support single lexicon or array of lexicons
-  lang?: string;
-  wordIdOrForm?: string;
-}
-
-export interface WordnetConfig {
-  dataDirectory: string;
-  downloadDirectory?: string;
-  cacheDirectory?: string;
-}
-
-export interface WordnetOptions {
-  lexicon?: string | string[]; // Support single lexicon or array of lexicons
-  version?: string;
-  expand?: string | string[];
-  normalizer?: (form: string) => string;
-  lemmatizer?: (form: string, pos?: PartOfSpeech) => Record<PartOfSpeech, Set<string>>;
-  searchAllForms?: boolean;
-  lang?: string;
-}
-
-export interface DownloadOptions {
-  force?: boolean;
-  progress?: (progress: number) => void;
-  timeout?: number;
-}
-
-export interface AddOptions {
-  force?: boolean;
-  progress?: (progress: number) => void;
-  /**
-   * (Advanced/testing) Specify the LMF parser to use (e.g., 'legacy', 'full-streaming').
-   * If not set, uses the default parser.
-   */
-  parser?: string;
-}
-
-export interface ExportOptions {
-  format: 'json' | 'xml' | 'csv';
-  output?: string;
-  include?: string[];
-  exclude?: string[];
-}
+// Export all the inferred types from schemas
+export type Form = z.infer<typeof FormSchema>;
+export type Pronunciation = z.infer<typeof PronunciationSchema>;
+export type Tag = z.infer<typeof TagSchema>;
+export type Count = z.infer<typeof CountSchema>;
+export type Example = z.infer<typeof ExampleSchema>;
+export type Definition = z.infer<typeof DefinitionSchema>;
+export type Relation = z.infer<typeof RelationSchema>;
+export type SyntacticBehaviour = z.infer<typeof SyntacticBehaviourSchema>;
+export type Word = z.infer<typeof WordSchema>;
+export type Sense = z.infer<typeof SenseSchema>;
+export type Synset = z.infer<typeof SynsetSchema>;
+export type ILI = z.infer<typeof ILISchema>;
+export type Lexicon = z.infer<typeof LexiconSchema>;
+export type Project = z.infer<typeof ProjectSchema>;
+export type WordQuery = z.infer<typeof WordQuerySchema>;
+export type SynsetQuery = z.infer<typeof SynsetQuerySchema>;
+export type SenseQuery = z.infer<typeof SenseQuerySchema>;
+export type WordnetConfig = z.infer<typeof WordnetConfigSchema>;
+export type WordnetOptions = z.infer<typeof WordnetOptionsSchema>;
+export type DownloadOptions = z.infer<typeof DownloadOptionsSchema>;
+export type AddOptions = z.infer<typeof AddOptionsSchema>;
+export type ExportOptions = z.infer<typeof ExportOptionsSchema>;
 
 // Error types
 export class WnError extends Error {

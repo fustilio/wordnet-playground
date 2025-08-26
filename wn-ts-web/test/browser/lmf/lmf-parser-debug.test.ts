@@ -34,7 +34,7 @@ describe('LMF Parser - Debug Tests', () => {
     console.log('Word:', word);
     
     // The sense should reference the word ID, not the sense ID
-    expect(sense.word).toBe(word.id);
-    expect(sense.synset).toBe('test-en-0001-n');
+    expect(sense.wordId).toBe(word.id);
+    expect(sense.synsetId).toBe('test-en-0001-n');
   });
 });

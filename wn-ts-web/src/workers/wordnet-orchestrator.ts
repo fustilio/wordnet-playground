@@ -103,6 +103,9 @@ export class WordNetOrchestrator {
     if (this.options.autoCheckUpdates) {
       this.startUpdateChecker();
     }
+
+    // Start periodic database flush for OPFS persistence
+    this.startPeriodicFlush();
   }
 
   /**
@@ -347,6 +350,50 @@ export class WordNetOrchestrator {
   }
 
   /**
+   * Find ILI identifier for a given synset by querying the CILI package
+   * This is the key method for cross-lingual mapping
+   */
+  async getIliForSynset(synsetId: string): Promise<string | null> {
+    if (!this.wordnet) {
+      throw new Error("Orchestrator not initialized");
+    }
+
+    try {
+      // Get the query service to access the database directly
+      const queryService = this.wordnet.getQueryService?.();
+      if (!queryService) {
+        throw new Error("Query service not available");
+      }
+
+      // Query the CILI package to find the ILI for this synset
+      // The CILI package contains mappings from English synset IDs to ILI identifiers
+      const ciliQuery = await queryService.getSynsets({ 
+        form: synsetId, 
+        lexicon: 'cili' 
+      });
+
+      if (ciliQuery && ciliQuery.length > 0) {
+        // The CILI package should have a mapping for this synset
+        const ciliSynset = ciliQuery[0];
+        if (ciliSynset.ili) {
+          return ciliSynset.ili;
+        }
+      }
+
+      // If no direct mapping found, try to find by synset ID pattern
+      // English WordNet synsets follow the pattern: oewn-XXXXXXXX-pos
+      // We need to find the corresponding ILI in the CILI package
+      
+      // For now, return null - this indicates that the cross-lingual mapping
+      // needs to be implemented at the CILI package level
+      return null;
+    } catch (error) {
+      logger.error("Failed to get ILI for synset", { error, synsetId });
+      return null;
+    }
+  }
+
+  /**
    * Get lexicon statistics from the single instance
    */
   async getLexiconStatistics(lexiconId?: string): Promise<any[]> {
@@ -487,6 +534,59 @@ export class WordNetOrchestrator {
     }
   }
 
+  /**
+   * Flush the database to ensure data persistence
+   * This is important for OPFS databases to ensure data is written to disk
+   */
+  async flushDatabase(): Promise<void> {
+    if (!this.isInitialized || !this.wordnet) return;
+    
+    try {
+      const database = this.wordnet.getDatabase();
+      if (database && typeof database.flush === 'function') {
+        await database.flush();
+        logger.info('Database flushed successfully for persistence');
+      } else {
+        logger.warn('Database flush method not available');
+      }
+    } catch (error) {
+      logger.warn('Failed to flush database:', error);
+      // Don't throw - flushing is best effort
+    }
+  }
+
+  /**
+   * Check if the database is persistent (OPFS) or in-memory
+   */
+  isDatabasePersistent(): boolean {
+    if (!this.isInitialized || !this.wordnet) return false;
+    
+    try {
+      const database = this.wordnet.getDatabase();
+      return database ? database.isPersistent() : false;
+    } catch (error) {
+      logger.warn('Failed to check database persistence:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get database storage information
+   */
+  getDatabaseStorageInfo(): { type: 'opfs' | 'memory' | 'unknown', persistent: boolean, path?: string } {
+    if (!this.isInitialized || !this.wordnet) {
+      return { type: 'unknown', persistent: false };
+    }
+    
+    try {
+      const database = this.wordnet.getDatabase();
+      return database ? database.getStorageInfo() : { type: 'unknown', persistent: false };
+    } catch (error) {
+      logger.warn('Failed to get database storage info:', error);
+      return { type: 'unknown', persistent: false };
+    }
+  }
+
   // Helper methods
 
   updateLexiconState(lexiconId: string, updates: Partial<LexiconState>): void {
@@ -534,6 +634,28 @@ export class WordNetOrchestrator {
         console.warn('Update check failed:', error);
       }
     }, this.options.checkInterval);
+  }
+
+  private startPeriodicFlush(): void {
+    // Flush database every 30 seconds to ensure OPFS persistence
+    const flushInterval = 30 * 1000; // 30 seconds
+    
+    setInterval(async () => {
+      try {
+        if (this.wordnet && this.isInitialized) {
+          const database = this.wordnet.getDatabase();
+          if (database && typeof database.flush === 'function') {
+            await database.flush();
+            logger.debug('Periodic database flush completed');
+          }
+        }
+      } catch (error) {
+        logger.warn('Periodic database flush failed:', error);
+        // Don't throw - this is best effort
+      }
+    }, flushInterval);
+    
+    logger.info('Started periodic database flush for OPFS persistence');
   }
 
   private processLoadQueue(): void {

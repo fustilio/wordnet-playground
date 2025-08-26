@@ -55,12 +55,13 @@
     "commander": "^14.0.0",
     "fast-xml-parser": "^5.2.5",
     "kysely": "catalog:",
+    "sax": "^1.4.1",
     "smol-toml": "^1.4.1",
-    "sax": "^1.4.1"
+    "zod": "catalog:"
   },
   "devDependencies": {
+    "xml-introspect": "workspace:*",
     "@changesets/cli": "^2.27.7",
-    "pythonia": "catalog:",
     "@types/node": "catalog:",
     "@typescript-eslint/eslint-plugin": "catalog:",
     "@typescript-eslint/parser": "catalog:",
@@ -69,6 +70,7 @@
     "cross-env": "catalog:",
     "eslint": "catalog:",
     "prettier": "catalog:",
+    "pythonia": "catalog:",
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

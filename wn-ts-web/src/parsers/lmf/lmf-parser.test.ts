@@ -163,8 +163,8 @@ describe('LmfParser', () => {
       expect(result.senses).toBeDefined();
       expect(result.senses).toHaveLength(1);
       expect(result.senses![0].id).toBe('sense1');
-      expect(result.senses![0].word).toBe('word1');
-      expect(result.senses![0].synset).toBe('synset1');
+      expect(result.senses![0].wordId).toBe('word1');
+      expect(result.senses![0].synsetId).toBe('synset1');
     });
 
     it('should handle empty LMF XML using DOMParser', async () => {
@@ -269,8 +269,8 @@ describe('LmfParser', () => {
       expect(result.senses).toBeDefined();
       expect(result.senses).toHaveLength(1);
       expect(result.senses![0].id).toBe('sense1');
-      expect(result.senses![0].word).toBe('word1');
-      expect(result.senses![0].synset).toBe('synset1');
+      expect(result.senses![0].wordId).toBe('word1');
+      expect(result.senses![0].synsetId).toBe('synset1');
     });
 
     it('should handle empty LMF XML with manual parsing', async () => {
@@ -495,6 +495,224 @@ describe('LmfParser', () => {
       
       // Note: Since we're mocking the logger, we can't verify the actual calls
       expect(parser).toBeDefined();
+    });
+  });
+
+  describe('duplicate handling options', () => {
+    it('should handle duplicates with keep-first strategy', async () => {
+      const xmlText = `
+        <LexicalResource>
+          <Lexicon id="test" label="Test Lexicon" language="en">
+            <LexicalEntry id="word1" language="en">
+              <Lemma writtenForm="test" partOfSpeech="n"/>
+            </LexicalEntry>
+            <LexicalEntry id="word1" language="en">
+              <Lemma writtenForm="test" partOfSpeech="n"/>
+            </LexicalEntry>
+          </Lexicon>
+        </LexicalResource>
+      `;
+      
+      parser = new LmfParser(xmlText, { 
+        debug: false,
+        duplicateHandling: {
+          strategy: 'keep-first',
+          uniqueKeys: {
+            words: ['id'],
+            synsets: ['id'],
+            senses: ['id']
+          },
+          logDuplicates: true,
+          trackStatistics: true
+        }
+      });
+      
+      const result = await parser.parse(xmlText);
+      
+      // Should only keep one word due to duplicate handling
+      expect(result.words).toHaveLength(1);
+      expect(result.words![0].id).toBe('word1');
+    });
+
+    it('should handle duplicates with keep-last strategy', async () => {
+      const xmlText = `
+        <LexicalResource>
+          <Lexicon id="test" label="Test Lexicon" language="en">
+            <LexicalEntry id="word1" language="en">
+              <Lemma writtenForm="test" partOfSpeech="n"/>
+            </LexicalEntry>
+            <LexicalEntry id="word1" language="en">
+              <Lemma writtenForm="test" partOfSpeech="n"/>
+            </LexicalEntry>
+          </Lexicon>
+        </LexicalResource>
+      `;
+      
+      parser = new LmfParser(xmlText, { 
+        debug: false,
+        duplicateHandling: {
+          strategy: 'keep-last',
+          uniqueKeys: {
+            words: ['id'],
+            synsets: ['id'],
+            senses: ['id']
+          },
+          logDuplicates: true,
+          trackStatistics: true
+        }
+      });
+      
+      const result = await parser.parse(xmlText);
+      
+      // Should keep the last word
+      expect(result.words).toHaveLength(1);
+      expect(result.words![0].id).toBe('word1');
+    });
+
+    it('should handle duplicates with merge strategy', async () => {
+      const xmlText = `
+        <LexicalResource>
+          <Lexicon id="test" label="Test Lexicon" language="en">
+            <Synset id="synset1" partOfSpeech="n" language="en">
+              <Definition language="en">
+                <gloss>first definition</gloss>
+              </Definition>
+            </Synset>
+            <Synset id="synset1" partOfSpeech="n" language="en">
+              <Definition language="en">
+                <gloss>second definition</gloss>
+              </Definition>
+            </Synset>
+          </Lexicon>
+        </LexicalResource>
+      `;
+      
+      parser = new LmfParser(xmlText, { 
+        debug: false,
+        duplicateHandling: {
+          strategy: 'merge',
+          uniqueKeys: {
+            words: ['id'],
+            synsets: ['id'],
+            senses: ['id']
+          },
+          mergeFields: {
+            definitions: true,
+            examples: true,
+            relations: true
+          },
+          logDuplicates: true,
+          trackStatistics: true
+        }
+      });
+      
+      const result = await parser.parse(xmlText);
+      
+      // Should merge the two synsets
+      expect(result.synsets).toHaveLength(1);
+      expect(result.synsets![0].definitions).toHaveLength(2);
+      expect(result.synsets![0].definitions![0].text).toBe('first definition');
+      expect(result.synsets![0].definitions![1].text).toBe('second definition');
+    });
+
+    it('should handle duplicates with error strategy', async () => {
+      const xmlText = `
+        <LexicalResource>
+          <Lexicon id="test" label="Test Lexicon" language="en">
+            <LexicalEntry id="word1" language="en">
+              <Lemma writtenForm="test" partOfSpeech="n"/>
+            </LexicalEntry>
+            <LexicalEntry id="word1" language="en">
+              <Lemma writtenForm="test" partOfSpeech="n"/>
+            </LexicalEntry>
+          </Lexicon>
+        </LexicalResource>
+      `;
+      
+      parser = new LmfParser(xmlText, { 
+        debug: false,
+        duplicateHandling: {
+          strategy: 'error',
+          uniqueKeys: {
+            words: ['id'],
+            synsets: ['id'],
+            senses: ['id']
+          },
+          logDuplicates: true,
+          trackStatistics: true
+        }
+      });
+      
+      // Should throw error due to duplicate handling strategy
+      await expect(parser.parse(xmlText)).rejects.toThrow('Duplicate words found with key: word1');
+    });
+
+    it('should handle duplicates with skip strategy', async () => {
+      const xmlText = `
+        <LexicalResource>
+          <Lexicon id="test" label="Test Lexicon" language="en">
+            <LexicalEntry id="word1" language="en">
+              <Lemma writtenForm="test" partOfSpeech="n"/>
+            </LexicalEntry>
+            <LexicalEntry id="word1" language="en">
+              <Lemma writtenForm="test" partOfSpeech="n"/>
+            </LexicalEntry>
+          </Lexicon>
+        </LexicalResource>
+      `;
+      
+      parser = new LmfParser(xmlText, { 
+        debug: false,
+        duplicateHandling: {
+          strategy: 'skip',
+          uniqueKeys: {
+            words: ['id'],
+            synsets: ['id'],
+            senses: ['id']
+          },
+          logDuplicates: true,
+          trackStatistics: true
+        }
+      });
+      
+      const result = await parser.parse(xmlText);
+      
+      // Should keep both words due to skip strategy
+      expect(result.words).toHaveLength(2);
+    });
+
+    it('should use custom unique keys for deduplication', async () => {
+      const xmlText = `
+        <LexicalResource>
+          <Lexicon id="test" label="Test Lexicon" language="en">
+            <LexicalEntry id="word1" language="en">
+              <Lemma writtenForm="test" partOfSpeech="n"/>
+            </LexicalEntry>
+            <LexicalEntry id="word2" language="en">
+              <Lemma writtenForm="test" partOfSpeech="n"/>
+            </LexicalEntry>
+          </Lexicon>
+        </LexicalResource>
+      `;
+      
+      parser = new LmfParser(xmlText, { 
+        debug: false,
+        duplicateHandling: {
+          strategy: 'keep-first',
+          uniqueKeys: {
+            words: ['lemma', 'pos'],
+            synsets: ['id'],
+            senses: ['id']
+          },
+          logDuplicates: true,
+          trackStatistics: true
+        }
+      });
+      
+      const result = await parser.parse(xmlText);
+      
+      // Should deduplicate based on lemma + pos, so only one word remains
+      expect(result.words).toHaveLength(1);
     });
   });
 });

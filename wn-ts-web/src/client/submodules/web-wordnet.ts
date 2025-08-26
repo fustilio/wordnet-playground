@@ -165,7 +165,19 @@ export class WebWordnet extends BaseWordnet {
     try {
       // Check if the lexicon exists in the database
       const lexicons = await this.lexicons();
-      return lexicons.some(lexicon => lexicon.id === lexiconId);
+      
+      // Try exact match first
+      if (lexicons.some(lexicon => lexicon.id === lexiconId)) {
+        return true;
+      }
+      
+      // If exact match fails, try to find by base lexicon ID (e.g., "oewn" from "oewn:2024")
+      const baseLexiconId = lexiconId.split(':')[0];
+      if (lexicons.some(lexicon => lexicon.id === baseLexiconId)) {
+        return true;
+      }
+      
+      return false;
     } catch (error) {
       logger.warn(`Error checking if lexicon ${lexiconId} is loaded:`, error);
       return false;
@@ -1530,7 +1542,7 @@ export class WebWordnet extends BaseWordnet {
     const synset = await this.synset(synsetId);
     const words: Word[] = [];
     
-    for (const memberId of synset.members) {
+    for (const memberId of synset.memberIds) {
       try {
         const word = await this.word(memberId);
         words.push(word);
@@ -1565,7 +1577,7 @@ export class WebWordnet extends BaseWordnet {
     const synset = await this.synset(synsetId);
     const senses: Sense[] = [];
     
-    for (const senseId of synset.senses) {
+    for (const senseId of synset.senseIds) {
       try {
         const sense = await this.sense(senseId);
         senses.push(sense);

@@ -67,7 +67,7 @@ const serverConfig = {
         });
       },
     },
-    "/api/globalwordnet-cili/": {
+    "/api/globalwordnet-cili": {
       target: "https://github.com/globalwordnet/cili/releases/download",
       changeOrigin: true,
       followRedirects: true,

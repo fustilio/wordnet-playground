@@ -113,19 +113,64 @@ export class Wordnet extends BaseWordnet {
     return this.kyselyWordnet.lexicons();
   }
 
-  async words(query?: WordQuery): Promise<Word[]> {
+  /**
+   * Get synsets with various query options
+   */
+  async synsets(query?: SynsetQuery): Promise<Synset[]>;
+  async synsets(form: string, pos?: PartOfSpeech, options?: { lexicon?: string | string[] }): Promise<Synset[]>;
+  async synsets(formOrQuery?: string | SynsetQuery, pos?: PartOfSpeech, options?: { lexicon?: string | string[] }): Promise<Synset[]> {
     await this.ensureInitialized();
-    return this.kyselyWordnet.words(query);
+    
+    // Handle the overloaded call pattern
+    if (typeof formOrQuery === 'string') {
+      // Called as synsets(form, pos?, options?)
+      const form = formOrQuery;
+      const query: SynsetQuery = { form, pos, ...options };
+      return this.kyselyWordnet.synsets(query);
+    } else {
+      // Called as synsets(query?)
+      return this.kyselyWordnet.synsets(formOrQuery);
+    }
   }
 
-  async synsets(query?: SynsetQuery): Promise<Synset[]> {
+  /**
+   * Get senses with various query options
+   */
+  async senses(query?: SenseQuery): Promise<Sense[]>;
+  async senses(form: string, pos?: PartOfSpeech, options?: { lexicon?: string | string[] }): Promise<Sense[]>;
+  async senses(formOrQuery?: string | SenseQuery, pos?: PartOfSpeech, options?: { lexicon?: string | string[] }): Promise<Sense[]> {
     await this.ensureInitialized();
-    return this.kyselyWordnet.synsets(query);
+    
+    // Handle the overloaded call pattern
+    if (typeof formOrQuery === 'string') {
+      // Called as senses(form, pos?, options?)
+      const form = formOrQuery;
+      const query: SenseQuery = { form, pos, ...options };
+      return this.kyselyWordnet.senses(query);
+    } else {
+      // Called as senses(query?)
+      return this.kyselyWordnet.senses(formOrQuery);
+    }
   }
 
-  async senses(query?: SenseQuery): Promise<Sense[]> {
+  /**
+   * Get words with various query options
+   */
+  async words(query?: WordQuery): Promise<Word[]>;
+  async words(form: string, pos?: PartOfSpeech, options?: { lexicon?: string | string[] }): Promise<Word[]>;
+  async words(formOrQuery?: string | WordQuery, pos?: PartOfSpeech, options?: { lexicon?: string | string[] }): Promise<Word[]> {
     await this.ensureInitialized();
-    return this.kyselyWordnet.senses(query);
+    
+    // Handle the overloaded call pattern
+    if (typeof formOrQuery === 'string') {
+      // Called as words(form, pos?, options?)
+      const form = formOrQuery;
+      const query: WordQuery = { form, pos, ...options };
+      return this.kyselyWordnet.words(query);
+    } else {
+      // Called as words(query?)
+      return this.kyselyWordnet.words(formOrQuery);
+    }
   }
 
   async getWord(id: string): Promise<Word | undefined> {

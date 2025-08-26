@@ -34,12 +34,20 @@ export class NativeXMLParser implements LMFParser {
   readonly name = 'Native XML Parser (regex)';
   readonly description = 'Ultra-fast regex-based XML element counting';
 
-  async parse(filePath: string, options: LMFLoadOptions = {}): Promise<LMFDocument> {
-    const { debug = false } = options;
+  async parse(input: string, options: LMFLoadOptions = {}): Promise<LMFDocument> {
+    const { debug = false, duplicateHandling } = options;
     
     if (debug) console.log(`[DEBUG] ${this.name}: Starting parse`);
     
+    // This parser expects a file path, not XML content
+    const filePath = input;
     const xmlContent = await readFile(filePath, 'utf8');
+    
+    // Note: This parser doesn't implement duplicate handling as it's designed for benchmarking
+    // For production use with duplicate handling, use the web or node parsers
+    if (duplicateHandling && debug) {
+      console.log(`[DEBUG] ${this.name}: Duplicate handling options ignored (parser not designed for production use)`);
+    }
     
     // Use regex-based counting for maximum speed
     const elementCount = (xmlContent.match(/<[^/][^>]*>/g) || []).length;
@@ -65,12 +73,20 @@ export class StringCountingParser implements LMFParser {
   readonly name = 'String Counting Parser';
   readonly description = 'Ultra-fast string-based element counting';
 
-  async parse(filePath: string, options: LMFLoadOptions = {}): Promise<LMFDocument> {
-    const { debug = false } = options;
+  async parse(input: string, options: LMFLoadOptions = {}): Promise<LMFDocument> {
+    const { debug = false, duplicateHandling } = options;
     
     if (debug) console.log(`[DEBUG] ${this.name}: Starting parse`);
     
+    // This parser expects a file path, not XML content
+    const filePath = input;
     const xmlContent = await readFile(filePath, 'utf8');
+    
+    // Note: This parser doesn't implement duplicate handling as it's designed for benchmarking
+    // For production use with duplicate handling, use the web or node parsers
+    if (duplicateHandling && debug) {
+      console.log(`[DEBUG] ${this.name}: Duplicate handling options ignored (parser not designed for production use)`);
+    }
     
     // Use string split for even faster counting
     let count = 0;
@@ -87,8 +103,8 @@ export class StringCountingParser implements LMFParser {
     return {
       lmfVersion: '1.0',
       lexicons: [],
-      synsets: [],
       words: [],
+      synsets: [],
       senses: [],
     };
   }

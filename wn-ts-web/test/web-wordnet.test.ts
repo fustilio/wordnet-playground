@@ -63,7 +63,7 @@ const mockQueryService = {
   getSenses: vi.fn().mockImplementation(async ({ wordIdOrForm }) => {
     const word = memoryDb.words.find(w => w.lemma === wordIdOrForm);
     if (!word) return [];
-    return memoryDb.senses.filter(s => s.word_id === word.id).map(s => ({...s, word: s.word_id, synset: s.synset_id}));
+    return memoryDb.senses.filter(s => s.word_id === word.id).map(s => ({...s, wordId: s.word_id, synsetId: s.synset_id}));
   }),
   getWordById: vi.fn().mockImplementation(async (id) => memoryDb.words.find(w => w.id === id)),
   getSynsetById: vi.fn().mockImplementation(async (id) => memoryDb.synsets.find(ss => ss.id === id)),
@@ -320,8 +320,8 @@ describe('WebWordnet Functional Tests', () => {
     it('should retrieve senses for a given word form', async () => {
       const senses = await wordnet.senses({ form: 'run', pos: 'v' });
       expect(senses).toHaveLength(1);
-      expect(senses[0].word).toBe('w-run');
-      expect(senses[0].synset).toBe('s-run');
+      expect(senses[0].wordId).toBe('w-run');
+      expect(senses[0].synsetId).toBe('s-run');
     });
 
     it('should retrieve a word by its specific ID', async () => {

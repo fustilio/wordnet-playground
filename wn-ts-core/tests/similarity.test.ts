@@ -16,7 +16,7 @@ const synsets: Record<string, Synset> = {
     language: 'en',
     lexicon: 'test',
     members: [],
-    senses: [],
+    sensesIds: [],
   },
   a: {
     id: 'a',
@@ -28,7 +28,7 @@ const synsets: Record<string, Synset> = {
     language: 'en',
     lexicon: 'test',
     members: [],
-    senses: [],
+    sensesIds: [],
   },
   b: {
     id: 'b',
@@ -40,7 +40,7 @@ const synsets: Record<string, Synset> = {
     language: 'en',
     lexicon: 'test',
     members: [],
-    senses: [],
+    sensesIds: [],
   },
   c: {
     id: 'c',
@@ -52,7 +52,7 @@ const synsets: Record<string, Synset> = {
     language: 'en',
     lexicon: 'test',
     members: [],
-    senses: [],
+    sensesIds: [],
   },
   d: {
     id: 'd',
@@ -64,7 +64,7 @@ const synsets: Record<string, Synset> = {
     language: 'en',
     lexicon: 'test',
     members: [],
-    senses: [],
+    sensesIds: [],
   },
 };
 

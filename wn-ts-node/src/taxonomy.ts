@@ -128,8 +128,8 @@ export async function hypernymPaths(synset: Synset, wordnet: Wordnet, simulateRo
       relations: [],
       language: synset.language,
       lexicon: synset.lexicon,
-      members: [],
-      senses: [],
+      memberIds: [],
+      senseIds: [],
     };
     if (paths.length === 0) {
         return [[synset, fakeRoot]];

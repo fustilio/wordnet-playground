@@ -1,0 +1,703 @@
+<schema
+  xmlns='http://www.w3.org/2000/10/XMLSchema'
+  targetNamespace='http://www.w3.org/namespace/'
+  xmlns:t='http://www.w3.org/namespace/'>
+
+ <element name='LexicalResource'>
+  <complexType>
+   <choice maxOccurs='unbounded'>
+    <element ref='t:Lexicon'/>
+    <element ref='t:LexiconExtension'/>
+   </choice>
+   <attribute name='xmlns:dc' type='string' use='fixed' value='https://globalwordnet.github.io/schemas/dc/'/>
+  </complexType>
+ </element>
+
+ <element name='Lexicon'>
+  <complexType>
+   <sequence>
+    <element ref='t:Requires' minOccurs='0' maxOccurs='unbounded'/>
+    <element ref='t:LexicalEntry' maxOccurs='unbounded'/>
+    <element ref='t:Synset' minOccurs='0' maxOccurs='unbounded'/>
+    <element ref='t:SyntacticBehaviour' minOccurs='0' maxOccurs='unbounded'/>
+   </sequence>
+   <attribute name='id' type='ID' use='required'/>
+   <attribute name='label' type='string' use='required'/>
+   <attribute name='language' type='string' use='required'/>
+   <attribute name='email' type='string' use='required'/>
+   <attribute name='license' type='string' use='required'/>
+   <attribute name='version' type='string' use='required'/>
+   <attribute name='url' type='string' use='optional'/>
+   <attribute name='citation' type='string' use='optional'/>
+   <attribute name='logo' type='string' use='optional'/>
+   <attribute name='dc:contributor' type='string' use='optional'/>
+   <attribute name='dc:coverage' type='string' use='optional'/>
+   <attribute name='dc:creator' type='string' use='optional'/>
+   <attribute name='dc:date' type='string' use='optional'/>
+   <attribute name='dc:description' type='string' use='optional'/>
+   <attribute name='dc:format' type='string' use='optional'/>
+   <attribute name='dc:identifier' type='string' use='optional'/>
+   <attribute name='dc:publisher' type='string' use='optional'/>
+   <attribute name='dc:relation' type='string' use='optional'/>
+   <attribute name='dc:rights' type='string' use='optional'/>
+   <attribute name='dc:source' type='string' use='optional'/>
+   <attribute name='dc:subject' type='string' use='optional'/>
+   <attribute name='dc:title' type='string' use='optional'/>
+   <attribute name='dc:type' type='string' use='optional'/>
+   <attribute name='status' type='string' use='optional'/>
+   <attribute name='note' type='string' use='optional'/>
+   <attribute name='confidenceScore' type='string' use='default' value='1.0'/>
+  </complexType>
+ </element>
+
+ <element name='LexicalEntry'>
+  <complexType>
+   <sequence>
+    <element ref='t:Lemma'/>
+    <element ref='t:Form' minOccurs='0' maxOccurs='unbounded'/>
+    <element ref='t:Sense' minOccurs='0' maxOccurs='unbounded'/>
+    <element ref='t:SyntacticBehaviour' minOccurs='0' maxOccurs='unbounded'/>
+   </sequence>
+   <attribute name='id' type='ID' use='required'/>
+   <attribute name='dc:contributor' type='string' use='optional'/>
+   <attribute name='dc:coverage' type='string' use='optional'/>
+   <attribute name='dc:creator' type='string' use='optional'/>
+   <attribute name='dc:date' type='string' use='optional'/>
+   <attribute name='dc:description' type='string' use='optional'/>
+   <attribute name='dc:format' type='string' use='optional'/>
+   <attribute name='dc:identifier' type='string' use='optional'/>
+   <attribute name='dc:publisher' type='string' use='optional'/>
+   <attribute name='dc:relation' type='string' use='optional'/>
+   <attribute name='dc:rights' type='string' use='optional'/>
+   <attribute name='dc:source' type='string' use='optional'/>
+   <attribute name='dc:subject' type='string' use='optional'/>
+   <attribute name='dc:title' type='string' use='optional'/>
+   <attribute name='dc:type' type='string' use='optional'/>
+   <attribute name='status' type='string' use='optional'/>
+   <attribute name='note' type='string' use='optional'/>
+   <attribute name='index' type='string' use='optional'/>
+   <attribute name='confidenceScore' type='string' use='optional'/>
+  </complexType>
+ </element>
+
+ <element name='Lemma'>
+  <complexType>
+   <sequence>
+    <element ref='t:Pronunciation' minOccurs='0' maxOccurs='unbounded'/>
+    <element ref='t:Tag' minOccurs='0' maxOccurs='unbounded'/>
+   </sequence>
+   <attribute name='writtenForm' type='string' use='required'/>
+   <attribute name='script' type='string' use='optional'/>
+   <attribute name='partOfSpeech' use='required'>
+    <simpleType>
+     <restriction base='string'>
+      <enumeration value='n'/>
+      <enumeration value='v'/>
+      <enumeration value='a'/>
+      <enumeration value='r'/>
+      <enumeration value='s'/>
+      <enumeration value='t'/>
+      <enumeration value='c'/>
+      <enumeration value='p'/>
+      <enumeration value='x'/>
+      <enumeration value='u'/>
+     </restriction>
+    </simpleType>
+   </attribute>
+  </complexType>
+ </element>
+
+ <element name='Form'>
+  <complexType>
+   <sequence>
+    <element ref='t:Pronunciation' minOccurs='0' maxOccurs='unbounded'/>
+    <element ref='t:Tag' minOccurs='0' maxOccurs='unbounded'/>
+   </sequence>
+   <attribute name='id' type='ID' use='optional'/>
+   <attribute name='writtenForm' type='string' use='required'/>
+   <attribute name='script' type='string' use='optional'/>
+  </complexType>
+ </element>
+
+ <element name='Pronunciation'>
+  <complexType mixed='true'>
+   <attribute name='xml:space' use='default' value='default'>
+    <simpleType>
+     <restriction base='string'>
+      <enumeration value='default'/>
+      <enumeration value='preserve'/>
+     </restriction>
+    </simpleType>
+   </attribute>
+   <attribute name='variety' type='string' use='optional'/>
+   <attribute name='notation' type='string' use='optional'/>
+   <attribute name='phonemic' use='default' value='true'>
+    <simpleType>
+     <restriction base='string'>
+      <enumeration value='true'/>
+      <enumeration value='false'/>
+     </restriction>
+    </simpleType>
+   </attribute>
+   <attribute name='audio' type='string' use='optional'/>
+  </complexType>
+ </element>
+
+ <element name='Tag'>
+  <complexType mixed='true'>
+   <attribute name='xml:space' use='default' value='default'>
+    <simpleType>
+     <restriction base='string'>
+      <enumeration value='default'/>
+      <enumeration value='preserve'/>
+     </restriction>
+    </simpleType>
+   </attribute>
+   <attribute name='category' type='string' use='required'/>
+  </complexType>
+ </element>
+
+ <element name='Sense'>
+  <complexType>
+   <sequence>
+    <element ref='t:SenseRelation' minOccurs='0' maxOccurs='unbounded'/>
+    <element ref='t:Example' minOccurs='0' maxOccurs='unbounded'/>
+    <element ref='t:Count' minOccurs='0' maxOccurs='unbounded'/>
+   </sequence>
+   <attribute name='id' type='ID' use='required'/>
+   <attribute name='synset' type='IDREF' use='required'/>
+   <attribute name='n' type='string' use='optional'/>
+   <attribute name='dc:contributor' type='string' use='optional'/>
+   <attribute name='dc:coverage' type='string' use='optional'/>
+   <attribute name='dc:creator' type='string' use='optional'/>
+   <attribute name='dc:date' type='string' use='optional'/>
+   <attribute name='dc:description' type='string' use='optional'/>
+   <attribute name='dc:format' type='string' use='optional'/>
+   <attribute name='dc:identifier' type='string' use='optional'/>
+   <attribute name='dc:publisher' type='string' use='optional'/>
+   <attribute name='dc:relation' type='string' use='optional'/>
+   <attribute name='dc:rights' type='string' use='optional'/>
+   <attribute name='dc:source' type='string' use='optional'/>
+   <attribute name='dc:subject' type='string' use='optional'/>
+   <attribute name='dc:title' type='string' use='optional'/>
+   <attribute name='dc:type' type='string' use='optional'/>
+   <attribute name='status' type='string' use='optional'/>
+   <attribute name='note' type='string' use='optional'/>
+   <attribute name='confidenceScore' type='string' use='optional'/>
+   <attribute name='lexicalized' use='default' value='true'>
+    <simpleType>
+     <restriction base='string'>
+      <enumeration value='true'/>
+      <enumeration value='false'/>
+     </restriction>
+    </simpleType>
+   </attribute>
+   <attribute name='adjposition' use='optional'>
+    <simpleType>
+     <restriction base='string'>
+      <enumeration value='a'/>
+      <enumeration value='ip'/>
+      <enumeration value='p'/>
+     </restriction>
+    </simpleType>
+   </attribute>
+   <attribute name='subcat' type='IDREFS' use='optional'/>
+  </complexType>
+ </element>
+
+ <element name='Synset'>
+  <complexType>
+   <sequence>
+    <element ref='t:Definition' minOccurs='0' maxOccurs='unbounded'/>
+    <element ref='t:ILIDefinition' minOccurs='0' maxOccurs='1'/>
+    <element ref='t:SynsetRelation' minOccurs='0' maxOccurs='unbounded'/>
+    <element ref='t:Example' minOccurs='0' maxOccurs='unbounded'/>
+   </sequence>
+   <attribute name='id' type='ID' use='required'/>
+   <attribute name='ili' type='string' use='required'/>
+   <attribute name='partOfSpeech' use='optional'>
+    <simpleType>
+     <restriction base='string'>
+      <enumeration value='n'/>
+      <enumeration value='v'/>
+      <enumeration value='a'/>
+      <enumeration value='r'/>
+      <enumeration value='s'/>
+      <enumeration value='t'/>
+      <enumeration value='c'/>
+      <enumeration value='p'/>
+      <enumeration value='x'/>
+      <enumeration value='u'/>
+     </restriction>
+    </simpleType>
+   </attribute>
+   <attribute name='dc:contributor' type='string' use='optional'/>
+   <attribute name='dc:coverage' type='string' use='optional'/>
+   <attribute name='dc:creator' type='string' use='optional'/>
+   <attribute name='dc:date' type='string' use='optional'/>
+   <attribute name='dc:description' type='string' use='optional'/>
+   <attribute name='dc:format' type='string' use='optional'/>
+   <attribute name='dc:identifier' type='string' use='optional'/>
+   <attribute name='dc:publisher' type='string' use='optional'/>
+   <attribute name='dc:relation' type='string' use='optional'/>
+   <attribute name='dc:rights' type='string' use='optional'/>
+   <attribute name='dc:source' type='string' use='optional'/>
+   <attribute name='dc:subject' type='string' use='optional'/>
+   <attribute name='dc:title' type='string' use='optional'/>
+   <attribute name='dc:type' type='string' use='optional'/>
+   <attribute name='status' type='string' use='optional'/>
+   <attribute name='note' type='string' use='optional'/>
+   <attribute name='confidenceScore' type='string' use='optional'/>
+   <attribute name='lexicalized' use='default' value='true'>
+    <simpleType>
+     <restriction base='string'>
+      <enumeration value='true'/>
+      <enumeration value='false'/>
+     </restriction>
+    </simpleType>
+   </attribute>
+   <attribute name='members' type='IDREFS' use='optional'/>
+   <attribute name='lexfile' type='string' use='optional'/>
+  </complexType>
+ </element>
+
+ <element name='Definition'>
+  <complexType mixed='true'>
+   <attribute name='xml:space' use='default' value='default'>
+    <simpleType>
+     <restriction base='string'>
+      <enumeration value='default'/>
+      <enumeration value='preserve'/>
+     </restriction>
+    </simpleType>
+   </attribute>
+   <attribute name='language' type='string' use='optional'/>
+   <attribute name='sourceSense' type='IDREF' use='optional'/>
+   <attribute name='dc:contributor' type='string' use='optional'/>
+   <attribute name='dc:coverage' type='string' use='optional'/>
+   <attribute name='dc:creator' type='string' use='optional'/>
+   <attribute name='dc:date' type='string' use='optional'/>
+   <attribute name='dc:description' type='string' use='optional'/>
+   <attribute name='dc:format' type='string' use='optional'/>
+   <attribute name='dc:identifier' type='string' use='optional'/>
+   <attribute name='dc:publisher' type='string' use='optional'/>
+   <attribute name='dc:relation' type='string' use='optional'/>
+   <attribute name='dc:rights' type='string' use='optional'/>
+   <attribute name='dc:source' type='string' use='optional'/>
+   <attribute name='dc:subject' type='string' use='optional'/>
+   <attribute name='dc:title' type='string' use='optional'/>
+   <attribute name='dc:type' type='string' use='optional'/>
+   <attribute name='status' type='string' use='optional'/>
+   <attribute name='note' type='string' use='optional'/>
+   <attribute name='confidenceScore' type='string' use='optional'/>
+  </complexType>
+ </element>
+
+ <element name='ILIDefinition'>
+  <complexType mixed='true'>
+   <attribute name='xml:space' use='default' value='default'>
+    <simpleType>
+     <restriction base='string'>
+      <enumeration value='default'/>
+      <enumeration value='preserve'/>
+     </restriction>
+    </simpleType>
+   </attribute>
+   <attribute name='dc:contributor' type='string' use='optional'/>
+   <attribute name='dc:coverage' type='string' use='optional'/>
+   <attribute name='dc:creator' type='string' use='optional'/>
+   <attribute name='dc:date' type='string' use='optional'/>
+   <attribute name='dc:description' type='string' use='optional'/>
+   <attribute name='dc:format' type='string' use='optional'/>
+   <attribute name='dc:identifier' type='string' use='optional'/>
+   <attribute name='dc:publisher' type='string' use='optional'/>
+   <attribute name='dc:relation' type='string' use='optional'/>
+   <attribute name='dc:rights' type='string' use='optional'/>
+   <attribute name='dc:source' type='string' use='optional'/>
+   <attribute name='dc:subject' type='string' use='optional'/>
+   <attribute name='dc:title' type='string' use='optional'/>
+   <attribute name='dc:type' type='string' use='optional'/>
+   <attribute name='status' type='string' use='optional'/>
+   <attribute name='note' type='string' use='optional'/>
+   <attribute name='confidenceScore' type='string' use='optional'/>
+  </complexType>
+ </element>
+
+ <element name='Example'>
+  <complexType mixed='true'>
+   <attribute name='xml:space' use='default' value='default'>
+    <simpleType>
+     <restriction base='string'>
+      <enumeration value='default'/>
+      <enumeration value='preserve'/>
+     </restriction>
+    </simpleType>
+   </attribute>
+   <attribute name='language' type='string' use='optional'/>
+   <attribute name='dc:contributor' type='string' use='optional'/>
+   <attribute name='dc:coverage' type='string' use='optional'/>
+   <attribute name='dc:creator' type='string' use='optional'/>
+   <attribute name='dc:date' type='string' use='optional'/>
+   <attribute name='dc:description' type='string' use='optional'/>
+   <attribute name='dc:format' type='string' use='optional'/>
+   <attribute name='dc:identifier' type='string' use='optional'/>
+   <attribute name='dc:publisher' type='string' use='optional'/>
+   <attribute name='dc:relation' type='string' use='optional'/>
+   <attribute name='dc:rights' type='string' use='optional'/>
+   <attribute name='dc:source' type='string' use='optional'/>
+   <attribute name='dc:subject' type='string' use='optional'/>
+   <attribute name='dc:title' type='string' use='optional'/>
+   <attribute name='dc:type' type='string' use='optional'/>
+   <attribute name='status' type='string' use='optional'/>
+   <attribute name='note' type='string' use='optional'/>
+   <attribute name='confidenceScore' type='string' use='optional'/>
+  </complexType>
+ </element>
+
+ <element name='SynsetRelation'>
+  <complexType>
+   <attribute name='target' type='IDREF' use='required'/>
+   <attribute name='relType' use='required'>
+    <simpleType>
+     <restriction base='string'>
+      <enumeration value='agent'/>
+      <enumeration value='also'/>
+      <enumeration value='attribute'/>
+      <enumeration value='be_in_state'/>
+      <enumeration value='causes'/>
+      <enumeration value='classified_by'/>
+      <enumeration value='classifies'/>
+      <enumeration value='co_agent_instrument'/>
+      <enumeration value='co_agent_patient'/>
+      <enumeration value='co_agent_result'/>
+      <enumeration value='co_instrument_agent'/>
+      <enumeration value='co_instrument_patient'/>
+      <enumeration value='co_instrument_result'/>
+      <enumeration value='co_patient_agent'/>
+      <enumeration value='co_patient_instrument'/>
+      <enumeration value='co_result_agent'/>
+      <enumeration value='co_result_instrument'/>
+      <enumeration value='co_role'/>
+      <enumeration value='direction'/>
+      <enumeration value='domain_region'/>
+      <enumeration value='domain_topic'/>
+      <enumeration value='exemplifies'/>
+      <enumeration value='entails'/>
+      <enumeration value='eq_synonym'/>
+      <enumeration value='has_domain_region'/>
+      <enumeration value='has_domain_topic'/>
+      <enumeration value='is_exemplified_by'/>
+      <enumeration value='holo_location'/>
+      <enumeration value='holo_member'/>
+      <enumeration value='holo_part'/>
+      <enumeration value='holo_portion'/>
+      <enumeration value='holo_substance'/>
+      <enumeration value='holonym'/>
+      <enumeration value='hypernym'/>
+      <enumeration value='hyponym'/>
+      <enumeration value='in_manner'/>
+      <enumeration value='instance_hypernym'/>
+      <enumeration value='instance_hyponym'/>
+      <enumeration value='instrument'/>
+      <enumeration value='involved'/>
+      <enumeration value='involved_agent'/>
+      <enumeration value='involved_direction'/>
+      <enumeration value='involved_instrument'/>
+      <enumeration value='involved_location'/>
+      <enumeration value='involved_patient'/>
+      <enumeration value='involved_result'/>
+      <enumeration value='involved_source_direction'/>
+      <enumeration value='involved_target_direction'/>
+      <enumeration value='is_caused_by'/>
+      <enumeration value='is_entailed_by'/>
+      <enumeration value='location'/>
+      <enumeration value='manner_of'/>
+      <enumeration value='mero_location'/>
+      <enumeration value='mero_member'/>
+      <enumeration value='mero_part'/>
+      <enumeration value='mero_portion'/>
+      <enumeration value='mero_substance'/>
+      <enumeration value='meronym'/>
+      <enumeration value='similar'/>
+      <enumeration value='other'/>
+      <enumeration value='patient'/>
+      <enumeration value='restricted_by'/>
+      <enumeration value='restricts'/>
+      <enumeration value='result'/>
+      <enumeration value='role'/>
+      <enumeration value='source_direction'/>
+      <enumeration value='state_of'/>
+      <enumeration value='target_direction'/>
+      <enumeration value='subevent'/>
+      <enumeration value='is_subevent_of'/>
+      <enumeration value='antonym'/>
+      <enumeration value='feminine'/>
+      <enumeration value='has_feminine'/>
+      <enumeration value='masculine'/>
+      <enumeration value='has_masculine'/>
+      <enumeration value='young'/>
+      <enumeration value='has_young'/>
+      <enumeration value='diminutive'/>
+      <enumeration value='has_diminutive'/>
+      <enumeration value='augmentative'/>
+      <enumeration value='has_augmentative'/>
+      <enumeration value='anto_gradable'/>
+      <enumeration value='anto_simple'/>
+      <enumeration value='anto_converse'/>
+      <enumeration value='ir_synonym'/>
+     </restriction>
+    </simpleType>
+   </attribute>
+   <attribute name='dc:contributor' type='string' use='optional'/>
+   <attribute name='dc:coverage' type='string' use='optional'/>
+   <attribute name='dc:creator' type='string' use='optional'/>
+   <attribute name='dc:date' type='string' use='optional'/>
+   <attribute name='dc:description' type='string' use='optional'/>
+   <attribute name='dc:format' type='string' use='optional'/>
+   <attribute name='dc:identifier' type='string' use='optional'/>
+   <attribute name='dc:publisher' type='string' use='optional'/>
+   <attribute name='dc:relation' type='string' use='optional'/>
+   <attribute name='dc:rights' type='string' use='optional'/>
+   <attribute name='dc:source' type='string' use='optional'/>
+   <attribute name='dc:subject' type='string' use='optional'/>
+   <attribute name='dc:title' type='string' use='optional'/>
+   <attribute name='dc:type' type='string' use='optional'/>
+   <attribute name='status' type='string' use='optional'/>
+   <attribute name='note' type='string' use='optional'/>
+   <attribute name='confidenceScore' type='string' use='optional'/>
+  </complexType>
+ </element>
+
+ <element name='SenseRelation'>
+  <complexType>
+   <attribute name='target' type='IDREF' use='required'/>
+   <attribute name='relType' use='required'>
+    <simpleType>
+     <restriction base='string'>
+      <enumeration value='antonym'/>
+      <enumeration value='also'/>
+      <enumeration value='participle'/>
+      <enumeration value='pertainym'/>
+      <enumeration value='derivation'/>
+      <enumeration value='domain_topic'/>
+      <enumeration value='has_domain_topic'/>
+      <enumeration value='domain_region'/>
+      <enumeration value='has_domain_region'/>
+      <enumeration value='exemplifies'/>
+      <enumeration value='is_exemplified_by'/>
+      <enumeration value='similar'/>
+      <enumeration value='other'/>
+      <enumeration value='simple_aspect_ip'/>
+      <enumeration value='secondary_aspect_ip'/>
+      <enumeration value='simple_aspect_pi'/>
+      <enumeration value='secondary_aspect_pi'/>
+      <enumeration value='feminine'/>
+      <enumeration value='has_feminine'/>
+      <enumeration value='masculine'/>
+      <enumeration value='has_masculine'/>
+      <enumeration value='young'/>
+      <enumeration value='has_young'/>
+      <enumeration value='diminutive'/>
+      <enumeration value='has_diminutive'/>
+      <enumeration value='augmentative'/>
+      <enumeration value='has_augmentative'/>
+      <enumeration value='anto_gradable'/>
+      <enumeration value='anto_simple'/>
+      <enumeration value='anto_converse'/>
+      <enumeration value='metaphor'/>
+      <enumeration value='has_metaphor'/>
+      <enumeration value='metonym'/>
+      <enumeration value='has_metonym'/>
+      <enumeration value='agent'/>
+      <enumeration value='material'/>
+      <enumeration value='event'/>
+      <enumeration value='instrument'/>
+      <enumeration value='location'/>
+      <enumeration value='by_means_of'/>
+      <enumeration value='undergoer'/>
+      <enumeration value='property'/>
+      <enumeration value='result'/>
+      <enumeration value='state'/>
+      <enumeration value='uses'/>
+      <enumeration value='destination'/>
+      <enumeration value='body_part'/>
+      <enumeration value='vehicle'/>
+     </restriction>
+    </simpleType>
+   </attribute>
+   <attribute name='dc:contributor' type='string' use='optional'/>
+   <attribute name='dc:coverage' type='string' use='optional'/>
+   <attribute name='dc:creator' type='string' use='optional'/>
+   <attribute name='dc:date' type='string' use='optional'/>
+   <attribute name='dc:description' type='string' use='optional'/>
+   <attribute name='dc:format' type='string' use='optional'/>
+   <attribute name='dc:identifier' type='string' use='optional'/>
+   <attribute name='dc:publisher' type='string' use='optional'/>
+   <attribute name='dc:relation' type='string' use='optional'/>
+   <attribute name='dc:rights' type='string' use='optional'/>
+   <attribute name='dc:source' type='string' use='optional'/>
+   <attribute name='dc:subject' type='string' use='optional'/>
+   <attribute name='dc:title' type='string' use='optional'/>
+   <attribute name='dc:type' type='string' use='optional'/>
+   <attribute name='status' type='string' use='optional'/>
+   <attribute name='note' type='string' use='optional'/>
+   <attribute name='confidenceScore' type='string' use='optional'/>
+  </complexType>
+ </element>
+
+ <element name='SyntacticBehaviour'>
+  <complexType>
+   <attribute name='id' type='ID' use='optional'/>
+   <attribute name='subcategorizationFrame' type='string' use='required'/>
+   <attribute name='senses' type='IDREFS' use='optional'/>
+  </complexType>
+ </element>
+
+ <element name='Count'>
+  <complexType mixed='true'>
+   <attribute name='xml:space' use='default' value='default'>
+    <simpleType>
+     <restriction base='string'>
+      <enumeration value='default'/>
+      <enumeration value='preserve'/>
+     </restriction>
+    </simpleType>
+   </attribute>
+   <attribute name='dc:contributor' type='string' use='optional'/>
+   <attribute name='dc:coverage' type='string' use='optional'/>
+   <attribute name='dc:creator' type='string' use='optional'/>
+   <attribute name='dc:date' type='string' use='optional'/>
+   <attribute name='dc:description' type='string' use='optional'/>
+   <attribute name='dc:format' type='string' use='optional'/>
+   <attribute name='dc:identifier' type='string' use='optional'/>
+   <attribute name='dc:publisher' type='string' use='optional'/>
+   <attribute name='dc:relation' type='string' use='optional'/>
+   <attribute name='dc:rights' type='string' use='optional'/>
+   <attribute name='dc:source' type='string' use='optional'/>
+   <attribute name='dc:subject' type='string' use='optional'/>
+   <attribute name='dc:title' type='string' use='optional'/>
+   <attribute name='dc:type' type='string' use='optional'/>
+   <attribute name='status' type='string' use='optional'/>
+   <attribute name='note' type='string' use='optional'/>
+   <attribute name='confidenceScore' type='string' use='optional'/>
+  </complexType>
+ </element>
+
+ <element name='LexiconExtension'>
+  <complexType>
+   <sequence>
+    <element ref='t:Extends'/>
+    <element ref='t:Requires' minOccurs='0' maxOccurs='unbounded'/>
+    <choice minOccurs='0' maxOccurs='unbounded'>
+     <element ref='t:LexicalEntry'/>
+     <element ref='t:ExternalLexicalEntry'/>
+    </choice>
+    <choice minOccurs='0' maxOccurs='unbounded'>
+     <element ref='t:Synset'/>
+     <element ref='t:ExternalSynset'/>
+    </choice>
+    <element ref='t:SyntacticBehaviour' minOccurs='0' maxOccurs='unbounded'/>
+   </sequence>
+   <attribute name='id' type='ID' use='required'/>
+   <attribute name='label' type='string' use='required'/>
+   <attribute name='language' type='string' use='required'/>
+   <attribute name='email' type='string' use='required'/>
+   <attribute name='license' type='string' use='required'/>
+   <attribute name='version' type='string' use='required'/>
+   <attribute name='url' type='string' use='optional'/>
+   <attribute name='citation' type='string' use='optional'/>
+   <attribute name='dc:contributor' type='string' use='optional'/>
+   <attribute name='dc:coverage' type='string' use='optional'/>
+   <attribute name='dc:creator' type='string' use='optional'/>
+   <attribute name='dc:date' type='string' use='optional'/>
+   <attribute name='dc:description' type='string' use='optional'/>
+   <attribute name='dc:format' type='string' use='optional'/>
+   <attribute name='dc:identifier' type='string' use='optional'/>
+   <attribute name='dc:publisher' type='string' use='optional'/>
+   <attribute name='dc:relation' type='string' use='optional'/>
+   <attribute name='dc:rights' type='string' use='optional'/>
+   <attribute name='dc:source' type='string' use='optional'/>
+   <attribute name='dc:subject' type='string' use='optional'/>
+   <attribute name='dc:title' type='string' use='optional'/>
+   <attribute name='dc:type' type='string' use='optional'/>
+   <attribute name='status' type='string' use='optional'/>
+   <attribute name='note' type='string' use='optional'/>
+   <attribute name='confidenceScore' type='string' use='default' value='1.0'/>
+  </complexType>
+ </element>
+
+ <element name='Requires'>
+  <complexType>
+   <attribute name='ref' type='string' use='required'/>
+   <attribute name='version' type='string' use='required'/>
+   <attribute name='url' type='string' use='optional'/>
+  </complexType>
+ </element>
+
+ <element name='Extends'>
+  <complexType>
+   <attribute name='ref' type='string' use='required'/>
+   <attribute name='version' type='string' use='required'/>
+   <attribute name='url' type='string' use='optional'/>
+  </complexType>
+ </element>
+
+ <element name='ExternalLexicalEntry'>
+  <complexType>
+   <sequence>
+    <element ref='t:ExternalLemma' minOccurs='0' maxOccurs='1'/>
+    <choice minOccurs='0' maxOccurs='unbounded'>
+     <element ref='t:Form'/>
+     <element ref='t:ExternalForm'/>
+    </choice>
+    <choice minOccurs='0' maxOccurs='unbounded'>
+     <element ref='t:Sense'/>
+     <element ref='t:ExternalSense'/>
+    </choice>
+    <element ref='t:SyntacticBehaviour' minOccurs='0' maxOccurs='unbounded'/>
+   </sequence>
+   <attribute name='id' type='ID' use='required'/>
+  </complexType>
+ </element>
+
+ <element name='ExternalLemma'>
+  <complexType>
+   <sequence>
+    <element ref='t:Pronunciation' minOccurs='0' maxOccurs='unbounded'/>
+    <element ref='t:Tag' minOccurs='0' maxOccurs='unbounded'/>
+   </sequence>
+  </complexType>
+ </element>
+
+ <element name='ExternalForm'>
+  <complexType>
+   <sequence>
+    <element ref='t:Pronunciation' minOccurs='0' maxOccurs='unbounded'/>
+    <element ref='t:Tag' minOccurs='0' maxOccurs='unbounded'/>
+   </sequence>
+   <attribute name='id' type='ID' use='required'/>
+  </complexType>
+ </element>
+
+ <element name='ExternalSense'>
+  <complexType>
+   <sequence>
+    <element ref='t:SenseRelation' minOccurs='0' maxOccurs='unbounded'/>
+    <element ref='t:Example' minOccurs='0' maxOccurs='unbounded'/>
+    <element ref='t:Count' minOccurs='0' maxOccurs='unbounded'/>
+   </sequence>
+   <attribute name='id' type='ID' use='required'/>
+  </complexType>
+ </element>
+
+ <element name='ExternalSynset'>
+  <complexType>
+   <sequence>
+    <element ref='t:Definition' minOccurs='0' maxOccurs='unbounded'/>
+    <element ref='t:SynsetRelation' minOccurs='0' maxOccurs='unbounded'/>
+    <element ref='t:Example' minOccurs='0' maxOccurs='unbounded'/>
+   </sequence>
+   <attribute name='id' type='ID' use='required'/>
+  </complexType>
+ </element>
+</schema>

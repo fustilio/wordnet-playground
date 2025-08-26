@@ -1,5 +1,11 @@
 # LMF Data Integrity Validation System
 
+> **📚 Related Documentation:**
+> - [XSD Sample Generation](./XSD_SAMPLE_GENERATION.md) - Sample generation and ILI analysis
+> - [Global WordNet Schemas](./GLOBAL_WORDNET_SCHEMAS.md) - Official schema reference
+> - [Testing Strategy](./TESTING_STRATEGY.md) - Testing guidelines and patterns
+> - [Advanced Use Cases](./ROADMAP.md) - Superpower operations and examples
+
 ## Overview
 
 The LMF Data Integrity Validation System provides the **only true way** to verify that all data has been correctly loaded and stored during the parsing pipeline. This system performs a comprehensive validation by reconstructing the original XML from the database and comparing it with the source file.

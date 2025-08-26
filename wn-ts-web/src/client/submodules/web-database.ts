@@ -29,28 +29,8 @@ export class WebDatabase {
   async initializeWithModule(sqlModule: Sqlite3Static): Promise<void> {
     this.sqlModule = sqlModule;
 
-    // Enable OPFS support for persistent storage
-    // OPFS only works in worker threads, not in the main thread
-    if (sqlModule.oo1?.OpfsDb) {
-      try {
-        // Check if we're in a worker thread (OPFS context)
-        // In a worker thread, OpfsDb constructor should work
-        // In the main thread, it will throw an error
-        const testOpfsDb = new sqlModule.oo1.OpfsDb("/test");
-        testOpfsDb.close(); // Clean up test instance
-        
-        this.useOPFS = true;
-        logger.info("OPFS support enabled for persistent storage");
-      } catch (error) {
-        // This is expected in main thread - OPFS requires worker thread
-        logger.info("OPFS not available in main thread (requires worker thread)");
-        this.useOPFS = false;
-      }
-    } else {
-      logger.info("OpfsDb not available in SQLite module");
-      this.useOPFS = false;
-    }
-
+    // Don't check OPFS support here - we'll check it when actually creating the database
+    // This allows the class to work in both main thread and worker thread contexts
     this._initialized = true;
   }
 
@@ -99,21 +79,25 @@ export class WebDatabase {
       throw new Error("SQL module not initialized");
     }
 
-    // Fall back to oo1 API if Database constructor doesn't exist
-    if (this.sqlModule.oo1 && this.sqlModule.oo1.DB) {
-      if (this.useOPFS && this.sqlModule.oo1.OpfsDb) {
-        try {
-          this.db = new this.sqlModule.oo1.OpfsDb("/wordnet.sqlite3");
-          logger.info("Created persistent OPFS database: /wordnet.sqlite3");
-        } catch (error) {
-          logger.warn("Failed to create OPFS database, falling back to in-memory:", error);
-          this.db = new this.sqlModule.oo1.DB(":memory:", "ct");
-          logger.info("Using in-memory database as fallback");
-        }
-      } else {
+    // Check OPFS support at the time of database creation
+    // This ensures we detect it correctly in the worker thread context
+    if (this.sqlModule.oo1?.OpfsDb) {
+      try {
+        // Try to create an OPFS database - this will work in worker threads
+        this.db = new this.sqlModule.oo1.OpfsDb("/wordnet.sqlite3");
+        this.useOPFS = true;
+        logger.info("Created persistent OPFS database: /wordnet.sqlite3");
+      } catch (error) {
+        logger.warn("Failed to create OPFS database, falling back to in-memory:", error);
         this.db = new this.sqlModule.oo1.DB(":memory:", "ct");
-        logger.info("Using in-memory database (OPFS not available)");
+        this.useOPFS = false;
+        logger.info("Using in-memory database as fallback");
       }
+    } else if (this.sqlModule.oo1?.DB) {
+      // Fall back to regular DB constructor
+      this.db = new this.sqlModule.oo1.DB(":memory:", "ct");
+      this.useOPFS = false;
+      logger.info("Using in-memory database (OpfsDb not available)");
     } else {
       throw new Error(
         "No compatible database constructor found in SQLite WASM module"
@@ -195,6 +179,39 @@ export class WebDatabase {
     if (this.db) {
       this.db.close();
       this.db = null;
+    }
+  }
+
+  /**
+   * Flush the database to ensure data is persisted to OPFS storage
+   * This is important for OPFS databases to ensure data is written to disk
+   */
+  async flush(): Promise<void> {
+    if (!this.db) return;
+    
+    try {
+      // Force a checkpoint to ensure WAL data is written to the main database file
+      this.db.exec("PRAGMA wal_checkpoint(FULL);");
+      
+      // For OPFS databases, also try to sync the file
+      if (this.useOPFS) {
+        // Force a sync operation to ensure data is written to OPFS
+        this.db.exec("PRAGMA synchronous = FULL;");
+        this.db.exec("PRAGMA journal_mode = WAL;");
+        
+        // Additional flush for OPFS
+        try {
+          // This might not be available in all SQLite versions, so wrap in try-catch
+          this.db.exec("PRAGMA optimize;");
+        } catch (e) {
+          // Ignore if optimize pragma is not available
+        }
+      }
+      
+      logger.info("Database flushed successfully");
+    } catch (error) {
+      logger.warn("Failed to flush database:", error);
+      // Don't throw - flushing is best effort
     }
   }
 

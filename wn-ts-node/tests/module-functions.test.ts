@@ -103,7 +103,7 @@ describe('Module Functions', () => {
     it('should return senses when they exist', async () => {
       const result = await senses('information');
       expect(result.length).toBeGreaterThan(0);
-      expect(result.some(s => s.word === 'test-en-information-n')).toBe(true);
+      expect(result.some(s => s.wordId === 'test-en-information-n')).toBe(true);
     });
 
     it('should return empty array for non-existent word', async () => {

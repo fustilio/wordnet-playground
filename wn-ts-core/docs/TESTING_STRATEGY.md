@@ -1,5 +1,11 @@
 # `wn-ts` Testing Strategy and Guidelines
 
+> **📚 Related Documentation:**
+> - [XSD Sample Generation](./XSD_SAMPLE_GENERATION.md) - Sample generation and ILI analysis
+> - [Data Integrity Validation](./VALIDATION.md) - Complete validation system
+> - [Global WordNet Schemas](./GLOBAL_WORDNET_SCHEMAS.md) - Official schema reference
+> - [Advanced Use Cases](./ROADMAP.md) - Superpower operations and examples
+
 ## 1. Overview
 
 This document outlines the testing strategy for the `wn-ts` library. The goal is to ensure code quality, correctness, and stability through a multi-layered testing approach. We use `vitest` as our testing framework.

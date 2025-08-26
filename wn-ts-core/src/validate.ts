@@ -1,145 +1,92 @@
 /**
- * Validation functions for Wordnet data.
+ * Validation functions for Wordnet data using Zod schemas.
  * 
  * This module provides functions for validating Wordnet data
- * structures and relationships.
+ * structures and relationships using Zod schemas for runtime
+ * type safety and automatic TypeScript type inference.
  */
 
-import type { Synset, Sense, Word, Relation } from './types.js';
+import type { Relation, Sense, Synset, Word } from './types.js';
 import { WnError } from './types.js';
+import {
+  SynsetSchema,
+  WordSchema,
+  SenseSchema,
+  RelationSchema,
+  SynsetArraySchema,
+} from './schemas.js';
 
 /**
- * Validate a synset.
+ * Validate a synset using Zod schema.
  * 
  * @param synset - The synset to validate
  * @throws {WnError} If the synset is invalid
  */
-export function validateSynset(synset: Synset): void {
-  if (!synset.id) {
-    throw new WnError('Synset must have an ID');
+export function validateSynset(synset: unknown): synset is Synset {
+  const result = SynsetSchema.safeParse(synset);
+  if (!result.success) {
+    throw new WnError(`Invalid synset: ${result.error.message}`);
   }
-  
-  if (!synset.pos) {
-    throw new WnError('Synset must have a part of speech');
-  }
-  
-  if (!synset.language) {
-    throw new WnError('Synset must have a language');
-  }
-  
-  if (!synset.lexicon) {
-    throw new WnError('Synset must have a lexicon');
-  }
-  
-  // Validate relations
-  for (const relation of synset.relations) {
-    validateRelation(relation);
-  }
-  
-  // Validate members (array of strings)
-  for (const memberId of synset.members) {
-    if (!memberId || typeof memberId !== 'string') {
-      throw new WnError('Synset members must be valid string IDs');
-    }
-  }
-  
-  // Validate senses (array of strings)
-  for (const senseId of synset.senses) {
-    if (!senseId || typeof senseId !== 'string') {
-      throw new WnError('Synset senses must be valid string IDs');
-    }
-  }
+  return true;
 }
 
 /**
- * Validate a sense.
+ * Validate a sense using Zod schema.
  * 
  * @param sense - The sense to validate
  * @throws {WnError} If the sense is invalid
  */
-export function validateSense(sense: Sense): void {
-  if (!sense.id) {
-    throw new WnError('Sense must have an ID');
+export function validateSense(sense: unknown): sense is Sense {
+  const result = SenseSchema.safeParse(sense);
+  if (!result.success) {
+    throw new WnError(`Invalid sense: ${result.error.message}`);
   }
-  
-  if (!sense.word) {
-    throw new WnError('Sense must have a word');
-  }
-  
-  if (!sense.synset) {
-    throw new WnError('Sense must have a synset');
-  }
-  
-  // Validate word and synset IDs
-  if (!sense.word || typeof sense.word !== 'string') {
-    throw new WnError('Sense must have a valid word ID');
-  }
-  if (!sense.synset || typeof sense.synset !== 'string') {
-    throw new WnError('Sense must have a valid synset ID');
-  }
+  return true;
 }
 
 /**
- * Validate a word.
+ * Validate a word using Zod schema.
  * 
  * @param word - The word to validate
  * @throws {WnError} If the word is invalid
  */
-export function validateWord(word: Word): void {
-  if (!word.id) {
-    throw new WnError('Word must have an ID');
+export function validateWord(word: unknown): word is Word {
+  const result = WordSchema.safeParse(word);
+  if (!result.success) {
+    throw new WnError(`Invalid word: ${result.error.message}`);
   }
-  
-  if (!word.lemma) {
-    throw new WnError('Word must have a lemma');
-  }
-  
-  if (!word.pos) {
-    throw new WnError('Word must have a part of speech');
-  }
-  
-  if (!word.language) {
-    throw new WnError('Word must have a language');
-  }
-  
-  if (!word.lexicon) {
-    throw new WnError('Word must have a lexicon');
-  }
+  return true;
 }
 
 /**
- * Validate a relation.
+ * Validate a relation using Zod schema.
  * 
  * @param relation - The relation to validate
  * @throws {WnError} If the relation is invalid
  */
-export function validateRelation(relation: Relation): void {
-  if (!relation.id) {
-    throw new WnError('Relation must have an ID');
+export function validateRelation(relation: unknown): relation is Relation {
+  const result = RelationSchema.safeParse(relation);
+  if (!result.success) {
+    throw new WnError(`Invalid relation: ${result.error.message}`);
   }
-  
-  if (!relation.type) {
-    throw new WnError('Relation must have a type');
-  }
-  
-  if (!relation.target) {
-    throw new WnError('Relation must have a target');
-  }
+  return true;
 }
 
 /**
- * Validate a complete Wordnet structure.
+ * Validate a complete Wordnet structure using Zod schema.
  * 
  * @param synsets - Array of synsets to validate
  * @throws {WnError} If any synset is invalid
  */
-export function validateWordnet(synsets: Synset[]): void {
-  for (const synset of synsets) {
-    validateSynset(synset);
+export function validateWordnet(synsets: unknown): synsets is Synset[] {
+  const result = SynsetArraySchema.safeParse(synsets);
+  if (!result.success) {
+    throw new WnError(`Invalid WordNet data: ${result.error.message}`);
   }
   
-  // Check for circular references
-  checkCircularReferences(synsets);
+  // Check for circular references after schema validation
+  checkCircularReferences(result.data);
+  return true;
 }
 
 /**
@@ -181,4 +128,13 @@ function checkCircularReferences(synsets: Synset[]): void {
       dfs(synset.id);
     }
   }
-} 
+}
+
+// Export the Zod schemas for direct use if needed
+export {
+  SynsetSchema,
+  WordSchema,
+  SenseSchema,
+  RelationSchema,
+  SynsetArraySchema,
+} from './schemas.js'; 

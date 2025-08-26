@@ -203,8 +203,8 @@ describe('LMF Core Functionality', () => {
       // Check sense structure
       const sense = minimal.senses[0];
       expect(sense.id).toBe('test-en-example-n-0001-01');
-      expect(sense.word).toBe('test-en-example-n');
-      expect(sense.synset).toBe('test-en-0001-n');
+      expect(sense.wordId).toBe('test-en-example-n');
+      expect(sense.synsetId).toBe('test-en-0001-n');
     });
 
     it('should create consistent document structure', () => {

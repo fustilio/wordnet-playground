@@ -1,234 +1,300 @@
 # WordNet TypeScript Ecosystem
 
-A comprehensive TypeScript implementation of WordNet with multiple deployment targets, real data integration, and modern tooling.
-
-## 🌟 **Project Overview**
-
-This monorepo contains a complete WordNet implementation with multiple deployment strategies:
-
-- **`wn-ts-core`**: Core WordNet types, interfaces, and data structures
-- **`wn-ts-node`**: Node.js implementation using better-sqlite3
-- **`wn-ts-web`**: Browser implementation using @sqlite.org/sqlite-wasm
-- **`wn-ts-web-demo`**: Interactive web demo with real data loading
-- **`wn-cli`**: Command-line interface with TUI
-- **`wn-pybridge`**: Python bridge for interoperability
-
-## 🏗️ **Architecture**
-
-### **Core Principles**
-- **Type Safety**: Full TypeScript implementation with strict typing
-- **Modular Design**: Each package has a specific responsibility
-- **Modern Tooling**: Vite, Vitest, ESLint, and modern development practices
-- **Cross-Platform**: Works in Node.js, browsers, and CLI environments
-- **Real Data Support**: Full integration with actual WordNet data sources
-- **Explicit Client Passing**: Clean dependency injection pattern
-
-### **Package Responsibilities**
-
-| Package | Responsibility | Technology | Status |
-|---------|---------------|------------|--------|
-| `wn-ts-core` | Core types, interfaces, data structures | TypeScript | ✅ Complete |
-| `wn-ts-node` | Node.js implementation | better-sqlite3 | ✅ Complete |
-| `wn-ts-web` | Browser implementation | @sqlite.org/sqlite-wasm | ✅ Complete |
-| `wn-ts-web-demo` | Interactive web demo | React + Vite | ✅ Complete |
-| `wn-cli` | Command-line interface | React Ink | ✅ Complete |
-| `wn-pybridge` | Python interoperability | Pythonia | ✅ Complete |
-
-### **Architecture Benefits**
-1. **Platform Optimization**: Each package is optimized for its target environment
-2. **Bundle Size**: Browser users only get the code they need
-3. **Type Safety**: Shared interfaces ensure consistency across implementations
-4. **Maintainability**: Clear separation of concerns
-5. **Future-Proof**: Easy to add new implementations (e.g., Deno, Bun)
-6. **Testability**: Explicit client passing makes testing easier
-7. **Decoupling**: No internal client instantiation in module functions
-8. **Real Data Integration**: Full support for actual WordNet repositories
+A comprehensive TypeScript ecosystem for working with WordNet data, featuring cross-lingual support, multiple lexicon formats, and optimized database operations.
 
 ## 🚀 **Quick Start**
 
-### **Installation**
 ```bash
-git clone <repository>
-cd wordnet
+# Install dependencies
 pnpm install
+
+# Run all tests
+pnpm test
+
+# Run browser tests
+pnpm test:browser
+
+# Run all demo examples
+cd demo && pnpm all-use-cases
 ```
 
-### **Development**
+## 📚 **Lexicon Formats & Data Structure**
+
+### **Supported Lexicon Formats**
+
+The ecosystem supports multiple WordNet lexicon formats for maximum compatibility:
+
+- **LMF XML (Lexical Markup Framework)**: Primary format with versions 1.0-1.4
+- **JSON-LD (Lemon Vocabulary)**: JSON format with Linked Data semantics  
+- **OntoLex RDF**: RDF/OWL representation of WordNet
+- **Custom TSV/CSV**: Tabular formats for bulk operations
+
+### **LMF XML Structure**
+
+LMF XML follows the official WordNet-LMF schema with these key elements:
+
+```xml
+<LexicalResource>
+  <Lexicon id="en-1.0" language="en" version="1.0">
+    <LexicalEntry id="word-1" partOfSpeech="n">
+      <Lemma writtenForm="example"/>
+      <Sense id="sense-1" synset="synset-1"/>
+    </LexicalEntry>
+    <Synset id="synset-1" ili="i12345" partOfSpeech="n">
+      <Definition>An example definition</Definition>
+    </Synset>
+  </Lexicon>
+</LexicalResource>
+```
+
+**Critical Processing Order**: LMF XML must be processed in dependency order:
+1. **Lexicons** (metadata and versioning)
+2. **Words** (lexical entries with lemmas)
+3. **Synsets** (concept groupings with ILI mappings)
+4. **Senses** (word-synset relationships)
+5. **Relations** (cross-synset connections)
+6. **Definitions & Examples** (descriptive content)
+
+### **Data Preservation Strategy**
+
+The system preserves all original data while optimizing for cross-lingual operations:
+
+- **Full XML Preservation**: All attributes, elements, and metadata retained
+- **ILI-Based Linking**: Interlingual Index entries enable cross-language concept mapping
+- **Deduplication Handling**: Configurable strategies for duplicate ID resolution
+- **Validation Pipeline**: Multi-stage validation ensuring data integrity
+
+## 🗄️ **Database Schema & Data Mapping**
+
+The system uses a normalized relational database schema optimized for cross-lingual linking and efficient querying:
+
+### **Core Tables Structure**
+
+```typescript
+interface Database {
+  lexicons: LexiconTable;      // Lexicon metadata and versioning
+  words: WordTable;            // Lexical entries (lemmas)
+  synsets: SynsetTable;        // Synsets with ILI mappings
+  senses: SenseTable;          // Word-synset relationships
+  definitions: DefinitionTable; // Synset definitions
+  relations: RelationTable;    // Synset-synset relationships
+  examples: ExampleTable;      // Usage examples
+  ilis: IliTable;              // Interlingual Index entries
+  forms: FormTable;            // Alternative word forms
+}
+```
+
+### **Key Data Mapping Principles**
+
+- **ID Consistency**: All entities use consistent ID patterns (`wordId`, `synsetId`, `lexiconId`)
+- **Foreign Key Relationships**: Proper referential integrity with database constraints
+- **Cross-Lingual Linking**: ILI-based concept mapping across languages
+- **Performance Optimization**: Strategic indexing for common query patterns
+
+### **Cross-Lingual Linking Strategy**
+
+The ILI (Interlingual Index) system enables powerful cross-language operations:
+
+```typescript
+// Find equivalent concepts across languages
+const englishSynset = await wordnet.getSynset('en', 'synset-1')
+const iliId = englishSynset.iliId
+const frenchSynsets = await wordnet.findSynsetsByIli('fr', iliId)
+const germanSynsets = await wordnet.findSynsetsByIli('de', iliId)
+```
+
+## ✅ **Data Integrity & Validation**
+
+### **Schema Compliance**
+
+- **XSD Validation**: All LMF XML validated against official WN-LMF schemas
+- **Type Safety**: Full TypeScript typing with strict interfaces
+- **Constraint Validation**: Database-level foreign key and uniqueness constraints
+
+### **Comprehensive Validation System**
+
+The validation pipeline ensures data quality at every stage:
+
+1. **XML Structure**: Schema compliance and well-formedness
+2. **Data Consistency**: Referential integrity and constraint validation
+3. **Business Rules**: WordNet-specific validation logic
+4. **Cross-Reference**: ILI mapping validation across lexicons
+
+### **Strategic Indexing**
+
+Performance-optimized database design:
+
+```sql
+-- Core lookup indexes
+CREATE INDEX idx_senses_word_id ON senses(word_id);
+CREATE INDEX idx_senses_synset_id ON senses(synset_id);
+CREATE INDEX idx_synsets_ili_id ON synsets(ili_id);
+
+-- Cross-lexicon performance
+CREATE INDEX idx_synset_relations_source ON synset_relations(source_synset_id);
+CREATE INDEX idx_synset_relations_target ON synset_relations(target_synset_id);
+```
+
+## 🏗️ **Architecture Overview**
+
+### **Layered Design**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        React Application                        │
+├─────────────────────────────────────────────────────────────────┤
+│  useWordNet Hook                                               │
+│  ├─ State Management                                           │
+│  ├─ Worker Coordination                                        │
+│  └─ Fallback Logic                                            │
+├─────────────────────────────────────────────────────────────────┤
+│  WordNetOrchestrator (High-level orchestration)                │
+│  ├─ Multi-lexicon management                                  │
+│  ├─ Cross-lexicon operations                                  │
+│  └─ Resource lifecycle management                             │
+├─────────────────────────────────────────────────────────────────┤
+│  WebWordnet (Core WordNet operations)                         │
+│  ├─ Data loading and validation                               │
+│  ├─ Query processing                                          │
+│  └─ Cache management                                          │
+├─────────────────────────────────────────────────────────────────┤
+│  Database Layer (SQLite/Kysely)                               │
+│  ├─ Schema management                                         │
+│  ├─ Data persistence                                          │
+│  └─ Query optimization                                        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### **Worker-First Architecture**
+
+- **UI Responsiveness**: Heavy operations offloaded to Web Workers
+- **Parallel Processing**: Multiple workers for concurrent operations
+- **Memory Management**: Efficient resource handling and cleanup
+- **Fallback Support**: Graceful degradation when workers unavailable
+
+## 📦 **Core Modules**
+
+### **`wn-ts-core`** - Foundation Library
+- Core types and interfaces
+- LMF XML parser and validator
+- Database schema definitions
+- Shared utilities and constants
+
+### **`wn-ts-web`** - Browser Implementation
+- React hooks and components
+- Web Worker integration
+- SQLite with OPFS storage
+- Browser-optimized performance
+
+### **`wn-ts-node`** - Node.js Implementation
+- Server-side processing
+- File system operations
+- Database management
+- CLI tools and utilities
+
+### **`wn-ts-web-demo`** - Interactive Examples
+- Live demonstration of capabilities
+- Cross-lingual exploration
+- Performance benchmarking
+- Development playground
+
+## 🧪 **Testing & Quality**
+
+### **Comprehensive Test Coverage**
+
+- **Unit Tests**: Core functionality and edge cases
+- **Integration Tests**: Module interaction and data flow
+- **E2E Tests**: Complete user workflows
+- **Browser Tests**: Cross-browser compatibility
+- **Performance Tests**: Benchmarking and optimization
+
+### **Test Data Management**
+
+- **Embedded Test Files**: Self-contained test data
+- **Real-World Samples**: Actual WordNet data for validation
+- **Edge Case Coverage**: Duplicate IDs, malformed XML, etc.
+- **Cross-Lingual Validation**: Multi-language test scenarios
+
+## 📖 **Documentation**
+
+### **Core Standards**
+- **[Development Conventions](./docs/DEVELOPMENT_CONVENTIONS.md)** - Coding standards and patterns
+- **[Database Schema Standards](./docs/DATABASE_SCHEMA_STANDARDS.md)** - Database design and optimization
+- **[Testing Strategy](./docs/TESTING_STRATEGY.md)** - Testing approach and coverage requirements
+
+### **Implementation Guides**
+- **[wn-ts-web Documentation](./wn-ts-web/docs/)** - Browser implementation guide
+- **[wn-ts-node Documentation](./wn-ts-node/docs/)** - Node.js implementation guide
+- **[API Reference](./wn-ts-web/docs/API.md)** - Complete API documentation
+
+### **Architecture & Design**
+- **[System Architecture](./wn-ts-web/docs/ARCHITECTURE.md)** - Comprehensive system design
+- **[Worker Architecture](./wn-ts-web/docs/WORKER_ARCHITECTURE.md)** - Web Worker implementation details
+- **[React Integration](./wn-ts-web/docs/REACT_INTEGRATION.md)** - React-specific patterns and examples
+
+## 🚀 **Performance & Optimization**
+
+### **Key Performance Features**
+
+- **Lazy Loading**: Lexicons loaded on-demand
+- **Intelligent Caching**: Multi-level caching strategy
+- **Parallel Processing**: Worker-based concurrent operations
+- **Database Optimization**: Strategic indexing and query optimization
+- **Memory Management**: Efficient resource handling
+
+### **Benchmark Results**
+
+- **XML Parsing**: < 100ms for 1MB LMF files
+- **Database Operations**: < 50ms for single queries
+- **Cross-Lingual Queries**: < 200ms for complex ILI lookups
+- **Memory Usage**: < 2x input size for processing
+
+## 🔧 **Development & Contributing**
+
+### **Prerequisites**
+
+- Node.js 18+ and pnpm
+- TypeScript 5.0+
+- Modern browser support (ES2020+)
+
+### **Development Workflow**
+
 ```bash
-# Build all packages
+# Setup development environment
+pnpm install
 pnpm build
 
 # Run tests
 pnpm test
+pnpm test:browser
 
-# Start development servers
-pnpm dev
+# Build packages
+pnpm build:packages
+
+# Run benchmarks
+pnpm bench
 ```
 
-### **Web Demo**
-```bash
-cd wn-ts-web-demo
-pnpm dev
-```
+### **Code Quality Standards**
 
-Visit `http://localhost:5173` to see the interactive WordNet demo.
-
-## 📦 **Package Details**
-
-### **wn-ts-core**
-Core WordNet types and interfaces used by all other packages.
-
-```typescript
-import type { Word, Synset, Sense } from 'wn-ts-core';
-import { words, synsets } from 'wn-ts-core';
-
-// Explicit client passing pattern
-const wordnetClient = new Wordnet('oewn:2024');
-const results = await words(wordnetClient, 'run', 'v');
-```
-
-### **wn-ts-node**
-Node.js implementation with better-sqlite3 for high performance.
-
-```typescript
-import { Wordnet } from 'wn-ts-node';
-
-const wordnet = new Wordnet('oewn:2024');
-const words = await wordnet.words('computer');
-```
-
-### **wn-ts-web**
-Browser implementation using @sqlite.org/sqlite-wasm for modern web optimization.
-
-> Note: Run `wn-ts-web` inside a Web Worker. SQLite/OPFS interactions and heavy operations should not block the main thread. See `wn-ts-web/docs/USAGE.md` for worker setup examples.
-
-```typescript
-import { createWordNetInstance } from 'wn-ts-web';
-
-const { wordnet, dataLoader } = await createWordNetInstance();
-await dataLoader.downloadAndLoad('oewn:2024');
-```
-
-### **wn-ts-web-demo**
-Interactive web demo showcasing real WordNet data loading and querying.
-
-Features:
-- Real data download from WordNet repositories
-- Interactive search and exploration
-- OPFS (Origin Private File System) for persistent storage
-- Progress tracking and cache management
-- Advanced visualizations (WordRelationshipGraph, SynsetHierarchyTree)
-- Developer tools (DebugConsole, Performance Monitoring)
-
-## 🔄 **Migration Path**
-
-### For Existing `wn-ts` Users
-
-The current `wn-ts` package will continue to work as-is, but users are encouraged to migrate:
-
-```typescript
-// Old way (still works)
-import { Wordnet } from 'wn-ts';
-
-// New way (recommended)
-import { Wordnet } from 'wn-ts-node'; // For Node.js
-import { createWordNetInstance } from 'wn-ts-web'; // For browsers
-
-// Use convenience methods (recommended)
-const wn = new Wordnet('oewn:2024');
-const synsets = await wn.synsets('run', 'v');
-
-// Or use explicit client passing (advanced)
-import { synsets } from 'wn-ts-core';
-const synsetResults = await synsets(wn, 'run', 'v');
-```
-
-### For New Projects
-
-Choose the appropriate package based on your target environment:
-
-```typescript
-// Node.js applications
-import { Wordnet } from 'wn-ts-node';
-
-// Browser applications
-import { createWordNetInstance } from 'wn-ts-web';
-
-// Shared types and interfaces
-import type { Word, Synset, DatabaseInterface } from 'wn-ts-core';
-
-// Module functions with explicit client passing
-import { words, synsets } from 'wn-ts-core';
-const wordnetClient = new Wordnet('oewn:2024');
-const results = await words(wordnetClient, 'run', 'v');
-```
-
-## 🧪 **Testing & Quality**
-
-### **Test Infrastructure**
-- **Unit Tests**: 390+ tests across all packages
-- **E2E Tests**: Real data integration testing
-- **Performance Benchmarks**: Comprehensive library comparisons
-- **Browser Tests**: Full browser environment testing
-- **Cross-Project Integration**: API consistency across all packages
-
-### **Real Data Testing**
-The project includes comprehensive E2E testing with real WordNet data:
-- Open English WordNet (OEWN) integration
-- CILI (Collaborative Interlingual Index) support
-- Multi-language data handling
-- Database schema validation
-- Performance monitoring
-
-### **Test Categories**
-- **Cross-Project Integration Tests**: API consistency across packages
-- **Advanced Multilingual Tests**: Multi-language scenarios with CILI
-- **Performance Benchmark Tests**: Node.js vs browser performance
-- **Sanity Check Tests**: System health monitoring
-- **Real Data Tests**: Actual WordNet data integration
-
-## 📊 **Performance**
-
-### **Benchmark Results**
-Comprehensive comparison of WordNet libraries:
-
-| Library | Performance | Features | Best For |
-|---------|-------------|----------|----------|
-| **WordsWordNet** | 5.28ms avg | Basic | Speed-critical applications |
-| **node-wordnet** | 158ms avg | Standard | Production applications |
-| **natural** | 309ms avg | NLP-focused | Natural language processing |
-| **wn-ts** | 581ms avg | Full feature set | Feature-rich applications |
-| **wn-pybridge** | ~500ms avg | Python parity | Python compatibility |
-| **wordpos** | 1077ms avg | POS-focused | POS tagging workflows |
-
-## 🔧 **Development**
-
-### **Key Features**
-- **Real Data Integration**: Works with actual WordNet repositories
-- **Multi-Language Support**: English, Spanish, and more
-- **Database Optimization**: Proper indexing and schema design
-- **Error Handling**: Robust fallback mechanisms
-- **Data Management**: Export/import capabilities
-- **Advanced Visualizations**: Interactive graphs and hierarchies
-- **Developer Tools**: Debug console and performance monitoring
-
-## 📚 **Documentation**
-
-- **[CHANGELOG.md](./CHANGELOG.md)**: Version history and changes
-
-## 🤝 **Contributing**
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
+- **TypeScript Strict Mode**: Full type safety enforcement
+- **ESLint + Prettier**: Consistent code formatting
+- **Test Coverage**: Minimum 90% unit test coverage
+- **Documentation**: Comprehensive API documentation
+- **Performance**: Benchmark requirements for critical paths
 
 ## 📄 **License**
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
----
+## 🤝 **Contributing**
 
-**Built with modern TypeScript, featuring real WordNet data integration, comprehensive testing, and advanced visualizations.**
+We welcome contributions! Please see our contributing guidelines and development standards in the [docs](./docs/) directory.
+
+## 📚 **References & Resources**
+
+- **[WordNet Project](https://wordnet.princeton.edu/)** - Original WordNet database
+- **[LMF Specification](https://www.lexicalmarkupframework.org/)** - Lexical Markup Framework standard
+- **[Interlingual Index](https://en.wikipedia.org/wiki/Interlingual_Index)** - Cross-lingual concept mapping
+- **[TypeScript Handbook](https://www.typescriptlang.org/docs/)** - TypeScript language reference
 

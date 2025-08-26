@@ -81,8 +81,8 @@ describe('Streaming SAX Parser', () => {
         return;
       }
       expect(sense.id).toBe('test-sense');
-      expect(sense.word).toBe('test-word');
-      expect(sense.synset).toBe('test-synset');
+      expect(sense.wordId).toBe('test-word');
+      expect(sense.synsetId).toBe('test-synset');
     });
 
     it('should handle empty XML content', async () => {

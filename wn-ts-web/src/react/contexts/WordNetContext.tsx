@@ -16,7 +16,8 @@ import type {
 	CrossLingualAnalysis,
 	MappingCoverage,
 	IntegrityReport,
-	CompatibilityReport
+	CompatibilityReport,
+	DatabaseStorageInfo
 } from '../hooks/useWordNet';
 import type { LexiconInfo } from '../../';
 import { useWordNetConfig } from './WordNetConfigContext';
@@ -39,6 +40,7 @@ interface WordNetContextValue extends WordNetState {
 	getSynsetById: (synsetId: string) => Promise<SynsetQueryResult | undefined>;
 	getWordsByIliAndLanguage: (ili: string, language: string) => Promise<WordInfo[]>;
 	getWordsByIliAndLexiconPrefix: (ili: string, lexiconPrefix: string) => Promise<WordInfo[]>;
+	getIliForSynset: (synsetId: string) => Promise<string | null>;
 	searchWordsInLexicon: (term: string, lexicon: string, language?: string) => Promise<WordQueryResult[]>;
 	// Data management
 	clearCacheAndUnload: () => Promise<void>;
@@ -52,6 +54,9 @@ interface WordNetContextValue extends WordNetState {
 	getCrossLingualMappingCoverage: () => Promise<MappingCoverage>;
 	validateResourceIntegrity: (lexiconId: string) => Promise<IntegrityReport>;
 	checkResourceCompatibility: (lexiconIds: string[]) => Promise<CompatibilityReport>;
+	// Database persistence methods
+	isDatabasePersistent: () => Promise<boolean>;
+	getDatabaseStorageInfo: () => Promise<DatabaseStorageInfo>;
 }
 
 const WordNetContext = createContext<WordNetContextValue | null>(null);

@@ -12,7 +12,7 @@ export class StreamingSaxParser implements LMFParser {
   readonly name = 'Optimized Streaming Parser (sax, stream)';
   readonly description = 'Streaming SAX parser for memory-efficient parsing of large files';
 
-  async parse(_filePath: string, _options: LMFLoadOptions = {}): Promise<LMFDocument> {
+  async parse(_input: string, _options: LMFLoadOptions = {}): Promise<LMFDocument> {
     return notAvailable();
   }
 }
@@ -25,7 +25,7 @@ export class FullStreamingParser implements LMFParser {
   readonly name = 'Full Streaming Parser';
   readonly description = 'Complete LMF streaming parser with full data extraction';
 
-  async parse(_filePath: string, _options: LMFLoadOptions = {}): Promise<LMFDocument> {
+  async parse(_input: string, _options: LMFLoadOptions = {}): Promise<LMFDocument> {
     return notAvailable();
   }
 }

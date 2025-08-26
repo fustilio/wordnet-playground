@@ -7,9 +7,11 @@
 
 import type {
   Word, Sense, Synset, ILI, Project, PartOfSpeech, Lexicon,
+  WordQuery,
 } from 'wn-ts-core';
 import { Kysely } from 'kysely';
-import { NodeKyselyDatabase, type NodeDatabaseConfig } from './database/node-kysely-database.js';
+import type { NodeDatabaseConfig } from 'wn-ts-core';
+import { NodeKyselyDatabase,  } from './database/node-kysely-database.js';
 import { KyselyQueryService } from './database/kysely-query-service.js';
 import { batchInsert } from 'wn-ts-core';
 import type { Database } from './database/types/database.js';
@@ -95,7 +97,7 @@ export class KyselyWordnet extends LocalBaseWordnet {
   async initialize(): Promise<void> {
     await this.nodeDatabase.initialize();
     await this.configureSQLite();
-    (this as any).initialized = true;
+    this.initialized = true;
     this.queryService = new KyselyQueryService(this.getDb());
   }
 
@@ -126,7 +128,7 @@ export class KyselyWordnet extends LocalBaseWordnet {
   }
 
   // Implement abstract methods from LocalBaseWordnet
-  async words(query?: any): Promise<Word[]> {
+  async words(query?: WordQuery): Promise<Word[]> {
     if (query && Object.keys(query).length > 0) {
       return this.queryService.getWords(query);
     }
@@ -411,8 +413,8 @@ export class KyselyWordnet extends LocalBaseWordnet {
     // Transform database records to Sense objects
     return senses.map(sense => ({
       id: sense.id,
-      word: sense.word_id,
-      synset: sense.synset_id,
+      wordId: sense.word_id,
+      synsetId: sense.synset_id,
       examples: [],
       counts: [],
       tags: [],
@@ -498,7 +500,7 @@ export class KyselyWordnet extends LocalBaseWordnet {
 
   async close(): Promise<void> {
     await this.nodeDatabase.close();
-    (this as any).initialized = false;
+    this.initialized = false;
   }
 
   /**

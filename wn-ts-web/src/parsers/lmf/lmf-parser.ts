@@ -40,6 +40,270 @@ export interface LmfParseOptions {
     batchSize?: number;
     flushIntervalMs?: number;
   };
+  // New duplicate handling options
+  duplicateHandling?: {
+    strategy: 'keep-first' | 'keep-last' | 'merge' | 'skip' | 'error';
+    // For 'merge' strategy, specify which fields to merge
+    mergeFields?: {
+      definitions?: boolean;
+      examples?: boolean;
+      relations?: boolean;
+      forms?: boolean;
+      pronunciations?: boolean;
+      tags?: boolean;
+      counts?: boolean;
+    };
+    // For deduplication, specify which fields to use as unique keys
+    uniqueKeys?: {
+      words?: ('id' | 'lemma' | 'index' | 'pos')[];
+      synsets?: ('id' | 'ili')[];
+      senses?: ('id' | 'wordId-synsetId')[];
+    };
+    // Whether to log duplicate information
+    logDuplicates?: boolean;
+    // Whether to aggregate statistics about duplicates
+    trackStatistics?: boolean;
+  };
+}
+
+/**
+ * Duplicate handling service for LMF parsing
+ */
+class DuplicateHandler {
+  private logger = createScopedLogger("DuplicateHandler");
+  private statistics = {
+    wordsDeduplicated: 0,
+    synsetsDeduplicated: 0,
+    sensesDeduplicated: 0,
+    totalDuplicates: 0,
+  };
+
+  constructor(private options: NonNullable<LmfParseOptions['duplicateHandling']>) {}
+
+  /**
+   * Handle duplicates according to the configured strategy
+   */
+  handleDuplicates<T extends Word | Synset | Sense>(
+    items: T[],
+    type: 'words' | 'synsets' | 'senses'
+  ): T[] {
+    if (this.options.strategy === 'skip') {
+      return items;
+    }
+
+    const uniqueKeys = this.options.uniqueKeys?.[type];
+    if (!uniqueKeys || uniqueKeys.length === 0) {
+      return items;
+    }
+
+    // Debug logging
+    this.logger.debug(`Handling duplicates for ${type}:`, {
+      strategy: this.options.strategy,
+      uniqueKeys,
+      itemCount: items.length,
+      items: items.map(item => ({ id: (item as any).id, lemma: (item as any).lemma, pos: (item as any).pos }))
+    });
+
+    const seen = new Map<string, T>();
+    const duplicates: T[] = [];
+
+    for (const item of items) {
+      const key = this.generateUniqueKey(item, uniqueKeys, type);
+      
+      // Debug logging for each item
+      this.logger.debug(`Processing ${type} item:`, {
+        id: (item as any).id,
+        lemma: (item as any).lemma,
+        pos: (item as any).pos,
+        generatedKey: key,
+        seenKeys: Array.from(seen.keys())
+      });
+      
+      if (seen.has(key)) {
+        duplicates.push(item);
+        this.statistics.totalDuplicates++;
+        
+        if (this.options.logDuplicates) {
+          this.logger.debug(`Duplicate ${type} found:`, { key, itemId: (item as any).id });
+        }
+
+        const existing = seen.get(key)!;
+        
+        switch (this.options.strategy) {
+          case 'keep-first':
+            // Keep existing, skip current
+            this.logger.debug(`Keeping first ${type} with key: ${key}`);
+            break;
+          case 'keep-last':
+            // Replace existing with current
+            this.logger.debug(`Replacing ${type} with key: ${key} (keep-last strategy)`);
+            seen.set(key, item);
+            break;
+          case 'merge':
+            // Merge current into existing
+            this.logger.debug(`Merging ${type} with key: ${key}`);
+            const merged = this.mergeItems(existing, item, type);
+            seen.set(key, merged);
+            break;
+          case 'error':
+            throw new Error(`Duplicate ${type} found with key: ${key}`);
+          default:
+            // Default to keep-first
+            this.logger.debug(`Using default keep-first strategy for ${type} with key: ${key}`);
+            break;
+        }
+      } else {
+        this.logger.debug(`Adding new ${type} with key: ${key}`);
+        seen.set(key, item);
+      }
+    }
+
+    // Update statistics
+    switch (type) {
+      case 'words':
+        this.statistics.wordsDeduplicated = duplicates.length;
+        break;
+      case 'synsets':
+        this.statistics.synsetsDeduplicated = duplicates.length;
+        break;
+      case 'senses':
+        this.statistics.sensesDeduplicated = duplicates.length;
+        break;
+    }
+
+    const result = Array.from(seen.values());
+    this.logger.debug(`Duplicate handling result for ${type}:`, {
+      inputCount: items.length,
+      outputCount: result.length,
+      duplicatesFound: duplicates.length,
+      strategy: this.options.strategy
+    });
+
+    return result;
+  }
+
+  /**
+   * Generate a unique key for an item based on the specified unique key fields
+   */
+  private generateUniqueKey<T extends Word | Synset | Sense>(
+    item: T,
+    uniqueKeys: string[],
+    type: string
+  ): string {
+    const keyParts: string[] = [];
+    
+    for (const key of uniqueKeys) {
+      switch (key) {
+        case 'id':
+          keyParts.push((item as any).id || '');
+          break;
+        case 'lemma':
+          if (type === 'words') {
+            keyParts.push((item as Word).lemma || '');
+          }
+          break;
+        case 'index':
+          if (type === 'words') {
+            keyParts.push((item as any).index || '');
+          }
+          break;
+        case 'pos':
+          if (type === 'words') {
+            keyParts.push((item as Word).pos || '');
+          }
+          break;
+        case 'ili':
+          if (type === 'synsets') {
+            keyParts.push((item as Synset).ili || '');
+          }
+          break;
+        case 'wordId-synsetId':
+          if (type === 'senses') {
+            const sense = item as Sense;
+            keyParts.push(sense.wordId || '');
+            keyParts.push(sense.synsetId || '');
+          }
+          break;
+      }
+    }
+    
+    return keyParts.filter(Boolean).join('::');
+  }
+
+  /**
+   * Merge two items according to the merge strategy
+   */
+  private mergeItems<T extends Word | Synset | Sense>(
+    existing: T,
+    current: T,
+    type: string
+  ): T {
+    if (this.options.strategy !== 'merge') {
+      return existing;
+    }
+
+    const merged = { ...existing };
+    const mergeFields = this.options.mergeFields;
+
+    if (type === 'words' && mergeFields?.forms) {
+      const existingWord = existing as Word;
+      const currentWord = current as Word;
+      if ('forms' in existingWord && 'forms' in currentWord) {
+        (merged as Word).forms = [...existingWord.forms, ...currentWord.forms];
+      }
+    }
+
+    if (type === 'synsets') {
+      const existingSynset = existing as Synset;
+      const currentSynset = current as Synset;
+      
+      if (mergeFields?.definitions && 'definitions' in existingSynset && 'definitions' in currentSynset) {
+        (merged as Synset).definitions = [...existingSynset.definitions, ...currentSynset.definitions];
+      }
+      if (mergeFields?.examples && 'examples' in existingSynset && 'examples' in currentSynset) {
+        (merged as Synset).examples = [...existingSynset.examples, ...currentSynset.examples];
+      }
+      if (mergeFields?.relations && 'relations' in existingSynset && 'relations' in currentSynset) {
+        (merged as Synset).relations = [...existingSynset.relations, ...currentSynset.relations];
+      }
+    }
+
+    if (type === 'senses') {
+      const existingSense = existing as Sense;
+      const currentSense = current as Sense;
+      
+      if (mergeFields?.examples && 'examples' in existingSense && 'examples' in currentSense) {
+        (merged as Sense).examples = [...existingSense.examples, ...currentSense.examples];
+      }
+      if (mergeFields?.tags && 'tags' in existingSense && 'tags' in currentSense) {
+        (merged as Sense).tags = [...existingSense.tags, ...currentSense.tags];
+      }
+      if (mergeFields?.counts && 'counts' in existingSense && 'counts' in currentSense) {
+        (merged as Sense).counts = [...existingSense.counts, ...currentSense.counts];
+      }
+    }
+
+    return merged;
+  }
+
+  /**
+   * Get duplicate handling statistics
+   */
+  getStatistics() {
+    return { ...this.statistics };
+  }
+
+  /**
+   * Reset statistics
+   */
+  resetStatistics() {
+    this.statistics = {
+      wordsDeduplicated: 0,
+      synsetsDeduplicated: 0,
+      sensesDeduplicated: 0,
+      totalDuplicates: 0,
+    };
+  }
 }
 
 /**
@@ -54,6 +318,7 @@ export class LmfParser implements LMFParser {
   private options: LmfParseOptions;
   private logger = createScopedLogger("LmfParser");
   private warningAggregator: WarningAggregator | undefined;
+  private duplicateHandler: DuplicateHandler;
   
   // Aggregated statistics for better logging
   private stats = {
@@ -81,6 +346,25 @@ export class LmfParser implements LMFParser {
         batchSize: 10,
         flushIntervalMs: 5000
       },
+      duplicateHandling: {
+        strategy: 'keep-first',
+        mergeFields: {
+          definitions: true,
+          examples: true,
+          relations: true,
+          forms: true,
+          pronunciations: true,
+          tags: true,
+          counts: true,
+        },
+        uniqueKeys: {
+          words: ['id', 'lemma', 'pos'],
+          synsets: ['id'],
+          senses: ['id', 'wordId-synsetId'],
+        },
+        logDuplicates: false,
+        trackStatistics: true,
+      },
       ...options
     };
 
@@ -91,6 +375,27 @@ export class LmfParser implements LMFParser {
         this.options.warningAggregation.flushIntervalMs || 5000
       );
     }
+
+    // Initialize duplicate handler
+    this.duplicateHandler = new DuplicateHandler(this.options.duplicateHandling || {
+      strategy: 'keep-first',
+      mergeFields: {
+        definitions: true,
+        examples: true,
+        relations: true,
+        forms: true,
+        pronunciations: true,
+        tags: true,
+        counts: true,
+      },
+      uniqueKeys: {
+        words: ['id', 'lemma'],
+        synsets: ['id'],
+        senses: ['id', 'wordId-synsetId'],
+      },
+      logDuplicates: false,
+      trackStatistics: true,
+    });
 
     // Initialize logger
     this.logger = createScopedLogger('LmfParser', this.options.debug ? 'debug' : 'info');
@@ -213,6 +518,14 @@ export class LmfParser implements LMFParser {
         totalSize: xmlContent.length,
       });
 
+      // Log duplicate handling statistics if enabled
+      if (this.options.duplicateHandling?.trackStatistics) {
+        const duplicateStats = this.duplicateHandler.getStatistics();
+        if (duplicateStats.totalDuplicates > 0) {
+          this.logger.info("Duplicate handling statistics", duplicateStats);
+        }
+      }
+
       // All senses are now properly nested in LexicalEntry elements according to LMF schema
       // No need for standalone sense handling or hybrid resolution
       this.logger.debug("LMF parsing completed with schema-compliant structure");
@@ -222,6 +535,23 @@ export class LmfParser implements LMFParser {
         const aggregatedWarnings = this.warningAggregator.flush();
         if (aggregatedWarnings.totalWarnings > 0) {
           this.logger.warn("Parsing completed with aggregated warnings", aggregatedWarnings);
+        }
+      }
+
+      // Apply duplicate handling to the final document if configured
+      if (mergedOptions.duplicateHandling && mergedOptions.duplicateHandling.strategy !== 'skip') {
+        if (mergedOptions.debug) {
+          this.logger.debug(`Applying final duplicate handling with strategy: ${mergedOptions.duplicateHandling.strategy}`);
+          this.logger.debug(`Before final deduplication - words: ${result.words.length}, synsets: ${result.synsets.length}, senses: ${result.senses.length}`);
+        }
+        
+        // Apply duplicate handling to the final document
+        result.words = this.duplicateHandler.handleDuplicates(result.words, 'words');
+        result.synsets = this.duplicateHandler.handleDuplicates(result.synsets, 'synsets');
+        result.senses = this.duplicateHandler.handleDuplicates(result.senses, 'senses');
+        
+        if (mergedOptions.debug) {
+          this.logger.debug(`After final deduplication - words: ${result.words.length}, synsets: ${result.synsets.length}, senses: ${result.senses.length}`);
         }
       }
 
@@ -878,84 +1208,35 @@ export class LmfParser implements LMFParser {
         this.logger.debug(`Using correct LMF processing order - all senses properly nested in LexicalEntry`);
       }
       
-      // Skip deduplication if mergeStrategy is 'none'
-      if (options.mergeStrategy === 'none') {
+      // Apply duplicate handling if configured, regardless of merge strategy
+      if (options.duplicateHandling && options.duplicateHandling.strategy !== 'skip') {
         if (options.debug) {
-          this.logger.debug(`Skipping word and sense deduplication due to mergeStrategy: 'none'`);
+          this.logger.debug(`Applying duplicate handling with strategy: ${options.duplicateHandling.strategy}`);
+          this.logger.debug(`Before deduplication - words: ${pendingWords.length}, synsets: ${pendingSynsets.length}, senses: ${pendingSensesGlobal.length}`);
         }
+        // Use the duplicate handler service
+        filteredWords = this.duplicateHandler.handleDuplicates(pendingWords, 'words');
+        filteredSenses = this.duplicateHandler.handleDuplicates(pendingSensesGlobal, 'senses');
+        // Also deduplicate synsets
+        const filteredSynsets = this.duplicateHandler.handleDuplicates(pendingSynsets, 'synsets');
+        
+        if (options.debug) {
+          this.logger.debug(`After deduplication - words: ${filteredWords.length}, synsets: ${filteredSynsets.length}, senses: ${filteredSenses.length}`);
+        }
+        
+        // Commit deduplicated results
+        for (const w of filteredWords) words.push(w);
+        for (const syn of filteredSynsets) synsets.push(syn);
+        for (const s of filteredSenses) senses.push(s);
       } else {
-        // Deduplicate words based on index (LMF 1.4 feature)
-        const wordIdToIndex: Record<string, string | undefined> = {};
-        const wordIdToPos: Record<string, string | undefined> = {};
-        for (const w of filteredWords) {
-          // capture optional index if present on word
-          wordIdToIndex[w.id] = (w as any).index as string | undefined;
-          wordIdToPos[w.id] = (w.pos as unknown as string);
+        // No duplicate handling - commit all results
+        if (options.debug) {
+          this.logger.debug(`Skipping duplicate handling - strategy is 'skip' or not configured`);
         }
-        
-        const pickSmallestTail = (id: string) => {
-          const m = id.match(/(\d+)(?!.*\d)/);
-          return m ? parseInt(m[1], 10) : Number.MAX_SAFE_INTEGER;
-        };
-        
-        // Deduplicate words sharing the same index within same POS
-        const wordDedupMap = new Map<string, Word>();
-        for (const w of filteredWords) {
-          const idx = wordIdToIndex[w.id] || w.id; // fall back to word id when no index
-          const pos = wordIdToPos[w.id] || '';
-          // Only dedupe across words sharing the same index when the index contains a separator
-          // (e.g., underscores or spaces). This aligns with 1.4 expectations (foo_bar pair dedupes; baz/BAZ do not).
-          const dedupeEligible = /[_\s]/.test(idx);
-          const key = dedupeEligible ? `${idx}::${pos}` : `${w.id}::${pos}`;
-          const existing = wordDedupMap.get(key);
-          if (!existing || pickSmallestTail(w.id) < pickSmallestTail(existing.id)) {
-            wordDedupMap.set(key, w);
-          }
-        }
-        
-        // Update filtered words to deduplicated version
-        filteredWords = Array.from(wordDedupMap.values());
-        
-        // Also deduplicate senses based on the deduplicated words
-        const wordIdToIndexDedup: Record<string, string | undefined> = {};
-        for (const w of filteredWords) {
-          wordIdToIndexDedup[w.id] = (w as any).index as string | undefined;
-        }
-        
-        const senseDedupMap = new Map<string, Sense>();
-        for (const s of filteredSenses) {
-          const idx = wordIdToIndexDedup[s.word] || s.word; // fall back to word id when no index
-          const pos = wordIdToPos[s.word] || '';
-          // Only dedupe across words sharing the same index when the index contains a separator
-          const dedupeEligible = /[_\s]/.test(idx);
-          const key = dedupeEligible ? `${idx}::${pos}::${s.synset}` : `${s.word}::${s.synset}`;
-          const existing = senseDedupMap.get(key);
-          if (!existing || pickSmallestTail(s.id) < pickSmallestTail(existing.id)) {
-            senseDedupMap.set(key, s);
-          }
-        }
-        
-        // Update filtered senses to deduplicated version
-        filteredSenses = Array.from(senseDedupMap.values());
+        for (const w of pendingWords) words.push(w);
+        for (const syn of pendingSynsets) synsets.push(syn);
+        for (const s of pendingSensesGlobal) senses.push(s);
       }
-
-      // finalSenses is now set above in the deduplication logic
-      const finalSenses = filteredSenses;
-
-      // No need to create placeholder words - all senses should be properly nested
-      // If we have any senses with word === id, that indicates a bug in our processing
-      const orphanedSenses = finalSenses.filter(s => s.word === s.id);
-      if (orphanedSenses.length > 0 && options.debug) {
-        this.logger.warn(
-          `Found ${orphanedSenses.length} senses that appear to be orphaned (word === id). This may indicate invalid LMF XML or a processing bug.`,
-          { orphanedSenseIds: orphanedSenses.map(s => s.id) }
-        );
-      }
-
-      // Commit
-      for (const w of filteredWords) words.push(w);
-      for (const syn of pendingSynsets) synsets.push(syn);
-      for (const s of finalSenses) senses.push(s);
     } else {
       // Old structure - process object properties
 
@@ -1047,6 +1328,25 @@ export class LmfParser implements LMFParser {
             }
           }
         }
+      }
+
+      // Apply duplicate handling to old structure as well
+      if (includeIntoAggregates && options.duplicateHandling && options.duplicateHandling.strategy !== 'skip') {
+        if (options.debug) {
+          this.logger.debug(`Applying duplicate handling to old structure with strategy: ${options.duplicateHandling.strategy}`);
+        }
+        const filteredWords = this.duplicateHandler.handleDuplicates(words, 'words');
+        const filteredSynsets = this.duplicateHandler.handleDuplicates(synsets, 'synsets');
+        const filteredSenses = this.duplicateHandler.handleDuplicates(senses, 'senses');
+        
+        // Replace arrays with deduplicated versions
+        words.length = 0;
+        synsets.length = 0;
+        senses.length = 0;
+        
+        words.push(...filteredWords);
+        synsets.push(...filteredSynsets);
+        senses.push(...filteredSenses);
       }
     }
 
@@ -1159,6 +1459,8 @@ export class LmfParser implements LMFParser {
       });
       return null;
     }
+
+
 
     // Handle both old structure and new MultiXMLParser structure
     let id: string | undefined;
@@ -1431,8 +1733,8 @@ export class LmfParser implements LMFParser {
       relations: relations.length > 0 ? relations : [],
       language: language || "en",
       lexicon: lexicon || lexiconId, // Use passed lexicon ID as fallback instead of "unknown"
-      members: [],
-      senses: [],
+      memberIds: [],
+      senseIds: [],
     };
   }
 
@@ -1513,8 +1815,8 @@ export class LmfParser implements LMFParser {
 
     return {
       id,
-      word: wordId,
-      synset: synset,
+      wordId: wordId,
+      synsetId: synset,
       counts: [],
       examples: [],
       tags: [],
@@ -1678,8 +1980,8 @@ export class LmfParser implements LMFParser {
             relations: [],
             language: synsetLanguage,
             lexicon: lastLexiconAttrs.id || "unknown",
-            members: [],
-            senses: [],
+            memberIds: [],
+            senseIds: [],
           });
         } else {
           if (options.debug) {
@@ -1716,8 +2018,8 @@ export class LmfParser implements LMFParser {
           }
           result.senses.push({
             id: sa.id,
-            word: sa.word || sa.id,
-            synset: sa.synset || sa.id,
+            wordId: sa.word || sa.id,
+            synsetId: sa.synset || sa.id,
             counts: [],
             examples: [],
             tags: [],
@@ -1766,6 +2068,9 @@ export class LmfParser implements LMFParser {
         this.logger.warn("Parser destroyed with aggregated warnings", aggregatedWarnings);
       }
       this.warningAggregator.destroy();
+    }
+    if (this.duplicateHandler) {
+      this.duplicateHandler.resetStatistics();
     }
   }
 }

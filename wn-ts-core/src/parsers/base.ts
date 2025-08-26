@@ -6,12 +6,17 @@ import type { LMFDocument, LMFLoadOptions } from '../lmf.js';
 
 export interface LMFParser {
   /**
-   * Parse an LMF XML file
-   * @param filePath - Path to the LMF XML file
-   * @param options - Parsing options
+   * Parse LMF XML content into structured data
+   * 
+   * Note: Different parser implementations may work with different input types:
+   * - File-based parsers: expect file paths and handle streaming/buffering
+   * - Content-based parsers: expect XML content strings for in-memory processing
+   * 
+   * @param input - Either a file path (string) or XML content (string)
+   * @param options - Parsing options including duplicate handling configuration
    * @returns Parsed LMF document
    */
-  parse(filePath: string, options?: LMFLoadOptions): Promise<LMFDocument>;
+  parse(input: string, options?: LMFLoadOptions): Promise<LMFDocument>;
   
   /**
    * Get the name of this parser implementation

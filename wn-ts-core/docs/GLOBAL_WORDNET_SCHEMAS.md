@@ -1,5 +1,11 @@
 # Global WordNet Schemas
 
+> **📚 Related Documentation:**
+> - [XSD Sample Generation](./XSD_SAMPLE_GENERATION.md) - Sample generation and ILI analysis
+> - [Data Integrity Validation](./VALIDATION.md) - Complete validation system
+> - [Testing Strategy](./TESTING_STRATEGY.md) - Testing guidelines and patterns
+> - [Advanced Use Cases](./ROADMAP.md) - Superpower operations and examples
+
 This document describes the Global WordNet Association schemas that `wn-ts` supports and how they integrate with the library.
 
 ## Overview

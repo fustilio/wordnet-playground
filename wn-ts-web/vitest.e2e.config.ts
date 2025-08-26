@@ -31,22 +31,55 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      "/api/en-word-net": {
+      // Proxy WordNet data sources to bypass CORS - matching vite.config.mjs
+      "/api/wordnet": {
         target: "https://en-word.net",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/en-word-net/, ""),
+        rewrite: (path) => path.replace(/^\/api\/wordnet/, ""),
       },
-      "/api/globalwordnet": {
+      "/api/globalwordnet-ewn": {
+        target: "https://github.com/globalwordnet/english-wordnet/releases/download",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/globalwordnet\//, "/"),
+      },
+      "/api/globalwordnet-cili": {
+        target: "https://github.com/globalwordnet/cili/releases/download",
+        changeOrigin: true,
+        followRedirects: true,
+        rewrite: (path) => path.replace(/^\/api\/globalwordnet-cili\//, "/"),
+      },
+      "/api/omwn-releases": {
+        target: "https://github.com/omwn/omw-data/releases/download",
+        changeOrigin: true,
+        followRedirects: true,
+        rewrite: (path) => path.replace(/^\/api\/omwn-releases\//, "/"),
+      },
+      "/api/raw-github": {
+        target: "https://raw.githubusercontent.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/raw-github\//, "/"),
+      },
+      "/api/github": {
         target: "https://github.com",
         changeOrigin: true,
-        rewrite: (path) =>
-          path.replace(/^\/api\/globalwordnet/, "/globalwordnet"),
+        followRedirects: false,
+        rewrite: (path) => path.replace(/^\/api\/github\//, "/"),
       },
-      "/api/wordnet-dk": {
-        target: "https://wordnet.dk",
+      "/api/github-api": {
+        target: "https://api.github.com",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/wordnet-dk/, ""),
+        rewrite: (path) => path.replace(/^\/api\/github-api\//, "/"),
       },
+      "/api/release-assets": {
+        target: "https://release-assets.githubusercontent.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/release-assets\//, "/"),
+      },
+      "/api/external": {
+        target: "https://",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/external\//, "/"),
+      }
     },
     headers: {
       "Cross-Origin-Opener-Policy": "same-origin",

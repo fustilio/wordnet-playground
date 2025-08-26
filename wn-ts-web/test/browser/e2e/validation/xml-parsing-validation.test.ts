@@ -102,7 +102,7 @@ describe(`XML Parsing and Data Loading Validation Tests (Real + Mock Data)`, () 
         expect(synset.id).toBeDefined();
         expect(synset.pos).toBeDefined();
         expect(synset.language).toBe('en');
-        expect(synset.lexicon).toBe('oewn');
+        expect(synset.lexicon).toBe('oewn:2024');
         expect(Array.isArray(synset.definitions)).toBe(true);
       }
     });
@@ -215,7 +215,7 @@ describe(`XML Parsing and Data Loading Validation Tests (Real + Mock Data)`, () 
         expect(happyWord?.lemma).toBe('happy');
         expect(happyWord?.pos).toBeDefined();
         expect(happyWord?.language).toBe('en');
-        expect(happyWord?.lexicon).toBe('oewn');
+        expect(happyWord?.lexicon).toBe('oewn:2024');
       }
     });
 
@@ -269,7 +269,7 @@ describe(`XML Parsing and Data Loading Validation Tests (Real + Mock Data)`, () 
         expect(joySynset.id).toBeDefined();
         expect(joySynset.pos).toBeDefined();
         expect(joySynset.language).toBe('en');
-        expect(joySynset.lexicon).toBe('oewn');
+        expect(joySynset.lexicon).toBe('oewn:2024');
         
         // Verify that definitions are handled correctly
         expect(Array.isArray(joySynset.definitions)).toBe(true);

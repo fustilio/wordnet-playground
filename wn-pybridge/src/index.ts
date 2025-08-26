@@ -44,7 +44,7 @@ export interface Word {
 
 export interface Sense {
   id: string;
-  synset: string;
+  synsetId: string;
   word: string;
   pos: string;
   lexicon: string;

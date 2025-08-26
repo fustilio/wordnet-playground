@@ -17,9 +17,15 @@ export class StreamingSaxParser implements LMFParser {
   readonly description = 'Memory-efficient streaming parser for large LMF files using SAX';
 
   async parse(xmlContent: string, options: LMFLoadOptions = {}): Promise<LMFDocument> {
-    const { debug = false, progress } = options;
+    const { debug = false, progress, duplicateHandling } = options;
     
     if (debug) console.log(`[DEBUG] ${this.name}: Starting parse`);
+    
+    // Note: This parser doesn't implement duplicate handling yet
+    // For production use with duplicate handling, use the web parser
+    if (duplicateHandling && debug) {
+      console.log(`[DEBUG] ${this.name}: Duplicate handling options not yet implemented`);
+    }
     
     // Basic validation - we'll implement shared validation later
     if (typeof xmlContent !== 'string' || xmlContent.trim().length === 0) {
@@ -117,8 +123,8 @@ export class StreamingSaxParser implements LMFParser {
               relations: [],
               language: currentLexicon?.language || 'en',
               lexicon: currentLexicon?.id || 'unknown',
-              members: [],
-              senses: [],
+              memberIds: [],
+              senseIds: [],
             };
             synsets.push(currentSynset);
             break;
@@ -167,8 +173,8 @@ export class StreamingSaxParser implements LMFParser {
           case 'Sense':
             currentSense = {
               id: getAttr('id') || 'unknown-sense',
-              word: currentEntry?.id || 'unknown-word',
-              synset: getAttr('synset') || currentSynset?.id || 'unknown-synset',
+              wordId: currentEntry?.id || 'unknown-word',
+              synsetId: getAttr('synset') || currentSynset?.id || 'unknown-synset',
               counts: [],
               examples: [],
               tags: [],

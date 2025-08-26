@@ -59,6 +59,12 @@ export class WordNetWorkerClient {
 
   constructor() {
     logger.info('WordNetWorkerClient created');
+    
+    // Add page unload handler to ensure database is flushed before page closes
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', this.handleBeforeUnload.bind(this));
+      window.addEventListener('pagehide', this.handlePageHide.bind(this));
+    }
   }
 
   /**
@@ -635,6 +641,29 @@ export class WordNetWorkerClient {
   }
 
   /**
+   * Find ILI identifier for a given synset by querying the CILI package
+   */
+  async getIliForSynset(synsetId: string): Promise<string | null> {
+    await this.ensureInitialized();
+    
+    try {
+      console.log(`Getting ILI for synset: ${synsetId}`);
+      const result = await this.remote!.getIliForSynset(synsetId);
+      
+      if (result.success) {
+        return result.data || null;
+      } else {
+        throw new Error(result.error || 'Get ILI for synset failed');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`Failed to get ILI for synset: ${synsetId}`, { error: errorMessage });
+      this.emit('error', { error: errorMessage, context: 'getIliForSynset' });
+      throw error;
+    }
+  }
+
+  /**
    * Search words in lexicon
    */
   async searchWordsInLexicon(term: string, lexicon: string, language?: string): Promise<any[]> {
@@ -788,10 +817,48 @@ export class WordNetWorkerClient {
   }
 
   /**
+   * Handle page beforeunload event to ensure database is flushed
+   */
+  private async handleBeforeUnload(event: BeforeUnloadEvent): Promise<void> {
+    if (this.isInitialized && this.remote) {
+      try {
+        logger.info('Page unloading, flushing database...');
+        // Try to flush the database before the page unloads
+        await this.remote.flushDatabase();
+        logger.info('Database flushed before unload');
+      } catch (error) {
+        logger.warn('Failed to flush database before unload:', error);
+      }
+    }
+  }
+
+  /**
+   * Handle page hide event (for mobile browsers and page transitions)
+   */
+  private async handlePageHide(event: PageTransitionEvent): Promise<void> {
+    if (this.isInitialized && this.remote) {
+      try {
+        logger.info('Page hiding, flushing database...');
+        // Try to flush the database before the page hides
+        await this.remote.flushDatabase();
+        logger.info('Database flushed before page hide');
+      } catch (error) {
+        logger.warn('Failed to flush database before page hide:', error);
+      }
+    }
+  }
+
+  /**
    * Dispose of the client and terminate the worker
    */
   dispose(): void {
     console.log('Disposing WordNetWorkerClient');
+    
+    // Remove event listeners
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('beforeunload', this.handleBeforeUnload.bind(this));
+      window.removeEventListener('pagehide', this.handlePageHide.bind(this));
+    }
     
     if (this.remote) {
       //  to be implemented
@@ -829,5 +896,30 @@ export class WordNetWorkerClient {
       this.emit('error', { error: errorMessage, context: 'getPartOfSpeechDistribution' });
       throw error;
     }
+  }
+
+  /**
+   * Check if the database is persistent (OPFS)
+   */
+  async isDatabasePersistent(): Promise<boolean> {
+    await this.ensureInitialized();
+    const result = await this.remote!.isDatabasePersistent();
+    return result.success && result.data === true;
+  }
+
+  /**
+   * Get database storage information
+   */
+  async getDatabaseStorageInfo(): Promise<{
+    type: 'opfs' | 'memory' | 'unknown';
+    persistent: boolean;
+    path?: string;
+  }> {
+    await this.ensureInitialized();
+    const result = await this.remote!.getDatabaseStorageInfo();
+    if (result.success && result.data) {
+      return result.data;
+    }
+    return { type: 'unknown', persistent: false };
   }
 }

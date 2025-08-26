@@ -2,7 +2,7 @@
 const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
 
 // Browser-compatible stubs with proper signatures
-const browserReadFileSync = (_path: string, _encoding?: string) => '';
+const browserReadFileSync = (_path: string, _encoding?: any) => '';
 const browserExistsSync = (_path: string) => false;
 const browserCopyFileSync = (_src: string, _dest: string) => {};
 const browserJoin = (...paths: string[]) => paths.join('/');
@@ -20,16 +20,21 @@ let fileURLToPath = browserFileURLToPath;
 // Initialize Node.js functions if available
 if (isNode) {
   try {
-    const fs = require('fs');
-    const path = require('path');
-    const url = require('url');
+    // Use dynamic imports for ESM compatibility
+    import('fs').then(fs => {
+      readFileSync = fs.readFileSync;
+      existsSync = fs.existsSync;
+      copyFileSync = fs.copyFileSync;
+    }).catch(() => {});
     
-    readFileSync = fs.readFileSync;
-    existsSync = fs.existsSync;
-    copyFileSync = fs.copyFileSync;
-    join = path.join;
-    dirname = path.dirname;
-    fileURLToPath = url.fileURLToPath;
+    import('path').then(path => {
+      join = path.join;
+      dirname = path.dirname;
+    }).catch(() => {});
+    
+    import('url').then(url => {
+      fileURLToPath = url.fileURLToPath;
+    }).catch(() => {});
   } catch (e) {
     // Fall back to browser stubs if Node.js modules fail to load
     console.warn('Failed to load Node.js modules, using browser stubs');

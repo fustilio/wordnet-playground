@@ -539,6 +539,23 @@ export async function getWordsByIliAndLexiconPrefix(ili: string, lexiconPrefix: 
   }
 }
 
+// NEW: Find ILI identifier for a given synset by querying CILI package
+export async function getIliForSynset(synsetId: string) {
+  try {
+    if (!orchestrator) return { success: false, error: 'WordNet not initialized' };
+    
+    // This method needs to query the CILI package to find the ILI for a given synset
+    // The logic will be implemented in the orchestrator
+    const result = await orchestrator.getIliForSynset(synsetId);
+    logger.end('Getting ILI for synset', { success: true, synsetId });
+    return { success: true, data: result };
+  } catch (error) {
+    logger.error('Error getting ILI for synset', error);
+    logger.end('Getting ILI for synset failed', { error: (error as Error)?.message || String(error), synsetId });
+    return { success: false, error: (error as Error)?.message || String(error) };
+  }
+}
+
 /**
  * Map package ID to lexicon ID
  * e.g., "oewn:2024" -> "oewn", "omw-fr:1.4" -> "omw-fr"
@@ -698,6 +715,66 @@ async function disposeWordNet() {
   }
 }
 
+// Flush database to ensure data persistence
+export async function flushDatabase() {
+  try {
+    if (!orchestrator) {
+      return { success: false, error: "WordNet not initialized" };
+    }
+
+    logger.start('Flushing database for persistence');
+    
+    // Get the underlying database and flush it
+    const wordnet = orchestrator.getWordNetInstance();
+    const database = wordnet.getDatabase();
+    
+    if (database && typeof database.flush === 'function') {
+      await database.flush();
+      logger.success('Database flushed successfully');
+      return { success: true };
+    } else {
+      logger.warn('Database flush method not available');
+      return { success: false, error: "Database flush method not available" };
+    }
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('Failed to flush database', { error });
+    return { success: false, error: errorMessage };
+  }
+}
+
+// Check if database is persistent
+export async function isDatabasePersistent() {
+  try {
+    if (!orchestrator) {
+      return { success: false, error: "WordNet not initialized" };
+    }
+
+    const isPersistent = orchestrator.isDatabasePersistent();
+    return { success: true, data: isPersistent };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('Failed to check database persistence', { error });
+    return { success: false, error: errorMessage };
+  }
+}
+
+// Get database storage information
+export async function getDatabaseStorageInfo() {
+  try {
+    if (!orchestrator) {
+      return { success: false, error: "WordNet not initialized" };
+    }
+
+    const storageInfo = orchestrator.getDatabaseStorageInfo();
+    return { success: true, data: storageInfo };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('Failed to get database storage info', { error });
+    return { success: false, error: errorMessage };
+  }
+}
+
 
 expose({
   initializeWordNet,
@@ -720,8 +797,12 @@ expose({
   getSynsetById,
   getWordsByIliAndLanguage,
   getWordsByIliAndLexiconPrefix,
+  getIliForSynset,
   getLexiconStatistics,
   getPartOfSpeechDistribution,
+  flushDatabase,
+  isDatabasePersistent,
+  getDatabaseStorageInfo,
 } satisfies WordNetWorkerAPI)
 
 // Initialize when worker loads

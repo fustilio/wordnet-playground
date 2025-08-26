@@ -11,34 +11,50 @@ import { WnError } from '../src/types';
 
 describe('Validation', () => {
   const validSynset: Synset = {
-    id: 'test-en-0001-n',
+    id: 'en-n-0001',
     pos: 'n',
-    ili: undefined,
-    definitions: [],
-    examples: [],
+    definitions: [
+      {
+        id: 'def-1',
+        language: 'en',
+        text: 'A thing or object that can be perceived by the senses'
+      }
+    ],
+    examples: [
+      {
+        id: 'ex-1',
+        language: 'en',
+        text: 'The table is made of wood'
+      }
+    ],
     relations: [],
     language: 'en',
     lexicon: 'test-en',
-    members: [],
-    senses: [],
+    memberIds: [],
+    senseIds: [],
   };
 
   const validWord: Word = {
-    id: 'test-en-example-n',
+    id: 'en-example-n',
     lemma: 'example',
     pos: 'n',
     language: 'en',
     lexicon: 'test-en',
-    forms: [],
+    forms: [
+      {
+        id: 'form-1',
+        writtenForm: 'example'
+      }
+    ],
     tags: [],
     pronunciations: [],
     counts: [],
   };
 
   const validSense: Sense = {
-    id: 'test-en-example-n-0001-01',
-    word: 'test-en-example-n',
-    synset: 'test-en-0001-n',
+    id: 'en-example-n-0001-01',
+    wordId: 'en-example-n',
+    synsetId: 'en-n-0001',
     counts: [],
     examples: [],
     tags: [],
@@ -47,12 +63,12 @@ describe('Validation', () => {
   const validRelation: Relation = {
     id: 'r1',
     type: 'hypernym',
-    target: 'test-en-0002-n',
+    target: 'en-n-0002',
   };
 
   describe('validateSynset', () => {
     it('should validate a valid synset', () => {
-      expect(() => validateSynset(validSynset)).not.toThrow();
+      expect(validateSynset(validSynset)).toBe(true);
     });
 
     it('should throw error for missing ID', () => {
@@ -80,22 +96,22 @@ describe('Validation', () => {
         ...validSynset,
         relations: [validRelation],
       };
-      expect(() => validateSynset(synsetWithRelations)).not.toThrow();
+      expect(validateSynset(synsetWithRelations)).toBe(true);
     });
 
     it('should validate synset with members and senses', () => {
       const synsetWithMembers = {
         ...validSynset,
-        members: ['test-en-example-n'],
-        senses: ['test-en-example-n-0001-01'],
+        memberIds: ['test-en-example-n'],
+        senseIds: ['test-en-example-n-0001-01'],
       };
-      expect(() => validateSynset(synsetWithMembers)).not.toThrow();
+      expect(validateSynset(synsetWithMembers)).toBe(true);
     });
   });
 
   describe('validateSense', () => {
     it('should validate a valid sense', () => {
-      expect(() => validateSense(validSense)).not.toThrow();
+      expect(validateSense(validSense)).toBe(true);
     });
 
     it('should throw error for missing ID', () => {
@@ -103,20 +119,20 @@ describe('Validation', () => {
       expect(() => validateSense(invalidSense)).toThrow(WnError);
     });
 
-    it('should throw error for missing word', () => {
-      const invalidSense = { ...validSense, word: '' };
+    it('should throw error for missing wordId', () => {
+      const invalidSense = { ...validSense, wordId: '' };
       expect(() => validateSense(invalidSense)).toThrow(WnError);
     });
 
-    it('should throw error for missing synset', () => {
-      const invalidSense = { ...validSense, synset: '' };
+    it('should throw error for missing synsetId', () => {
+      const invalidSense = { ...validSense, synsetId: '' };
       expect(() => validateSense(invalidSense)).toThrow(WnError);
     });
   });
 
   describe('validateWord', () => {
     it('should validate a valid word', () => {
-      expect(() => validateWord(validWord)).not.toThrow();
+      expect(validateWord(validWord)).toBe(true);
     });
 
     it('should throw error for missing ID', () => {
@@ -147,7 +163,7 @@ describe('Validation', () => {
 
   describe('validateRelation', () => {
     it('should validate a valid relation', () => {
-      expect(() => validateRelation(validRelation)).not.toThrow();
+      expect(validateRelation(validRelation)).toBe(true);
     });
 
     it('should throw error for missing ID', () => {
@@ -168,7 +184,7 @@ describe('Validation', () => {
 
   describe('validateWordnet', () => {
     it('should validate valid wordnet', () => {
-      expect(() => validateWordnet([validSynset])).not.toThrow();
+      expect(validateWordnet([validSynset])).toBe(true);
     });
 
     it('should throw error for invalid synset in wordnet', () => {
@@ -179,32 +195,32 @@ describe('Validation', () => {
     it('should detect circular references', () => {
       const synset1 = {
         ...validSynset,
-        id: 'synset1',
-        relations: [{ id: 'r1', type: 'hypernym', target: 'synset2' }],
+        id: 'en-n-0001',
+        relations: [{ id: 'r1', type: 'hypernym', target: 'en-n-0002' }],
       };
       const synset2 = {
         ...validSynset,
-        id: 'synset2',
-        relations: [{ id: 'r2', type: 'hypernym', target: 'synset1' }],
+        id: 'en-n-0002',
+        relations: [{ id: 'r2', type: 'hypernym', target: 'en-n-0001' }],
       };
       
       expect(() => validateWordnet([synset1, synset2])).toThrow(WnError);
     });
 
     it('should handle complex hierarchies without circular references', () => {
-      const root = { ...validSynset, id: 'root', relations: [] };
+      const root = { ...validSynset, id: 'en-n-0001', relations: [] };
       const child1 = {
         ...validSynset,
-        id: 'child1',
-        relations: [{ id: 'r1', type: 'hypernym', target: 'root' }],
+        id: 'en-n-0002',
+        relations: [{ id: 'r1', type: 'hypernym', target: 'en-n-0001' }],
       };
       const child2 = {
         ...validSynset,
-        id: 'child2',
-        relations: [{ id: 'r2', type: 'hypernym', target: 'root' }],
+        id: 'en-n-0003',
+        relations: [{ id: 'r2', type: 'hypernym', target: 'en-n-0001' }],
       };
       
-      expect(() => validateWordnet([root, child1, child2])).not.toThrow();
+      expect(validateWordnet([root, child1, child2])).toBe(true);
     });
   });
 }); 

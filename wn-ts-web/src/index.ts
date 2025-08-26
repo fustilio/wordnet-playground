@@ -62,7 +62,9 @@ export type {
   CrossLingualAnalysis,
   MappingCoverage,
   IntegrityReport,
-  CompatibilityReport
+  CompatibilityReport,
+  // Database persistence types
+  DatabaseStorageInfo
 } from './react/hooks/useWordNet.js';
 
 // Note: React hooks are not exported here to keep wn-ts-web framework-agnostic

@@ -1,8 +1,20 @@
 import React from 'react';
 import { Card } from '../shared/Card';
+import { useWordNetContext } from 'wn-ts-web/react';
 import type { WordNetState } from "wn-ts-web/react";
 
 export const StatusWidget: React.FC<WordNetState> = ({ isInitializing, loading, error, progress, progressStage, loadedPackages }) => {
+  const { clearCacheAndUnload, refreshPackages } = useWordNetContext();
+
+  const handleForceReload = async () => {
+    try {
+      await clearCacheAndUnload();
+      await refreshPackages();
+    } catch (error) {
+      console.error('Force reload failed:', error);
+    }
+  };
+
   return (
     <Card title="System Status">
       <div data-testid="system-status" className="space-y-4">
@@ -41,6 +53,18 @@ export const StatusWidget: React.FC<WordNetState> = ({ isInitializing, loading, 
           ) : (
             <p className="text-sm text-gray-500">No lexicons loaded.</p>
           )}
+        </div>
+
+        {/* Force Reload Button */}
+        <div className="pt-2">
+          <button
+            onClick={handleForceReload}
+            disabled={loading || isInitializing}
+            className="w-full px-3 py-2 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 text-sm"
+            title="Force reload all lexicons (clears cache and downloads fresh)"
+          >
+            🚀 Force Reload All
+          </button>
         </div>
       </div>
     </Card>

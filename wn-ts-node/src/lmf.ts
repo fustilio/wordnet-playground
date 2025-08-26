@@ -286,8 +286,8 @@ async function parseLMFStreaming(
         case 'sense':
           currentSense = {
             id: attributes.id || 'unknown-sense',
-            word: currentEntry?.id || 'unknown',
-            synset: attributes.synset || 'unknown-synset',
+            wordId: currentEntry?.id || 'unknown',
+            synsetId: attributes.synset || 'unknown-synset',
             counts: [],
             examples: [],
             tags: [],
@@ -303,7 +303,7 @@ async function parseLMFStreaming(
             language: currentLexicon?.language || 'en',
             lexicon: currentLexicon?.id || 'unknown',
             members: [],
-            senses: [],
+            sensesIds: [],
           };
           if (attributes.ili) {
             (currentSynset as any).ili = attributes.ili;
@@ -484,10 +484,10 @@ async function parseLMFStreaming(
           if (currentSense && currentEntry) {
             currentEntry.senses.push(currentSense);
             senses.push(currentSense);
-            if (!synsetToSenses.has(currentSense.synset)) {
-              synsetToSenses.set(currentSense.synset, []);
+            if (!synsetToSenses.has(currentSense.synsetId)) {
+              synsetToSenses.set(currentSense.synsetId, []);
             }
-            synsetToSenses.get(currentSense.synset)!.push(currentSense);
+            synsetToSenses.get(currentSense.synsetId)!.push(currentSense);
             if (debug) console.log(`[DEBUG] Added sense to entry: ${currentSense.id}`);
             currentSense = null;
           }
@@ -495,8 +495,8 @@ async function parseLMFStreaming(
         case 'synset':
           if (currentSynset && currentLexicon) {
             const synsetSenses = synsetToSenses.get(currentSynset.id) || [];
-            currentSynset.senses = synsetSenses.map(s => s.id);
-            currentSynset.members = synsetSenses.map(s => s.word);
+            currentSynset.senseIds = synsetSenses.map(s => s.id);
+            currentSynset.memberIds = synsetSenses.map(s => s.wordId);
             currentLexicon.synsets.push(currentSynset);
             synsets.push(currentSynset);
             if (debug) console.log(`[DEBUG] Added synset to lexicon: ${currentSynset.id}`);

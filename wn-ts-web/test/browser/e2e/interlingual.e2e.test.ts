@@ -291,7 +291,7 @@ describe.skipIf(isNode)('WordNet Interlingual Queries E2E', () => {
         expect(word.lemma).toBe('chat');
         expect(word.pos).toBeDefined();
         expect(word.language).toBe('en');
-        expect(word.lexicon).toBe('oewn');
+        expect(word.lexicon).toBe('oewn:2024');
       });
     });
 
@@ -310,7 +310,7 @@ describe.skipIf(isNode)('WordNet Interlingual Queries E2E', () => {
       
       // All words should be from our loaded lexicon
       allWords.forEach(word => {
-        expect(word.lexicon).toBe('oewn');
+        expect(word.lexicon).toBe('oewn:2024');
       });
       
       // Test filtering by part of speech

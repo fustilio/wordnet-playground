@@ -155,8 +155,8 @@ describe('LMF Node.js Implementation', () => {
         return;
       }
       expect(sense.id).toBe('test-sense');
-      expect(sense.word).toBe('test-word');
-      expect(sense.synset).toBe('test-synset');
+      expect(sense.wordId).toBe('test-word');
+      expect(sense.synsetId).toBe('test-synset');
     });
 
     it('should handle LMF 1.1 features', async () => {

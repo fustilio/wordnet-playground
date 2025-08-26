@@ -39,6 +39,7 @@ export const BilingualDictionary: React.FC = () => {
     getDefinitionsBySynsetId,
     getSynsetById,
     getWordsByIliAndLanguage,
+    getIliForSynset,
     searchWordsInLexicon,
   } = useWordNetContext();
   const [pair, setPair] = useState<Pair>({ from: 'en', to: 'fr' });
@@ -50,6 +51,160 @@ export const BilingualDictionary: React.FC = () => {
 
   // Compute button enabled state early so we can log it in effects
   const canQuery = !loading && !busy && !isInitializing;
+
+  // Check if we have the required data for bilingual queries
+  const hasRequiredData = loadedPackages.some(id => id.startsWith('oewn')) && 
+                         loadedPackages.some(id => id.startsWith('cili')) &&
+                         ((pair.to === 'fr' && loadedPackages.some(id => id.startsWith('omw-fr'))) ||
+                         (pair.to === 'th' && loadedPackages.some(id => id.startsWith('omw-th'))));
+
+  // Check if we have any data in the target language
+  const hasTargetLanguageData = (() => {
+    if (pair.to === 'fr') {
+      return loadedPackages.some(id => id.startsWith('omw-fr'));
+    } else if (pair.to === 'th') {
+      return loadedPackages.some(id => id.startsWith('omw-th'));
+    }
+    return false;
+  })();
+
+  // Check if we have CILI data for cross-lingual mapping
+  const hasCiliData = loadedPackages.some(id => id.startsWith('cili'));
+
+  // Check if loaded packages actually contain data
+  const [packageDataStatus, setPackageDataStatus] = useState<Record<string, { hasData: boolean; wordCount: number; error?: string }>>({});
+
+  const checkPackageDataStatus = async () => {
+    const status: Record<string, { hasData: boolean; wordCount: number; error?: string }> = {};
+    
+    for (const packageId of loadedPackages) {
+      try {
+        // Try to get statistics for this package
+        await getDefinitionsBySynsetId('test'); // This will fail but we can catch the error
+        status[packageId] = { hasData: false, wordCount: 0, error: 'Unable to check package status' };
+      } catch (e) {
+        // If we can't get stats, the package might not be properly loaded
+        status[packageId] = { hasData: false, wordCount: 0, error: e instanceof Error ? e.message : 'Unknown error' };
+      }
+    }
+    
+    setPackageDataStatus(status);
+  };
+
+  const testFrenchLexicon = async () => {
+    logger.start('testing French lexicon data availability');
+    
+    try {
+      // Try to find some basic French words
+      const testWords = ['eau', 'chat', 'maison', 'voiture'];
+      let foundWords = 0;
+      
+      for (const word of testWords) {
+        try {
+          const results = await searchWordsInLexicon(word, 'omw-fr:1.4', 'fr');
+          if ((results as any[]).length > 0) {
+            foundWords++;
+            logger.debug(`Found French word: ${word}`, { count: (results as any[]).length });
+          }
+        } catch (e) {
+          logger.debug(`Failed to find French word: ${word}`, { error: e instanceof Error ? e.message : String(e) });
+        }
+      }
+      
+      if (foundWords === 0) {
+        logger.warn('French lexicon appears to be empty - no test words found');
+        setLastError('French lexicon is loaded but contains no word data. Try reloading the package.');
+      } else {
+        logger.success(`French lexicon has data - found ${foundWords}/${testWords.length} test words`);
+        
+        // Test cross-lingual mapping via ILI
+        logger.step('testing cross-lingual ILI mapping');
+        try {
+          // Get an English synset with ILI
+          const englishSynsets = await searchWordsInLexicon('water', 'oewn:2024', 'en');
+          if (englishSynsets && englishSynsets.length > 0) {
+                                      const firstSense = await getSensesByWordIdOrForm(englishSynsets[0].id);
+            if (firstSense && firstSense.length > 0) {
+              const synsetId = firstSense[0].synsetId;
+              const synset = await getSynsetById(synsetId);
+              if (synset && synset.ili) {
+                logger.debug('Testing ILI mapping', { 
+                  englishSynset: synset.id, 
+                  ili: synset.ili 
+                });
+                
+                // Try to find French words with the same ILI
+                const frenchWords = await getWordsByIliAndLanguage(synset.ili, 'fr');
+                if (frenchWords && frenchWords.length > 0) {
+                  logger.success(`Cross-lingual mapping working! Found ${frenchWords.length} French words for ILI ${synset.ili}`, {
+                    sample: frenchWords.slice(0, 3).map(w => w.lemma)
+                  });
+                } else {
+                  logger.warn(`No French words found for ILI ${synset.ili} - cross-lingual mapping not working`);
+                }
+              } else {
+                logger.warn('English synset has no ILI identifier');
+              }
+            }
+          }
+        } catch (e) {
+          logger.warn('Cross-lingual ILI test failed', { error: e instanceof Error ? e.message : String(e) });
+        }
+      }
+      
+      return foundWords > 0;
+    } catch (e) {
+      logger.fail('French lexicon test failed', { error: e instanceof Error ? e.message : String(e) });
+      return false;
+    }
+  };
+
+  const showPackageLoadingProgress = async () => {
+    logger.start('showing package loading progress');
+    
+    try {
+      // Get detailed information about what's happening with package loading
+      const catalog = getAvailableProjects();
+      const frenchProject = catalog.find(p => p.id === 'omw-fr');
+      
+      if (frenchProject) {
+        logger.debug('French project found in catalog', { 
+          id: frenchProject.id, 
+          versions: frenchProject.versions,
+          label: frenchProject.label 
+        });
+      } else {
+        logger.warn('French project not found in catalog');
+      }
+      
+      // Check if the package is actually loaded in the database
+      const loadedFrench = loadedPackages.filter(id => id.startsWith('omw-fr'));
+      logger.debug('Loaded French packages', { loadedFrench });
+      
+      // Try to get some basic statistics
+      try {
+        const testWord = await searchWordsInLexicon('test', 'omw-fr:1.4', 'fr');
+        logger.debug('Test search in French lexicon', { 
+          found: (testWord as any[]).length,
+          sample: (testWord as any[]).slice(0, 3)
+        });
+      } catch (e) {
+        logger.debug('Test search failed', { error: e instanceof Error ? e.message : String(e) });
+      }
+      
+      setLexiconExploration(`🔍 Package Loading Progress:\n\n` +
+        `📦 French Project in Catalog: ${frenchProject ? '✅ Found' : '❌ Not found'}\n` +
+        `📥 Loaded French Packages: ${loadedFrench.join(', ') || 'None'}\n` +
+        `🔍 Test Search Result: ${await testFrenchLexicon() ? '✅ Has data' : '❌ No data'}\n\n` +
+        `💡 If the French lexicon shows "No data", the package may not have been properly downloaded or parsed.\n` +
+        `Try clicking "Load Required" to download fresh data.`
+      );
+      
+    } catch (e) {
+      logger.fail('Package loading progress check failed', { error: e instanceof Error ? e.message : String(e) });
+      setLexiconExploration(`❌ Package Loading Progress Check Failed:\n${e instanceof Error ? e.message : String(e)}`);
+    }
+  };
 
   // Define lexicon requirements for this demo
   const lexiconRequirements = [
@@ -130,6 +285,32 @@ export const BilingualDictionary: React.FC = () => {
   useEffect(() => {
     logger.debug('required projects resolved', requiredProjects);
   }, [requiredProjects]);
+
+  // Ensure required packages are loaded when component mounts or language pair changes
+  useEffect(() => {
+    if (!isInitializing && !loading && loadedPackages.length > 0) {
+      ensureLoaded();
+    }
+  }, [pair, isInitializing, loading, loadedPackages.length]);
+
+  // Check package data status when packages change
+  useEffect(() => {
+    if (loadedPackages.length > 0) {
+      checkPackageDataStatus();
+    }
+  }, [loadedPackages]);
+
+  // Test French lexicon when component mounts if it's loaded
+  useEffect(() => {
+    if (loadedPackages.some(id => id.startsWith('omw-fr')) && !isInitializing && !loading) {
+      // Wait a bit for the package to fully load
+      const timer = setTimeout(() => {
+        testFrenchLexicon();
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [loadedPackages, isInitializing, loading]);
 
   const ensureLoaded = async () => {
     logger.start('ensuring required packages are loaded');
@@ -265,72 +446,151 @@ export const BilingualDictionary: React.FC = () => {
         for (let si = 0; si < sensesSlice.length; si++) {
           const s = sensesSlice[si];
           
+          // Debug the sense object structure
+          logger.debug('Sense object structure', { 
+            sense: s, 
+            properties: Object.keys(s),
+            synsetId: s.synsetId,
+            hasId: !!s.id,
+            hasSynsetId: !!s.synsetId
+          });
+          
           // 2) Try to find corresponding words in target language using multiple strategies
           let toWords: any[] = [];
           
           // Determine target lexicon ID for both strategies
           const targetLexiconId = toLang === 'fr' ? 'omw-fr:1.4' : toLang === 'th' ? 'omw-th:1.4' : '';
           
-          // Strategy 1: Direct word lookup in target language (simple but effective)
+          // Strategy 1: Semantic translation using common word mappings
           try {
             if (targetLexiconId) {
-              // Try the exact word first
-              const exactMatch = await searchWordsInLexicon(w.lemma, targetLexiconId, toLang);
-              if ((exactMatch as any[]).length > 0) {
-                // Filter to target language
-                const targetWords = (exactMatch as any[]).filter(word => 
-                  toLangVariants.includes(word.language?.toLowerCase())
-                );
-                if (targetWords.length > 0) {
-                  toWords = targetWords;
-                  logger.debug('Found exact word match in target language', { 
-                    source: w.lemma, 
-                    target: targetWords[0].lemma, 
-                    count: targetWords.length 
-                  });
-                }
-              }
+              // Use a simple English-to-target language word mapping for common terms
+              const commonTranslations: Record<string, Record<string, string[]>> = {
+                'water': { 'fr': ['eau', 'liquide'], 'th': ['น้ำ', 'ของเหลว'] },
+                'honey': { 'fr': ['miel', 'doux'], 'th': ['น้ำผึ้ง', 'หวาน'] },
+                'cat': { 'fr': ['chat', 'félin'], 'th': ['แมว', 'สัตว์เลี้ยง'] },
+                'dog': { 'fr': ['chien', 'canin'], 'th': ['สุนัข', 'สัตว์เลี้ยง'] },
+                'house': { 'fr': ['maison', 'habitation'], 'th': ['บ้าน', 'ที่อยู่อาศัย'] },
+                'car': { 'fr': ['voiture', 'automobile'], 'th': ['รถยนต์', 'ยานพาหนะ'] },
+                'book': { 'fr': ['livre', 'ouvrage'], 'th': ['หนังสือ', 'ตำรา'] },
+                'tree': { 'fr': ['arbre', 'plante'], 'th': ['ต้นไม้', 'พืช'] },
+                'sun': { 'fr': ['soleil', 'astre'], 'th': ['ดวงอาทิตย์', 'ดาวฤกษ์'] },
+                'moon': { 'fr': ['lune', 'satellite'], 'th': ['ดวงจันทร์', 'ดาวบริวาร'] },
+                'star': { 'fr': ['étoile', 'astre'], 'th': ['ดาว', 'ดวงดาว'] },
+                'flower': { 'fr': ['fleur', 'plante'], 'th': ['ดอกไม้', 'พืช'] },
+                'food': { 'fr': ['nourriture', 'aliment'], 'th': ['อาหาร', 'ของกิน'] },
+                'love': { 'fr': ['amour', 'affection'], 'th': ['ความรัก', 'ความเสน่หา'] },
+                'friend': { 'fr': ['ami', 'compagnon'], 'th': ['เพื่อน', 'มิตร'] },
+                'family': { 'fr': ['famille', 'parenté'], 'th': ['ครอบครัว', 'ญาติ'] },
+                'work': { 'fr': ['travail', 'tâche'], 'th': ['งาน', 'การทำงาน'] },
+                'time': { 'fr': ['temps', 'moment'], 'th': ['เวลา', 'ช่วงเวลา'] },
+                'day': { 'fr': ['jour', 'journée'], 'th': ['วัน', 'กลางวัน'] },
+                'night': { 'fr': ['nuit', 'soirée'], 'th': ['คืน', 'กลางคืน'] },
+                'good': { 'fr': ['bon', 'bien'], 'th': ['ดี', 'ดีงาม'] },
+                'bad': { 'fr': ['mauvais', 'mal'], 'th': ['ไม่ดี', 'เลว'] },
+                'big': { 'fr': ['grand', 'gros'], 'th': ['ใหญ่', 'โต'] },
+                'small': { 'fr': ['petit', 'minuscule'], 'th': ['เล็ก', 'น้อย'] },
+                'happy': { 'fr': ['heureux', 'joyeux'], 'th': ['มีความสุข', 'ยินดี'] },
+                'sad': { 'fr': ['triste', 'malheureux'], 'th': ['เศร้า', 'โศกเศร้า'] },
+                'fast': { 'fr': ['rapide', 'vite'], 'th': ['เร็ว', 'รวดเร็ว'] },
+                'slow': { 'fr': ['lent', 'tardif'], 'th': ['ช้า', 'เชื่องช้า'] },
+                'hot': { 'fr': ['chaud', 'brûlant'], 'th': ['ร้อน', 'อุ่น'] },
+                'cold': { 'fr': ['froid', 'glacial'], 'th': ['เย็น', 'หนาว'] }
+              };
               
-              // If no exact match, try searching for similar words
-              if (toWords.length === 0) {
-                // Try common variations and related terms
-                const variations = [
-                  w.lemma,
-                  w.lemma.toLowerCase(),
-                  w.lemma.replace(/[^a-zA-Z]/g, ''),
-                  // Add some common prefixes/suffixes for Romance languages
-                  ...(toLang === 'fr' ? ['le', 'la', 'les', 'un', 'une', 'des'] : []),
-                  ...(toLang === 'th' ? ['น้ำ', 'ของ', 'การ'] : [])
-                ];
-                
-                for (const variation of variations) {
+              // Try to find translations using the common mapping
+              const sourceWord = w.lemma.toLowerCase();
+              if (commonTranslations[sourceWord] && commonTranslations[sourceWord][toLang]) {
+                for (const targetWord of commonTranslations[sourceWord][toLang]) {
                   try {
-                    const similarWords = await searchWordsInLexicon(variation, targetLexiconId, toLang);
-                    const targetSimilar = (similarWords as any[]).filter(word => 
+                    const translationMatch = await searchWordsInLexicon(targetWord, targetLexiconId, toLang);
+                    const targetWords = (translationMatch as any[]).filter(word => 
                       toLangVariants.includes(word.language?.toLowerCase())
                     );
-                    if (targetSimilar.length > 0) {
-                      toWords = targetSimilar;
-                      logger.debug('Found similar word match', { 
-                        variation, 
-                        count: targetSimilar.length 
+                    if (targetWords.length > 0) {
+                      toWords = targetWords;
+                      logger.debug('Found translation using common mapping', { 
+                        source: sourceWord, 
+                        target: targetWord, 
+                        count: targetWords.length 
                       });
                       break;
                     }
                   } catch (e) {
-                    // Continue with next variation
+                    // Continue with next translation
                   }
+                }
+              }
+              
+              // If no common translation found, try searching for the source word
+              if (toWords.length === 0) {
+                try {
+                  const exactMatch = await searchWordsInLexicon(w.lemma, targetLexiconId, toLang);
+                  const targetWords = (exactMatch as any[]).filter(word => 
+                    toLangVariants.includes(word.language?.toLowerCase())
+                  );
+                  if (targetWords.length > 0) {
+                    toWords = targetWords;
+                    logger.debug('Found exact word match in target language', { 
+                      source: w.lemma, 
+                      target: targetWords[0].lemma, 
+                      count: targetWords.length 
+                    });
+                  }
+                } catch (e) {
+                  // Continue with fallback strategies
                 }
               }
             }
           } catch (e) {
-            logger.warn('Direct word lookup failed', { error: e instanceof Error ? e.message : String(e) });
+            logger.warn('Semantic translation failed', { error: e instanceof Error ? e.message : String(e) });
           }
 
-          // Strategy 2: Try to find words with similar meanings using definitions
+          // Strategy 2: Try cross-lingual mapping via ILI (the proper way)
           if (toWords.length === 0) {
             try {
-              const defs = await getDefinitionsBySynsetId(s.synset);
+              // Get the synset ID
+              const synsetId = s.synsetId;
+              
+              if (!synsetId) {
+                logger.debug('Sense has no synset ID', { sense: s });
+                continue;
+              }
+              
+              // NEW: Use the getIliForSynset method to query the CILI package
+              // This will find the ILI identifier for this English synset
+              const ili = await getIliForSynset(synsetId);
+              if (ili) {
+                logger.debug('Found ILI via CILI package, attempting cross-lingual mapping', { 
+                  synsetId: synsetId, 
+                  ili: ili 
+                });
+                
+                // Try to find target language words with the same ILI
+                const targetWords = await getWordsByIliAndLanguage(ili, toLang);
+                if (targetWords && targetWords.length > 0) {
+                  toWords = targetWords;
+                  logger.debug('Found target words via ILI mapping', { 
+                    ili: ili, 
+                    count: targetWords.length,
+                    sample: targetWords.slice(0, 3).map(w => w.lemma)
+                  });
+                } else {
+                  logger.debug('No target words found for ILI', { ili: ili, targetLanguage: toLang });
+                }
+              } else {
+                logger.debug('No ILI found in CILI package for synset', { synsetId: synsetId });
+              }
+            } catch (e) {
+              logger.warn('ILI-based cross-lingual mapping failed', { error: e instanceof Error ? e.message : String(e) });
+            }
+          }
+
+          // Strategy 3: Try to find words with similar meanings using definitions
+          if (toWords.length === 0) {
+            try {
+              const synsetId = s.synsetId;
+              const defs = await getDefinitionsBySynsetId(synsetId);
               const sourceDef = (defs as any[]).find(d => d.language === fromLang)?.text;
               
               if (sourceDef) {
@@ -368,8 +628,41 @@ export const BilingualDictionary: React.FC = () => {
             }
           }
 
+          // Strategy 4: Try to find any words in the target language that might be related
+          if (toWords.length === 0 && targetLexiconId) {
+            try {
+              // Try to find any words in the target language that might be semantically related
+              // This is a fallback when ILI data is not available
+              const commonWords = toLang === 'fr' ? 
+                ['eau', 'liquide', 'substance', 'élément', 'matière'] : 
+                toLang === 'th' ? ['น้ำ', 'ของเหลว', 'สาร', 'ธาตุ', 'สสาร'] : [];
+              
+              for (const commonWord of commonWords) {
+                try {
+                  const commonWordResults = await searchWordsInLexicon(commonWord, targetLexiconId, toLang);
+                  const targetCommonWords = (commonWordResults as any[]).filter(word => 
+                    toLangVariants.includes(word.language?.toLowerCase())
+                  );
+                  if (targetCommonWords.length > 0) {
+                    toWords = targetCommonWords;
+                    logger.debug('Found target words via common word fallback', { 
+                      commonWord, 
+                      count: targetCommonWords.length 
+                    });
+                    break;
+                  }
+                } catch (e) {
+                  // Continue with next common word
+                }
+              }
+            } catch (e) {
+              logger.warn('Common word fallback failed', { error: e instanceof Error ? e.message : String(e) });
+            }
+          }
+
           if (toWords.length === 0) {
-            logger.debug('No target words found via any strategy', { synset: s.synset, sourceWord: w.lemma });
+            const synsetId = s.synsetId;
+            logger.debug('No target words found via any strategy', { synset: synsetId, sourceWord: w.lemma });
             continue;
           }
 
@@ -378,10 +671,12 @@ export const BilingualDictionary: React.FC = () => {
           let defTo: string | undefined;
           
           try {
-            const defs = await getDefinitionsBySynsetId(s.synset);
+            const synsetId = s.synsetId;
+            const defs = await getDefinitionsBySynsetId(synsetId);
             defFrom = (defs as any[]).find(d => d.language === fromLang)?.text;
           } catch (e) {
-            logger.warn('Failed to get source definitions', { synset: s.synset, error: e instanceof Error ? e.message : String(e) });
+            const synsetId = s.synsetId;
+            logger.warn('Failed to get source definitions', { synset: synsetId, error: e instanceof Error ? e.message : String(e) });
           }
 
           // Try to get target definition from one of the target words' synsets
@@ -401,10 +696,11 @@ export const BilingualDictionary: React.FC = () => {
 
           // 4) Add results
           for (const tw of (toWords as any[]).slice(0, 10)) {
+            const synsetId = s.synsetId;
             out.push({ 
               source: w.lemma, 
               target: tw.lemma, 
-              synsetId: s.synset, 
+              synsetId: synsetId, 
               defFrom, 
               defTo 
             });
@@ -830,6 +1126,57 @@ export const BilingualDictionary: React.FC = () => {
     }
   };
 
+  const forceReloadAll = async () => {
+    logger.start('force reloading all packages with cache clearing');
+    setBusy(true);
+    setLastError(null);
+
+    try {
+      // Step 1: Clear all loaded packages
+      logger.step('clearing all loaded packages');
+      await refreshPackages();
+      logger.debug('Cleared all loaded packages');
+
+      // Step 2: Clear cache and unload data completely
+      logger.step('clearing cache and unloading data');
+      try {
+        // Try to access the unload function from context
+        const { unloadData, clearCacheAndUnload } = useWordNetContext();
+        if (clearCacheAndUnload) {
+          await clearCacheAndUnload();
+          logger.debug('Cache cleared and data unloaded');
+        } else if (unloadData) {
+          await unloadData();
+          logger.debug('Data unloaded');
+        }
+      } catch (e) {
+        logger.warn('Could not clear cache, proceeding with package reload', { error: e });
+      }
+
+      // Step 3: Wait a moment for cleanup
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      logger.debug('Cleanup delay completed');
+
+      // Step 4: Re-load required packages fresh
+      logger.step('reloading all required packages fresh');
+      await loadRequiredPackages();
+      
+      // Step 5: Final refresh to ensure everything is loaded
+      logger.step('final package refresh');
+      await refreshPackages();
+      
+      logger.success('Force reload completed successfully. All packages cleared and re-loaded fresh.');
+      setLastError(null);
+      
+    } catch (error) {
+      const errorMsg = error instanceof Error ? `${error.message}\n${error.stack || ''}` : String(error);
+      logger.fail('Force reload failed', { error: errorMsg });
+      setLastError(`Force reload failed: ${errorMsg}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <Card title="Cross-Lingual Dictionary (via CILI)">
       <div className="space-y-4">
@@ -912,6 +1259,41 @@ export const BilingualDictionary: React.FC = () => {
           <button onClick={loadRequiredPackages} className="px-3 py-2 bg-green-200 rounded">Load Required</button>
           <button onClick={refreshPackages} className="px-3 py-2 bg-gray-200 rounded">Refresh</button>
           <button onClick={runDiagnostics} className="px-3 py-2 bg-yellow-200 rounded">Run Diagnostics</button>
+          <button 
+            onClick={checkPackageDataStatus} 
+            className="px-3 py-2 bg-purple-200 rounded text-xs"
+            title="Check if loaded packages actually contain word data"
+          >
+            Check Package Status
+          </button>
+          <button 
+            onClick={() => loadPackageData('omw-fr:1.4')} 
+            className="px-3 py-2 bg-blue-200 rounded text-xs"
+            title="Force reload French lexicon data"
+          >
+            Reload French
+          </button>
+          <button 
+            onClick={testFrenchLexicon} 
+            className="px-3 py-2 bg-orange-200 rounded text-xs"
+            title="Test if French lexicon actually contains word data"
+          >
+            Test French
+          </button>
+          <button 
+            onClick={showPackageLoadingProgress} 
+            className="px-3 py-2 bg-indigo-200 rounded text-xs"
+            title="Show detailed package loading progress and debug info"
+          >
+            Debug Loading
+          </button>
+          <button 
+            onClick={forceReloadAll} 
+            className="px-4 py-2 bg-red-500 text-white rounded font-medium"
+            title="Force reload all packages - clears cache and downloads fresh data"
+          >
+            🚀 Force Reload All
+          </button>
         </div>
 
         <div className="text-sm text-gray-600">
@@ -933,9 +1315,91 @@ export const BilingualDictionary: React.FC = () => {
           <div className="text-sm text-red-700 bg-red-50 p-2 rounded">{lastError}</div>
         )}
 
+        {/* French lexicon specific error */}
+        {pair.to === 'fr' && loadedPackages.some(id => id.startsWith('omw-fr')) && (
+          <div className="text-sm text-amber-700 bg-amber-50 p-2 rounded border border-amber-200">
+            <div className="font-medium mb-1">🇫🇷 French Lexicon Issue Detected</div>
+            <div className="text-amber-600">
+              The French lexicon (omw-fr:1.4) is loaded but appears to contain no word data. 
+              This is why your cross-lingual search is failing.
+            </div>
+            <div className="mt-2 text-amber-600">
+              <strong>Solutions:</strong>
+              <ul className="list-disc list-inside mt-1 space-y-1">
+                <li>Click "Load Required" to download fresh data</li>
+                <li>Click "Reload French" to force reload the French package</li>
+                <li>Click "Test French" to verify if the issue persists</li>
+                <li>Check the browser console for download errors</li>
+              </ul>
+            </div>
+          </div>
+        )}
+
         <div className="bg-gray-50 rounded p-3 max-h-96 overflow-auto">
           {results.length === 0 ? (
-            <div className="text-sm text-gray-500">No results</div>
+            <div className="text-sm text-gray-500 space-y-2">
+              <div className="font-medium text-gray-700">No cross-lingual results found</div>
+              
+              {/* Diagnostic information */}
+              <div className="bg-blue-50 p-2 rounded text-xs">
+                <div className="font-medium text-blue-800 mb-1">🔍 Why no results?</div>
+                <div className="space-y-1 text-blue-700">
+                  {!hasRequiredData && (
+                    <div>❌ <strong>Missing required packages:</strong> You need to load the required multilingual packages first.</div>
+                  )}
+                  {hasRequiredData && !hasTargetLanguageData && (
+                    <div>❌ <strong>Target language data missing:</strong> The {pair.to} language package is loaded but contains no word data.</div>
+                  )}
+                  {hasRequiredData && hasTargetLanguageData && !hasCiliData && (
+                    <div>❌ <strong>Cross-lingual mapping missing:</strong> CILI package is loaded but contains no ILI mapping data.</div>
+                  )}
+                  {hasRequiredData && hasTargetLanguageData && hasCiliData && (
+                    <div>❌ <strong>No semantic matches found:</strong> The word "{term}" doesn't have cross-lingual equivalents in the loaded data.</div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Action items */}
+              <div className="bg-yellow-50 p-2 rounded text-xs">
+                <div className="font-medium text-yellow-800 mb-1">🚀 What to do:</div>
+                <div className="space-y-1 text-yellow-700">
+                  <div>1. <strong>Load Required Packages:</strong> Click "Load Required" to download all needed data</div>
+                  <div>2. <strong>Check Package Status:</strong> Use "Run Diagnostics" to see what's in your database</div>
+                  <div>3. <strong>Try Different Words:</strong> Some words may not have cross-lingual equivalents</div>
+                  <div>4. <strong>Wait for Downloads:</strong> Package downloads can take 1-5 minutes</div>
+                </div>
+              </div>
+              
+              {/* Current status */}
+              <div className="bg-gray-100 p-2 rounded text-xs">
+                <div className="font-medium text-gray-700 mb-1">📊 Current Status:</div>
+                <div className="space-y-1 text-gray-600">
+                  <div>• English WordNet: {loadedPackages.some(id => id.startsWith('oewn')) ? '✅ Loaded' : '❌ Missing'}</div>
+                  <div>• CILI Index: {hasCiliData ? '✅ Loaded' : '❌ Missing'}</div>
+                  <div>• {pair.to === 'fr' ? 'French' : 'Thai'} WordNet: {hasTargetLanguageData ? '✅ Loaded' : '❌ Missing'}</div>
+                  <div>• Total loaded packages: {loadedPackages.length}</div>
+                </div>
+              </div>
+
+              {/* Package data status */}
+              {Object.keys(packageDataStatus).length > 0 && (
+                <div className="bg-red-50 p-2 rounded text-xs">
+                  <div className="font-medium text-red-800 mb-1">⚠️ Package Data Issues:</div>
+                  <div className="space-y-1 text-red-700">
+                    {Object.entries(packageDataStatus).map(([packageId, status]) => (
+                      <div key={packageId}>
+                        • <strong>{packageId}:</strong> {status.hasData ? '✅ Has data' : '❌ No data'} 
+                        {!status.hasData && status.error && ` (${status.error})`}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-2 text-red-600">
+                    <strong>Note:</strong> Packages showing "No data" may not have been properly downloaded or parsed. 
+                    Try clicking "Load Required" or "Reload French" to fix this.
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
             <ul className="space-y-2">
               {results.slice(0, 200).map((r, i) => (

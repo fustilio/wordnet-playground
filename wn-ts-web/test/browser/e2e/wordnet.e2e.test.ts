@@ -299,7 +299,7 @@ describe.skipIf(isNode)("WordNet E2E Tests - Basic Usage Patterns", () => {
       
       // All words should be from the loaded lexicon
       allWords.forEach(word => {
-        expect(word.lexicon).toBe("oewn");
+        expect(word.lexicon).toBe("oewn:2024");
       });
     });
 

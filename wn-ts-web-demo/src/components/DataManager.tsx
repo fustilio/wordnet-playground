@@ -170,6 +170,32 @@ export const DataManager: React.FC<DataManagerProps> = ({
               </>
             )}
           </button>
+
+          <button
+            onClick={async () => {
+              try {
+                await handleClearCacheAndUnload();
+                // After clearing cache, refresh packages to show available ones
+                await refreshCacheInfo();
+              } catch (error) {
+                console.error('Force reload failed:', error);
+              }
+            }}
+            disabled={loading}
+            className="w-full px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg transition-colors duration-200 flex items-center justify-center"
+          >
+            {loading ? (
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Force Reloading...
+              </div>
+            ) : (
+              <>
+                <span className="mr-2">🚀</span>
+                Force Reload All (Fresh Download)
+              </>
+            )}
+          </button>
         </div>
       </div>
 

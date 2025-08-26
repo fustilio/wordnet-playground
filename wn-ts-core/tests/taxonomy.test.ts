@@ -63,7 +63,7 @@ describe('Taxonomy', () => {
           { id: 'rel1', type: 'hypernym', target: 'test-thing-n', source: 'test' }
         ],
         members: ['entity'],
-        senses: ['test-entity-n-1'],
+        sensesIds: ['test-entity-n-1'],
         examples: []
       },
       {
@@ -77,7 +77,7 @@ describe('Taxonomy', () => {
           { id: 'rel2', type: 'hypernym', target: 'test-object-n', source: 'test' }
         ],
         members: ['thing'],
-        senses: ['test-thing-n-1'],
+        sensesIds: ['test-thing-n-1'],
         examples: []
       },
       {
@@ -89,7 +89,7 @@ describe('Taxonomy', () => {
         definitions: [],
         relations: [],
         members: ['object'],
-        senses: ['test-object-n-1'],
+        sensesIds: ['test-object-n-1'],
         examples: []
       }
     ];

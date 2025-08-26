@@ -105,15 +105,17 @@ describe('Morphy', () => {
         ],
       };
 
-      const wordsFn = async (query?: WordQuery): Promise<Word[]> => {
+      const mockWordnet = new TestWordnet();
+      
+      // Override the words method to return our mock data
+      mockWordnet.words = async (query?: WordQuery): Promise<Word[]> => {
         if (!query || !query.form) {
           return query?.pos ? mockWords[query.pos] || [] : [];
         }
         const wordsForPos = query.pos ? mockWords[query.pos] || [] : [];
         return wordsForPos.filter(w => w.lemma === query.form);
       };
-
-      const mockWordnet = new TestWordnet({ words: wordsFn });
+      
       const morphy = new Morphy(mockWordnet);
       
       // Should only return valid words

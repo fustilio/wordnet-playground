@@ -147,7 +147,7 @@ export class DatabaseUtils {
         eb
           .selectFrom('synsets')
           .select(eb.fn.countAll().as('ic'))
-          .whereRef('synsets.ili', '=', 'lexicons.id')
+          .whereRef('synsets.lexicon', '=', 'lexicons.id')
           .where('synsets.ili', 'is not', null)
           .as('ili_count'),
       ])
@@ -155,7 +155,7 @@ export class DatabaseUtils {
 
     const results = await query.execute();
 
-    return results.map((row: any) => ({
+    return results.map((row) => ({
       lexiconId: row.id,
       label: row.label,
       language: row.language,

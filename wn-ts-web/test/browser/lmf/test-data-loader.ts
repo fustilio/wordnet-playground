@@ -213,6 +213,71 @@ Spanish:
       description: 'E101-0: Duplicate ID in lexical entries - tests duplicate handling'
     },
     {
+      name: 'E101-1.xml',
+      content: `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE LexicalResource SYSTEM "http://globalwordnet.github.io/schemas/WN-LMF-1.0.dtd">
+<LexicalResource xmlns:dc="http://purl.org/dc/elements/1.1/">
+
+<!-- duplicate ID in senses -->
+
+  <Lexicon id="test-e101"
+           label="Testing E101"
+           language="en"
+           email="maintainer@example.com"
+           license="https://creativecommons.org/licenses/by/4.0/"
+           version="1">
+
+    <LexicalEntry id="test-e101-foo-n">
+      <Lemma partOfSpeech="n" writtenForm="foo" />
+      <Sense id="test-e101-foo" synset="test-e101-01-n" />
+    </LexicalEntry>
+
+    <LexicalEntry id="test-e101-bar-n">
+      <Lemma partOfSpeech="n" writtenForm="bar" />
+      <Sense id="test-e101-foo" synset="test-e101-01-n" />
+    </LexicalEntry>
+
+    <Synset id="test-e101-01-n" ili="i12345" partOfSpeech="n" />
+
+  </Lexicon>
+
+</LexicalResource>`,
+      description: 'E101-1: Duplicate ID in senses - tests duplicate handling'
+    },
+    {
+      name: 'E101-2.xml',
+      content: `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE LexicalResource SYSTEM "http://globalwordnet.github.io/schemas/WN-LMF-1.0.dtd">
+<LexicalResource xmlns:dc="http://purl.org/dc/elements/1.1/">
+
+<!-- duplicate ID in synsets -->
+
+  <Lexicon id="test-e101"
+           label="Testing E101"
+           language="en"
+           email="maintainer@example.com"
+           license="https://creativecommons.org/licenses/by/4.0/"
+           version="1">
+
+    <LexicalEntry id="test-e101-foo-n">
+      <Lemma partOfSpeech="n" writtenForm="foo" />
+      <Sense id="test-e101-foo" synset="test-e101-01-n" />
+    </LexicalEntry>
+
+    <LexicalEntry id="test-e101-bar-n">
+      <Lemma partOfSpeech="n" writtenForm="bar" />
+      <Sense id="test-e101-bar" synset="test-e101-01-n" />
+    </LexicalEntry>
+
+    <Synset id="test-e101-01-n" ili="i12345" partOfSpeech="n" />
+    <Synset id="test-e101-01-n" ili="i12346" partOfSpeech="n" />
+
+  </Lexicon>
+
+</LexicalResource>`,
+      description: 'E101-2: Duplicate ID in synsets - tests duplicate handling'
+    },
+    {
       name: 'simple-nested.xml',
       content: `<LexicalResource>
   <Lexicon id="test" language="en">

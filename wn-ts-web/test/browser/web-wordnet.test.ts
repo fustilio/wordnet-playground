@@ -80,8 +80,8 @@ describe.skipIf(isNode)('WebWordnet with Real Browser DB', () => {
     it.skipIf(!sqlModule)('should retrieve senses for a given word form', async () => {
       const senses = await wordnet.senses({ form: 'run', pos: 'v' });
       expect(senses).toHaveLength(1);
-      expect(senses[0].word).toBe('w-run');
-      expect(senses[0].synset).toBe('s-run');
+      expect(senses[0].wordId).toBe('w-run');
+      expect(senses[0].synsetId).toBe('s-run');
     });
 
     it.skipIf(!sqlModule)('should retrieve a word by its specific ID', async () => {

@@ -134,7 +134,7 @@ export function getProxyStatus(): {
  * Create a fetch wrapper that automatically handles proxy URLs
  */
 export function createProxiedFetch(config: ProxyConfig = defaultProxyConfig) {
-  return async (url: string, options?: RequestInit): Promise<Response> => {
+  return async (url: string): Promise<Response> => {
     const proxyUrl = toProxyUrl(url, config);
     
     // Log the proxying action

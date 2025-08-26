@@ -275,8 +275,8 @@ async function _addLmf(
       const senseRecords = lmfData.senses.map(sense => {
         const record: any = {
           id: sense.id,
-          word_id: sense.word,
-          synset_id: sense.synset,
+          word_id: sense.wordId,
+          synset_id: sense.synsetId,
         };
         if (sense.source) record.source = sense.source;
         if (sense.sensekey) record.sensekey = sense.sensekey;

@@ -45,3 +45,4 @@ packages:
   - wn-ts-web-demo
   - sqlite-opfs-demo
   - utils
+  - packages/xml-introspect

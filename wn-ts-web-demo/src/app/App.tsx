@@ -37,10 +37,39 @@ function App() {
     <div className="min-h-screen bg-gray-100 text-gray-800 font-sans">
       <header className="bg-white shadow-sm">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">WordNet TypeScript Demo</h1>
-          <p className="text-sm sm:text-base text-gray-600 mt-1">
-            An interactive demo for exploring the WordNet API in the browser using SQLite WASM and OPFS.
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">WordNet TypeScript Demo</h1>
+              <p className="text-sm sm:text-base text-gray-600 mt-1">
+                An interactive demo for exploring the WordNet API in the browser using SQLite WASM and OPFS.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => wordNetState.refreshPackages()}
+                disabled={wordNetState.loading}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white rounded-lg transition-colors duration-200 flex items-center gap-2"
+                title="Refresh available packages"
+              >
+                🔄 Refresh
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    await wordNetState.clearCacheAndUnload();
+                    await wordNetState.refreshPackages();
+                  } catch (error) {
+                    console.error('Force reload failed:', error);
+                  }
+                }}
+                disabled={wordNetState.loading}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-300 text-white rounded-lg transition-colors duration-200 flex items-center gap-2"
+                title="Force reload all lexicons (clears cache and downloads fresh)"
+              >
+                🚀 Force Reload
+              </button>
+            </div>
+          </div>
         </div>
       </header>
 

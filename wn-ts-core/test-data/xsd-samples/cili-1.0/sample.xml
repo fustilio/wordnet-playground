@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE LexicalResource SYSTEM "http://globalwordnet.github.io/schemas/WN-LMF-1.4.dtd">
+<LexicalResource xmlns:dc="https://globalwordnet.github.io/schemas/dc/">
+  <GlobalInformation>
+    <label>CILI 1.0</label>
+    <dc:title>Generated Sample for cili:1.0</dc:title>
+    <dc:creator>wn-ts-core XSD Sample Generator</dc:creator>
+    <dc:date>2024</dc:date>
+    <dc:format>WN-LMF 1.4</dc:format>
+  </GlobalInformation>
+  
+  <Lexicon id="cili" label="CILI 1.0" language="en" email="sample@example.com" license="MIT" version="1.0">
+    <!-- This is a placeholder sample. In production, this would contain actual synsets and lexical entries -->
+    <Synset id="sample-synset-1" ili="i10001" partOfSpeech="n" lexfile="noun.test">
+      <Definition>Sample definition for testing</Definition>
+    </Synset>
+    
+    <LexicalEntry id="sample-word-1">
+      <Lemma writtenForm="sample" partOfSpeech="n"/>
+      <Sense id="sample-sense-1" synset="sample-synset-1"/>
+    </LexicalEntry>
+  </Lexicon>
+</LexicalResource>

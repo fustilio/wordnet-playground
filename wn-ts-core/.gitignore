@@ -51,3 +51,10 @@ tmp/
 temp/ 
 
 __pycache__/
+
+# XML Data Files - Don't commit large XML files
+# But allow small sample files (under 5KB) and XSD schemas
+*.xml
+!test-data/xsd-samples/*/sample.xml
+!schemas/*.xsd
+!test-data/*/sample.xml

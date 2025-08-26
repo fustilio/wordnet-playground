@@ -124,6 +124,13 @@ export interface WordNetWorkerAPI {
       error?: string;
     }>;
     
+    // NEW: Find ILI identifier for a given synset by querying CILI package
+    getIliForSynset(synsetId: string): Promise<{
+      success: boolean;
+      data?: string; // The ILI identifier
+      error?: string;
+    }>;
+    
     getLexiconStatistics(): Promise<{
       success: boolean;
       data?: any[];
@@ -134,6 +141,29 @@ export interface WordNetWorkerAPI {
     getPartOfSpeechDistribution(): Promise<{
       success: boolean;
       data?: Record<string, number>;
+      error?: string;
+    }>;
+    
+    // Database persistence
+    flushDatabase(): Promise<{
+      success: boolean;
+      error?: string;
+    }>;
+    
+    // Database information
+    isDatabasePersistent(): Promise<{
+      success: boolean;
+      data?: boolean;
+      error?: string;
+    }>;
+    
+    getDatabaseStorageInfo(): Promise<{
+      success: boolean;
+      data?: {
+        type: 'opfs' | 'memory' | 'unknown';
+        persistent: boolean;
+        path?: string;
+      };
       error?: string;
     }>;
   }
