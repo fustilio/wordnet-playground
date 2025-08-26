@@ -38,11 +38,14 @@
     "./ic": {
       "types": "./dist/ic.d.ts",
       "default": "./dist/ic.js"
-          }
-    },
+    }
+  },
   "bin": {
     "wn-ts": "./bin/cli-stub.js"
   },
+  "files": [
+    "tools/"
+  ],
   "scripts": {
     "prebuild": "pnpm run clean",
     "build": "tsc && pnpm run copy-assets",
@@ -54,21 +57,18 @@
     "lint:fix": "eslint src --ext .ts --fix",
     "publish-package": "pnpm run build && changeset version && changeset publish",
     "test": "pnpm run test:func && pnpm run test:e2e",
-    "test:func": "vitest run --reporter=verbose --exclude \"**/*e2e.test.ts\"",
     "test:bench": "vitest bench --run",
     "test:coverage": "vitest run --coverage --reporter=verbose --exclude \"**/*e2e.test.ts\"",
     "test:e2e": "pnpm with-debug-logs vitest run --no-file-parallelism tests/e2e",
-    "test:ui": "vitest --ui --exclude \"**/*e2e.test.ts\"",
-    "test:verbose": "node scripts/test-verbose.js",
+    "test:func": "vitest run --reporter=verbose --exclude \"**/*e2e.test.ts\"",
     "test:lmf": "pnpm vitest lmf",
+    "test:ui": "vitest --ui --exclude \"**/*e2e.test.ts\"",
     "test:validation": "pnpm vitest validation",
+    "test:verbose": "node scripts/test-verbose.js",
+    "typecheck": "tsc --noEmit",
     "vitest": "pnpm with-debug-logs vitest run",
-    "with-debug-logs": "cross-env WN_TS_LOG_LEVEL=5",
-    "typecheck": "tsc --noEmit"
+    "with-debug-logs": "cross-env WN_TS_LOG_LEVEL=5"
   },
-  "files": [
-    "tools/"
-  ],
   "dependencies": {
     "@types/sax": "^1.2.7",
     "better-sqlite3": "^12.2.0",
@@ -79,12 +79,14 @@
     "pythonia": "catalog:",
     "sax": "^1.4.1",
     "smol-toml": "^1.4.1",
+    "tar-stream": "^3.1.7",
     "wn-ts-core": "workspace:*"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.7",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "catalog:",
+    "@types/tar-stream": "^3.1.4",
     "@typescript-eslint/eslint-plugin": "catalog:",
     "@typescript-eslint/parser": "catalog:",
     "@vitest/coverage-v8": "catalog:",

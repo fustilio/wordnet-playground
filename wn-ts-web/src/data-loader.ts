@@ -4,7 +4,8 @@ import {
   analyzeXMLContent,
 } from "./parsers/lmf/lmf-parser.js";
 import { Project } from "./project.js";
-import type { ProgressCallback } from "./types/progress.js";
+// Progress callback type that matches the worker client interface
+type ProgressCallback = (progress: number, stage?: string) => void;
 import { WebDatabase } from "./client/submodules/web-database.js";
 import { WebWordnet } from "./client/submodules/web-wordnet.js";
 import { createScopedLogger } from "utils/logger";
@@ -30,6 +31,7 @@ export interface DataLoadOptions {
 /**
  * Download and load WordNet data into the browser database
  * Mirrors wn-ts-node's data management patterns
+ * Now includes automatic dependency management
  */
 export class DataLoader {
   protected database: WebDatabase;
@@ -215,7 +217,9 @@ export class DataLoader {
   }
 
   /**
-   * Download a project from the web and load it into the database
+   * Download and load WordNet data into the browser database
+   * Mirrors wn-ts-node's data management patterns
+   * Now includes automatic dependency management
    */
   async downloadAndLoad(
     projectIdWithVersion: string,
@@ -244,6 +248,9 @@ export class DataLoader {
     if (versionError) {
       throw new Error(`Project version error: ${versionError}`);
     }
+
+    // 🔗 DEPENDENCY MANAGEMENT: Check and load required dependencies first
+    await this.ensureDependenciesLoaded(projectIdWithVersion);
 
     // Get URLs from the index data
     const urls = project.getAllUrls();
@@ -293,40 +300,23 @@ export class DataLoader {
           `📊 Loading data (${data.byteLength} bytes) into database...`
         );
 
-        this.logger.debug(
-          `🔍 Debug: About to call loadData with ${data.byteLength} bytes`
-        );
-        this.logger.debug(
-          `🔍 Debug: Data type: ${typeof data}, constructor: ${data.constructor.name}`
-        );
+        // Add timeout to prevent hanging during LMF processing
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('LMF data loading timeout after 15 minutes')), 900000);
+        });
 
-        this.logger.info(`🚀 Starting loadData for ${projectIdWithVersion}...`);
-        const startTime = Date.now();
-
-        try {
-          await this.loadData(data, projectIdWithVersion, progress);
-
-          const endTime = Date.now();
-          this.logger.info(
-            `✅ loadData completed successfully in ${endTime - startTime}ms`
-          );
-        } catch (error) {
-          this.logger.error(`❌ loadData failed:`, error);
-          throw error;
-        }
+        const loadPromise = this.loadData(data, projectIdWithVersion, progress);
+        
+        // Race between loading and timeout
+        await Promise.race([loadPromise, timeoutPromise]);
+        
+        this.logger.info(`💡 Deduplication skipped during parsing for better performance`);
+        this.logger.info(`💡 Any duplicates will be handled by the database constraints or can be cleaned up later`);
 
         this.logger.info(`✅ Successfully loaded ${projectIdWithVersion}`);
 
-        // Emit events after successful load
-        if (this.wordnet.emitDataChanged) {
-          this.wordnet.emitDataChanged("packageLoaded", {
-            packageId: projectIdWithVersion,
-            timestamp: new Date().toISOString(),
-          });
-
-          // Emit statistics updated event
-          await this.wordnet.emitStatisticsUpdated();
-        }
+        // Note: Events are now emitted by the orchestrator, not directly from WebWordnet
+        // The orchestrator will handle event emission when this method completes
 
         return; // Success, exit early
       } catch (error) {
@@ -367,21 +357,11 @@ export class DataLoader {
       } catch {}
       await this.insertLexicon(projectIdWithVersion);
 
-      // Emit events after successful load
-
-      this.wordnet.emitDataChanged("databaseLoaded", {
-        packageId: projectIdWithVersion,
-        dataSize: data.byteLength,
-        timestamp: new Date().toISOString(),
-      });
-
-      // Emit statistics updated event
-      await this.wordnet.emitStatisticsUpdated();
+      // Note: Events are now emitted by the orchestrator, not directly from WebWordnet
+      // The orchestrator will handle event emission when this method completes
     } catch (error) {
-      this.wordnet.emitError(
-        "loadDbFromBuffer",
-        error instanceof Error ? error : String(error)
-      );
+      // Note: Errors are now handled by the orchestrator, not directly from WebWordnet
+      // The orchestrator will handle error event emission when this method completes
       throw error;
     }
   }
@@ -560,12 +540,14 @@ export class DataLoader {
     projectIdWithVersion: string,
     progress?: ProgressCallback
   ): Promise<void> {
-    if (progress) progress(0.1);
+    if (progress) progress(0.05, 'Starting data processing...');
 
     // Use the new format processor to handle all decompression and format detection
     const formatProcessor = new FormatProcessor();
     
     this.logger.info(`🚀 Starting format processing for ${projectIdWithVersion}...`);
+    if (progress) progress(0.1, 'Processing data format...');
+    
     const formatResult = await formatProcessor.processData(data, {
       projectId: projectIdWithVersion,
       enableTarExtraction: true
@@ -635,13 +617,14 @@ export class DataLoader {
       );
 
       // Parse ILI TSV data
+      if (progress) progress(0.15, 'Parsing ILI data...');
       const iliData = await this.loadILI(xmlText);
       this.logger.info(`📊 Loaded ${iliData.length} ILI records`);
 
       // Yield to UI thread after ILI parsing to prevent freezing
       await new Promise((resolve) => setTimeout(resolve, 1));
 
-      if (progress) progress(0.5);
+      if (progress) progress(0.4, 'Inserting ILI data...');
 
       // Insert ILI data
       await this.insertILIData(iliData, projectIdWithVersion);
@@ -649,7 +632,7 @@ export class DataLoader {
       // Yield to UI thread after ILI data insertion to prevent freezing
       await new Promise((resolve) => setTimeout(resolve, 1));
 
-      if (progress) progress(1.0);
+      if (progress) progress(1.0, 'ILI data loaded successfully');
       this.logger.info(
         `✅ ILI data loaded successfully for ${projectIdWithVersion}`
       );
@@ -693,7 +676,7 @@ export class DataLoader {
       );
 
       // Lexicon information will be inserted from the file data
-      if (progress) progress(0.2);
+      if (progress) progress(0.2, 'XML content verified');
 
       this.logger.start(`processing LMF data for ${projectIdWithVersion}`);
       this.logger.step(`XML content verified`, {
@@ -703,6 +686,7 @@ export class DataLoader {
       // Use the proper LMF parsing pipeline for all LMF files
       try {
         this.logger.step(`starting LMF parsing`);
+        if (progress) progress(0.25, 'Starting LMF parsing...');
 
         // Import and use the proper LMF parser
         const { LmfParser } = await import("./parsers/lmf/lmf-parser.js");
@@ -741,16 +725,16 @@ export class DataLoader {
         // Yield to UI thread after XML parsing to prevent freezing
         await new Promise((resolve) => setTimeout(resolve, 1));
 
-        if (progress) progress(0.5);
+        if (progress) progress(0.5, 'LMF parsing completed, preparing database insertion...');
 
         // Insert the parsed data into the database
         this.logger.step(`inserting parsed data into database`);
-        await this.insertLMFData(lmfDocument, projectIdWithVersion);
+        await this.insertLMFData(lmfDocument, projectIdWithVersion, progress);
 
         // Yield to UI thread after data insertion to prevent freezing
         await new Promise((resolve) => setTimeout(resolve, 1));
 
-        if (progress) progress(1.0);
+        if (progress) progress(1.0, 'LMF data loaded successfully');
 
         this.logger.success(`LMF data loaded successfully`, {
           projectId: projectIdWithVersion,
@@ -816,16 +800,8 @@ export class DataLoader {
       }
     }
 
-    // Emit events after successful load
-    if (this.wordnet.emitDataChanged) {
-      this.wordnet.emitDataChanged("packageLoaded", {
-        packageId: projectIdWithVersion,
-        timestamp: new Date().toISOString(),
-      });
-
-      // Emit statistics updated event
-      await this.wordnet.emitStatisticsUpdated();
-    }
+    // Note: Events are now emitted by the orchestrator, not directly from WebWordnet
+    // The orchestrator will handle event emission when this method completes
   }
 
 
@@ -1003,7 +979,8 @@ export class DataLoader {
    */
   private async insertLMFData(
     lmfDocument: LMFDocument,
-    projectIdWithVersion: string
+    projectIdWithVersion: string,
+    progress?: ProgressCallback
   ): Promise<void> {
     this.logger.start(`inserting LMF data for ${projectIdWithVersion}`);
 
@@ -1470,23 +1447,112 @@ export class DataLoader {
   }
 
   /**
+   * 🔗 DEPENDENCY MANAGEMENT: Ensure all required dependencies are loaded
+   * This method automatically loads missing dependencies before loading dependent lexicons
+   */
+  private async ensureDependenciesLoaded(projectIdWithVersion: string): Promise<void> {
+    try {
+      // For now, implement a simple dependency system based on known patterns
+      // This can be enhanced later with proper XML parsing of Requires fields
+      
+      // Check if this is a dependent lexicon that needs English WordNet
+      const isDependentLexicon = this.isDependentLexicon(projectIdWithVersion);
+      
+      if (!isDependentLexicon) {
+        this.logger.debug(`📦 No dependencies for ${projectIdWithVersion}`);
+        return; // No dependencies to load
+      }
+
+      this.logger.info(`🔗 Checking dependencies for ${projectIdWithVersion}`);
+
+      // Check if English WordNet is already loaded
+      const loadedDeps = await this.getLoadedDependencies();
+      const needsEnglish = !loadedDeps.has('omw-en') && !loadedDeps.has('oewn:2024');
+
+      if (!needsEnglish) {
+        this.logger.info(`✅ All dependencies already loaded for ${projectIdWithVersion}`);
+        return;
+      }
+
+      this.logger.warn(`⚠️ Missing English WordNet dependency for ${projectIdWithVersion}`);
+      this.logger.info(`🔄 Loading English WordNet first...`);
+
+      try {
+        // Try to load English WordNet first with a timeout
+        const englishProjectId = 'oewn:2024'; // Use oewn:2024 instead of omw-en:1.4 for better compatibility
+        this.logger.info(`📥 Loading dependency: ${englishProjectId}`);
+        
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Dependency loading timeout after 10 minutes')), 600000);
+        });
+        
+        const loadPromise = this.downloadAndLoad(englishProjectId);
+        
+        // Race between loading and timeout
+        await Promise.race([loadPromise, timeoutPromise]);
+        
+        this.logger.info(`✅ Dependency loaded: ${englishProjectId}`);
+      } catch (error) {
+        this.logger.error(`❌ Failed to load English WordNet dependency:`, error);
+        this.logger.warn(`⚠️ Continuing without English dependency - cross-lingual functionality will be limited`);
+      }
+
+      this.logger.info(`✅ Dependency loading completed for ${projectIdWithVersion}`);
+    } catch (error) {
+      this.logger.warn(`⚠️ Dependency check failed for ${projectIdWithVersion}:`, error);
+      // Don't throw - continue with loading the main project
+    }
+  }
+
+  /**
+   * Check if a lexicon is dependent on other lexicons
+   */
+  private isDependentLexicon(projectIdWithVersion: string): boolean {
+    // Known dependent lexicons that require English WordNet
+    const dependentLexicons = [
+      'omw-fr:1.4',  // French WordNet
+      'omw-de:1.4',  // German WordNet
+      'omw-ja:1.4',  // Japanese WordNet
+      'omw-zh:1.4',  // Chinese WordNet
+      'omw-es:1.4',  // Spanish WordNet
+      'omw-it:1.4',  // Italian WordNet
+      'omw-pt:1.4',  // Portuguese WordNet
+      'omw-ru:1.4',  // Russian WordNet
+    ];
+    
+    return dependentLexicons.includes(projectIdWithVersion);
+  }
+
+  /**
+   * Get a set of currently loaded dependency IDs
+   */
+  private async getLoadedDependencies(): Promise<Set<string>> {
+    try {
+      const queryService = this.getQueryService();
+      if (!queryService) {
+        return new Set();
+      }
+
+      // Get all loaded lexicons
+      const lexicons = await queryService.getLexicons();
+      return new Set(lexicons.map(l => l.id));
+    } catch (error) {
+      this.logger.warn("Failed to get loaded dependencies:", error);
+      return new Set();
+    }
+  }
+
+  /**
    * Clear all data from the database
    */
   async clearAllData(): Promise<void> {
     try {
       await this.database.clearAllData();
 
-      // Emit events after successful clear
-      if (this.wordnet.emitDataChanged) {
-        this.wordnet.emitDataChanged("databaseCleared", {
-          timestamp: new Date().toISOString(),
-        });
-
-        // Emit statistics updated event
-        await this.wordnet.emitStatisticsUpdated();
-      }
+      // Note: Events are now emitted by the orchestrator, not directly from WebWordnet
     } catch (error) {
-      this.wordnet.emitError("clearAllData", error as Error);
+      // Re-throw the error without emitting events
       throw error;
     }
   }

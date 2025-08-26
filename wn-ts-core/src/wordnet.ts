@@ -58,7 +58,7 @@ export abstract class BaseWordnet {
       this.lemmatizer = options.lemmatizer;
     }
     this.searchAllForms = options.searchAllForms !== false; // Default to true
-    this.lang = options.lang;
+    this.lang = options.language;
   }
 
   // ============================================================================

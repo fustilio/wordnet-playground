@@ -338,7 +338,7 @@ describe.skipIf(isNode)('WordNet Interlingual Queries E2E', () => {
       });
       
       // Test that we can filter by language (though we only have English)
-      const filteredWords = await wordnet.words({ form: 'happy', lang: 'en' });
+      const filteredWords = await wordnet.words({ form: 'happy', language: 'en' });
       expect(filteredWords.length).toBeGreaterThan(0);
       expect(filteredWords.length).toBe(enWords.length);
     });

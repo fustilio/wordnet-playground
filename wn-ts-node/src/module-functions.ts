@@ -135,18 +135,8 @@ export async function synset(
 }
 
 export async function synsets(
-  form?: string,
-  pos?: PartOfSpeech,
-  options?: { lexicon?: string }
+  query: SynsetQuery
 ): Promise<Synset[]> {
-  if (!form) {
-    return [];
-  }
-  
-  const query: SynsetQuery = { form };
-  if (pos) query.pos = pos;
-  if (options?.lexicon) query.lexicon = options.lexicon;
-  
   return getDefaultClient().synsets(query);
 }
 

@@ -1,17 +1,25 @@
 /**
  * Kysely-based WordNet implementation for Node.js
- * 
+ *
  * This class extends KyselyBaseWordnet to provide a complete WordNet implementation
  * using Kysely for type-safe database queries and better-sqlite3 for storage.
  */
 
 import type {
-  Word, Sense, Synset, ILI, Project, PartOfSpeech, Lexicon,
+  Word,
+  Sense,
+  Synset,
+  ILI,
+  Project,
+  PartOfSpeech,
+  Lexicon,
   WordQuery,
+  SynsetQuery,
+  SenseQuery,
 } from 'wn-ts-core';
 import { Kysely } from 'kysely';
 import type { NodeDatabaseConfig } from 'wn-ts-core';
-import { NodeKyselyDatabase,  } from './database/node-kysely-database.js';
+import { NodeKyselyDatabase } from './database/node-kysely-database.js';
 import { KyselyQueryService } from './database/kysely-query-service.js';
 import { batchInsert } from 'wn-ts-core';
 import type { Database } from './database/types/database.js';
@@ -35,7 +43,7 @@ export abstract class LocalBaseWordnet {
   protected expand: string[] = [];
   protected normalizer?: (form: string) => string;
 
-  constructor(lexicon: string | string[] = "*", options: any = {}) {
+  constructor(lexicon: string | string[] = '*', options: any = {}) {
     this.lexicon = Array.isArray(lexicon) ? lexicon : [lexicon];
     this.normalizer = options.normalizer;
   }
@@ -44,7 +52,7 @@ export abstract class LocalBaseWordnet {
 
   protected getDb(): Kysely<Database> {
     if (!this.initialized) {
-      throw new Error("Database not initialized. Call initialize() first.");
+      throw new Error('Database not initialized. Call initialize() first.');
     }
     return this.database.getDatabase();
   }
@@ -78,7 +86,10 @@ export class KyselyWordnet extends LocalBaseWordnet {
   private nodeDatabase: NodeKyselyDatabase;
   private queryService!: KyselyQueryService;
 
-  constructor(lexicon: string | string[] = "*", options: Partial<NodeWordnetConfig> = {}) {
+  constructor(
+    lexicon: string | string[] = '*',
+    options: Partial<NodeWordnetConfig> = {}
+  ) {
     const { filename, forceRecreate, ...wordnetOptions } = options;
     super(lexicon, wordnetOptions);
 
@@ -86,9 +97,9 @@ export class KyselyWordnet extends LocalBaseWordnet {
       throw new Error('filename is required for NodeWordnetConfig');
     }
 
-    this.nodeDatabase = new NodeKyselyDatabase({ 
-      filename, 
-      ...(forceRecreate !== undefined && { forceRecreate }) 
+    this.nodeDatabase = new NodeKyselyDatabase({
+      filename,
+      ...(forceRecreate !== undefined && { forceRecreate }),
     });
     // Assign the database property to the parent class
     (this as any).database = this.nodeDatabase;
@@ -136,7 +147,7 @@ export class KyselyWordnet extends LocalBaseWordnet {
     return this.queryService.getWords();
   }
 
-  async synsets(query?: any): Promise<Synset[]> {
+  async synsets(query?: SynsetQuery): Promise<Synset[]> {
     if (query && Object.keys(query).length > 0) {
       return this.queryService.getSynsets(query);
     }
@@ -144,7 +155,7 @@ export class KyselyWordnet extends LocalBaseWordnet {
     return this.queryService.getSynsets();
   }
 
-  async senses(query?: any): Promise<Sense[]> {
+  async senses(query?: SenseQuery): Promise<Sense[]> {
     if (query && Object.keys(query).length > 0) {
       return this.queryService.getSenses(query);
     }
@@ -189,7 +200,7 @@ export class KyselyWordnet extends LocalBaseWordnet {
       .selectAll()
       .where('ili', '=', iliId)
       .execute();
-    
+
     const fullSynsets: Synset[] = [];
     for (const synset of synsets) {
       const fullSynset = await this.getSynsetOrUndefined(synset.id);
@@ -240,7 +251,10 @@ export class KyselyWordnet extends LocalBaseWordnet {
     return word?.lemma || '';
   }
 
-  async morphy(form: string, pos?: PartOfSpeech): Promise<Record<PartOfSpeech, Set<string>>> {
+  async morphy(
+    form: string,
+    pos?: PartOfSpeech
+  ): Promise<Record<PartOfSpeech, Set<string>>> {
     // TODO: Implement morphological analysis
     const result: Record<PartOfSpeech, Set<string>> = {} as any;
     if (pos) {
@@ -262,7 +276,7 @@ export class KyselyWordnet extends LocalBaseWordnet {
       .where('source_id', '=', synsetId)
       .where('type', '=', 'hypernym')
       .execute();
-    
+
     const synsets: Synset[] = [];
     for (const rel of relations) {
       const synset = await this.getSynsetOrUndefined(rel.target_id);
@@ -281,7 +295,7 @@ export class KyselyWordnet extends LocalBaseWordnet {
       .where('source_id', '=', synsetId)
       .where('type', '=', 'hyponym')
       .execute();
-    
+
     const synsets: Synset[] = [];
     for (const rel of relations) {
       const synset = await this.getSynsetOrUndefined(rel.target_id);
@@ -300,7 +314,7 @@ export class KyselyWordnet extends LocalBaseWordnet {
       .where('source_id', '=', synsetId)
       .where('type', '=', relationType)
       .execute();
-    
+
     const synsets: Synset[] = [];
     for (const rel of relations) {
       const synset = await this.getSynsetOrUndefined(rel.target_id);
@@ -326,7 +340,10 @@ export class KyselyWordnet extends LocalBaseWordnet {
     return 0;
   }
 
-  async translateWord(_wordId: string, _targetLang: string): Promise<Record<string, Word[]>> {
+  async translateWord(
+    _wordId: string,
+    _targetLang: string
+  ): Promise<Record<string, Word[]>> {
     // TODO: Implement cross-lingual mappings
     return {};
   }
@@ -344,7 +361,10 @@ export class KyselyWordnet extends LocalBaseWordnet {
     return [];
   }
 
-  async getCrossLingualSynsets(_iliId: string, _targetLangs?: string[]): Promise<Record<string, Synset[]>> {
+  async getCrossLingualSynsets(
+    _iliId: string,
+    _targetLangs?: string[]
+  ): Promise<Record<string, Synset[]>> {
     // TODO: Implement cross-lingual lookup
     return {};
   }
@@ -382,7 +402,7 @@ export class KyselyWordnet extends LocalBaseWordnet {
       .selectAll('words')
       .where('senses.synset_id', '=', synsetId)
       .execute();
-    
+
     // Transform database records to Word objects
     return words.map(word => ({
       id: word.id,
@@ -409,7 +429,7 @@ export class KyselyWordnet extends LocalBaseWordnet {
       .selectAll()
       .where('synset_id', '=', synsetId)
       .execute();
-    
+
     // Transform database records to Sense objects
     return senses.map(sense => ({
       id: sense.id,
@@ -451,13 +471,18 @@ export class KyselyWordnet extends LocalBaseWordnet {
     return this.getDb();
   }
 
-  async executeRawQuery<T = any>(_sqlString: string, _params: any[] = []): Promise<T[]> {
+  async executeRawQuery<T = any>(
+    _sqlString: string,
+    _params: any[] = []
+  ): Promise<T[]> {
     // TODO: Implement raw query execution when proper Kysely raw SQL support is available
     // For now, throw an error to indicate this feature is not yet implemented
     throw new Error('Raw query execution not yet implemented in Kysely version');
   }
 
-  async executeRawTransaction<T>(callback: (db: Kysely<Database>) => Promise<T>): Promise<T> {
+  async executeRawTransaction<T>(
+    callback: (db: Kysely<Database>) => Promise<T>
+  ): Promise<T> {
     const db = this.getDb();
     return db.transaction().execute(callback);
   }
@@ -508,5 +533,12 @@ export class KyselyWordnet extends LocalBaseWordnet {
    */
   getQueryService(): KyselyQueryService {
     return this.queryService;
+  }
+
+  /**
+   * Get words by ILI and language using the query service
+   */
+  async getWordsByIliAndLanguage(ili: string, language?: string): Promise<Word[]> {
+    return this.queryService.getWordsByIliAndLanguage(ili, language);
   }
 }

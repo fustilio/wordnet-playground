@@ -47,7 +47,7 @@ export abstract class BaseKyselyQueryService {
       form,
       pos,
       lexicon,
-      lang,
+      language: lang,
       searchAllForms = false,
       fuzzy = false,
       maxResults,
@@ -145,13 +145,8 @@ export abstract class BaseKyselyQueryService {
       searchAllForms = false,
       ili,
       fuzzy = false,
-      maxResults,
-      includeDefinitions = false,
-      includeExamples = false,
-      includeRelations = false
+      maxResults
     } = options;
-    
-    console.log(`🔍 getSynsets called with lexicon: "${lexicon}" (type: ${typeof lexicon})`);
 
     // Start with synsets query and apply lexicon filtering first
     let synsetQuery = this.db
@@ -162,11 +157,9 @@ export abstract class BaseKyselyQueryService {
       if (Array.isArray(lexicon)) {
         if (lexicon.length > 0) {
           synsetQuery = synsetQuery.where('synsets.lexicon', 'in', lexicon);
-          console.log(`🔍 Filtering synsets by lexicon IN: [${lexicon.join(', ')}]`);
         }
       } else {
         synsetQuery = synsetQuery.where('synsets.lexicon', '=', lexicon);
-        console.log(`🔍 Filtering synsets by lexicon =: ${lexicon}`);
       }
     }
 
@@ -180,150 +173,45 @@ export abstract class BaseKyselyQueryService {
       synsetQuery = synsetQuery.where('synsets.ili', '=', ili);
     }
 
-    // If we have form or POS filtering, we need to join with senses and words
-    // But we need to ensure the join respects the lexicon filter
+    // If we have form or POS filtering, use a subquery to find matching synset IDs
     if (form || pos) {
-      // Join with senses and words, but ensure words are from the same lexicon as synsets
-      let query = synsetQuery
+      const matchingSynsetIdsQuery = this.db
+        .selectFrom('words')
+        .innerJoin('senses', 'senses.word_id', 'words.id')
+        .select('senses.synset_id')
         .distinct()
-        .innerJoin('senses', 'synsets.id', 'senses.synset_id')
-        .innerJoin('words', 'senses.word_id', 'words.id');
-      
-      console.log(`🔍 Final query structure: synsets -> senses -> words with lexicon-aware join`);
-
-      // Handle part of speech filtering
-      if (pos) {
-        query = query.where('words.pos', '=', pos);
-      }
-
-      // Handle form searching with enhanced capabilities
-      if (form) {
-        const searchTerm = fuzzy ? `%${form.toLowerCase()}%` : form.toLowerCase();
-        
-        if (searchAllForms) {
-          // For synsets, we need to handle the join differently to avoid type issues
-          // We'll search in a separate query and filter the results
-          const wordsWithForms = await this.db
-            .selectFrom('words')
-            .leftJoin('forms', 'words.id', 'forms.word_id')
-            .select('words.id')
-            .where((eb) =>
-              eb.or([
-                eb(sql`lower(words.lemma)`, 'like', searchTerm),
-                eb(sql`lower(forms.written_form)`, 'like', searchTerm),
-              ])
-            )
-            .execute();
+        .$if(!!pos, qb => qb.where('words.pos', '=', pos!))
+        .$if(!!form, qb => {
+          if (!form) return qb; // Early return if form is undefined
+          const searchTerm = fuzzy ? `%${form.toLowerCase()}%` : form.toLowerCase();
+          const operator = fuzzy ? 'like' : '=';
           
-          const wordIds = wordsWithForms.map(w => w.id);
-          if (wordIds.length > 0) {
-            query = query.where('words.id', 'in', wordIds);
+          if (searchAllForms) {
+            return qb
+              .leftJoin('forms', 'forms.word_id', 'words.id')
+              .where(eb => eb.or([
+                eb(sql`lower(words.lemma)`, operator, searchTerm),
+                eb(sql`lower(forms.written_form)`, operator, searchTerm)
+              ]));
           } else {
-            // No words found with this form, return empty result
-            return [];
+            return qb.where(sql`lower(words.lemma)`, operator, searchTerm);
           }
-        } else {
-          // Only search lemma
-          if (fuzzy) {
-            query = query.where(sql`lower(words.lemma)`, 'like', searchTerm);
-          } else {
-            query = query.where(sql`lower(words.lemma)`, '=', searchTerm);
-          }
-        }
-      }
-
-      // Apply max results limit
-      if (maxResults) {
-        query = query.limit(maxResults);
-      }
-
-      const results = await query.execute();
-      const synsets = await Promise.all((results || []).map(this.transformSynsetRecord.bind(this)));
-
-      // Enhance synsets with additional data if requested
-      if (includeDefinitions || includeExamples || includeRelations) {
-        for (const synset of synsets) {
-          if (includeDefinitions) {
-            const definitions = await this.getDefinitionsBySynsetId(synset.id);
-            synset.definitions = definitions.map(d => ({
-              id: d.id,
-              language: d.language,
-              text: d.text,
-              source: d.source || '',
-            }));
-          }
-          
-          if (includeExamples) {
-            const examples = await this.getExamplesBySynsetId(synset.id);
-            synset.examples = examples.map(ex => ({
-              id: ex.id,
-              language: ex.language,
-              text: ex.text,
-              source: ex.source || '',
-            }));
-          }
-          
-          if (includeRelations) {
-            const relations = await this.getRelationsBySynsetId(synset.id);
-            synset.relations = relations.map(rel => ({
-              id: rel.id,
-              type: rel.type,
-              target: rel.target_id,
-              source: rel.source || '',
-            }));
-          }
-        }
-      }
-
-      return synsets;
-    } else {
-      // No form or POS filtering needed, just return filtered synsets
-      console.log(`🔍 Final query structure: synsets only (no joins needed)`);
+        });
       
-      if (maxResults) {
-        synsetQuery = synsetQuery.limit(maxResults);
-      }
-
-      const results = await synsetQuery.execute();
-      const synsets = await Promise.all((results || []).map(this.transformSynsetRecord.bind(this)));
-
-      // Enhance synsets with additional data if requested
-      if (includeDefinitions || includeExamples || includeRelations) {
-        for (const synset of synsets) {
-          if (includeDefinitions) {
-            const definitions = await this.getDefinitionsBySynsetId(synset.id);
-            synset.definitions = definitions.map(d => ({
-              id: d.id,
-              language: d.language,
-              text: d.text,
-              source: d.source || '',
-            }));
-          }
-          
-          if (includeExamples) {
-            const examples = await this.getExamplesBySynsetId(synset.id);
-            synset.examples = examples.map(ex => ({
-              id: ex.id,
-              language: ex.language,
-              text: ex.text,
-              source: ex.source || '',
-            }));
-          }
-          
-          if (includeRelations) {
-            const relations = await this.getRelationsBySynsetId(synset.id);
-            synset.relations = relations.map(rel => ({
-              id: rel.id,
-              type: rel.type,
-              target: rel.target_id,
-              source: rel.source || '',
-            }));
-          }
-        }
-      }
-
-      return synsets;
+      synsetQuery = synsetQuery.where('id', 'in', matchingSynsetIdsQuery);
     }
+
+    // Apply limit if specified
+    if (maxResults) {
+      synsetQuery = synsetQuery.limit(maxResults);
+    }
+
+    const results = await synsetQuery.execute();
+    const transformedSynsets: Synset[] = [];
+    for (const record of results || []) {
+      transformedSynsets.push(await this.transformSynsetRecord(record));
+    }
+    return transformedSynsets;
   }
 
   async getSynsetById(id: string): Promise<Synset | undefined> {
@@ -498,26 +386,12 @@ export abstract class BaseKyselyQueryService {
   }
 
   protected async transformSynsetRecord(record: any): Promise<Synset> {
-    // Get definitions for this synset
-    const definitionRecords = await this.db
-      .selectFrom('definitions')
-      .selectAll()
-      .where('synset_id', '=', record.id)
-      .execute();
-    
-    // Get member words for this synset (via senses)
-    const memberWords = await this.db
-      .selectFrom('senses')
-      .select('word_id')
-      .where('synset_id', '=', record.id)
-      .execute();
-    
-    // Get senses for this synset
-    const senseRecords = await this.db
-      .selectFrom('senses')
-      .selectAll()
-      .where('synset_id', '=', record.id)
-      .execute();
+    // Get related data for this synset
+    const definitionRecords = await this.getDefinitionsBySynsetId(record.id);
+    const exampleRecords = await this.getExamplesBySynsetId(record.id);
+    const relationRecords = await this.getRelationsBySynsetId(record.id);
+    const memberWords = await this.db.selectFrom('senses').select('word_id').where('synset_id', '=', record.id).execute();
+    const senseRecords = await this.db.selectFrom('senses').selectAll().where('synset_id', '=', record.id).execute();
     
     const result: Synset = {
       id: record.id,
@@ -530,8 +404,18 @@ export abstract class BaseKyselyQueryService {
         text: d.text,
         source: d.source || '',
       })),
-      examples: [],
-      relations: [],
+      examples: exampleRecords.map(ex => ({
+        id: ex.id,
+        language: ex.language,
+        text: ex.text,
+        source: ex.source || '',
+      })),
+      relations: relationRecords.map(rel => ({
+        id: rel.id,
+        type: rel.type,
+        target: rel.target_id,
+        source: rel.source || '',
+      })),
       memberIds: memberWords.map(w => w.word_id), // Populate with actual word IDs
       senseIds: senseRecords.map(s => s.id), // Populate with actual sense IDs
     };

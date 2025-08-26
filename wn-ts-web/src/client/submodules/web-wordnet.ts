@@ -25,8 +25,6 @@ import { KyselyQueryService } from "../../database/kysely-query-service.js";
 import type { Database } from "../../types/database.js";
 import { Kysely } from "kysely";
 import { createSqliteWasmDialect } from "../../database/sqlite-wasm-dialect.js";
-import { WordNetEventEmitter, WordNetEvents } from "../../event-emitter.js";
-import type { EventCallback } from "../../event-emitter.js";
 import type { Sqlite3Static } from "@sqlite.org/sqlite-wasm";
 import { createScopedLogger } from "utils/logger";
 
@@ -38,6 +36,9 @@ const logger = createScopedLogger("WebWordnet");
  * 
  * This class is designed to work alongside WordNetOrchestrator, which handles
  * higher-level operations like lexicon management and cross-lexicon queries.
+ * 
+ * NOTE: Event emission is now handled by the orchestrator to avoid duplication.
+ * This class focuses purely on database operations and WordNet queries.
  */
 export class WebWordnet extends BaseWordnet {
   private database: WebDatabase;
@@ -52,7 +53,9 @@ export class WebWordnet extends BaseWordnet {
   private _searchAllForms: boolean;
   private _lang?: string;
   private initialized = false;
-  private eventEmitter: WordNetEventEmitter;
+  
+  // Event emitter removed - events are now handled by the orchestrator
+  // private eventEmitter: WordNetEventEmitter;
 
   constructor(lexicon: string | string[] = "*", options: WordnetOptions = {}) {
     // Create options object with lexicon property
@@ -71,7 +74,8 @@ export class WebWordnet extends BaseWordnet {
     }
 
     this.database = new WebDatabase();
-    this.eventEmitter = new WordNetEventEmitter();
+    // Event emitter removed - events are now handled by the orchestrator
+    // this.eventEmitter = new WordNetEventEmitter();
     
     this._expand = Array.isArray(options.expand)
       ? options.expand
@@ -82,8 +86,8 @@ export class WebWordnet extends BaseWordnet {
     this._lemmatizer = options.lemmatizer;
     this._searchAllForms = options.searchAllForms ?? true;
 
-    if (options.lang) {
-      this._lang = options.lang;
+    if (options.language) {
+      this._lang = options.language;
     }
   }
 
@@ -184,83 +188,35 @@ export class WebWordnet extends BaseWordnet {
     }
   }
 
-  // Event handling methods
-  on(event: string, callback: EventCallback): void {
-    this.eventEmitter.on(event, callback);
-  }
+  // Event handling methods removed - events are now handled by the orchestrator
+  // The orchestrator will call these methods and emit events as needed
 
   /**
-   * Emit statistics updated event
-   * This should be called whenever statistics change
+   * Get statistics for event emission (called by orchestrator)
+   * This method is now internal and should not be called directly
    */
-  async emitStatisticsUpdated(): Promise<void> {
-    if (!this.initialized) return;
+  async getStatisticsForEvents(): Promise<{
+    statistics: any;
+    posDistribution: Record<string, number>;
+    lexiconStats: any[];
+  }> {
+    if (!this.initialized) {
+      throw new Error("WebWordnet not initialized");
+    }
 
     try {
       const statistics = await this.getStatistics();
       const posDistribution = await this.getPartOfSpeechDistribution();
       const lexiconStats = await this.getLexiconStatistics();
 
-      this.eventEmitter.emit(WordNetEvents.STATISTICS_UPDATED, {
+      return {
         statistics,
         posDistribution,
-        lexiconStats,
-        timestamp: new Date().toISOString(),
-      });
+        lexiconStats
+      };
     } catch (error) {
-      this.eventEmitter.emit(WordNetEvents.ERROR, {
-        operation: "getStatistics",
-        error: error instanceof Error ? error.message : String(error),
-      });
+      throw error;
     }
-  }
-
-  /**
-   * Emit data changed event
-   * This should be called whenever the database content changes
-   */
-  emitDataChanged(operation: string, details?: any): void {
-    this.eventEmitter.emit(WordNetEvents.DATA_CHANGED, {
-      operation,
-      details,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  /**
-   * Emit progress event
-   * This should be called during long-running operations
-   */
-  emitProgress(progress: number, stage: string): void {
-    this.eventEmitter.emit(WordNetEvents.PROGRESS, {
-      progress,
-      stage,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  /**
-   * Emit error event
-   * This should be called when operations fail
-   */
-  emitError(operation: string, error: Error | string): void {
-    this.eventEmitter.emit(WordNetEvents.ERROR, {
-      operation,
-      error: error instanceof Error ? error.message : String(error),
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  off(event: string, callback: EventCallback): void {
-    this.eventEmitter.off(event, callback);
-  }
-
-  removeAllListeners(event?: string): void {
-    this.eventEmitter.removeAllListeners(event);
-  }
-
-  listenerCount(event: string): number {
-    return this.eventEmitter.listenerCount(event);
   }
 
   // Core initialization and lifecycle
@@ -290,15 +246,16 @@ export class WebWordnet extends BaseWordnet {
       );
       this.initialized = true;
 
-      // Emit initialized event
-      this.eventEmitter.emit(WordNetEvents.INITIALIZED, {
-        lexicons: this._lexiconIds,
-      });
+      // Note: Events are now emitted by the orchestrator, not here
+      // this.eventEmitter.emit(WordNetEvents.INITIALIZED, {
+      //   lexicons: this._lexiconIds,
+      // });
     } catch (error) {
-      this.eventEmitter.emit(WordNetEvents.ERROR, {
-        operation: "initialize",
-        error: error instanceof Error ? error.message : String(error),
-      });
+      // Note: Events are now emitted by the orchestrator, not here
+      // this.eventEmitter.emit(WordNetEvents.ERROR, {
+      //   operation: "initialize",
+      //   error: error instanceof Error ? error.message : String(error),
+      // });
       throw error;
     }
   }
@@ -370,7 +327,7 @@ export class WebWordnet extends BaseWordnet {
         form: query?.form,
         pos: query?.pos,
         lexicon: lexiconFilter,
-        language: query?.lang || this._lang,
+        language: query?.language || this._lang,
         searchAllForms: this._searchAllForms,
       });
       const ms = performance.now() - started;
@@ -388,7 +345,7 @@ export class WebWordnet extends BaseWordnet {
     if (!this.initialized || !this.queryService)
       throw new Error("WebWordnet not initialized");
 
-    const { form, pos, ili, lexicon, lang } = query || {};
+    const { form, pos, ili, lexicon, language } = query || {};
     
     // Handle multi-lexicon queries
     let lexiconFilter: string | undefined;
@@ -410,17 +367,17 @@ export class WebWordnet extends BaseWordnet {
         form: undefined,
         pos,
         lexicon: lexiconFilter,
-        language: lang || this._lang,
+        language: language || this._lang,
         searchAllForms: this._searchAllForms,
       });
     }
 
     const started = performance.now();
     const synsets = await this.queryService.getSynsets({
-      form,
+      form: form,
       pos,
       lexicon: lexiconFilter,
-      language: lang || this._lang,
+      language: language || this._lang,
       searchAllForms: this._searchAllForms,
     });
 
@@ -480,7 +437,7 @@ export class WebWordnet extends BaseWordnet {
     if (!this.initialized || !this.queryService)
       throw new Error("WebWordnet not initialized");
 
-    const { form, pos, lexicon, lang, wordIdOrForm } = query || {};
+    const { wordIdOrForm, pos, lexicon } = query || {};
     
     // Handle multi-lexicon queries
     let lexiconFilter: string | undefined;
@@ -496,18 +453,14 @@ export class WebWordnet extends BaseWordnet {
       lexiconFilter = this.getPrimaryLexiconId();
     }
     
-    if (wordIdOrForm && !form) {
-      // Query by word ID
-      return this.queryService.getSenses({
-        wordIdOrForm,
-        pos,
-        lexicon: lexiconFilter,
-      });
+    if (!wordIdOrForm) {
+      // If no wordIdOrForm specified, return empty array
+      return [];
     }
 
-    // Query by word form
+    // Query by wordIdOrForm (can be either word ID or form)
     return this.queryService.getSenses({
-      wordIdOrForm: form || '',
+      wordIdOrForm,
       pos,
       lexicon: lexiconFilter,
     });
@@ -689,7 +642,7 @@ export class WebWordnet extends BaseWordnet {
       form,
       pos,
       lexicon,
-      lang,
+      language: lang,
       fuzzy = false,
       maxResults,
       includeForms = false
@@ -730,7 +683,7 @@ export class WebWordnet extends BaseWordnet {
       form,
       pos,
       lexicon,
-      lang,
+    language: language,
       ili,
       fuzzy = false,
       maxResults,
@@ -743,7 +696,7 @@ export class WebWordnet extends BaseWordnet {
       form,
       pos,
       lexicon,
-      language: lang,
+      language,
       searchAllForms: false, // For synsets, we typically don't need inflected forms
       ili: ili ? String(ili) : undefined, // Convert ILI to string if present
       fuzzy,
@@ -764,7 +717,7 @@ export class WebWordnet extends BaseWordnet {
   async wordsByForm(form: string, options?: {
     pos?: PartOfSpeech;
     lexicon?: string | string[];
-    lang?: string;
+    language?: string;
     includeInflected?: boolean;
   }): Promise<Word[]> {
     if (!this.initialized || !this.queryService)
@@ -773,7 +726,7 @@ export class WebWordnet extends BaseWordnet {
     const {
       pos,
       lexicon,
-      lang,
+      language,
       includeInflected = true
     } = options || {};
     
@@ -781,7 +734,7 @@ export class WebWordnet extends BaseWordnet {
       form,
       pos,
       lexicon,
-      language: lang,
+      language,
       searchAllForms: includeInflected,
       includeInflected
     });
@@ -1765,12 +1718,12 @@ export class WebWordnet extends BaseWordnet {
       this.initialized = false;
 
       // Emit database cleared event
-      this.eventEmitter.emit(WordNetEvents.DATABASE_CLEARED);
+      // this.eventEmitter.emit(WordNetEvents.DATABASE_CLEARED); // Removed
     } catch (error) {
-      this.eventEmitter.emit(WordNetEvents.ERROR, {
-        operation: "close",
-        error: error instanceof Error ? error.message : String(error),
-      });
+      // this.eventEmitter.emit(WordNetEvents.ERROR, { // Removed
+      //   operation: "close",
+      //   error: error instanceof Error ? error.message : String(error),
+      // });
       throw error;
     }
   }

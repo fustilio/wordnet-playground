@@ -11,6 +11,7 @@ import {
   extractTarArchive,
   decompressXz,
   decompressGz,
+  findLMFiles,
 } from './utils/archive.js';
 import { loadILI, isILI } from './ili.js';
 
@@ -502,29 +503,41 @@ async function _processDownloadedFile(
     const destPath = path.replace('.xz', '');
     await decompressXz(path, destPath);
     if (progress) progress(0.3);
-    
+
     logger.info('Extracting .tar archive...');
-    const finalPath = await extractTarArchive(destPath);
+    const extractedDir = await extractTarArchive(destPath);
     if (progress) progress(0.5);
-    
-    return finalPath;
+
+    const lmfFiles = await findLMFiles(extractedDir);
+    if (lmfFiles.length === 0) {
+      throw new ProjectError(`No LMF file found in archive: ${path}`);
+    }
+    return lmfFiles[0]!;
   } else if (path.endsWith('.tar.gz')) {
     logger.info('Extracting .tar.gz archive...');
     const destPath = path.replace('.gz', '');
     await decompressGz(path, destPath);
     if (progress) progress(0.3);
-    
+
     logger.info('Extracting .tar archive...');
-    const finalPath = await extractTarArchive(destPath);
+    const extractedDir = await extractTarArchive(destPath);
     if (progress) progress(0.5);
-    
-    return finalPath;
+
+    const lmfFiles = await findLMFiles(extractedDir);
+    if (lmfFiles.length === 0) {
+      throw new ProjectError(`No LMF file found in archive: ${path}`);
+    }
+    return lmfFiles[0]!;
   } else if (path.endsWith('.tar')) {
     logger.info('Extracting .tar archive...');
-    const finalPath = await extractTarArchive(path);
+    const extractedDir = await extractTarArchive(path);
     if (progress) progress(0.5);
-    
-    return finalPath;
+
+    const lmfFiles = await findLMFiles(extractedDir);
+    if (lmfFiles.length === 0) {
+      throw new ProjectError(`No LMF file found in archive: ${path}`);
+    }
+    return lmfFiles[0]!;
   } else if (path.endsWith('.gz')) {
     // Handle standalone gzipped files (like OEWN)
     logger.info('Decompressing .gz file...');

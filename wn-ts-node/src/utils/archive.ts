@@ -2,43 +2,59 @@
 
 import path from 'path';
 import fs from 'fs';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import lzma from 'lzma-native';
 import zlib from 'zlib';
+import tar from 'tar-stream';
 
 const { join, dirname, extname } = path;
 const { existsSync, mkdirSync, readdirSync, statSync, createReadStream, createWriteStream } = fs;
 const { createGunzip } = zlib;
 
-const execAsync = promisify(exec);
-
 /**
- * Extract a tar archive (tar.xz or tar.gz)
+ * Extract a tar archive using tar-stream for better reliability
  */
 export async function extractTarArchive(archivePath: string): Promise<string> {
   const extractDir = join(dirname(archivePath), 'extracted_' + Date.now());
-  
+
   if (!existsSync(extractDir)) {
     mkdirSync(extractDir, { recursive: true });
   }
-  
+
   console.log(`  Extracting to: ${extractDir}`);
-  
-  try {
-    if (archivePath.endsWith('.tar.xz')) {
-      await execAsync(`tar -xf "${archivePath}" -C "${extractDir}"`);
-    } else if (archivePath.endsWith('.tar.gz')) {
-      await execAsync(`tar -xzf "${archivePath}" -C "${extractDir}"`);
-    } else {
-      throw new Error(`Unsupported archive format: ${archivePath}`);
-    }
-    
-    console.log('  Extraction complete.');
-    return extractDir;
-  } catch (error) {
-    throw new Error(`Failed to extract archive ${archivePath}: ${error instanceof Error ? error.message : String(error)}`);
-  }
+
+  return new Promise((resolve, reject) => {
+    const reader = createReadStream(archivePath);
+    const extract = tar.extract();
+
+    extract.on('entry', (header, stream, next) => {
+      const filePath = join(extractDir, header.name);
+
+      if (header.type === 'directory') {
+        mkdirSync(filePath, { recursive: true });
+        stream.on('end', next);
+        stream.resume(); // Gulp requirement
+        return;
+      }
+
+      // Ensure parent directory exists before writing file
+      mkdirSync(dirname(filePath), { recursive: true });
+
+      const writer = createWriteStream(filePath);
+      stream.pipe(writer);
+      stream.on('end', next);
+      stream.on('error', reject);
+    });
+
+    extract.on('finish', () => {
+      console.log('  Extraction complete.');
+      resolve(extractDir);
+    });
+
+    extract.on('error', reject);
+    reader.on('error', reject);
+
+    reader.pipe(extract);
+  });
 }
 
 /**

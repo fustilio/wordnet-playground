@@ -329,7 +329,11 @@ export async function hasLoadedData(packageId?: string) {
       const lexiconStats = await orchestrator.getLexiconStatistics();
       if (packageId) {
         // Check if specific package is loaded
-        const hasPackage = lexiconStats.some((ls: any) => ls.lexiconId === packageId);
+        // Handle both full package ID (e.g., "oewn:2024") and base lexicon ID (e.g., "oewn")
+        const baseLexiconId = packageId.split(':')[0];
+        const hasPackage = lexiconStats.some((ls: any) => 
+          ls.lexiconId === packageId || ls.lexiconId === baseLexiconId
+        );
         return {
           success: true,
           data: { hasPackage, loadedCount: lexiconStats.length },
@@ -548,7 +552,8 @@ export async function getIliForSynset(synsetId: string) {
     // The logic will be implemented in the orchestrator
     const result = await orchestrator.getIliForSynset(synsetId);
     logger.end('Getting ILI for synset', { success: true, synsetId });
-    return { success: true, data: result };
+    // Convert null to undefined to match the expected type
+    return { success: true, data: result || undefined };
   } catch (error) {
     logger.error('Error getting ILI for synset', error);
     logger.end('Getting ILI for synset failed', { error: (error as Error)?.message || String(error), synsetId });

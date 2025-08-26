@@ -183,6 +183,13 @@ export class Wordnet extends BaseWordnet {
     return this.kyselyWordnet.getSynset(id);
   }
 
+  /**
+   * Alias for getSynset for consistency with other methods
+   */
+  async getSynsetById(id: string): Promise<Synset | undefined> {
+    return this.getSynset(id);
+  }
+
   async getSense(id: string): Promise<Sense | undefined> {
     await this.ensureInitialized();
     return this.kyselyWordnet.getSense(id);
@@ -417,6 +424,14 @@ export class Wordnet extends BaseWordnet {
   async getLexiconDependencies(lexiconId: string): Promise<string[]> {
     await this.ensureInitialized();
     return this.kyselyWordnet.getLexiconDependencies(lexiconId);
+  }
+
+  /**
+   * Get words by ILI and language
+   */
+  async getWordsByIliAndLanguage(ili: string, language?: string): Promise<Word[]> {
+    await this.ensureInitialized();
+    return this.kyselyWordnet.getWordsByIliAndLanguage(ili, language);
   }
 
   // Additional methods that may not be in KyselyWordnet but are required by BaseWordnet

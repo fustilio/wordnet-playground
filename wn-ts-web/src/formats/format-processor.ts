@@ -1,8 +1,8 @@
 import { createScopedLogger } from "utils/logger";
-import { ContentTypeDetector, type ContentType, type ContentAnalysis } from "./content-type-detector.js";
-import { GzipHandler, type GzipDecompressionResult } from "./gzip-handler.js";
-import { XzHandler, type XzDecompressionResult } from "./xz-handler.js";
-import { TarHandler, type TarExtractionResult } from "./tar-handler.js";
+import { ContentTypeDetector, type ContentType } from "./content-type-detector.js";
+import { GzipHandler } from "./gzip-handler.js";
+import { XzHandler } from "./xz-handler.js";
+import { TarHandler } from "./tar-handler.js";
 
 export interface FormatProcessingResult {
   success: boolean;

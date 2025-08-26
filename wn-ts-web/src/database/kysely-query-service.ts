@@ -5,7 +5,7 @@
  */
 
 import { Kysely, sql } from 'kysely';
-import { BaseKyselyQueryService, batchInsert, SchemaBuilder, DatabaseUtils } from 'wn-ts-core';
+import { BaseKyselyQueryService, SchemaBuilder, DatabaseUtils } from 'wn-ts-core';
 import type { Database } from '../types/database.js';
 import type { PartOfSpeech, Word } from 'wn-ts-core';
 import { createScopedLogger } from 'utils/logger';

@@ -197,6 +197,7 @@ export const LexiconSchema = z.object({
   url: z.string().url("Invalid URL format").optional(),
   citation: z.string().optional(),
   logo: z.string().optional(),
+  requires: z.array(z.string().min(1, "Required lexicon ID must not be empty")).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
@@ -215,7 +216,7 @@ export const WordQuerySchema = z.object({
   form: z.string().optional(),
   pos: PartOfSpeechSchema.optional(),
   lexicon: z.union([z.string(), z.array(z.string())]).optional(),
-  lang: z.string().min(2, "Language code must be at least 2 characters").max(5, "Language code too long").optional(),
+  language: z.string().min(2, "Language code must be at least 2 characters").max(5, "Language code too long").optional(),
   searchAllForms: z.boolean().optional(),
   fuzzy: z.boolean().optional(),
   maxResults: z.number().positive("Max results must be positive").optional(),
@@ -256,7 +257,7 @@ export const WordnetOptionsSchema = z.object({
   normalizer: z.any().optional(), // Function type
   lemmatizer: z.any().optional(), // Function type
   searchAllForms: z.boolean().optional(),
-  lang: z.string().min(2, "Language code must be at least 2 characters").max(5, "Language code too long").optional(),
+  language: z.string().min(2, "Language code must be at least 2 characters").max(5, "Language code too long").optional(),
 });
 
 export const DownloadOptionsSchema = z.object({
