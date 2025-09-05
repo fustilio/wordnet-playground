@@ -7,6 +7,12 @@
  * For different parser implementations, see the parsers module.
  */
 
+// Export shared LMF functionality
+export * from './lmf/shared-parser.js';
+
+// Import types for use in this module
+import type { LMFDocument, LMFLoadOptions } from './lmf/shared-parser.js';
+
 /**
  * LMF (Lexical Markup Framework) parser.
  * 
@@ -16,47 +22,6 @@
  * The Node.js-specific file loading and streaming parser functionality
  * has been moved to 'wn-ts-node/src/lmf.ts'.
  */
-
-import type { Synset, Word, Sense, Lexicon } from './types.js';
-
-export interface LMFDocument {
-  lmfVersion: string;
-  lexicons: Lexicon[];
-  synsets: Synset[];
-  words: Word[];
-  senses: Sense[];
-}
-
-export interface LMFLoadOptions {
-  progress?: (progress: number) => void;
-  debug?: boolean; // Add debug flag to control logging
-  strictForeignKeys?: boolean; // If false, include all senses even with invalid references (for testing)
-  
-  // Duplicate handling options
-  duplicateHandling?: {
-    strategy: 'keep-first' | 'keep-last' | 'merge' | 'skip' | 'error';
-    // For 'merge' strategy, specify which fields to merge
-    mergeFields?: {
-      definitions?: boolean;
-      examples?: boolean;
-      relations?: boolean;
-      forms?: boolean;
-      pronunciations?: boolean;
-      tags?: boolean;
-      counts?: boolean;
-    };
-    // For deduplication, specify which fields to use as unique keys
-    uniqueKeys?: {
-      words?: ('id' | 'lemma' | 'index' | 'pos')[];
-      synsets?: ('id' | 'ili')[];
-      senses?: ('id' | 'wordId-synsetId')[];
-    };
-    // Whether to log duplicate information
-    logDuplicates?: boolean;
-    // Whether to aggregate statistics about duplicates
-    trackStatistics?: boolean;
-  };
-}
 
 /**
  * Common LMF Parser Interface

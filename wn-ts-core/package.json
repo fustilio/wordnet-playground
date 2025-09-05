@@ -31,26 +31,29 @@
       "types": "./src/utils/index.ts",
       "default": "./src/utils/index.ts"
     },
-    "./index.json": "./src/index.json"
-  },
-  "scripts": {
-    "format": "prettier --write src/**/*.ts",
-    "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix",
-    "test": "pnpm run test:func",
-    "test:func": "vitest run --reporter=verbose --exclude \"**/*e2e.test.ts\"",
-    "test:bench": "vitest bench --run",
-    "test:coverage": "vitest run --coverage --reporter=verbose --exclude \"**/*e2e.test.ts\"",
-    "test:ui": "vitest --ui --exclude \"**/*e2e.test.ts\"",
-    "test:lmf": "pnpm vitest run lmf",
-    "vitest": "pnpm with-debug-logs vitest run",
-    "with-debug-logs": "cross-env WN_TS_LOG_LEVEL=5",
-    "build": "tsc --noEmit",
-    "typecheck": "tsc --noEmit"
+    "./index.json": "./src/index.json",
+    "./lmf": {
+      "default": "./src/lmf/index.ts"
+    }
   },
   "files": [
     "tools/"
   ],
+  "scripts": {
+    "build": "tsc --noEmit",
+    "format": "prettier --write src/**/*.ts",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "test": "pnpm run test:func",
+    "test:bench": "vitest bench --run",
+    "test:coverage": "vitest run --coverage --reporter=verbose --exclude \"**/*e2e.test.ts\"",
+    "test:func": "vitest run --reporter=verbose --exclude \"**/*e2e.test.ts\"",
+    "test:lmf": "pnpm vitest run lmf",
+    "test:ui": "vitest --ui --exclude \"**/*e2e.test.ts\"",
+    "typecheck": "tsc --noEmit",
+    "vitest": "pnpm with-debug-logs vitest run",
+    "with-debug-logs": "cross-env WN_TS_LOG_LEVEL=5"
+  },
   "dependencies": {
     "commander": "^14.0.0",
     "fast-xml-parser": "^5.2.5",
@@ -60,7 +63,6 @@
     "zod": "catalog:"
   },
   "devDependencies": {
-    "xml-introspect": "workspace:*",
     "@changesets/cli": "^2.27.7",
     "@types/node": "catalog:",
     "@typescript-eslint/eslint-plugin": "catalog:",
@@ -73,7 +75,8 @@
     "pythonia": "catalog:",
     "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "xml-introspect": "workspace:*"
   },
   "engines": {
     "node": ">=18.0.0"

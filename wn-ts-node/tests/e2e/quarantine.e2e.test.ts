@@ -2,12 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { join, basename, dirname } from 'path';
 import { tmpdir } from 'os';
 import { existsSync, rmSync, mkdtempSync } from 'fs';
-import {
-  config,
-  download,
-  add,
-  Wordnet,
-} from '../../src/index.js';
+import { config, download, add, Wordnet } from '../../src/index.js';
 import { decompressXz } from '../../src/utils/archive.js';
 import { logger, type PartOfSpeech } from 'wn-ts-core';
 
@@ -120,27 +115,31 @@ describe('Quarantined E2E Tests', () => {
 
   it('should support enhanced synset data', async () => {
     logger.info('📊 Testing enhanced synset data...');
-    
+
     // First, let's find a synset that actually has definitions
     const allSynsets = await wordnetClient.synsets({ maxResults: 100 });
     let synsetWithDefinitions: any = null;
-    
+
     for (const synset of allSynsets) {
       if (synset.definitions && synset.definitions.length > 0) {
         synsetWithDefinitions = synset;
         break;
       }
     }
-    
+
     if (synsetWithDefinitions) {
       logger.success(`Found synset with definitions: ${synsetWithDefinitions.id}`);
       expect(synsetWithDefinitions.definitions).toBeDefined();
       expect(synsetWithDefinitions.definitions!.length).toBeGreaterThan(0);
-      
-      logger.success(`Enhanced synset data includes definitions: ${synsetWithDefinitions.definitions?.length || 0}`);
+
+      logger.success(
+        `Enhanced synset data includes definitions: ${synsetWithDefinitions.definitions?.length || 0}`
+      );
     } else {
       // If no synsets have definitions, this indicates a data loading issue
-      logger.warn('No synsets with definitions found - this indicates a data loading issue');
+      logger.warn(
+        'No synsets with definitions found - this indicates a data loading issue'
+      );
       // For now, let's skip this assertion until the data loading is fixed
       expect(true).toBe(true); // Placeholder assertion
     }
@@ -148,57 +147,99 @@ describe('Quarantined E2E Tests', () => {
 
   it('should support definition lookup by synset ID', async () => {
     logger.info('📖 Testing definition lookup by synset ID...');
-    
+
     // Find a synset with definitions
     const allSynsets = await wordnetClient.synsets({ maxResults: 100 });
     let synsetWithDefinitions: any = null;
-    
+
     for (const synset of allSynsets) {
       if (synset.definitions && synset.definitions.length > 0) {
         synsetWithDefinitions = synset;
         break;
       }
     }
-    
+
     if (synsetWithDefinitions) {
       const definitions = synsetWithDefinitions.definitions || [];
-      
+
       expect(Array.isArray(definitions)).toBe(true);
       expect(definitions.length).toBeGreaterThan(0);
       expect(definitions[0]).toHaveProperty('text');
       expect(definitions[0]).toHaveProperty('language');
-      
-      logger.success(`Found ${definitions.length} definitions for synset ${synsetWithDefinitions.id}`);
+
+      logger.success(
+        `Found ${definitions.length} definitions for synset ${synsetWithDefinitions.id}`
+      );
     } else {
-      logger.warn('No synsets with definitions found - this indicates a data loading issue');
+      logger.warn(
+        'No synsets with definitions found - this indicates a data loading issue'
+      );
       expect(true).toBe(true); // Placeholder assertion
     }
   });
 
-  it("get definitions", async () => {
-    async function getDefinition(query: string, pos?: PartOfSpeech) {
-      const synsets = await wordnetClient.synsets(query, pos);
-      console.log("all synsets", synsets);
-      return synsets.flatMap(s => s.definitions?.map(d => d.text) ?? []);
-    }
-
-    const definitions = await getDefinition('water', 'n');
-
-    console.log('manual', 'definitions', definitions);
+  it('get definitions', async () => {
+    // SANITY CHECK: Let's investigate what's really happening with definitions
+    console.log('=== SANITY CHECK: Definitions Investigation ===');
     
-    // Since the data loading issue means most synsets don't have definitions,
-    // let's check if we can at least find synsets for 'water'
+    // 1. First, let's find synsets that actually have definitions
+    const queryService = await wordnetClient.getQueryService();
+    console.log('\\n=== Finding synsets with definitions ===');
+    
+    const synsetsWithDefs = await queryService.db
+      .selectFrom('definitions')
+      .select('synset_id')
+      .groupBy('synset_id')
+      .limit(5)
+      .execute();
+    console.log('Sample synset IDs with definitions:', synsetsWithDefs.map(d => d.synset_id));
+    
+    // 2. Test with a synset that we know has definitions
+    const testSynsetId = synsetsWithDefs[0]?.synset_id;
+    if (!testSynsetId) {
+      throw new Error('No synsets with definitions found in database');
+    }
+    
+    console.log(`\\nTesting with synset: ${testSynsetId}`);
+    
+    // 3. Get the synset object and check if definitions are loaded
+    const synset = await wordnetClient.getSynsetById(testSynsetId);
+    if (!synset) {
+      throw new Error(`Synset ${testSynsetId} not found`);
+    }
+    
+    console.log(`Synset definitions from object: ${JSON.stringify(synset.definitions)}`);
+    
+    // 4. Check direct database query
+    const directDefinitions = await queryService.getDefinitionsBySynsetId(testSynsetId);
+    console.log(`Direct DB definitions: ${JSON.stringify(directDefinitions)}`);
+    
+    // 5. Now test the actual functionality
+    expect(synset.definitions.length).toBeGreaterThan(0);
+    expect(directDefinitions.length).toBeGreaterThan(0);
+    expect(synset.definitions.length).toBe(directDefinitions.length);
+    
+    console.log('✅ SUCCESS: Definitions are properly loaded and associated with synsets');
+    
+    // 6. Test with water synsets to see if they have definitions
+    console.log('\\n=== Testing water synsets ===');
     const waterSynsets = await wordnetClient.synsets({ form: 'water', pos: 'n' });
-    expect(waterSynsets.length).toBeGreaterThan(0);
+    console.log(`Found ${waterSynsets.length} synsets for water`);
     
-    // If any synsets have definitions, test those
-    const synsetsWithDefinitions = waterSynsets.filter(s => s.definitions && s.definitions.length > 0);
-    if (synsetsWithDefinitions.length > 0) {
-      expect(definitions.length).toBeGreaterThan(0);
-      expect(definitions.some(d => d.includes('water'))).toBe(true);
+    const waterSynsetsWithDefinitions = waterSynsets.filter(
+      s => s.definitions && s.definitions.length > 0
+    );
+    
+    console.log(`Water synsets with definitions: ${waterSynsetsWithDefinitions.length}`);
+    
+    if (waterSynsetsWithDefinitions.length > 0) {
+      console.log('✅ Water synsets have definitions');
+      expect(waterSynsetsWithDefinitions.some(d => d.definitions.some(d => d.text.includes('water')))).toBe(true);
     } else {
-      logger.warn('No water synsets with definitions found - this indicates a data loading issue');
-      expect(true).toBe(true); // Placeholder assertion
+      console.log('ℹ️ Water synsets do not have definitions in this dataset - this is expected for some datasets');
+      // This is not necessarily a bug - some datasets might not have definitions for all synsets
+      expect(waterSynsets.length).toBeGreaterThan(0);
     }
   });
+
 });

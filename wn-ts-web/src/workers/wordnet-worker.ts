@@ -17,7 +17,20 @@
 import { expose } from 'comlink';
 import { WordNetOrchestrator } from './wordnet-orchestrator.js';
 import sqlite3InitModule, { type Sqlite3Static } from '@sqlite.org/sqlite-wasm';
-import type { WordNetWorkerAPI } from './type.js';
+import type { 
+  WordNetWorkerAPI,
+  LexiconStatistics,
+  OverallStatistics,
+  WordQueryResult,
+  SynsetQueryResult,
+  SenseInfo,
+  DefinitionInfo,
+  WordInfo,
+  CacheInfo,
+  DatabaseStorageInfo,
+  MemoryQueryTestResult,
+  PartOfSpeech
+} from './type.js';
 import { createScopedLogger } from 'utils/logger';
 
 const logger = createScopedLogger('WordNetWorker');
@@ -39,7 +52,7 @@ export async function initializeWordNet(lexiconId = "oewn:2024") {
         success: true, 
         data: { 
           lexiconStats: [], 
-          statistics: { totalWords: 0, totalSynsets: 0, totalSenses: 0 },
+          statistics: { totalWords: 0, totalSynsets: 0, totalSenses: 0, totalILIs: 0, totalLexicons: 0 },
           hasInitialState: true
         } 
       };
@@ -104,7 +117,7 @@ export async function initializeWordNet(lexiconId = "oewn:2024") {
       success: true, 
       data: { 
         lexiconStats: [], 
-        statistics: { totalWords: 0, totalSynsets: 0, totalSenses: 0 },
+        statistics: { totalWords: 0, totalSynsets: 0, totalSenses: 0, totalILIs: 0, totalLexicons: 0 },
         hasInitialState: false
       } 
     };
@@ -124,8 +137,8 @@ export async function getStatus() {
     }
 
     // Lightweight status check - try simple queries first, then fall back to complex ones
-    let lexiconStats = null;
-    let statistics = null;
+    let lexiconStats: LexiconStatistics[] | null = null;
+    let statistics: OverallStatistics | null = null;
     
     try {
       logger.step('Getting lexicon stats from worker');
@@ -142,8 +155,9 @@ export async function getStatus() {
         } else {
           logger.debug('📊 No existing data found - database is empty');
         }
-      } catch (e: any) {
-        logger.warn('Failed to get lexicon stats via orchestrator', { error: e });
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        logger.warn('Failed to get lexicon stats via orchestrator', { error: errorMessage });
         // If this fails, it might be because no data is loaded yet - that's okay
         lexiconStats = [];
       }
@@ -155,7 +169,8 @@ export async function getStatus() {
           totalWords: overall.totalWords, 
           totalSynsets: overall.totalSynsets, 
           totalSenses: overall.totalSenses,
-          totalILIs: overall.totalILIs 
+          totalILIs: overall.totalILIs,
+          totalLexicons: overall.totalLexicons
         };
         
         // Log statistics to show data persistence
@@ -164,16 +179,18 @@ export async function getStatus() {
         } else {
           logger.debug('💾 Database is empty - no persistent data found');
         }
-      } catch (e: any) {
-        logger.warn('Failed to get overall statistics', { error: e });
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        logger.warn('Failed to get overall statistics', { error: errorMessage });
         // If this fails, it might be because no data is loaded yet - that's okay
-        statistics = { totalWords: 0, totalSynsets: 0, totalSenses: 0, totalILIs: 0 };
+        statistics = { totalWords: 0, totalSynsets: 0, totalSenses: 0, totalILIs: 0, totalLexicons: 0 };
       }
-    } catch (e: any) {
-      logger.warn('Unexpected error during status check', e);
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      logger.warn('Unexpected error during status check', { error: errorMessage });
       // Set default values if everything fails
       lexiconStats = [];
-      statistics = { totalWords: 0, totalSynsets: 0, totalSenses: 0 };
+      statistics = { totalWords: 0, totalSynsets: 0, totalSenses: 0, totalILIs: 0, totalLexicons: 0 };
     }
 
     // Always return success, even if no data is loaded yet
@@ -264,56 +281,56 @@ export async function loadDemoData(options?: { onProgress?: (progress: number) =
   }
 }
 
-export async function queryWords(term: string, pos?: string) {
+export async function queryWords(term: string, pos?: PartOfSpeech) {
   try {
     if (!orchestrator) {
       return { success: false, error: "WordNet not initialized" };
     }
 
     logger.start(`Querying words for term: ${term}`);
-    const results = await orchestrator.queryWords(term, pos as any);
+    const results = await orchestrator.queryWords(term, pos);
 
     logger.end(`Querying words for term: ${term}`, { success: true });
     return { success: true, data: results };
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(`Failed to query words for term: ${term}`, { error });
+    logger.error(`Failed to query words for term: ${term}`, { error: errorMessage });
     return { success: false, error: errorMessage };
   }
 }
 
-export async function querySynsets(term: string, pos?: string) {
+export async function querySynsets(term: string, pos?: PartOfSpeech) {
   try {
     if (!orchestrator) {
       return { success: false, error: "WordNet not initialized" };
     }
 
     logger.start(`Querying synsets for term: ${term}`);
-    const results = await orchestrator.querySynsets(term, pos as any);
+    const results = await orchestrator.querySynsets(term, pos);
 
     logger.end(`Querying synsets for term: ${term}`, { success: true });
     return { success: true, data: results };
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(`Failed to query synsets for term: ${term}`, { error });
+    logger.error(`Failed to query synsets for term: ${term}`, { error: errorMessage });
     return { success: false, error: errorMessage };
   }
 }
 
-export async function querySenses(term: string, pos?: string) {
+export async function querySenses(term: string, pos?: PartOfSpeech) {
   try {
     if (!orchestrator) {
       return { success: false, error: "WordNet not initialized" };
     }
 
     logger.start(`Querying senses for term: ${term}`);
-    const results = await orchestrator.querySenses(term, pos as any);
+    const results = await orchestrator.querySenses(term, pos);
 
     logger.end(`Querying senses for term: ${term}`, { success: true });
     return { success: true, data: results };
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(`Failed to query senses for term: ${term}`, { error });
+    logger.error(`Failed to query senses for term: ${term}`, { error: errorMessage });
     return { success: false, error: errorMessage };
   }
 }
@@ -331,7 +348,7 @@ export async function hasLoadedData(packageId?: string) {
         // Check if specific package is loaded
         // Handle both full package ID (e.g., "oewn:2024") and base lexicon ID (e.g., "oewn")
         const baseLexiconId = packageId.split(':')[0];
-        const hasPackage = lexiconStats.some((ls: any) => 
+        const hasPackage = lexiconStats.some((ls: LexiconStatistics) => 
           ls.lexiconId === packageId || ls.lexiconId === baseLexiconId
         );
         return {
@@ -348,8 +365,8 @@ export async function hasLoadedData(packageId?: string) {
           },
         };
       }
-    } catch (e: any) {
-      if (e?.resultCode === 7) {
+    } catch (e: unknown) {
+      if (e && typeof e === 'object' && 'resultCode' in e && (e as { resultCode: number }).resultCode === 7) {
         // SQLITE_NOMEM
         logger.warn('SQLITE_NOMEM during hasLoadedData check');
         // On SQLITE_NOMEM, assume no data to be safe
@@ -358,8 +375,9 @@ export async function hasLoadedData(packageId?: string) {
           data: { hasPackage: false, hasData: false, loadedCount: 0 },
         };
       } else {
-        logger.warn('Failed to check loaded data status', e);
-        return { success: false, error: e.message };
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        logger.warn('Failed to check loaded data status', { error: errorMessage });
+        return { success: false, error: errorMessage };
       }
     }
   } catch (error: unknown) {
@@ -602,7 +620,10 @@ export async function testMemoryQueries() {
     return { success: false, error: "WordNet not initialized" };
   }
 
-  const results: any = {};
+  const results: MemoryQueryTestResult = {
+    lexicons: { success: false },
+    query: { success: false }
+  };
   
   try {
     // Basic sanity queries through orchestrator
@@ -610,8 +631,9 @@ export async function testMemoryQueries() {
     try {
       const stats = await orchestrator.getLexiconStatistics();
       results.lexicons = { success: true, count: stats.length };
-    } catch (e: any) {
-      results.lexicons = { success: false, error: e.message };
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      results.lexicons = { success: false, error: errorMessage };
     }
 
     logger.step('Test: query words/synsets');
@@ -619,16 +641,18 @@ export async function testMemoryQueries() {
       const words = await orchestrator.queryWords('water');
       const synsets = await orchestrator.querySynsets('water');
       results.query = { success: true, words: words.length, synsets: synsets.length };
-    } catch (e: any) {
-      results.query = { success: false, error: e.message };
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      results.query = { success: false, error: errorMessage };
     }
 
     logger.end('Testing memory-efficient queries', { success: true });
     return { success: true, data: results };
-  } catch (error: any) {
-    logger.error('Memory test failed', { error });
-    logger.end('Testing memory-efficient queries failed', { error: error.message });
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('Memory test failed', { error: errorMessage });
+    logger.end('Testing memory-efficient queries failed', { error: errorMessage });
+    return { success: false, error: errorMessage };
   }
 }
 
@@ -676,13 +700,12 @@ export async function getCacheInfo() {
       hasData = false;
     }
 
-    const cacheInfo = {
+    const cacheInfo: CacheInfo = {
       hasStorageQuota,
       hasIndexedDB,
       hasLocalStorage,
       hasSessionStorage,
       source: "worker",
-      hasData,
       // Add more detailed cache info here when orchestrator supports it
     };
 
@@ -690,7 +713,7 @@ export async function getCacheInfo() {
     return { success: true, data: cacheInfo };
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error('Failed to get cache info', { error });
+    logger.error('Failed to get cache info', { error: errorMessage });
     return { success: false, error: errorMessage };
   }
 }
@@ -771,11 +794,11 @@ export async function getDatabaseStorageInfo() {
       return { success: false, error: "WordNet not initialized" };
     }
 
-    const storageInfo = orchestrator.getDatabaseStorageInfo();
+    const storageInfo: DatabaseStorageInfo = orchestrator.getDatabaseStorageInfo();
     return { success: true, data: storageInfo };
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error('Failed to get database storage info', { error });
+    logger.error('Failed to get database storage info', { error: errorMessage });
     return { success: false, error: errorMessage };
   }
 }

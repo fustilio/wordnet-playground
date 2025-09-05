@@ -554,6 +554,9 @@ importers:
       wn-ts-core:
         specifier: workspace:*
         version: link:../wn-ts-core
+      xml-introspect:
+        specifier: workspace:*
+        version: link:../packages/xml-introspect
       xz-decompress:
         specifier: ^0.2.3
         version: 0.2.3

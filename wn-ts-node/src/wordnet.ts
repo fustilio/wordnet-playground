@@ -493,4 +493,12 @@ export class Wordnet extends BaseWordnet {
       sizeDistribution: {}
     };
   }
+
+  /**
+   * Get the query service for direct database operations
+   */
+  async getQueryService() {
+    await this.ensureInitialized();
+    return this.kyselyWordnet.getQueryService();
+  }
 }

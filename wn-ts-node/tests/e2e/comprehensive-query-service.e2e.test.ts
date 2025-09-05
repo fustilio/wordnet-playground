@@ -622,7 +622,7 @@ describe('Comprehensive Query Service E2E Tests', () => {
         const ili = allILIs[0]!.id;
         
         // Access the query service for this method
-        const queryService = (wordnetClient as any).kyselyWordnet.getQueryService();
+        const queryService = await wordnetClient.getQueryService();
         const oewnWords = await queryService.getWordsByIliAndLexiconPrefix(ili, 'oewn');
         expect(Array.isArray(oewnWords)).toBe(true);
         
@@ -638,7 +638,7 @@ describe('Comprehensive Query Service E2E Tests', () => {
         const synset = allSynsets[0]!;
         
         // Access the query service for this method
-        const queryService = (wordnetClient as any).kyselyWordnet.getQueryService();
+        const queryService = await wordnetClient.getQueryService();
         const memberWords = await queryService.getWordsBySynsetAndLanguage(synset.id);
         expect(Array.isArray(memberWords)).toBe(true);
         
@@ -654,7 +654,7 @@ describe('Comprehensive Query Service E2E Tests', () => {
         const word = allWords[0]!;
         
         // Access the query service for this method
-        const queryService = (wordnetClient as any).kyselyWordnet.getQueryService();
+        const queryService = await wordnetClient.getQueryService();
         const forms = await queryService.getFormsByWordId(word.id);
         expect(Array.isArray(forms)).toBe(true);
         
@@ -686,7 +686,7 @@ describe('Comprehensive Query Service E2E Tests', () => {
         const word = words[0]!;
         
         // Access the query service for this method
-        const queryService = (wordnetClient as any).kyselyWordnet.getQueryService();
+        const queryService = await wordnetClient.getQueryService();
         const senses = await queryService.getSensesByWordId(word.id);
         
         expect(Array.isArray(senses)).toBe(true);
@@ -718,7 +718,7 @@ describe('Comprehensive Query Service E2E Tests', () => {
         const wordIds = words.map(w => w.id);
         
         // Access the query service for this method
-        const queryService = (wordnetClient as any).kyselyWordnet.getQueryService();
+        const queryService = await wordnetClient.getQueryService();
         const foundWords = await queryService.getWordsByIds(wordIds);
         
         expect(Array.isArray(foundWords)).toBe(true);
@@ -738,7 +738,7 @@ describe('Comprehensive Query Service E2E Tests', () => {
         const synset = synsets[0]!;
         
         // Access the query service for this method
-        const queryService = (wordnetClient as any).kyselyWordnet.getQueryService();
+        const queryService = await wordnetClient.getQueryService();
         const relations = await queryService.getRelationsBySynsetId(synset.id);
         
         expect(Array.isArray(relations)).toBe(true);
@@ -757,7 +757,7 @@ describe('Comprehensive Query Service E2E Tests', () => {
         const word = words[0]!;
         
         // Access the query service for this method
-        const queryService = (wordnetClient as any).kyselyWordnet.getQueryService();
+        const queryService = await wordnetClient.getQueryService();
         const forms = await queryService.getFormsByWordId(word.id);
         
         expect(Array.isArray(forms)).toBe(true);
@@ -777,7 +777,7 @@ describe('Comprehensive Query Service E2E Tests', () => {
         const synset = synsets[0]!;
         
         // Access the query service for this method
-        const queryService = (wordnetClient as any).kyselyWordnet.getQueryService();
+        const queryService = await wordnetClient.getQueryService();
         const examples = await queryService.getExamplesBySynsetId(synset.id);
         
         expect(Array.isArray(examples)).toBe(true);
@@ -801,7 +801,7 @@ describe('Comprehensive Query Service E2E Tests', () => {
         const synset = synsets[0]!;
         
         // Access the query service for this method
-        const queryService = (wordnetClient as any).kyselyWordnet.getQueryService();
+        const queryService = await wordnetClient.getQueryService();
         const senses = await queryService.getSensesBySynsetId(synset.id);
         
         expect(Array.isArray(senses)).toBe(true);
@@ -826,7 +826,7 @@ describe('Comprehensive Query Service E2E Tests', () => {
         const synset = synsets[0]!;
         
         // Access the query service for this method
-        const queryService = (wordnetClient as any).kyselyWordnet.getQueryService();
+        const queryService = await wordnetClient.getQueryService();
         const definitions = await queryService.getDefinitionsBySynsetId(synset.id);
         
         expect(Array.isArray(definitions)).toBe(true);
@@ -851,7 +851,7 @@ describe('Comprehensive Query Service E2E Tests', () => {
         const lexiconId = lexicons[0]!.id;
         
         // Access the query service for this method
-        const queryService = (wordnetClient as any).kyselyWordnet.getQueryService();
+        const queryService = await wordnetClient.getQueryService();
         const lexicon = await queryService.getLexiconById(lexiconId);
         
         expect(lexicon).toBeDefined();
@@ -872,7 +872,7 @@ describe('Comprehensive Query Service E2E Tests', () => {
         const wordId = words[0]!.id;
         
         // Access the query service for this method
-        const queryService = (wordnetClient as any).kyselyWordnet.getQueryService();
+        const queryService = await wordnetClient.getQueryService();
         const word = await queryService.getWordById(wordId);
         
         expect(word).toBeDefined();
@@ -894,7 +894,7 @@ describe('Comprehensive Query Service E2E Tests', () => {
         const synsetId = synsets[0]!.id;
         
         // Access the query service for this method
-        const queryService = (wordnetClient as any).kyselyWordnet.getQueryService();
+        const queryService = await wordnetClient.getQueryService();
         const synset = await queryService.getSynsetById(synsetId);
         
         expect(synset).toBeDefined();
@@ -918,7 +918,7 @@ describe('Comprehensive Query Service E2E Tests', () => {
         const senseId = senses[0]!.id;
         
         // Access the query service for this method
-        const queryService = (wordnetClient as any).kyselyWordnet.getQueryService();
+        const queryService = await wordnetClient.getQueryService();
         const sense = await queryService.getSenseById(senseId);
         
         expect(sense).toBeDefined();
@@ -939,7 +939,7 @@ describe('Comprehensive Query Service E2E Tests', () => {
         const iliId = ilis[0]!.id;
         
         // Access the query service for this method
-        const queryService = (wordnetClient as any).kyselyWordnet.getQueryService();
+        const queryService = await wordnetClient.getQueryService();
         const ili = await queryService.getIliById(iliId);
         
         expect(ili).toBeDefined();
@@ -1061,7 +1061,7 @@ describe('Comprehensive Query Service E2E Tests', () => {
       logger.info('🔍 Testing getSenses with advanced filtering...');
       
       // Access the query service for this method
-      const queryService = (wordnetClient as any).kyselyWordnet.getQueryService();
+      const queryService = await wordnetClient.getQueryService();
       
       // Test with part of speech filter
       const nounSenses = await queryService.getSenses({ 
@@ -1095,7 +1095,7 @@ describe('Comprehensive Query Service E2E Tests', () => {
       logger.info('⚠️ Testing edge cases and error handling...');
       
       // Access the query service for this method
-      const queryService = (wordnetClient as any).kyselyWordnet.getQueryService();
+      const queryService = await wordnetClient.getQueryService();
       
       // Test with empty word IDs array
       const emptyWords = await queryService.getWordsByIds([]);
@@ -1129,7 +1129,7 @@ describe('Comprehensive Query Service E2E Tests', () => {
       logger.info('⚡ Testing batch operations...');
       
       // Access the query service for this method
-      const queryService = (wordnetClient as any).kyselyWordnet.getQueryService();
+      const queryService = await wordnetClient.getQueryService();
       
       // Test that batchInsert method exists and is callable
       expect(typeof queryService.batchInsert).toBe('function');
@@ -1185,7 +1185,7 @@ describe('Comprehensive Query Service E2E Tests', () => {
             const detailed = await wordnetClient.getSynset(synset.id);
             if (detailed) {
               // Get member words using the query service
-              const queryService = (wordnetClient as any).kyselyWordnet.getQueryService();
+              const queryService = await wordnetClient.getQueryService();
               const members = await queryService.getWordsBySynsetAndLanguage(detailed.id);
               return { ...detailed, memberWords: members };
             }

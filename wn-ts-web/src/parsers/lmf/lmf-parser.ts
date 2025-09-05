@@ -11,6 +11,14 @@ import type {
   Lexicon,
   PartOfSpeech,
 } from "wn-ts-core";
+import { 
+  DuplicateHandler, 
+  type DuplicateHandlingConfig, 
+  DEFAULT_DUPLICATE_HANDLING,
+  validateLMFContentEnhanced,
+  applyDuplicateHandling,
+  LMFParseError
+} from "wn-ts-core/lmf";
 import { WarningAggregator } from "./warning-aggregator";
 
 /**
@@ -40,271 +48,10 @@ export interface LmfParseOptions {
     batchSize?: number;
     flushIntervalMs?: number;
   };
-  // New duplicate handling options
-  duplicateHandling?: {
-    strategy: 'keep-first' | 'keep-last' | 'merge' | 'skip' | 'error';
-    // For 'merge' strategy, specify which fields to merge
-    mergeFields?: {
-      definitions?: boolean;
-      examples?: boolean;
-      relations?: boolean;
-      forms?: boolean;
-      pronunciations?: boolean;
-      tags?: boolean;
-      counts?: boolean;
-    };
-    // For deduplication, specify which fields to use as unique keys
-    uniqueKeys?: {
-      words?: ('id' | 'lemma' | 'index' | 'pos')[];
-      synsets?: ('id' | 'ili')[];
-      senses?: ('id' | 'wordId-synsetId')[];
-    };
-    // Whether to log duplicate information
-    logDuplicates?: boolean;
-    // Whether to aggregate statistics about duplicates
-    trackStatistics?: boolean;
-  };
+  // Duplicate handling options
+  duplicateHandling?: DuplicateHandlingConfig;
 }
 
-/**
- * Duplicate handling service for LMF parsing
- */
-class DuplicateHandler {
-  private logger = createScopedLogger("DuplicateHandler");
-  private statistics = {
-    wordsDeduplicated: 0,
-    synsetsDeduplicated: 0,
-    sensesDeduplicated: 0,
-    totalDuplicates: 0,
-  };
-
-  constructor(private options: NonNullable<LmfParseOptions['duplicateHandling']>) {}
-
-  /**
-   * Handle duplicates according to the configured strategy
-   */
-  handleDuplicates<T extends Word | Synset | Sense>(
-    items: T[],
-    type: 'words' | 'synsets' | 'senses'
-  ): T[] {
-    if (this.options.strategy === 'skip') {
-      return items;
-    }
-
-    const uniqueKeys = this.options.uniqueKeys?.[type];
-    if (!uniqueKeys || uniqueKeys.length === 0) {
-      return items;
-    }
-
-    // Debug logging
-    this.logger.debug(`Handling duplicates for ${type}:`, {
-      strategy: this.options.strategy,
-      uniqueKeys,
-      itemCount: items.length,
-      items: items.map(item => ({ id: (item as any).id, lemma: (item as any).lemma, pos: (item as any).pos }))
-    });
-
-    const seen = new Map<string, T>();
-    const duplicates: T[] = [];
-
-    for (const item of items) {
-      const key = this.generateUniqueKey(item, uniqueKeys, type);
-      
-      // Debug logging for each item
-      this.logger.debug(`Processing ${type} item:`, {
-        id: (item as any).id,
-        lemma: (item as any).lemma,
-        pos: (item as any).pos,
-        generatedKey: key,
-        seenKeys: Array.from(seen.keys())
-      });
-      
-      if (seen.has(key)) {
-        duplicates.push(item);
-        this.statistics.totalDuplicates++;
-        
-        if (this.options.logDuplicates) {
-          this.logger.debug(`Duplicate ${type} found:`, { key, itemId: (item as any).id });
-        }
-
-        const existing = seen.get(key)!;
-        
-        switch (this.options.strategy) {
-          case 'keep-first':
-            // Keep existing, skip current
-            this.logger.debug(`Keeping first ${type} with key: ${key}`);
-            break;
-          case 'keep-last':
-            // Replace existing with current
-            this.logger.debug(`Replacing ${type} with key: ${key} (keep-last strategy)`);
-            seen.set(key, item);
-            break;
-          case 'merge':
-            // Merge current into existing
-            this.logger.debug(`Merging ${type} with key: ${key}`);
-            const merged = this.mergeItems(existing, item, type);
-            seen.set(key, merged);
-            break;
-          case 'error':
-            throw new Error(`Duplicate ${type} found with key: ${key}`);
-          default:
-            // Default to keep-first
-            this.logger.debug(`Using default keep-first strategy for ${type} with key: ${key}`);
-            break;
-        }
-      } else {
-        this.logger.debug(`Adding new ${type} with key: ${key}`);
-        seen.set(key, item);
-      }
-    }
-
-    // Update statistics
-    switch (type) {
-      case 'words':
-        this.statistics.wordsDeduplicated = duplicates.length;
-        break;
-      case 'synsets':
-        this.statistics.synsetsDeduplicated = duplicates.length;
-        break;
-      case 'senses':
-        this.statistics.sensesDeduplicated = duplicates.length;
-        break;
-    }
-
-    const result = Array.from(seen.values());
-    this.logger.debug(`Duplicate handling result for ${type}:`, {
-      inputCount: items.length,
-      outputCount: result.length,
-      duplicatesFound: duplicates.length,
-      strategy: this.options.strategy
-    });
-
-    return result;
-  }
-
-  /**
-   * Generate a unique key for an item based on the specified unique key fields
-   */
-  private generateUniqueKey<T extends Word | Synset | Sense>(
-    item: T,
-    uniqueKeys: string[],
-    type: string
-  ): string {
-    const keyParts: string[] = [];
-    
-    for (const key of uniqueKeys) {
-      switch (key) {
-        case 'id':
-          keyParts.push((item as any).id || '');
-          break;
-        case 'lemma':
-          if (type === 'words') {
-            keyParts.push((item as Word).lemma || '');
-          }
-          break;
-        case 'index':
-          if (type === 'words') {
-            keyParts.push((item as any).index || '');
-          }
-          break;
-        case 'pos':
-          if (type === 'words') {
-            keyParts.push((item as Word).pos || '');
-          }
-          break;
-        case 'ili':
-          if (type === 'synsets') {
-            keyParts.push((item as Synset).ili || '');
-          }
-          break;
-        case 'wordId-synsetId':
-          if (type === 'senses') {
-            const sense = item as Sense;
-            keyParts.push(sense.wordId || '');
-            keyParts.push(sense.synsetId || '');
-          }
-          break;
-      }
-    }
-    
-    return keyParts.filter(Boolean).join('::');
-  }
-
-  /**
-   * Merge two items according to the merge strategy
-   */
-  private mergeItems<T extends Word | Synset | Sense>(
-    existing: T,
-    current: T,
-    type: string
-  ): T {
-    if (this.options.strategy !== 'merge') {
-      return existing;
-    }
-
-    const merged = { ...existing };
-    const mergeFields = this.options.mergeFields;
-
-    if (type === 'words' && mergeFields?.forms) {
-      const existingWord = existing as Word;
-      const currentWord = current as Word;
-      if ('forms' in existingWord && 'forms' in currentWord) {
-        (merged as Word).forms = [...existingWord.forms, ...currentWord.forms];
-      }
-    }
-
-    if (type === 'synsets') {
-      const existingSynset = existing as Synset;
-      const currentSynset = current as Synset;
-      
-      if (mergeFields?.definitions && 'definitions' in existingSynset && 'definitions' in currentSynset) {
-        (merged as Synset).definitions = [...existingSynset.definitions, ...currentSynset.definitions];
-      }
-      if (mergeFields?.examples && 'examples' in existingSynset && 'examples' in currentSynset) {
-        (merged as Synset).examples = [...existingSynset.examples, ...currentSynset.examples];
-      }
-      if (mergeFields?.relations && 'relations' in existingSynset && 'relations' in currentSynset) {
-        (merged as Synset).relations = [...existingSynset.relations, ...currentSynset.relations];
-      }
-    }
-
-    if (type === 'senses') {
-      const existingSense = existing as Sense;
-      const currentSense = current as Sense;
-      
-      if (mergeFields?.examples && 'examples' in existingSense && 'examples' in currentSense) {
-        (merged as Sense).examples = [...existingSense.examples, ...currentSense.examples];
-      }
-      if (mergeFields?.tags && 'tags' in existingSense && 'tags' in currentSense) {
-        (merged as Sense).tags = [...existingSense.tags, ...currentSense.tags];
-      }
-      if (mergeFields?.counts && 'counts' in existingSense && 'counts' in currentSense) {
-        (merged as Sense).counts = [...existingSense.counts, ...currentSense.counts];
-      }
-    }
-
-    return merged;
-  }
-
-  /**
-   * Get duplicate handling statistics
-   */
-  getStatistics() {
-    return { ...this.statistics };
-  }
-
-  /**
-   * Reset statistics
-   */
-  resetStatistics() {
-    this.statistics = {
-      wordsDeduplicated: 0,
-      synsetsDeduplicated: 0,
-      sensesDeduplicated: 0,
-      totalDuplicates: 0,
-    };
-  }
-}
 
 /**
  * LMF Parser for parsing Lexical Markup Framework XML files
@@ -377,25 +124,7 @@ export class LmfParser implements LMFParser {
     }
 
     // Initialize duplicate handler
-    this.duplicateHandler = new DuplicateHandler(this.options.duplicateHandling || {
-      strategy: 'keep-first',
-      mergeFields: {
-        definitions: true,
-        examples: true,
-        relations: true,
-        forms: true,
-        pronunciations: true,
-        tags: true,
-        counts: true,
-      },
-      uniqueKeys: {
-        words: ['id', 'lemma'],
-        synsets: ['id'],
-        senses: ['id', 'wordId-synsetId'],
-      },
-      logDuplicates: false,
-      trackStatistics: true,
-    });
+    this.duplicateHandler = new DuplicateHandler(this.options.duplicateHandling || DEFAULT_DUPLICATE_HANDLING);
 
     // Initialize logger
     this.logger = createScopedLogger('LmfParser', this.options.debug ? 'debug' : 'info');
@@ -452,7 +181,7 @@ export class LmfParser implements LMFParser {
           throw new Error("Invalid LMF file: XML content is not a valid string");
         }
         
-        this.validateXMLContent(xmlContent);
+        validateLMFContentEnhanced(xmlContent, debug);
         
         if (debug && this.options.verbose) {
           this.logger.debug("XML content validation passed");
@@ -545,13 +274,24 @@ export class LmfParser implements LMFParser {
           this.logger.debug(`Before final deduplication - words: ${result.words.length}, synsets: ${result.synsets.length}, senses: ${result.senses.length}`);
         }
         
-        // Skip final deduplication to prevent hanging - we'll handle duplicates at the database level
-        this.logger.info(`💡 Skipping final deduplication to prevent hanging`);
-        this.logger.info(`💡 Duplicates will be handled by database constraints or can be cleaned up later`);
-        
-        // Keep all data without deduplication
-        if (mergedOptions.debug) {
-          this.logger.debug(`After final deduplication (skipped) - words: ${result.words.length}, synsets: ${result.synsets.length}, senses: ${result.senses.length}`);
+        try {
+          const deduplicatedResult = applyDuplicateHandling(result, mergedOptions.duplicateHandling);
+          result.words = deduplicatedResult.words;
+          result.synsets = deduplicatedResult.synsets;
+          result.senses = deduplicatedResult.senses;
+          
+          if (mergedOptions.debug) {
+            this.logger.debug(`After final deduplication - words: ${result.words.length}, synsets: ${result.synsets.length}, senses: ${result.senses.length}`);
+          }
+        } catch (error) {
+          if (error instanceof LMFParseError) {
+            throw error;
+          }
+          throw new LMFParseError(
+            `Duplicate handling failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            'DUPLICATE_HANDLING_FAILED',
+            { originalError: error }
+          );
         }
       }
 
@@ -575,116 +315,6 @@ export class LmfParser implements LMFParser {
     }
   }
 
-  /**
-   * Validate that the content appears to be valid LMF XML
-   */
-  private validateXMLContent(content: string): void {
-    if (content === null || content === undefined) {
-      throw new Error("Invalid LMF file: XML content is not a valid string");
-    }
-
-    if (typeof content !== "string") {
-      throw new Error("Invalid LMF file: XML content is not a valid string");
-    }
-
-    const trimmedContent = content.trim();
-
-    if (!trimmedContent) {
-      throw new Error("Invalid LMF file: XML content is empty");
-    }
-
-    // Check for HTTP error pages first (higher priority)
-    if (
-      trimmedContent.includes("HTTP 404:") ||
-      trimmedContent.includes("HTTP 403:") ||
-      trimmedContent.includes("HTTP 500:") ||
-      trimmedContent.includes("Server Error") ||
-      trimmedContent.includes("Access Denied")
-    ) {
-      throw new Error("Invalid LMF file: Server returned HTTP error page");
-    }
-
-    // Check for HTML error indicators - be more specific to avoid false positives
-    const hasHTMLTags = /<html|<head|<body|<title/i.test(trimmedContent);
-
-    // Only check for error keywords if they appear in HTML context (after HTML tags)
-    const hasErrorKeywordsInHTML =
-      /<html[^>]*>[\s\S]*?(?:error|not found|forbidden|unauthorized|server error)/i.test(
-        trimmedContent
-      );
-
-    if (hasHTMLTags || hasErrorKeywordsInHTML) {
-      throw new Error(
-        "Invalid LMF file: Content appears to be HTML error page, not XML"
-      );
-    }
-
-    // Check for common XML indicators
-    const hasXMLDeclaration = trimmedContent.startsWith("<?xml");
-
-    // Look for root element after XML declaration and DOCTYPE (if present)
-    // Skip XML declaration and DOCTYPE to find the actual root element
-    let contentAfterDeclarations = trimmedContent;
-    if (hasXMLDeclaration) {
-      // Find the end of XML declaration
-      const xmlDeclEnd = contentAfterDeclarations.indexOf("?>");
-      if (xmlDeclEnd !== -1) {
-        contentAfterDeclarations = contentAfterDeclarations.substring(
-          xmlDeclEnd + 2
-        );
-      }
-    }
-
-    // Skip DOCTYPE if present
-    if (contentAfterDeclarations.trim().startsWith("<!DOCTYPE")) {
-      const doctypeEnd = contentAfterDeclarations.indexOf(">");
-      if (doctypeEnd !== -1) {
-        contentAfterDeclarations = contentAfterDeclarations.substring(
-          doctypeEnd + 1
-        );
-      }
-    }
-
-    // Now look for the root element
-    const hasRootElement = /^[\s]*<[a-zA-Z][a-zA-Z0-9_:]*/.test(
-      contentAfterDeclarations.trim()
-    );
-    const hasClosingTag = trimmedContent.includes("</");
-
-    if (!hasRootElement && !hasXMLDeclaration) {
-      throw new Error("Invalid LMF file: Content does not appear to be XML");
-    }
-
-    // Check for LMF-specific elements
-    if (!trimmedContent.includes("<LexicalResource")) {
-      throw new Error("Invalid LMF file: missing LexicalResource element");
-    }
-
-    // Check LMF version
-    const versionMatch = trimmedContent.match(
-      /<LexicalResource[^>]*lmfVersion=["']([^"']*)["']/
-    );
-    if (versionMatch) {
-      const version = versionMatch[1];
-      if (
-        version !== "1.0" &&
-        version !== "1.1" &&
-        version !== "1.2" &&
-        version !== "1.3"
-      ) {
-        throw new Error(`Unsupported LMF version: ${version}`);
-      }
-    }
-
-    this.logger.debug("XML content validation passed", {
-      length: content.length,
-      hasXMLDeclaration,
-      hasRootElement,
-      hasClosingTag,
-    });
-
-    // No need to log successful validation - only log issues
-  }
 
   /**
    * Convert the parsed XML result to an LMFDocument
@@ -1203,25 +833,25 @@ export class LmfParser implements LMFParser {
         this.logger.debug(`Using correct LMF processing order - all senses properly nested in LexicalEntry`);
       }
       
-      // Apply duplicate handling if configured, regardless of merge strategy
+      // Apply duplicate handling if configured
       if (options.duplicateHandling && options.duplicateHandling.strategy !== 'skip') {
         if (options.debug) {
           this.logger.debug(`Applying duplicate handling with strategy: ${options.duplicateHandling.strategy}`);
           this.logger.debug(`Before deduplication - words: ${pendingWords.length}, synsets: ${pendingSynsets.length}, senses: ${pendingSensesGlobal.length}`);
         }
         
-        // Skip deduplication during parsing to improve performance
-        // We'll do deduplication at the very end after all data is inserted
-        this.logger.info(`💡 Skipping deduplication during parsing for better performance`);
-        this.logger.info(`💡 Deduplication will be performed after all data is inserted into the database`);
+        // Apply deduplication during parsing
+        const deduplicatedWords = this.duplicateHandler.handleDuplicates(pendingWords, 'words');
+        const deduplicatedSynsets = this.duplicateHandler.handleDuplicates(pendingSynsets, 'synsets');
+        const deduplicatedSenses = this.duplicateHandler.handleDuplicates(pendingSensesGlobal, 'senses');
         
-        // Commit all results without deduplication during parsing
-        for (const w of pendingWords) words.push(w);
-        for (const syn of pendingSynsets) synsets.push(syn);
-        for (const s of pendingSensesGlobal) senses.push(s);
+        // Commit deduplicated results
+        for (const w of deduplicatedWords) words.push(w);
+        for (const syn of deduplicatedSynsets) synsets.push(syn);
+        for (const s of deduplicatedSenses) senses.push(s);
         
         if (options.debug) {
-          this.logger.debug(`After parsing (no deduplication) - words: ${words.length}, synsets: ${synsets.length}, senses: ${senses.length}`);
+          this.logger.debug(`After deduplication - words: ${words.length}, synsets: ${synsets.length}, senses: ${senses.length}`);
         }
       } else {
         // No duplicate handling - commit all results
@@ -1890,9 +1520,9 @@ export class LmfParser implements LMFParser {
         version: a.version || "1.0",
         email: a.email || "",
         license: a.license || "",
-        url: a.url || "",
-        citation: a.citation || "",
-        logo: a.logo || "",
+        url: a.url,
+        citation: a.citation,
+        logo: a.logo,
       });
     }
 

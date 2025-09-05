@@ -2,6 +2,11 @@ import fs from 'fs';
 import fsPromises from 'fs/promises';
 import sax from 'sax';
 import type { Synset, Word, Sense, Lexicon, PartOfSpeech, LMFDocument, LMFLoadOptions } from 'wn-ts-core';
+import { 
+  validateLMFContentEnhanced,
+  applyDuplicateHandling,
+  LMFParseError
+} from 'wn-ts-core/lmf';
 
 const { readFile, stat } = fsPromises;
 const { createReadStream } = fs;
@@ -131,7 +136,22 @@ export async function loadLMF(
     // Validate version immediately after quickScan
     if (!SUPPORTED_VERSIONS.has(version)) {
       if (debug) console.log(`[DEBUG] Throwing error for unsupported version: ${version}`);
-      throw new Error(`Unsupported LMF version: ${version}`);
+      throw new LMFParseError(`Unsupported LMF version: ${version}`, 'UNSUPPORTED_VERSION', { version });
+    }
+    
+    // Enhanced content validation
+    try {
+      const content = await readFile(filePath, 'utf-8');
+      validateLMFContentEnhanced(content, debug);
+    } catch (error) {
+      if (error instanceof LMFParseError) {
+        throw error;
+      }
+      throw new LMFParseError(
+        `Content validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        'CONTENT_VALIDATION_FAILED',
+        { originalError: error }
+      );
     }
     
     if (debug) console.log(`[DEBUG] Using streaming parser for version ${version}...`);
@@ -223,13 +243,13 @@ async function parseLMFStreaming(
             version: attributes.version || '1.0',
             email: attributes.email || '',
             license: attributes.license || '',
-            url: attributes.url || '',
-            citation: attributes.citation || '',
-            logo: attributes.logo || '',
+            url: attributes.url,
+            citation: attributes.citation,
+            logo: attributes.logo,
             entries: [],
             synsets: [],
             frames: [],
-          };
+          } as ParsedLexicon;
           if (debug) console.log(`[DEBUG] Processing lexicon: ${currentLexicon.id}`);
           break;
         case 'lexiconextension':
@@ -240,13 +260,13 @@ async function parseLMFStreaming(
             version: attributes.version || '1.0',
             email: attributes.email || '',
             license: attributes.license || '',
-            url: attributes.url || '',
-            citation: attributes.citation || '',
-            logo: attributes.logo || '',
+            url: attributes.url,
+            citation: attributes.citation,
+            logo: attributes.logo,
             entries: [],
             synsets: [],
             frames: [],
-          };
+          } as ParsedLexicon;
           if (debug) console.log(`[DEBUG] Processing lexicon extension: ${currentLexicon.id}`);
           break;
         case 'lexicalentry':
@@ -302,8 +322,8 @@ async function parseLMFStreaming(
             relations: [],
             language: currentLexicon?.language || 'en',
             lexicon: currentLexicon?.id || 'unknown',
-            members: [],
-            sensesIds: [],
+            memberIds: [],
+            senseIds: [],
           };
           if (attributes.ili) {
             (currentSynset as any).ili = attributes.ili;
@@ -311,8 +331,10 @@ async function parseLMFStreaming(
           break;
         case 'definition':
           if (currentSynset) {
+            // Generate a unique ID if not provided
+            const definitionId = attributes.id || `${currentSynset.id}-def-${currentSynset.definitions.length + 1}`;
             currentSynset.definitions.push({
-              id: attributes.id || '',
+              id: definitionId,
               language: attributes.language || currentLexicon?.language || 'en',
               text: '',
               source: attributes.source || '',
@@ -389,7 +411,7 @@ async function parseLMFStreaming(
               id: attributes.id || '',
               type: attributes.reltype || attributes.relType || attributes.type || 'unknown',
               target: attributes.target || '',
-              dc_type: attributes.dctype || attributes.dc_type || '',
+              dcType: attributes.dctype || attributes.dc_type || '',
             });
           }
           break;
@@ -555,13 +577,55 @@ async function parseLMFStreaming(
       if (progress) {
         progress(1.0);
       }
-      resolve({
+      
+      // Apply duplicate handling if configured
+      let finalResult: LMFDocument = {
         lmfVersion: version,
-        lexicons,
+        lexicons: lexicons.map(lex => ({
+          id: lex.id,
+          label: lex.label,
+          language: lex.language,
+          email: lex.email,
+          license: lex.license,
+          version: lex.version,
+          url: lex.url,
+          citation: lex.citation,
+          logo: lex.logo,
+          requires: lex.requires,
+          metadata: lex.metadata,
+        })) as Lexicon[],
         synsets,
         words,
         senses,
-      });
+      };
+      
+      if (options.duplicateHandling && options.duplicateHandling.strategy !== 'skip') {
+        if (debug) {
+          console.log(`[DEBUG] Applying duplicate handling with strategy: ${options.duplicateHandling.strategy}`);
+          console.log(`[DEBUG] Before deduplication - words: ${words.length}, synsets: ${synsets.length}, senses: ${senses.length}`);
+        }
+        
+        try {
+          finalResult = applyDuplicateHandling(finalResult as LMFDocument, options.duplicateHandling);
+          
+          if (debug) {
+            console.log(`[DEBUG] After deduplication - words: ${finalResult.words.length}, synsets: ${finalResult.synsets.length}, senses: ${finalResult.senses.length}`);
+          }
+        } catch (error) {
+          if (error instanceof LMFParseError) {
+            reject(error);
+            return;
+          }
+          reject(new LMFParseError(
+            `Duplicate handling failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            'DUPLICATE_HANDLING_FAILED',
+            { originalError: error }
+          ));
+          return;
+        }
+      }
+      
+      resolve(finalResult as LMFDocument);
     });
 
     parser.on('error', (error: Error) => {
