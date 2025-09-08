@@ -9,6 +9,39 @@ import type { WordNetDataSource, WordNetDataSourceRegistry } from "./types.js";
  */
 export const WORDNET_DATA_SOURCES: WordNetDataSourceRegistry = {
   // Open English WordNet
+  "oewn:2021": {
+    id: "oewn:2021",
+    name: "Open English WordNet 2021",
+    language: "en",
+    version: "2021",
+    url: "https://en-word.net/static/english-wordnet-2021.xml.gz",
+    format: "tar.gz",
+    description: "Complete English WordNet in LMF format",
+    size: "~50MB compressed",
+    lastUpdated: "2021-01-01"
+  },
+  "oewn:2022": {
+    id: "oewn:2022",
+    name: "Open English WordNet 2022",
+    language: "en",
+    version: "2022",
+    url: "https://en-word.net/static/english-wordnet-2022.xml.gz",
+    format: "tar.gz",
+    description: "Complete English WordNet in LMF format",
+    size: "~50MB compressed",
+    lastUpdated: "2022-01-01"
+  },
+  "oewn:2023": {
+    id: "oewn:2023",
+    name: "Open English WordNet 2023",
+    language: "en",
+    version: "2023",
+    url: "https://en-word.net/static/english-wordnet-2023.xml.gz",
+    format: "tar.gz",
+    description: "Complete English WordNet in LMF format",
+    size: "~50MB compressed",
+    lastUpdated: "2023-01-01"
+  },
   "oewn:2024": {
     id: "oewn:2024",
     name: "Open English WordNet 2024",

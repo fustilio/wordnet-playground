@@ -7,8 +7,8 @@ settings:
 catalogs:
   default:
     '@fustilio/data-loader':
-      specifier: ^0.3.0
-      version: 0.3.0
+      specifier: ^0.3.1
+      version: 0.3.1
     '@sqlite.org/sqlite-wasm':
       specifier: 3.50.3-build1
       version: 3.50.3-build1
@@ -79,8 +79,8 @@ catalogs:
       specifier: 3.2.4
       version: 3.2.4
     xml-introspect:
-      specifier: ^0.2.1
-      version: 0.2.1
+      specifier: ^0.3.1
+      version: 0.3.1
     zod:
       specifier: ^4.0.17
       version: 4.0.17
@@ -139,7 +139,7 @@ importers:
     dependencies:
       '@fustilio/data-loader':
         specifier: 'catalog:'
-        version: 0.3.0
+        version: 0.3.1
       fast-xml-parser:
         specifier: ^5.2.5
         version: 5.2.5
@@ -393,7 +393,7 @@ importers:
         version: 3.2.4(@types/node@20.19.4)(@vitest/browser@3.2.4)(@vitest/ui@3.2.4)(jiti@2.5.1)(jsdom@26.1.0)(lightningcss@1.30.1)(terser@5.43.1)
       xml-introspect:
         specifier: 'catalog:'
-        version: 0.2.1(@types/node@20.19.4)
+        version: 0.3.1(@types/node@20.19.4)
 
   wn-ts-node:
     dependencies:
@@ -508,7 +508,7 @@ importers:
         version: link:../wn-ts-core
       xml-introspect:
         specifier: 'catalog:'
-        version: 0.2.1(@types/node@20.19.4)
+        version: 0.3.1(@types/node@20.19.4)
       zod:
         specifier: 'catalog:'
         version: 4.0.17
@@ -1077,11 +1077,8 @@ packages:
     resolution: {integrity: sha512-OEl393iCOoo/z8bMezRlJu+GlRGlsKbUAN7jKB6LhnKoqKve5DXRpalbItIIcwnCjs1k/FOPjFzcA6Qn+H+YbA==}
     engines: {node: '>=18.0.0', npm: '>=9.0.0'}
 
-  '@fustilio/data-loader@0.2.0':
-    resolution: {integrity: sha512-t/QBo1vVj9unl4eNOEQBJVA/tihNBrI/I2KEZ8EIsXkIUxqUokOi/6ZQyt5tw1Jx7VZj1dyNgEw9U2JgjZMdfA==}
-
-  '@fustilio/data-loader@0.3.0':
-    resolution: {integrity: sha512-MyQ87UFsv0ajRCTowosHHepRDY2Qjbvjfp3rduYtcFdlO+8xhorTaIc9EhExAvyJeoVvTIGCQoFgttumNlSO8A==}
+  '@fustilio/data-loader@0.3.1':
+    resolution: {integrity: sha512-6c+99pnCwBNEFgYzakkQEefX49iLH5XY/IFXWmJE0iWCPRJHxzNMaPKa2VPhKNS7hBaVLpMgBIlDkugowTwd1g==}
 
   '@gar/promisify@1.1.3':
     resolution: {integrity: sha512-k2Ty1JcVojjJFwrg/ThKi2ujJ7XNLYaFGNB/bWT9wGR+oSMJHMa5w+CUq6p/pVrKeNNgA7pCqEcjSnHVoqJQFw==}
@@ -6140,8 +6137,8 @@ packages:
   xastscript@4.0.0:
     resolution: {integrity: sha512-r7a0kObEyivkML0dLrp/nOH5l51y9v5DL1MT/Xc6qUgGGNP1mZZUmT6NXtWAmx2FLfjonop++PtpVMwp1Hw/Gw==}
 
-  xml-introspect@0.2.1:
-    resolution: {integrity: sha512-mObIBaUSNmw6qXzBCEckQv1/qLoIUZR89IzeaIK9RcURry5QhRUgNhNZ3N3tLja0q4N0caAIxwE8PUT7FxAVNg==}
+  xml-introspect@0.3.1:
+    resolution: {integrity: sha512-qKn62tDW/AX25uggiZFesmt0VJrZradqsZNiUH4+/Rof+J53l92Xb3TOgsMIUgz5nLfJASdCrnKULJmTtgUfWQ==}
     hasBin: true
 
   xml-name-validator@5.0.0:
@@ -6718,15 +6715,7 @@ snapshots:
 
   '@faker-js/faker@9.9.0': {}
 
-  '@fustilio/data-loader@0.2.0':
-    dependencies:
-      fast-xml-parser: 5.2.5
-      pako: 2.1.0
-      tar-stream: 3.1.7
-      xz-decompress: 0.2.3
-      zod: 4.0.17
-
-  '@fustilio/data-loader@0.3.0':
+  '@fustilio/data-loader@0.3.1':
     dependencies:
       fast-xml-parser: 5.2.5
       pako: 2.1.0
@@ -12560,10 +12549,10 @@ snapshots:
     dependencies:
       '@types/xast': 2.0.4
 
-  xml-introspect@0.2.1(@types/node@20.19.4):
+  xml-introspect@0.3.1(@types/node@20.19.4):
     dependencies:
       '@faker-js/faker': 9.9.0
-      '@fustilio/data-loader': 0.2.0
+      '@fustilio/data-loader': 0.3.1
       '@types/inquirer': 9.0.9
       commander: 14.0.0
       deep-equal: 2.2.3

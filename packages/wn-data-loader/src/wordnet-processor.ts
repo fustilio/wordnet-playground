@@ -2,10 +2,12 @@ import { FormatProcessor } from "@fustilio/data-loader";
 import type { 
   WordNetProcessingResult, 
   WordNetProcessingOptions, 
-  WordNetContentType 
+  WordNetContentType,
+  WordNetDataSource,
+  WordNetDataSourceRegistry
 } from "./types.js";
 import { WordNetContentDetector } from "./wordnet-content-detector.js";
-import { getWordNetDataSource, isValidWordNetProject } from "./data-sources.js";
+import { getWordNetDataSource, isValidWordNetProject, WORDNET_DATA_SOURCES } from "./data-sources.js";
 
 /**
  * WordNet-specific data processor
@@ -14,10 +16,53 @@ import { getWordNetDataSource, isValidWordNetProject } from "./data-sources.js";
 export class WordNetProcessor {
   private formatProcessor: FormatProcessor;
   private contentDetector: WordNetContentDetector;
+  private dataSources: WordNetDataSourceRegistry;
 
-  constructor() {
+  constructor(dataSources?: WordNetDataSourceRegistry) {
     this.formatProcessor = new FormatProcessor();
     this.contentDetector = new WordNetContentDetector();
+    this.dataSources = dataSources || WORDNET_DATA_SOURCES;
+  }
+
+  /**
+   * Decompress gzipped data
+   */
+  private async decompressGzip(data: ArrayBuffer): Promise<ArrayBuffer> {
+    // Use the browser's built-in DecompressionStream API
+    if (typeof DecompressionStream !== 'undefined') {
+      const stream = new DecompressionStream('gzip');
+      const writer = stream.writable.getWriter();
+      const reader = stream.readable.getReader();
+      
+      // Write the compressed data
+      await writer.write(data);
+      await writer.close();
+      
+      // Read the decompressed data
+      const chunks: Uint8Array[] = [];
+      let done = false;
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        if (value) {
+          chunks.push(value);
+        }
+      }
+      
+      // Combine all chunks
+      const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+      const result = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const chunk of chunks) {
+        result.set(chunk, offset);
+        offset += chunk.length;
+      }
+      
+      return result.buffer;
+    } else {
+      // Fallback: try to use pako if available
+      throw new Error('Gzip decompression not supported in this environment. DecompressionStream API not available.');
+    }
   }
 
   /**
@@ -31,22 +76,60 @@ export class WordNetProcessor {
     const originalSize = data.byteLength;
 
     try {
-      // Validate project ID
-      if (!isValidWordNetProject(options.projectId)) {
+      // Validate project ID using instance data sources
+      if (!(options.projectId in this.dataSources)) {
         throw new Error(`Invalid WordNet project ID: ${options.projectId}`);
       }
 
       // Get data source information
-      const dataSource = getWordNetDataSource(options.projectId);
+      const dataSource = this.dataSources[options.projectId];
       if (!dataSource) {
         throw new Error(`WordNet data source not found: ${options.projectId}`);
       }
 
       // Process data using generic format processor
-      const formatResult = await this.formatProcessor.processData(data, {
-        projectId: options.projectId,
-        enableTarExtraction: options.enableTarExtraction ?? true
-      });
+      // For .xml.gz files, handle decompression directly since they're just gzipped XML
+      let formatResult;
+      if (dataSource.format === 'xml.gz' || dataSource.format === 'gz') {
+        // Handle gzipped XML files directly
+        try {
+          // Decompress the gzipped data
+          const decompressedData = await this.decompressGzip(data);
+          
+          // Create a mock format result for XML content
+          formatResult = {
+            success: true,
+            projectId: options.projectId,
+            contentType: "xml" as WordNetContentType,
+            confidence: "high",
+            data: decompressedData,
+            processingSteps: ["gzip decompression", "XML content detection"],
+            metadata: {
+              originalSize: data.byteLength,
+              decompressedSize: decompressedData.byteLength,
+              compressionRatio: (data.byteLength / decompressedData.byteLength).toFixed(2)
+            }
+          };
+        } catch (error) {
+          formatResult = {
+            success: false,
+            projectId: options.projectId,
+            contentType: "unknown" as WordNetContentType,
+            confidence: "low",
+            error: `Failed to decompress gzipped data: ${error}`,
+            processingSteps: ["gzip decompression failed"]
+          };
+        }
+      } else {
+        // Use the generic format processor for other formats
+        const shouldEnableTarExtraction = options.enableTarExtraction ?? 
+          (dataSource.format !== 'xml.gz' && dataSource.format !== 'gz');
+        
+        formatResult = await this.formatProcessor.processData(data, {
+          projectId: options.projectId,
+          enableTarExtraction: shouldEnableTarExtraction
+        });
+      }
 
       if (!formatResult.success) {
         return {

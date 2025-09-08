@@ -23,16 +23,16 @@ describe.skipIf(isNode)('Lexicon Preview and Introspection E2E', () => {
   let dataLoader: DataLoader;
 
   beforeAll(async () => {
-    const instance = await createWordNetInstance('oewn:2024');
+    const instance = await createWordNetInstance('oewn:2021');
     wordnet = instance.wordnet;
     dataLoader = instance.dataLoader;
     
     console.log('🔍 Setting up lexicon preview testing environment...');
     
     try {
-      // Load the Open English WordNet (oewn:2024) - this is the core package
-      console.log('🔍 Loading Open English WordNet (oewn:2024)...');
-      await dataLoader.downloadAndLoad('oewn:2024');
+      // Load the Open English WordNet (oewn:2021) - this is the core package
+      console.log('🔍 Loading Open English WordNet (oewn:2021)...');
+      await dataLoader.downloadAndLoad('oewn:2021');
       console.log('✅ Open English WordNet loaded successfully');
       
       // Load CILI for interlingual index support

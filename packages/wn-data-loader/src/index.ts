@@ -3,6 +3,7 @@ export * from "./types.js";
 export * from "./data-sources.js";
 export * from "./wordnet-content-detector.js";
 export * from "./wordnet-processor.js";
+export * from "./index-converter.js";
 
 // Re-export commonly used types and classes
 export type { 

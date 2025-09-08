@@ -14,6 +14,8 @@ import type { Database } from "./types/database.js";
 import type { LMFDocument, Synset, Word, Sense, Lexicon } from "wn-ts-core";
 import { WarningAggregator } from "./parsers/lmf/warning-aggregator.js";
 import { WordNetProcessor } from "wn-data-loader";
+import { convertIndexToDataSources } from "wn-data-loader";
+import indexData from "./index.json" assert { type: "json" };
 
 // Note: ParsedNode interface removed - now using proper LMF parsing pipeline
 
@@ -133,7 +135,7 @@ export class DataLoader {
 
     // Convert external URLs to proxy URLs
     if (url.includes("en-word.net")) {
-      const proxyUrl = url.replace("https://en-word.net", "/api/en-word-net");
+      const proxyUrl = url.replace("https://en-word.net", "/api/wordnet");
       this.logger.debug(`🔍 Proxied to: ${proxyUrl}`);
       return proxyUrl;
     }
@@ -175,6 +177,16 @@ export class DataLoader {
         "/api/globalwordnet-ewn"
       );
       this.logger.debug(`🔍 Proxied to: ${proxyUrl}`);
+      return proxyUrl;
+    }
+
+    // Handle release assets that GitHub redirects to
+    if (url.includes("release-assets.githubusercontent.com")) {
+      const proxyUrl = url.replace(
+        "https://release-assets.githubusercontent.com",
+        "/api/release-assets"
+      );
+      this.logger.debug(`🔍 Proxied release asset to: ${proxyUrl}`);
       return proxyUrl;
     }
 
@@ -543,7 +555,9 @@ export class DataLoader {
     if (progress) progress(0.05, 'Starting data processing...');
 
     // Use the WordNet processor to handle all decompression and format detection
-    const wordnetProcessor = new WordNetProcessor();
+    // Convert index.json data to the format expected by WordNetProcessor
+    const dataSources = convertIndexToDataSources(indexData);
+    const wordnetProcessor = new WordNetProcessor(dataSources);
     
     this.logger.info(`🚀 Starting WordNet processing for ${projectIdWithVersion}...`);
     if (progress) progress(0.1, 'Processing WordNet data format...');
