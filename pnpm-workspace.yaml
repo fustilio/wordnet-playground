@@ -1,5 +1,6 @@
 ---
 catalog:
+  '@fustilio/data-loader': ^0.3.0
   'xml-introspect': ^0.2.1
   '@sqlite.org/sqlite-wasm': 3.50.3-build1
   '@types/node': ^20.10.0
@@ -46,4 +47,4 @@ packages:
   - wn-ts-web-demo
   - sqlite-opfs-demo
   - utils
-  - packages/xml-introspect
+  - packages/wn-data-loader

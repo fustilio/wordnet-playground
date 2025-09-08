@@ -1,0 +1,36 @@
+{
+  "name": "wn-data-loader",
+  "version": "0.1.0",
+  "description": "WordNet-specific extension of @fustilio/data-loader for lexical data processing",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "test": "vitest run --reporter=verbose",
+    "test:watch": "vitest --reporter=verbose",
+    "build": "tsc --noEmit",
+    "dev": "tsc --watch --noEmit"
+  },
+  "dependencies": {
+    "@fustilio/data-loader": "catalog:",
+    "fast-xml-parser": "^5.2.5",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "keywords": [
+    "wordnet",
+    "lexical-data",
+    "xml-processing",
+    "data-loader",
+    "linguistics"
+  ],
+  "author": "fustilio",
+  "license": "MIT"
+}

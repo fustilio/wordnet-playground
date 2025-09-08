@@ -13,7 +13,7 @@ import type { KyselyQueryService } from "./database/kysely-query-service.js";
 import type { Database } from "./types/database.js";
 import type { LMFDocument, Synset, Word, Sense, Lexicon } from "wn-ts-core";
 import { WarningAggregator } from "./parsers/lmf/warning-aggregator.js";
-import { FormatProcessor } from "./formats/index.js";
+import { WordNetProcessor } from "wn-data-loader";
 
 // Note: ParsedNode interface removed - now using proper LMF parsing pipeline
 
@@ -542,31 +542,37 @@ export class DataLoader {
   ): Promise<void> {
     if (progress) progress(0.05, 'Starting data processing...');
 
-    // Use the new format processor to handle all decompression and format detection
-    const formatProcessor = new FormatProcessor();
+    // Use the WordNet processor to handle all decompression and format detection
+    const wordnetProcessor = new WordNetProcessor();
     
-    this.logger.info(`🚀 Starting format processing for ${projectIdWithVersion}...`);
-    if (progress) progress(0.1, 'Processing data format...');
+    this.logger.info(`🚀 Starting WordNet processing for ${projectIdWithVersion}...`);
+    if (progress) progress(0.1, 'Processing WordNet data format...');
     
-    const formatResult = await formatProcessor.processData(data, {
+    const wordnetResult = await wordnetProcessor.processWordNetData(data, {
       projectId: projectIdWithVersion,
-      enableTarExtraction: true
+      enableTarExtraction: true,
+      extractMetadata: true,
+      validateLMF: true
     });
 
-    if (!formatResult.success) {
-      throw new Error(`Format processing failed: ${formatResult.error}`);
+    if (!wordnetResult.success) {
+      throw new Error(`WordNet processing failed: ${wordnetResult.error}`);
     }
 
-    this.logger.info(`✅ Format processing completed successfully`, {
-      contentType: formatResult.contentType,
-      confidence: formatResult.confidence,
-      processingSteps: formatResult.processingSteps,
-      totalProcessingTime: formatResult.totalProcessingTime,
-      originalSize: formatResult.originalSize,
-      finalSize: formatResult.finalSize
+    this.logger.info(`✅ WordNet processing completed successfully`, {
+      projectId: wordnetResult.projectId,
+      language: wordnetResult.language,
+      version: wordnetResult.version,
+      contentType: wordnetResult.contentType,
+      confidence: wordnetResult.confidence,
+      processingSteps: wordnetResult.processingSteps,
+      totalProcessingTime: wordnetResult.totalProcessingTime,
+      originalSize: wordnetResult.originalSize,
+      finalSize: wordnetResult.finalSize,
+      wordnetMetadata: wordnetResult.wordnetMetadata
     });
 
-    const xmlText = formatResult.xmlContent!;
+    const xmlText = wordnetResult.xmlContent!;
 
     // Check for XZ magic numbers: 0xfd 0x37 0x7a 0x58 0x5a 0x00
 
@@ -594,7 +600,7 @@ export class DataLoader {
     this.logger.debug(`🔍 Debug: Project data:`, project.projectData);
 
     // Handle different file types based on detected content
-    if (formatResult.contentType === "ili" || formatResult.contentType === "tsv") {
+    if (wordnetResult.contentType === "ili" || wordnetResult.contentType === "cili-data") {
       this.logger.info(`📝 Detected ILI/TSV file type from content analysis`);
 
       // Validate that we have TSV content after decompression
@@ -649,10 +655,10 @@ export class DataLoader {
       }
       
       // Continue to common completion code instead of early return
-    } else if (formatResult.contentType === "lmf" || formatResult.contentType === "xml") {
+    } else if (wordnetResult.contentType === "lmf" || wordnetResult.contentType === "omw-package" || wordnetResult.contentType === "own-package") {
       // Process as LMF XML file
       this.logger.info(
-        `📝 Processing as LMF XML file (type: ${formatResult.contentType})`
+        `📝 Processing as LMF XML file (type: ${wordnetResult.contentType})`
       );
 
       // Verify that we have valid LMF XML content
@@ -765,23 +771,23 @@ export class DataLoader {
     } else {
       // Check for unsupported file types
       if (
-        formatResult.contentType &&
-        formatResult.contentType !== "tar"
+        wordnetResult.contentType &&
+        wordnetResult.contentType !== "unknown"
       ) {
         this.logger.warn(
-          `⚠️ Unknown or unsupported file type: ${formatResult.contentType}, treating as LMF XML`
+          `⚠️ Unknown or unsupported file type: ${wordnetResult.contentType}, treating as LMF XML`
         );
       }
 
       // Default to LMF XML processing for unknown types
       this.logger.info(
-        `📝 Processing as LMF XML file (type: ${formatResult.contentType || "unknown"})`
+        `📝 Processing as LMF XML file (type: ${wordnetResult.contentType || "unknown"})`
       );
 
       // For unknown types, we need to validate that the content is at least valid XML
-      // since the FormatProcessor should have detected the correct type
+      // since the WordNetProcessor should have detected the correct type
       this.logger.warn(
-        `⚠️ Unknown content type '${formatResult.contentType}', attempting XML processing`
+        `⚠️ Unknown content type '${wordnetResult.contentType}', attempting XML processing`
       );
       
       // Validate that unknown content types contain valid XML structure
