@@ -378,7 +378,7 @@ export function validateLMFContentEnhanced(xmlContent: string, debug: boolean = 
   // Check for LMF-specific elements
   if (!trimmedContent.includes('<LexicalResource')) {
     throw new LMFParseError(
-      'Missing LexicalResource element - not a valid LMF file',
+      'missing LexicalResource element',
       'MISSING_LEXICAL_RESOURCE',
       { 
         hasLexicalResource: trimmedContent.includes('<LexicalResource'),

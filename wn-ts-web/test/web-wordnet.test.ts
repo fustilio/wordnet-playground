@@ -60,10 +60,18 @@ const mockQueryService = {
   getDefinitionsBySynsetId: vi.fn().mockImplementation(async (synsetId) =>
     memoryDb.definitions.filter(d => d.synset_id === synsetId)
   ),
-  getSenses: vi.fn().mockImplementation(async ({ wordIdOrForm }) => {
+  getSenses: vi.fn().mockImplementation(async ({ wordIdOrForm, pos }) => {
     const word = memoryDb.words.find(w => w.lemma === wordIdOrForm);
     if (!word) return [];
-    return memoryDb.senses.filter(s => s.word_id === word.id).map(s => ({...s, wordId: s.word_id, synsetId: s.synset_id}));
+    let senses = memoryDb.senses.filter(s => s.word_id === word.id);
+    
+    // Filter by POS if provided
+    if (pos) {
+      const wordPos = word.pos;
+      if (wordPos !== pos) return [];
+    }
+    
+    return senses.map(s => ({...s, wordId: s.word_id, synsetId: s.synset_id}));
   }),
   getWordById: vi.fn().mockImplementation(async (id) => memoryDb.words.find(w => w.id === id)),
   getSynsetById: vi.fn().mockImplementation(async (id) => memoryDb.synsets.find(ss => ss.id === id)),

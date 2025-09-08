@@ -637,6 +637,17 @@ export class DataLoader {
         `✅ ILI data loaded successfully for ${projectIdWithVersion}`
       );
       
+      // Emit events for backward compatibility with tests
+      if (this.wordnet.emitDataChanged) {
+        this.wordnet.emitDataChanged('packageLoaded', {
+          packageId: projectIdWithVersion,
+          timestamp: new Date().toISOString()
+        });
+      }
+      if (this.wordnet.emitStatisticsUpdated) {
+        this.wordnet.emitStatisticsUpdated();
+      }
+      
       // Continue to common completion code instead of early return
     } else if (formatResult.contentType === "lmf" || formatResult.contentType === "xml") {
       // Process as LMF XML file

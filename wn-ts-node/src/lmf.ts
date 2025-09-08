@@ -145,13 +145,9 @@ export async function loadLMF(
       validateLMFContentEnhanced(content, debug);
     } catch (error) {
       if (error instanceof LMFParseError) {
-        throw error;
+        throw new Error(`Failed to load LMF file: ${error.message}`);
       }
-      throw new LMFParseError(
-        `Content validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        'CONTENT_VALIDATION_FAILED',
-        { originalError: error }
-      );
+      throw new Error(`Failed to load LMF file: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
     
     if (debug) console.log(`[DEBUG] Using streaming parser for version ${version}...`);

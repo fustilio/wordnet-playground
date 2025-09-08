@@ -36,20 +36,19 @@ The system provides three main capabilities:
 
 ### CLI Usage
 
-Generate samples for all target projects:
+**Note:** The internal sample generation scripts have been removed in favor of the more powerful `xml-introspect` CLI tool.
+
+Generate samples using xml-introspect:
 
 ```bash
-pnpm tsx scripts/generate-xsd-samples-simple.ts
+# Generate sample from real WordNet data
+npx xml-introspect sample https://github.com/omwn/omw-data/releases/download/v1.4/omw-fr-1.4.tar.xz sample.xml --verbose
+
+# Generate realistic test data
+npx xml-introspect realistic https://github.com/omwn/omw-data/releases/download/v1.4/omw-fr-1.4.tar.xz realistic.xml --verbose
 ```
 
-Generate samples with custom settings:
-
-```bash
-pnpm tsx scripts/generate-xsd-samples-simple.ts \
-  --max-synsets 25 \
-  --max-words 50 \
-  --target-size 256000
-```
+For more advanced usage, see the [xml-introspect usage guide](../../docs/xml-introspect-usage.md).
 
 ### Programmatic Usage
 

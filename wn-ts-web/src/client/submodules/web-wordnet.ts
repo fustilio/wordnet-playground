@@ -27,6 +27,7 @@ import { Kysely } from "kysely";
 import { createSqliteWasmDialect } from "../../database/sqlite-wasm-dialect.js";
 import type { Sqlite3Static } from "@sqlite.org/sqlite-wasm";
 import { createScopedLogger } from "utils/logger";
+import { WordNetEventEmitter, WordNetEvents } from "../../event-emitter.js";
 
 const logger = createScopedLogger("WebWordnet");
 
@@ -54,8 +55,8 @@ export class WebWordnet extends BaseWordnet {
   private _lang?: string;
   private initialized = false;
   
-  // Event emitter removed - events are now handled by the orchestrator
-  // private eventEmitter: WordNetEventEmitter;
+  // Event emitter for backward compatibility with tests
+  private eventEmitter: WordNetEventEmitter;
 
   constructor(lexicon: string | string[] = "*", options: WordnetOptions = {}) {
     // Create options object with lexicon property
@@ -74,8 +75,7 @@ export class WebWordnet extends BaseWordnet {
     }
 
     this.database = new WebDatabase();
-    // Event emitter removed - events are now handled by the orchestrator
-    // this.eventEmitter = new WordNetEventEmitter();
+    this.eventEmitter = new WordNetEventEmitter();
     
     this._expand = Array.isArray(options.expand)
       ? options.expand
@@ -89,6 +89,49 @@ export class WebWordnet extends BaseWordnet {
     if (options.language) {
       this._lang = options.language;
     }
+  }
+
+  /**
+   * Subscribe to an event
+   * @param event - Event name to listen for
+   * @param callback - Function to call when event occurs
+   */
+  on(event: string, callback: (...args: any[]) => void): void {
+    this.eventEmitter.on(event, callback);
+  }
+
+  /**
+   * Unsubscribe from an event
+   * @param event - Event name to stop listening for
+   * @param callback - Function to remove from listeners
+   */
+  off(event: string, callback: (...args: any[]) => void): void {
+    this.eventEmitter.off(event, callback);
+  }
+
+  /**
+   * Emit an event
+   * @param event - Event name to emit
+   * @param args - Arguments to pass to event callbacks
+   */
+  emit(event: string, ...args: any[]): void {
+    this.eventEmitter.emit(event, ...args);
+  }
+
+  /**
+   * Emit data changed event (for backward compatibility with tests)
+   * @param eventType - Type of data change event
+   * @param data - Event data
+   */
+  emitDataChanged(eventType: string, data: any): void {
+    this.eventEmitter.emit('dataChanged', { eventType, ...data });
+  }
+
+  /**
+   * Emit statistics updated event (for backward compatibility with tests)
+   */
+  emitStatisticsUpdated(): void {
+    this.eventEmitter.emit('statisticsUpdated');
   }
 
   /**
@@ -246,10 +289,10 @@ export class WebWordnet extends BaseWordnet {
       );
       this.initialized = true;
 
-      // Note: Events are now emitted by the orchestrator, not here
-      // this.eventEmitter.emit(WordNetEvents.INITIALIZED, {
-      //   lexicons: this._lexiconIds,
-      // });
+      // Emit initialization event for backward compatibility with tests
+      this.eventEmitter.emit(WordNetEvents.INITIALIZED, {
+        lexicons: this._lexiconIds,
+      });
     } catch (error) {
       // Note: Events are now emitted by the orchestrator, not here
       // this.eventEmitter.emit(WordNetEvents.ERROR, {
@@ -437,7 +480,8 @@ export class WebWordnet extends BaseWordnet {
     if (!this.initialized || !this.queryService)
       throw new Error("WebWordnet not initialized");
 
-    const { wordIdOrForm, pos, lexicon } = query || {};
+    const { wordIdOrForm, form, pos, lexicon } = query || {};
+    const searchTerm = wordIdOrForm || form;
     
     // Handle multi-lexicon queries
     let lexiconFilter: string | undefined;
@@ -453,14 +497,14 @@ export class WebWordnet extends BaseWordnet {
       lexiconFilter = this.getPrimaryLexiconId();
     }
     
-    if (!wordIdOrForm) {
-      // If no wordIdOrForm specified, return empty array
+    if (!searchTerm) {
+      // If no search term specified, return empty array
       return [];
     }
 
-    // Query by wordIdOrForm (can be either word ID or form)
+    // Query by search term (can be either word ID or form)
     return this.queryService.getSenses({
-      wordIdOrForm,
+      wordIdOrForm: searchTerm,
       pos,
       lexicon: lexiconFilter,
     });

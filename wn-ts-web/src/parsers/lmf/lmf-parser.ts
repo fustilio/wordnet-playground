@@ -181,7 +181,14 @@ export class LmfParser implements LMFParser {
           throw new Error("Invalid LMF file: XML content is not a valid string");
         }
         
-        validateLMFContentEnhanced(xmlContent, debug);
+        try {
+          validateLMFContentEnhanced(xmlContent, debug);
+        } catch (error) {
+          if (error instanceof LMFParseError) {
+            throw new Error(`Invalid LMF file: ${error.message}`);
+          }
+          throw error;
+        }
         
         if (debug && this.options.verbose) {
           this.logger.debug("XML content validation passed");

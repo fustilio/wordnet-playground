@@ -1,5 +1,6 @@
 ---
 catalog:
+  'xml-introspect': ^0.2.1
   '@sqlite.org/sqlite-wasm': 3.50.3-build1
   '@types/node': ^20.10.0
   '@types/react': ^19.1.8

@@ -3,6 +3,7 @@ import { readFile } from 'fs/promises';
 // Try to import xml-introspect, but make it optional
 let XMLIntrospector: any;
 let StreamingXMLIntrospector: any;
+
 try {
   const xmlIntrospect = require('xml-introspect');
   XMLIntrospector = xmlIntrospect.XMLIntrospector;
