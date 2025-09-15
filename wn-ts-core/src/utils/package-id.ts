@@ -30,11 +30,11 @@ export function parsePackageId(packageId: string): PackageIdParts {
     return { base: parts[0]! };
   }
 
-  // For any other format, treat as invalid and return just the base
-  // This provides backward compatibility while encouraging proper format
+  // For any other format, throw an error to prevent data corruption
   if (parts.length > 2) {
-    console.warn(`Invalid package ID format: ${packageId}. Expected format: base:version or base`);
-    return { base: parts[0]! };
+    const error = new Error(`Invalid package ID format: "${packageId}". Expected format: base:version or base. Found ${parts.length} parts: [${parts.join(', ')}]`);
+    console.error(`Invalid package ID format: ${packageId}. Expected format: base:version or base`);
+    throw error;
   }
 
   return { base: parts[0]! };
@@ -70,4 +70,27 @@ export function getPackageBase(packageId: string): string {
  */
 export function getPackageVersion(packageId: string): string | undefined {
   return parsePackageId(packageId).version;
+}
+
+/**
+ * Sanitize a lexicon ID to ensure it follows proper package ID format
+ * This function handles cases where lexiconId might already contain version information
+ * and prevents creation of malformed package IDs with multiple colons
+ */
+export function sanitizeLexiconId(lexiconId: string, version?: string): string {
+  // First, validate the existing lexiconId format
+  if (lexiconId.includes(':')) {
+    // Use parsePackageId to validate and throw error if malformed
+    parsePackageId(lexiconId); // This will throw if malformed
+    // If it parsed successfully, return the original (it's already in correct format)
+    return lexiconId;
+  }
+  
+  // If no colons and we have a version, format a proper package ID
+  if (version) {
+    return formatPackageId({ base: lexiconId, version });
+  }
+  
+  // No version, return as-is
+  return lexiconId;
 }

@@ -69,18 +69,34 @@ export const LexiconRequirementsWidget: React.FC = () => {
 
   const checkRequirements = (): LexiconRequirementWithStatus[] => {
     const requirements = lexiconRequirements.map(req => {
-      const isLoaded = isRequirementSatisfied(req.id, loadedPackages);
-      const isAvailable = isRequirementAvailable(req.id, availablePackages);
-      const bestPackage = findBestPackageForRequirement(req.id, availablePackages);
-      
-      return {
-        ...req,
-        isLoaded,
-        isAvailable,
+      try {
+        const isLoaded = isRequirementSatisfied(req.id, loadedPackages);
+        const isAvailable = isRequirementAvailable(req.id, availablePackages);
+        const bestPackage = findBestPackageForRequirement(req.id, availablePackages);
+        
+        return {
+          ...req,
+          isLoaded,
+          isAvailable,
         bestPackage,
         canLoad: isAvailable && !isLoaded,
         canForceReload: isAvailable && isLoaded // Can force reload if already loaded
       };
+      } catch (error) {
+        logger.error("Error checking requirement", { 
+          requirementId: req.id, 
+          error: error instanceof Error ? error.message : String(error) 
+        });
+        // Return a safe fallback for this requirement
+        return {
+          ...req,
+          isLoaded: false,
+          isAvailable: false,
+          bestPackage: undefined,
+          canLoad: false,
+          canForceReload: false
+        };
+      }
     });
     
     return requirements;

@@ -6,6 +6,7 @@ import {
   WordNetWorkerClient,
   type LexiconInfo,
 } from "../../";
+import { parsePackageId, formatPackageId, sanitizeLexiconId } from "wn-ts-core/utils";
 
 // Define types locally instead of importing from demo
 export interface WordNetStatistics {
@@ -531,10 +532,19 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
           // status is already the data payload from the worker client
           {
             const loaded =
-              status.lexiconStats?.map(
-                (ls: any) =>
-                  `${ls.lexiconId}${ls.version ? `:${ls.version}` : ""}`
-              ) || [];
+              status.lexiconStats?.map((ls: any) => {
+                try {
+                  return sanitizeLexiconId(ls.lexiconId, ls.version);
+                } catch (error) {
+                  logger.error("Failed to sanitize lexicon ID in detectExistingPackages", {
+                    originalLexiconId: ls.lexiconId,
+                    version: ls.version,
+                    error: error instanceof Error ? error.message : String(error)
+                  });
+                  // Return the original lexicon ID as a fallback
+                  return ls.lexiconId;
+                }
+              }) || [];
             const hasData = status.hasData;
 
             logger.debug("Detected loaded packages", { loaded, hasData });
@@ -793,31 +803,6 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
 
 
 
-  // Helper function to sanitize malformed lexicon IDs
-  const sanitizeLexiconId = useCallback((lexiconId: string, version?: string): string => {
-    // If the lexiconId already contains multiple colons (malformed), try to fix it
-    if (lexiconId.includes(':')) {
-      const parts = lexiconId.split(':');
-      
-      // Handle cases like "cili:1.0:1.0" -> should be "cili:1.0"
-      if (parts.length > 2) {
-        // Take the first two parts as base:version
-        return `${parts[0]}:${parts[1]}`;
-      }
-      
-      // If it's already in correct format (base:version), return as is
-      if (parts.length === 2) {
-        return lexiconId;
-      }
-    }
-    
-    // If no colons or single colon, append version if provided
-    if (version && !lexiconId.includes(':')) {
-      return `${lexiconId}:${version}`;
-    }
-    
-    return lexiconId;
-  }, []);
 
   // Set up event listeners when worker client is available
   useEffect(() => {
@@ -829,10 +814,22 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
       logger.debug("Lexicons changed event received", event);
 
       // Sanitize all lexicon IDs to prevent malformed IDs from propagating
-      const sanitizedLexicons = event.lexicons.map(lexicon => ({
-        ...lexicon,
-        id: sanitizeLexiconId(lexicon.id, lexicon.version)
-      }));
+      const sanitizedLexicons = event.lexicons.map(lexicon => {
+        try {
+          return {
+            ...lexicon,
+            id: sanitizeLexiconId(lexicon.id, lexicon.version)
+          };
+        } catch (error) {
+          logger.error("Failed to sanitize lexicon ID in lexicons changed event", {
+            originalId: lexicon.id,
+            version: lexicon.version,
+            error: error instanceof Error ? error.message : String(error)
+          });
+          // Return the original lexicon with a warning, but don't break the app
+          return lexicon;
+        }
+      });
 
       setState((prev) => ({
         ...prev,
@@ -897,46 +894,85 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
           wordCount: number;
           synsetCount: number;
         }) => {
-          // Sanitize the lexicon ID to prevent malformed IDs from propagating
-          const sanitizedId = sanitizeLexiconId(ls.lexiconId, ls.version);
-          
-          // Check if sanitized ID already contains version information
-          if (sanitizedId.includes(':') && ls.version) {
-            // If sanitized ID already has colons, don't append version
-            // This prevents creating malformed IDs like 'cili:1.0:1.0:1.0'
-            return sanitizedId;
-          } else if (ls.version) {
-            // Only append version if sanitized ID doesn't already have it
-            return `${sanitizedId}:${ls.version}`;
-          } else {
-            return sanitizedId;
+          try {
+            // Sanitize the lexicon ID to prevent malformed IDs from propagating
+            const sanitizedId = sanitizeLexiconId(ls.lexiconId, ls.version);
+            
+            // Debug logging to trace the issue
+            logger.debug("Package ID construction", {
+              originalLexiconId: ls.lexiconId,
+              version: ls.version,
+              sanitizedId: sanitizedId,
+              hasColon: sanitizedId.includes(':'),
+              hasVersion: !!ls.version
+            });
+            
+            // Check if sanitized ID already contains version information
+            if (sanitizedId.includes(':') && ls.version) {
+              // If sanitized ID already has colons, don't append version
+              // This prevents creating malformed IDs like 'cili:1.0:1.0:1.0'
+              logger.debug("Returning sanitized ID without appending version", { sanitizedId });
+              return sanitizedId;
+            } else if (ls.version) {
+              // Only append version if sanitized ID doesn't already have it
+              const result = `${sanitizedId}:${ls.version}`;
+              logger.debug("Appending version to sanitized ID", { sanitizedId, version: ls.version, result });
+              return result;
+            } else {
+              logger.debug("Returning sanitized ID as-is", { sanitizedId });
+              return sanitizedId;
+            }
+          } catch (error) {
+            logger.error("Failed to sanitize lexicon ID in status update", {
+              originalLexiconId: ls.lexiconId,
+              version: ls.version,
+              error: error instanceof Error ? error.message : String(error)
+            });
+            // Return the original lexicon ID as a fallback, but this will likely cause issues
+            return ls.lexiconId;
           }
         });
-        setState((prev) => ({
-          ...prev,
-          loadedPackages: Array.from(
-            new Set([...(prev.loadedPackages || []), ...loadedPackages])
-          ),
-          statistics: payload.statistics ? {
-            totalWords: (payload.statistics as any).totalWords ?? 0,
-            totalSynsets: (payload.statistics as any).totalSynsets ?? 0,
-            totalSenses: (payload.statistics as any).totalSenses ?? 0,
-            totalILIs: (payload.statistics as any).totalILIs ?? 0,
-            totalRelations: (payload.statistics as any).totalRelations ?? 0,
-            totalDefinitions: (payload.statistics as any).totalDefinitions ?? 0,
-            totalLexicons: (payload.statistics as any).totalLexicons ?? 1,
-            languages: (payload.statistics as any).languages ?? ['en'],
-            partsOfSpeech: (payload.statistics as any).partsOfSpeech ?? ['n', 'v', 'a', 'r'],
-            dataSize: (payload.statistics as any).dataSize ?? 0,
-            lastUpdated: new Date().toISOString(),
-            source: (payload.statistics as any).source ?? 'Worker' as const,
-            posDistribution: (payload.statistics as any).posDistribution ?? {}
-          } : undefined,
-          progressStage:
+        
+        // Only update loadedPackages if we don't already have the same packages
+        // This prevents duplicate entries from multiple status updates
+        setState((prev) => {
+          const existingPackages = new Set(prev.loadedPackages || []);
+          const newPackages = loadedPackages.filter((pkg: string) => !existingPackages.has(pkg));
+          
+          if (newPackages.length > 0) {
+            return {
+              ...prev,
+              loadedPackages: [...(prev.loadedPackages || []), ...newPackages]
+            };
+          }
+          return prev;
+        });
+        
+        // Update statistics if provided
+        if (payload.statistics) {
+          setState((prev) => ({
+            ...prev,
+            statistics: {
+              totalWords: (payload.statistics as any).totalWords ?? 0,
+              totalSynsets: (payload.statistics as any).totalSynsets ?? 0,
+              totalSenses: (payload.statistics as any).totalSenses ?? 0,
+              totalILIs: (payload.statistics as any).totalILIs ?? 0,
+              totalRelations: (payload.statistics as any).totalRelations ?? 0,
+              totalDefinitions: (payload.statistics as any).totalDefinitions ?? 0,
+              totalLexicons: (payload.statistics as any).totalLexicons ?? 1,
+              languages: (payload.statistics as any).languages ?? ['en'],
+              partsOfSpeech: (payload.statistics as any).partsOfSpeech ?? ['n', 'v', 'a', 'r'],
+              dataSize: (payload.statistics as any).dataSize ?? 0,
+              lastUpdated: new Date().toISOString(),
+              source: (payload.statistics as any).source ?? 'Worker' as const,
+              posDistribution: (payload.statistics as any).posDistribution ?? {}
+            },
+            progressStage:
             loadedPackages.length > 0
               ? "Ready - Packages loaded"
               : "Ready - No packages loaded",
         }));
+        }
       }
     };
 
@@ -963,7 +999,7 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
       wc.removeEventListener("statusUpdated", handleStatusUpdated);
       wc.removeEventListener("error", handleError);
     };
-  }, [sanitizeLexiconId]); // Only depend on sanitizeLexiconId
+  }, []); // No dependencies needed since sanitizeLexiconId is now imported
 
   // Initialize WordNet instance (run once on mount)
   const initializeWordNet = async () => {
