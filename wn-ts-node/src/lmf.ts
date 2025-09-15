@@ -1,5 +1,6 @@
 import fs from 'fs';
 import fsPromises from 'fs/promises';
+import { join } from 'path';
 import sax from 'sax';
 import type { Synset, Word, Sense, Lexicon, PartOfSpeech, LMFDocument, LMFLoadOptions } from 'wn-ts-core';
 import { 
@@ -7,6 +8,7 @@ import {
   applyDuplicateHandling,
   LMFParseError
 } from 'wn-ts-core/lmf';
+import { isURL } from 'wn-ts-core/utils';
 
 const { readFile, stat } = fsPromises;
 const { createReadStream } = fs;
@@ -103,27 +105,74 @@ async function quickScan(filePath: string, debug = false): Promise<{ version: st
   return { version, elementCount };
 }
 
+
+/**
+ * Load LMF content from URL
+ */
+async function loadFromURL(url: string, options: LMFLoadOptions = {}): Promise<string> {
+  const { debug = false } = options;
+  
+  if (debug) console.log(`[DEBUG] Loading LMF from URL: ${url}`);
+  
+  try {
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    const content = await response.text();
+    
+    if (debug) console.log(`[DEBUG] Loaded ${content.length} characters from URL`);
+    
+    return content;
+  } catch (error) {
+    if (debug) console.log(`[DEBUG] URL loading failed:`, error);
+    throw new Error(`Failed to load LMF from URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
 /**
  * Load an LMF XML file and parse it into TypeScript data structures.
+ * Supports both local file paths and URLs.
  * 
- * @param filePath - Path to the LMF XML file
+ * @param filePathOrURL - Path to the LMF XML file or URL
  * @param options - Loading options
  * @returns Parsed LMF document
  */
 export async function loadLMF(
-  filePath: string, 
+  filePathOrURL: string, 
   options: LMFLoadOptions = {}
 ): Promise<LMFDocument> {
   const { debug = false } = options;
   
-  if (debug) console.log(`[DEBUG] loadLMF() starting for file: ${filePath}`);
+  if (debug) console.log(`[DEBUG] loadLMF() starting for: ${filePathOrURL}`);
   
   try {
-    // Get file stats for size information (only if debug is enabled)
-    if (debug) {
-      const fileStats = await stat(filePath);
-      const fileSizeMB = (fileStats.size / (1024 * 1024)).toFixed(2);
-      console.log(`[DEBUG] File size: ${fileSizeMB} MB (${fileStats.size.toLocaleString()} bytes)`);
+    let content: string;
+    let filePath: string;
+    
+    // Check if input is URL or file path
+    if (isURL(filePathOrURL)) {
+      if (debug) console.log(`[DEBUG] Input is URL, loading from network`);
+      content = await loadFromURL(filePathOrURL, options);
+      
+      // Create a temporary file for processing
+      const tempDir = await fsPromises.mkdtemp(join(require('os').tmpdir(), 'wn-ts-lmf-'));
+      filePath = join(tempDir, 'temp.lmf');
+      await fsPromises.writeFile(filePath, content, 'utf-8');
+      
+      if (debug) console.log(`[DEBUG] Created temporary file: ${filePath}`);
+    } else {
+      filePath = filePathOrURL;
+      content = ''; // Initialize content for file paths
+      
+      // Get file stats for size information (only if debug is enabled)
+      if (debug) {
+        const fileStats = await stat(filePath);
+        const fileSizeMB = (fileStats.size / (1024 * 1024)).toFixed(2);
+        console.log(`[DEBUG] File size: ${fileSizeMB} MB (${fileStats.size.toLocaleString()} bytes)`);
+      }
     }
     
     // Quick scan for version and element count
@@ -141,7 +190,9 @@ export async function loadLMF(
     
     // Enhanced content validation
     try {
-      const content = await readFile(filePath, 'utf-8');
+      if (!content) {
+        content = await readFile(filePath, 'utf-8');
+      }
       validateLMFContentEnhanced(content, debug);
     } catch (error) {
       if (error instanceof LMFParseError) {
@@ -158,6 +209,18 @@ export async function loadLMF(
     
     const totalTime = Date.now() - startTime;
     if (debug) console.log(`[DEBUG] loadLMF() completed in ${totalTime}ms total`);
+    
+    // Clean up temporary file if created from URL
+    if (isURL(filePathOrURL) && filePath !== filePathOrURL) {
+      try {
+        await fsPromises.unlink(filePath);
+        await fsPromises.rmdir(require('path').dirname(filePath));
+        if (debug) console.log(`[DEBUG] Cleaned up temporary file: ${filePath}`);
+      } catch (cleanupError) {
+        if (debug) console.log(`[DEBUG] Failed to clean up temporary file: ${cleanupError}`);
+        // Don't throw on cleanup failure
+      }
+    }
     
     return result;
   } catch (error) {
@@ -203,10 +266,15 @@ async function parseLMFStreaming(
 
     // Progress tracking
     const updateProgress = () => {
-      if (progress && elementCount - lastProgressUpdate > 1000) {
-        const progressValue = Math.min(elementCount / totalElements, 0.95);
-        progress(progressValue);
-        lastProgressUpdate = elementCount;
+      if (progress) {
+        // For small files, update more frequently
+        const updateInterval = totalElements < 100 ? 2 : 1000;
+        if (elementCount - lastProgressUpdate >= updateInterval) {
+          const progressValue = Math.min(elementCount / totalElements, 0.95);
+          if (debug) console.log(`[DEBUG] Progress update: ${elementCount}/${totalElements} = ${progressValue}`);
+          progress(progressValue);
+          lastProgressUpdate = elementCount;
+        }
       }
     };
 
@@ -312,7 +380,7 @@ async function parseLMFStreaming(
         case 'synset':
           currentSynset = {
             id: attributes.id || 'unknown-synset',
-            pos: (attributes.partofspeech || attributes.partOfSpeech || 'n') as PartOfSpeech,
+            pos: (attributes.pos || attributes.partofspeech || attributes.partOfSpeech || 'n') as PartOfSpeech,
             definitions: [],
             examples: [],
             relations: [],

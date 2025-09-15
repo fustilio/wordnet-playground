@@ -58,3 +58,6 @@ __pycache__/
 !test-data/xsd-samples/*/sample.xml
 !schemas/*.xsd
 !test-data/*/sample.xml
+
+# Test data cache - Don't commit generated test data
+.test-data-cache/

@@ -31,6 +31,10 @@
       "types": "./src/utils/index.ts",
       "default": "./src/utils/index.ts"
     },
+    "./test": {
+      "types": "./src/test/index.ts",
+      "default": "./src/test/index.ts"
+    },
     "./index.json": "./src/index.json",
     "./lmf": {
       "default": "./src/lmf/index.ts"
@@ -52,7 +56,10 @@
     "test:ui": "vitest --ui --exclude \"**/*e2e.test.ts\"",
     "typecheck": "tsc --noEmit",
     "vitest": "pnpm with-debug-logs vitest run",
-    "with-debug-logs": "cross-env WN_TS_LOG_LEVEL=5"
+    "with-debug-logs": "cross-env WN_TS_LOG_LEVEL=5",
+    "generate-test-data": "tsx scripts/generate-test-data.ts",
+    "validate-urls": "tsx scripts/generate-test-data.ts --validate-only",
+    "analyze-wordnet-urls": "tsx scripts/analyze-wordnet-urls.ts"
   },
   "dependencies": {
     "commander": "^14.0.0",

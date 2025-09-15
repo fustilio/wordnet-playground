@@ -57,6 +57,8 @@
     "lint:fix": "eslint src --ext .ts --fix",
     "publish-package": "pnpm run build && changeset version && changeset publish",
     "test": "pnpm run test:func && pnpm run test:e2e",
+    "generate-test-data": "cd ../wn-ts-core && pnpm run generate-test-data",
+    "validate-urls": "cd ../wn-ts-core && pnpm run validate-urls",
     "test:bench": "vitest bench --run",
     "test:coverage": "vitest run --coverage --reporter=verbose --exclude \"**/*e2e.test.ts\"",
     "test:e2e": "pnpm with-debug-logs vitest run --no-file-parallelism tests/e2e",

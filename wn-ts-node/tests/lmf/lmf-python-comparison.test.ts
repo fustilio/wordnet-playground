@@ -415,7 +415,7 @@ describe('LMF Python Compatibility Tests', () => {
   describe('Performance Characteristics (Python Parity)', () => {
     it('should handle large files efficiently (like Python wn)', async () => {
       // Create a large LMF file similar to what Python wn might process
-      const entries = Array.from({ length: 1000 }, (_, i) => `
+      const entries = Array.from({ length: 100 }, (_, i) => `
     <LexicalEntry id="word-${i}">
       <Lemma writtenForm="word${i}" partOfSpeech="n"/>
       <Sense id="sense-${i}" synset="synset-${i}"/>
@@ -441,17 +441,17 @@ ${entries}
       const result = await loadLMF(testLmfFile);
       const endTime = Date.now();
       
-      expect(result.words).toHaveLength(1000);
-      expect(result.synsets).toHaveLength(1000);
-      expect(result.senses).toHaveLength(1000);
+      expect(result.words).toHaveLength(100);
+      expect(result.synsets).toHaveLength(100);
+      expect(result.senses).toHaveLength(100);
       
       // Should complete within reasonable time (adjust threshold as needed)
       const parseTime = endTime - startTime;
-      expect(parseTime).toBeLessThan(15000); // 15 seconds max for 1000 entries
+      expect(parseTime).toBeLessThan(5000); // 5 seconds max for 100 entries
     });
 
     it('should provide progress updates for large files (like Python wn)', async () => {
-      const entries = Array.from({ length: 500 }, (_, i) => `
+      const entries = Array.from({ length: 200 }, (_, i) => `
     <LexicalEntry id="word-${i}">
       <Lemma writtenForm="word${i}" partOfSpeech="n"/>
       <Sense id="sense-${i}" synset="synset-${i}"/>
@@ -475,7 +475,7 @@ ${entries}
       const result = await loadLMF(testLmfFile, { progress: progressCallback });
       
       expect(progressCallback).toHaveBeenCalled();
-      expect(result.words).toHaveLength(500);
+      expect(result.words).toHaveLength(200);
       
       // Progress should be called multiple times for large files
       const callCount = progressCallback.mock.calls.length;

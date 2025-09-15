@@ -51,3 +51,6 @@ tmp/
 temp/ 
 
 __pycache__/
+
+# Test data cache - Don't commit generated test data
+.test-data-cache/
