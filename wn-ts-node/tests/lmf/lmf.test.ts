@@ -144,9 +144,13 @@ describe('LMF Node.js Implementation', () => {
       expect(synset.language).toBe('en');
       expect(synset.lexicon).toBe('test-en');
       expect(synset.definitions).toHaveLength(1);
-      if (synset.definitions[0]) {
-        expect(synset.definitions[0].text).toBe('Test definition');
+      
+      const firstDefinition = synset.definitions[0];
+      if (!firstDefinition) {
+        expect(firstDefinition).toBeDefined();
+        return;
       }
+      expect(firstDefinition.text).toBe('Test definition');
       
       // Check sense
       const sense = result.senses[0];
@@ -182,24 +186,39 @@ describe('LMF Node.js Implementation', () => {
       expect(result.words).toHaveLength(1);
       
       const word = result.words[0];
-      if (word) {
-        // Debug: Log what we actually got
-        console.log('DEBUG: word.forms =', word.forms);
-        console.log('DEBUG: word.forms.length =', word.forms?.length);
-        
-        // The new implementation might deduplicate identical forms or handle lemmas differently
-        // Let's check if we have at least one form and verify its content
+      if (!word) {
+        expect(word).toBeDefined();
+        return;
+      }
+      
+      // Debug: Log what we actually got
+      console.log('DEBUG: word.forms =', word.forms);
+      console.log('DEBUG: word.forms.length =', word.forms?.length);
+      
+      // The new implementation might deduplicate identical forms or handle lemmas differently
+      // Let's check if we have at least one form and verify its content
+      if (!word.forms) {
         expect(word.forms).toBeDefined();
-        expect(word.forms.length).toBeGreaterThanOrEqual(1);
-        
-        if (word.forms[0]) {
-          expect(word.forms[0].writtenForm).toBe('test');
+        return;
+      }
+      expect(word.forms).toBeDefined();
+      expect(word.forms.length).toBeGreaterThanOrEqual(1);
+      
+      const firstForm = word.forms[0];
+      if (!firstForm) {
+        expect(firstForm).toBeDefined();
+        return;
+      }
+      expect(firstForm.writtenForm).toBe('test');
+      
+      // If there are multiple forms, check the second one
+      if (word.forms.length >= 2) {
+        const secondForm = word.forms[1];
+        if (!secondForm) {
+          expect(secondForm).toBeDefined();
+          return;
         }
-        
-        // If there are multiple forms, check the second one
-        if (word.forms.length >= 2 && word.forms[1]) {
-          expect(word.forms[1].writtenForm).toBe('test');
-        }
+        expect(secondForm.writtenForm).toBe('test');
       }
     });
 
@@ -230,12 +249,17 @@ describe('LMF Node.js Implementation', () => {
       
       // Note: These attributes might not be fully implemented in the current parser
       // but the test ensures the parser doesn't crash on newer LMF versions
-      if (word) {
-        expect(word.id).toBe('test-word');
+      if (!word) {
+        expect(word).toBeDefined();
+        return;
       }
-      if (sense) {
-        expect(sense.id).toBe('test-sense');
+      expect(word.id).toBe('test-word');
+      
+      if (!sense) {
+        expect(sense).toBeDefined();
+        return;
       }
+      expect(sense.id).toBe('test-sense');
     });
 
     it('should handle multiple lexicons', async () => {
@@ -263,16 +287,30 @@ describe('LMF Node.js Implementation', () => {
       const enLexicon = result.lexicons.find(l => l.id === 'test-en');
       const esLexicon = result.lexicons.find(l => l.id === 'test-es');
       
-      expect(enLexicon).toBeDefined();
-      expect(esLexicon).toBeDefined();
-      expect(enLexicon?.language).toBe('en');
-      expect(esLexicon?.language).toBe('es');
+      if (!enLexicon) {
+        expect(enLexicon).toBeDefined();
+        return;
+      }
+      if (!esLexicon) {
+        expect(esLexicon).toBeDefined();
+        return;
+      }
+      expect(enLexicon.language).toBe('en');
+      expect(esLexicon.language).toBe('es');
       
       const enWord = result.words.find(w => w.id === 'test-word-en');
       const esWord = result.words.find(w => w.id === 'test-word-es');
       
-      expect(enWord?.lemma).toBe('test');
-      expect(esWord?.lemma).toBe('prueba');
+      if (!enWord) {
+        expect(enWord).toBeDefined();
+        return;
+      }
+      if (!esWord) {
+        expect(esWord).toBeDefined();
+        return;
+      }
+      expect(enWord.lemma).toBe('test');
+      expect(esWord.lemma).toBe('prueba');
     });
 
     it('should handle complex synset structures', async () => {
@@ -306,30 +344,50 @@ describe('LMF Node.js Implementation', () => {
       }
       
       expect(synset.definitions).toHaveLength(2);
-      if (synset.definitions[0]) {
-        expect(synset.definitions[0].text).toBe('Test definition');
-        expect(synset.definitions[0].language).toBe('en');
+      
+      const firstDefinition = synset.definitions[0];
+      if (!firstDefinition) {
+        expect(firstDefinition).toBeDefined();
+        return;
       }
-      if (synset.definitions[1]) {
-        expect(synset.definitions[1].text).toBe('Definición de prueba');
-        expect(synset.definitions[1].language).toBe('es');
+      expect(firstDefinition.text).toBe('Test definition');
+      expect(firstDefinition.language).toBe('en');
+      
+      const secondDefinition = synset.definitions[1];
+      if (!secondDefinition) {
+        expect(secondDefinition).toBeDefined();
+        return;
       }
+      expect(secondDefinition.text).toBe('Definición de prueba');
+      expect(secondDefinition.language).toBe('es');
       
       expect(synset.examples).toHaveLength(1);
-      if (synset.examples[0]) {
-        expect(synset.examples[0].text).toBe('This is a test example.');
-        expect(synset.examples[0].language).toBe('en');
+      
+      const firstExample = synset.examples[0];
+      if (!firstExample) {
+        expect(firstExample).toBeDefined();
+        return;
       }
+      expect(firstExample.text).toBe('This is a test example.');
+      expect(firstExample.language).toBe('en');
       
       expect(synset.relations).toHaveLength(2);
-      if (synset.relations[0]) {
-        expect(synset.relations[0].type).toBe('hypernym');
-        expect(synset.relations[0].target).toBe('parent-synset');
+      
+      const firstRelation = synset.relations[0];
+      if (!firstRelation) {
+        expect(firstRelation).toBeDefined();
+        return;
       }
-      if (synset.relations[1]) {
-        expect(synset.relations[1].type).toBe('hyponym');
-        expect(synset.relations[1].target).toBe('child-synset');
+      expect(firstRelation.type).toBe('hypernym');
+      expect(firstRelation.target).toBe('parent-synset');
+      
+      const secondRelation = synset.relations[1];
+      if (!secondRelation) {
+        expect(secondRelation).toBeDefined();
+        return;
       }
+      expect(secondRelation.type).toBe('hyponym');
+      expect(secondRelation.target).toBe('child-synset');
     });
 
     it('should handle sense examples and counts', async () => {
@@ -362,15 +420,23 @@ describe('LMF Node.js Implementation', () => {
       }
       
       expect(sense.examples).toHaveLength(1);
-      if (sense.examples[0]) {
-        expect(sense.examples[0].text).toBe('This is a test.');
-        expect(sense.examples[0].language).toBe('en');
+      
+      const firstExample = sense.examples[0];
+      if (!firstExample) {
+        expect(firstExample).toBeDefined();
+        return;
       }
+      expect(firstExample.text).toBe('This is a test.');
+      expect(firstExample.language).toBe('en');
       
       expect(sense.counts).toHaveLength(1);
-      if (sense.counts[0]) {
-        expect(sense.counts[0].value).toBe(42);
+      
+      const firstCount = sense.counts[0];
+      if (!firstCount) {
+        expect(firstCount).toBeDefined();
+        return;
       }
+      expect(firstCount.value).toBe(42);
     });
 
     it('should handle unsupported LMF versions gracefully', async () => {

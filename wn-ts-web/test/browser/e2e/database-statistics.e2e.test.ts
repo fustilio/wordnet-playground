@@ -306,19 +306,19 @@ describe.skipIf(isNode)('Database Statistics Calculation E2E', () => {
       
       if (testWord.length > 0) {
         // Get senses for the first word to access synset information
-        const senses = await wordnet.senses({ form: 'test' });
+        const senses = await wordnet.senses({ wordIdOrForm: 'test' });
         expect(Array.isArray(senses)).toBe(true);
         
         if (senses.length > 0) {
-          // Each sense has a synset property that contains the synset ID
+          // Each sense has a synsetId property that contains the synset ID
           const sense = senses[0];
-          expect(sense.synset).toBeDefined();
-          expect(typeof sense.synset).toBe('string');
+          expect(sense.synsetId).toBeDefined();
+          expect(typeof sense.synsetId).toBe('string');
           
           // Now get the actual synset object using the ID
-          const testSynset = await wordnet.getSynset(sense.synset);
+          const testSynset = await wordnet.getSynset(sense.synsetId);
           expect(testSynset).toBeDefined();
-          expect(testSynset?.id).toBe(sense.synset);
+          expect(testSynset?.id).toBe(sense.synsetId);
         }
       }
     });

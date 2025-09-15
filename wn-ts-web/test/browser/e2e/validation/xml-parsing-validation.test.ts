@@ -113,12 +113,12 @@ describe(`XML Parsing and Data Loading Validation Tests (Real + Mock Data)`, () 
       expect(stats.totalSenses).toBeGreaterThan(0);
       
       // Try to find any sense to test with
-      const allSenses = await wordnet.senses({ form: 'a' }); // Search for senses starting with 'a'
+      const allSenses = await wordnet.senses({ wordIdOrForm: 'a' }); // Search for senses starting with 'a'
       if (allSenses.length > 0) {
         const sense = allSenses[0];
         expect(sense.id).toBeDefined();
-        expect(sense.word).toBeDefined();
-        expect(sense.synset).toBeDefined();
+        expect(sense.wordId).toBeDefined();
+        expect(sense.synsetId).toBeDefined();
         
         // LMF 1.4 specific properties should be handled gracefully
         if ((sense as any).adjposition !== undefined) {
@@ -137,7 +137,7 @@ describe(`XML Parsing and Data Loading Validation Tests (Real + Mock Data)`, () 
         const words = await wordnet.words({ form: lemma });
         if (words.length > 0) {
           const word = words[0];
-          const senses = await wordnet.senses({ form: word.lemma, pos: word.pos });
+          const senses = await wordnet.senses({ wordIdOrForm: word.lemma, pos: word.pos });
           
           for (const sense of senses) {
             // Sense should have a valid ID
@@ -146,8 +146,8 @@ describe(`XML Parsing and Data Loading Validation Tests (Real + Mock Data)`, () 
             expect(sense.id.length).toBeGreaterThan(0);
             
             // Sense should have valid references
-            expect(sense.word).toBeDefined();
-            expect(sense.synset).toBeDefined();
+        expect(sense.wordId).toBeDefined();
+        expect(sense.synsetId).toBeDefined();
           }
         }
       }
@@ -158,7 +158,7 @@ describe(`XML Parsing and Data Loading Validation Tests (Real + Mock Data)`, () 
       const words = await wordnet.words({ form: 'test' });
       if (words.length > 0) {
         const word = words[0];
-        const senses = await wordnet.senses({ form: word.lemma, pos: word.pos });
+        const senses = await wordnet.senses({ wordIdOrForm: word.lemma, pos: word.pos });
         
         if (senses.length > 1) {
           // Verify that we can retrieve senses in a consistent order
@@ -166,8 +166,8 @@ describe(`XML Parsing and Data Loading Validation Tests (Real + Mock Data)`, () 
           const secondSense = senses[1];
           
           expect(firstSense.id).not.toBe(secondSense.id);
-          expect(firstSense.word).toBeDefined();
-          expect(secondSense.word).toBeDefined();
+          expect(firstSense.wordId).toBeDefined();
+          expect(secondSense.wordId).toBeDefined();
         }
       }
     });
@@ -245,16 +245,16 @@ describe(`XML Parsing and Data Loading Validation Tests (Real + Mock Data)`, () 
 
     it('should correctly parse Sense elements', async () => {
       // Verify that Sense elements are correctly parsed
-      const senses = await wordnet.senses({ form: 'happy' });
+      const senses = await wordnet.senses({ wordIdOrForm: 'happy' });
       if (senses.length > 0) {
         const happySense = senses[0];
         expect(happySense.id).toBeDefined();
-        expect(happySense.word).toBeDefined();
-        expect(happySense.synset).toBeDefined();
+        expect(happySense.wordId).toBeDefined();
+        expect(happySense.synsetId).toBeDefined();
         
         // Verify that the sense connects to valid entities
-        const word = await wordnet.getWord(happySense.word);
-        const synset = await wordnet.getSynset(happySense.synset);
+        const word = await wordnet.getWord(happySense.wordId);
+        const synset = await wordnet.getSynset(happySense.synsetId);
         
         expect(word).toBeDefined();
         expect(synset).toBeDefined();
@@ -467,13 +467,13 @@ describe(`XML Parsing and Data Loading Validation Tests (Real + Mock Data)`, () 
       const words = await wordnet.words({ form: 'computer' });
       if (words.length > 0) {
         for (const word of words) {
-          const senses = await wordnet.senses({ form: word.lemma, pos: word.pos });
+          const senses = await wordnet.senses({ wordIdOrForm: word.lemma, pos: word.pos });
           expect(senses.length).toBeGreaterThan(0);
           
           for (const sense of senses) {
             // Verify that sense references are valid
-            const referencedWord = await wordnet.getWord(sense.word);
-            const referencedSynset = await wordnet.getSynset(sense.synset);
+            const referencedWord = await wordnet.getWord(sense.wordId);
+            const referencedSynset = await wordnet.getSynset(sense.synsetId);
             
             expect(referencedWord).toBeDefined();
             expect(referencedSynset).toBeDefined();

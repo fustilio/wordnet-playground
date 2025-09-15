@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { createTestDataManager, DEFAULT_WORDNET_SOURCES } from '../src/utils/test-data-manager.js';
+import { createTestDataManager, DEFAULT_WORDNET_SOURCES } from '../src/test/test-data-manager.js';
 import { join } from 'path';
 import { mkdir } from 'fs/promises';
 

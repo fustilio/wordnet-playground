@@ -7,6 +7,9 @@ let XMLValidator: any;
 let SampleGenerator: any;
 let XMLFakerGenerator: any;
 
+// Import shared LMF version utilities
+import { extractLMFVersion, extractDTDVersion } from '../lmf/version-utils.js';
+
 try {
   const xmlIntrospect = require('xml-introspect');
   XMLIntrospector = xmlIntrospect.XMLIntrospector;
@@ -135,7 +138,7 @@ async function analyzeLMFXMLWithRegex(xmlContent: string, filePathOrContent: str
   const hasGlobalInformation = xmlContent.includes('<GlobalInformation>');
   const hasLexiconMetadata = xmlContent.includes('dc:subject') || xmlContent.includes('dc:creator');
   
-  // Extract LMF version information
+  // Extract LMF version information using shared utilities
   const lmfVersion = extractLMFVersion(xmlContent);
   const dtdVersion = extractDTDVersion(xmlContent);
   
@@ -208,7 +211,7 @@ function convertXMLIntrospectAnalysis(analysis: any, xmlContent: string): XMLAna
   const hasGlobalInformation = xmlContent.includes('<GlobalInformation>');
   const hasLexiconMetadata = xmlContent.includes('dc:subject') || xmlContent.includes('dc:creator');
   
-  // Extract LMF version information
+  // Extract LMF version information using shared utilities
   const lmfVersion = extractLMFVersion(xmlContent);
   const dtdVersion = extractDTDVersion(xmlContent);
   
@@ -447,7 +450,7 @@ function convertXMLIntrospectStructure(structure: any, xmlContent: string): XMLA
   const hasGlobalInformation = xmlContent.includes('<GlobalInformation>');
   const hasLexiconMetadata = xmlContent.includes('dc:subject') || xmlContent.includes('dc:creator');
   
-  // Extract LMF version information
+  // Extract LMF version information using shared utilities
   const lmfVersion = extractLMFVersion(xmlContent);
   const dtdVersion = extractDTDVersion(xmlContent);
   
@@ -730,37 +733,6 @@ function analyzeSynsetSizeDistribution(xmlContent: string): Record<number, numbe
   return sizeCounts;
 }
 
-/**
- * Extract LMF version from XML content
- * Look for lmfVersion attribute or dc:format content
- */
-function extractLMFVersion(xmlContent: string): string | undefined {
-  // First try to find lmfVersion attribute
-  const versionMatch = xmlContent.match(/lmfVersion="([^"]*)"/);
-  if (versionMatch) {
-    return versionMatch[1];
-  }
-  
-  // Look for dc:format content that might contain version info
-  const formatMatch = xmlContent.match(/<dc:format>([^<]*)<\/dc:format>/);
-  if (formatMatch && formatMatch[1]) {
-    const format = formatMatch[1];
-    const versionMatch2 = format.match(/WN-LMF\s+(\d+\.\d+)/);
-    if (versionMatch2) {
-      return versionMatch2[1];
-    }
-  }
-  
-  return undefined;
-}
-
-/**
- * Extract DTD version from XML content
- */
-function extractDTDVersion(xmlContent: string): string | undefined {
-  const dtdMatch = xmlContent.match(/WN-LMF-(\d+\.\d+)\.dtd/);
-  return dtdMatch ? dtdMatch[1] : undefined;
-}
 
 /**
  * Count occurrences of items in an array

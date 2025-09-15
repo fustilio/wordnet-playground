@@ -1,7 +1,7 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { parse } from 'smol-toml';
-import { isCompressedURL, getURLExtension } from './url.js';
+import { isCompressedURL, getURLExtension } from '../utils/url.js';
 
 const execAsync = promisify(exec);
 

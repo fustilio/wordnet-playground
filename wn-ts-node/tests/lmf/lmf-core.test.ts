@@ -102,12 +102,31 @@ describe('LMF Core Functionality', () => {
       const synset = result.synsets[0];
       const sense = result.senses[0];
       
-      expect(lexicon?.id).toBe('test-en');
-      expect(word?.id).toBe('test-word');
-      expect(synset?.id).toBe('test-synset');
-      expect(sense?.id).toBe('test-sense');
-      expect(sense?.wordId).toBe('test-word');
-      expect(sense?.synsetId).toBe('test-synset');
+      if (!lexicon) {
+        expect(lexicon).toBeDefined();
+        return;
+      }
+      expect(lexicon.id).toBe('test-en');
+      
+      if (!word) {
+        expect(word).toBeDefined();
+        return;
+      }
+      expect(word.id).toBe('test-word');
+      
+      if (!synset) {
+        expect(synset).toBeDefined();
+        return;
+      }
+      expect(synset.id).toBe('test-synset');
+      
+      if (!sense) {
+        expect(sense).toBeDefined();
+        return;
+      }
+      expect(sense.id).toBe('test-sense');
+      expect(sense.wordId).toBe('test-word');
+      expect(sense.synsetId).toBe('test-synset');
     });
 
     it('should handle multiple lexicons', async () => {
@@ -135,8 +154,16 @@ describe('LMF Core Functionality', () => {
       const enLexicon = result.lexicons.find(l => l.id === 'test-en');
       const esLexicon = result.lexicons.find(l => l.id === 'test-es');
       
-      expect(enLexicon?.language).toBe('en');
-      expect(esLexicon?.language).toBe('es');
+      if (!enLexicon) {
+        expect(enLexicon).toBeDefined();
+        return;
+      }
+      if (!esLexicon) {
+        expect(esLexicon).toBeDefined();
+        return;
+      }
+      expect(enLexicon.language).toBe('en');
+      expect(esLexicon.language).toBe('es');
     });
   });
 
@@ -176,8 +203,12 @@ describe('LMF Core Functionality', () => {
       
       expect(result.lexicons).toHaveLength(1);
       const lexicon = result.lexicons[0];
-      expect(lexicon?.language).toBe('en');
-      expect(lexicon?.id).toBe(''); // Should default to empty string
+      if (!lexicon) {
+        expect(lexicon).toBeDefined();
+        return;
+      }
+      expect(lexicon.language).toBe('en');
+      expect(lexicon.id).toBe(''); // Should default to empty string
     });
 
     it('should handle non-existent files', async () => {

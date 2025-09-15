@@ -51,10 +51,29 @@ describe('LMF Streaming Parser', () => {
       const synset = result.synsets[0];
       const sense = result.senses[0];
       
-      expect(lexicon?.id).toBe('test-en');
-      expect(word?.id).toBe('test-word');
-      expect(synset?.id).toBe('test-synset');
-      expect(sense?.id).toBe('test-sense');
+      if (!lexicon) {
+        expect(lexicon).toBeDefined();
+        return;
+      }
+      expect(lexicon.id).toBe('test-en');
+      
+      if (!word) {
+        expect(word).toBeDefined();
+        return;
+      }
+      expect(word.id).toBe('test-word');
+      
+      if (!synset) {
+        expect(synset).toBeDefined();
+        return;
+      }
+      expect(synset.id).toBe('test-synset');
+      
+      if (!sense) {
+        expect(sense).toBeDefined();
+        return;
+      }
+      expect(sense.id).toBe('test-sense');
     });
 
     it('should handle invalid input gracefully', async () => {
@@ -157,8 +176,16 @@ describe('LMF Streaming Parser', () => {
       const enLexicon = result.lexicons.find(l => l.id === 'test-en');
       const esLexicon = result.lexicons.find(l => l.id === 'test-es');
       
-      expect(enLexicon?.language).toBe('en');
-      expect(esLexicon?.language).toBe('es');
+      if (!enLexicon) {
+        expect(enLexicon).toBeDefined();
+        return;
+      }
+      if (!esLexicon) {
+        expect(esLexicon).toBeDefined();
+        return;
+      }
+      expect(enLexicon.language).toBe('en');
+      expect(esLexicon.language).toBe('es');
     });
 
     it('should handle complex synset structures', async () => {
@@ -184,9 +211,13 @@ describe('LMF Streaming Parser', () => {
       expect(result.synsets).toHaveLength(1);
       const synset = result.synsets[0];
       
-      expect(synset?.definitions).toHaveLength(2);
-      expect(synset?.examples).toHaveLength(1);
-      expect(synset?.relations).toHaveLength(2);
+      if (!synset) {
+        expect(synset).toBeDefined();
+        return;
+      }
+      expect(synset.definitions).toHaveLength(2);
+      expect(synset.examples).toHaveLength(1);
+      expect(synset.relations).toHaveLength(2);
     });
 
     it('should handle sense examples and counts', async () => {
@@ -211,8 +242,12 @@ describe('LMF Streaming Parser', () => {
       expect(result.senses).toHaveLength(1);
       const sense = result.senses[0];
       
-      expect(sense?.examples).toHaveLength(1);
-      expect(sense?.counts).toHaveLength(1);
+      if (!sense) {
+        expect(sense).toBeDefined();
+        return;
+      }
+      expect(sense.examples).toHaveLength(1);
+      expect(sense.counts).toHaveLength(1);
     });
   });
 

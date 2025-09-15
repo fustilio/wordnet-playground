@@ -231,7 +231,14 @@ ${entries}
       expect(results).toHaveLength(5);
       results.forEach((result, index) => {
         expect(result.lexicons).toHaveLength(1);
-        expect(result.lexicons[0]?.id).toBe(`test-${index}`);
+        
+        const lexicon = result.lexicons[0];
+        if (!lexicon) {
+          expect(lexicon).toBeDefined();
+          return;
+        }
+        expect(lexicon.id).toBe(`test-${index}`);
+        
         expect(result.words).toHaveLength(1);
         expect(result.synsets).toHaveLength(1);
         expect(result.senses).toHaveLength(1);

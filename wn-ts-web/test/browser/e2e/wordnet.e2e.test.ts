@@ -97,32 +97,32 @@ describe.skipIf(isNode)("WordNet E2E Tests - Basic Usage Patterns", () => {
     describe("Searching for Senses", () => {
       it("should find senses by lemma", async () => {
         // Basic sense search - equivalent to wn.senses('plow', pos='n')
-        const senses = await wordnet.senses({ form: "plow", pos: "n" });
+        const senses = await wordnet.senses({ wordIdOrForm: "plow", pos: "n" });
         expect(senses.length).toBeGreaterThan(0);
         
         senses.forEach(sense => {
           expect(sense.id).toBeDefined();
-          expect(sense.word).toBeDefined();
-          expect(sense.synset).toBeDefined();
+          expect(sense.wordId).toBeDefined();
+          expect(sense.synsetId).toBeDefined();
         });
       });
 
       it("should filter senses by part of speech", async () => {
         // Filter senses by POS
-        const nounSenses = await wordnet.senses({ form: "plow", pos: "n" });
-        const verbSenses = await wordnet.senses({ form: "plow", pos: "v" });
+        const nounSenses = await wordnet.senses({ wordIdOrForm: "plow", pos: "n" });
+        const verbSenses = await wordnet.senses({ wordIdOrForm: "plow", pos: "v" });
         
         expect(nounSenses.length).toBeGreaterThan(0);
         expect(verbSenses.length).toBeGreaterThan(0);
         
         nounSenses.forEach(sense => {
-          expect(sense.word).toBeDefined();
+          expect(sense.wordId).toBeDefined();
         });
       });
 
       it("should retrieve specific sense by ID", async () => {
         // Get a sense first to get its ID
-        const senses = await wordnet.senses({ form: "happy" });
+        const senses = await wordnet.senses({ wordIdOrForm: "happy" });
         expect(senses.length).toBeGreaterThan(0);
         
         const happySense = senses[0];
@@ -210,7 +210,7 @@ describe.skipIf(isNode)("WordNet E2E Tests - Basic Usage Patterns", () => {
         const happyWord = words[0];
         
         // Get senses for the word - equivalent to w.senses()
-        const senses = await wordnet.senses({ form: happyWord.lemma, pos: happyWord.pos });
+        const senses = await wordnet.senses({ wordIdOrForm: happyWord.lemma, pos: happyWord.pos });
         expect(senses.length).toBeGreaterThan(0);
         
         // Get synsets for the word - equivalent to w.synsets()
@@ -219,7 +219,7 @@ describe.skipIf(isNode)("WordNet E2E Tests - Basic Usage Patterns", () => {
         
         // Verify relationships
         senses.forEach(sense => {
-          expect(sense.word).toBe(happyWord.id);
+          expect(sense.wordId).toBe(happyWord.id);
         });
       });
     });
@@ -227,20 +227,20 @@ describe.skipIf(isNode)("WordNet E2E Tests - Basic Usage Patterns", () => {
     describe("Exploring Senses", () => {
       it("should provide sense relationships", async () => {
         // Get a sense - equivalent to s = wn.senses('dark', pos='n')[0]
-        const senses = await wordnet.senses({ form: "dark", pos: "n" });
+        const senses = await wordnet.senses({ wordIdOrForm: "dark", pos: "n" });
         expect(senses.length).toBeGreaterThan(0);
         
         const darkSense = senses[0];
         
         // Check word reference - equivalent to s.word()
-        expect(darkSense.word).toBeDefined();
-        const word = await wordnet.getWord(darkSense.word);
+        expect(darkSense.wordId).toBeDefined();
+        const word = await wordnet.getWord(darkSense.wordId);
         expect(word).toBeDefined();
         expect(word?.lemma).toBe("dark");
         
         // Check synset reference - equivalent to s.synset()
-        expect(darkSense.synset).toBeDefined();
-        const synset = await wordnet.getSynset(darkSense.synset);
+        expect(darkSense.synsetId).toBeDefined();
+        const synset = await wordnet.getSynset(darkSense.synsetId);
         expect(synset).toBeDefined();
       });
     });
@@ -259,7 +259,7 @@ describe.skipIf(isNode)("WordNet E2E Tests - Basic Usage Patterns", () => {
         expect(Array.isArray(houndSynset.definitions)).toBe(true);
         
         // Get senses in the synset - equivalent to ss.senses()
-        const senses = await wordnet.senses({ form: "hound", pos: "n" });
+        const senses = await wordnet.senses({ wordIdOrForm: "hound", pos: "n" });
         expect(senses.length).toBeGreaterThan(0);
         
         // Get words in the synset - equivalent to ss.words()
@@ -375,11 +375,11 @@ describe.skipIf(isNode)("WordNet E2E Tests - Basic Usage Patterns", () => {
       expect(words.length).toBeGreaterThan(1); // Should have noun and verb forms
       
       for (const word of words) {
-        const senses = await wordnet.senses({ form: word.lemma, pos: word.pos });
+        const senses = await wordnet.senses({ wordIdOrForm: word.lemma, pos: word.pos });
         expect(senses.length).toBeGreaterThan(0);
         
         for (const sense of senses) {
-          const synset = await wordnet.getSynset(sense.synset);
+          const synset = await wordnet.getSynset(sense.synsetId);
           expect(synset).toBeDefined();
           expect(synset?.pos).toBe(word.pos);
         }

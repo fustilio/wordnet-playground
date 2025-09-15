@@ -5,8 +5,8 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createWordNetInstance } from '../../../src/factory.js';
-import type { WebWordnet } from '../../src/client/submodules/web-wordnet.js';
-import type { DataLoader } from '../../src/data-loader.js';
+import type { WebWordnet } from '../../../src/client/submodules/web-wordnet.js';
+import type { DataLoader } from '../../../src/data-loader.js';
 
 const isNode =
   typeof process !== 'undefined' &&
@@ -34,7 +34,7 @@ describe.skipIf(isNode)('Dependency Management E2E', () => {
       const lexicons = await wordnet.lexicons();
       
       // Check if we have any lexicons with dependencies
-      const lexiconsWithDeps = lexicons.filter(l => l.requires && l.requires.length > 0);
+      const lexiconsWithDeps = lexicons.filter((l: any) => l.requires && l.requires.length > 0);
       
       if (lexiconsWithDeps.length > 0) {
         // Verify the requires field structure
@@ -54,14 +54,14 @@ describe.skipIf(isNode)('Dependency Management E2E', () => {
 
     it('should identify French WordNet as dependent on English', async () => {
       const lexicons = await wordnet.lexicons();
-      const frenchLexicon = lexicons.find(l => l.language === 'fr');
+      const frenchLexicon = lexicons.find((l: any) => l.language === 'fr');
       
       if (frenchLexicon) {
         expect(frenchLexicon.requires).toBeDefined();
         expect(frenchLexicon.requires).toContain('omw-en');
         
         // Check if English lexicon is available
-        const englishLexicon = lexicons.find(l => l.id === 'omw-en');
+        const englishLexicon = lexicons.find((l: any) => l.id === 'omw-en');
         if (englishLexicon) {
           expect(englishLexicon.language).toBe('en');
         }
@@ -86,8 +86,8 @@ describe.skipIf(isNode)('Dependency Management E2E', () => {
       
       for (const lexicon of lexicons) {
         const dependencies = lexicon.requires || [];
-        const missingDeps = dependencies.filter(reqId => 
-          !lexicons.some(l => l.id === reqId)
+        const missingDeps = dependencies.filter((reqId: any) => 
+          !lexicons.some((l: any) => l.id === reqId)
         );
         
         let status: 'complete' | 'partial' | 'missing';
@@ -111,7 +111,7 @@ describe.skipIf(isNode)('Dependency Management E2E', () => {
       }
       
       // Display status report
-      console.log('í³Š Dependency Status Report:');
+      console.log('ï¿½ï¿½ï¿½ Dependency Status Report:');
       for (const [id, status] of statusReport) {
         const icon = status.status === 'complete' ? 'âœ…' : 
                     status.status === 'partial' ? 'âš ï¸' : 'âŒ';

@@ -9,7 +9,7 @@ import {
   validateXMLAgainstXSD,
   analyzeLMFXMLComprehensive
 } from './xml-analyzer.js';
-import { isCompressedURL } from './url.js';
+import { isCompressedURL } from '../utils/url.js';
 
 export interface TestDataConfig {
   outputDir: string;

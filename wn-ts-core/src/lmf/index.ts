@@ -6,7 +6,9 @@
  * - Duplicate handling
  * - Error types
  * - Validation functions
+ * - Version extraction and validation utilities
  */
 
 export * from './shared-parser.js';
+export * from './version-utils.js';
 export * from '../lmf.js';

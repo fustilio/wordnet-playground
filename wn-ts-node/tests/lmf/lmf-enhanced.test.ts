@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { join } from 'path';
-import { existsSync, writeFileSync, unlinkSync, mkdtempSync, rmSync } from 'fs';
+import { existsSync, writeFileSync, mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { loadLMF } from '../../src/lmf.js';
 import { StreamingSaxParser } from '../../src/parsers/streaming-sax.js';
@@ -78,6 +78,10 @@ describe('Enhanced LMF Tests', () => {
       
       // Verify lexicon structure
       const lexicon = result.lexicons[0];
+      if (!lexicon) {
+        expect(lexicon).toBeDefined();
+        return;
+      }
       expect(lexicon.id).toBe('test-en');
       expect(lexicon.language).toBe('en');
       expect(lexicon.label).toBe('Test English Lexicon');
@@ -86,11 +90,25 @@ describe('Enhanced LMF Tests', () => {
       const word1 = result.words.find(w => w.id === 'test-word-1');
       const word2 = result.words.find(w => w.id === 'test-word-2');
       
-      expect(word1).toBeDefined();
+      if (!word1) {
+        expect(word1).toBeDefined();
+        return;
+      }
+     
       expect(word1?.lemma).toBe('example');
       expect(word1?.pos).toBe('n');
+      if (!word1.forms) {
+        expect(word1.forms).toBeDefined();
+        return;
+      }
       expect(word1?.forms).toHaveLength(1);
-      expect(word1?.forms[0].writtenForm).toBe('examples');
+
+      const firstForm = word1.forms[0];
+      if (!firstForm) {
+        expect(firstForm).toBeDefined();
+        return;
+      }
+      expect(firstForm.writtenForm).toBe('examples');
       
       expect(word2).toBeDefined();
       expect(word2?.lemma).toBe('test');
@@ -100,27 +118,47 @@ describe('Enhanced LMF Tests', () => {
       const synset1 = result.synsets.find(s => s.id === 'synset-1');
       const synset2 = result.synsets.find(s => s.id === 'synset-2');
       
-      expect(synset1).toBeDefined();
-      expect(synset1?.pos).toBe('n');
-      expect(synset1?.definitions).toHaveLength(1);
-      expect(synset1?.definitions[0].text).toBe('a representative form or pattern');
-      expect(synset1?.examples).toHaveLength(1);
-      expect(synset1?.relations).toHaveLength(1);
+      if (!synset1) {
+        expect(synset1).toBeDefined();
+        return;
+      }
+      expect(synset1.pos).toBe('n');
+
+      expect(synset1.definitions).toHaveLength(1);
+
+      const firstDefinition = synset1.definitions[0];
+      if (!firstDefinition) {
+        expect(firstDefinition).toBeDefined();
+        return;
+      }
+      expect(firstDefinition.text).toBe('a representative form or pattern');
+      expect(synset1.examples).toHaveLength(1);
+      expect(synset1.relations).toHaveLength(1);
       
-      expect(synset2).toBeDefined();
-      expect(synset2?.pos).toBe('v');
+      if (!synset2) {
+        expect(synset2).toBeDefined();
+        return;
+      }
+      expect(synset2.pos).toBe('v');
       
       // Verify sense structure
       const sense1 = result.senses.find(s => s.id === 'sense-1');
       const sense2 = result.senses.find(s => s.id === 'sense-2');
       
+      if (!sense1) {
+        expect(sense1).toBeDefined();
+        return;
+      }
       expect(sense1).toBeDefined();
-      expect(sense1?.wordId).toBe('test-word-1');
-      expect(sense1?.synsetId).toBe('synset-1');
+      expect(sense1.wordId).toBe('test-word-1');
+      expect(sense1.synsetId).toBe('synset-1');
       
-      expect(sense2).toBeDefined();
-      expect(sense2?.wordId).toBe('test-word-2');
-      expect(sense2?.synsetId).toBe('synset-2');
+      if (!sense2) {
+        expect(sense2).toBeDefined();
+        return;
+      }
+      expect(sense2.wordId).toBe('test-word-2');
+      expect(sense2.synsetId).toBe('synset-2');
     });
 
     it('should generate large LMF test data for performance testing', async () => {
@@ -313,6 +351,10 @@ ${entries}
       expect(result.lexicons).toHaveLength(1);
       
       const lexicon = result.lexicons[0];
+      if (!lexicon) {
+        expect(lexicon).toBeDefined();
+        return;
+      }
       expect(lexicon.language).toBe('en');
       expect(lexicon.version).toBe('1.0');
       // Missing id should be handled gracefully

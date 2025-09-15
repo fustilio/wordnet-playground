@@ -106,16 +106,16 @@ describe(`Data Validation and Integrity Tests (Real + Mock Data)`, () => {
       expect(stats.totalSenses).toBeGreaterThan(0);
       
       // Try to find any sense to test with
-      const allSenses = await wordnet.senses({ form: 'a' }); // Search for senses starting with 'a'
+      const allSenses = await wordnet.senses({ wordIdOrForm: 'a' }); // Search for senses starting with 'a'
       if (allSenses.length > 0) {
         const sense = allSenses[0];
         expect(sense.id).toBeDefined();
-        expect(sense.word).toBeDefined();
-        expect(sense.synset).toBeDefined();
+        expect(sense.wordId).toBeDefined();
+        expect(sense.synsetId).toBeDefined();
         
         // Verify the sense connects to a valid word and synset
-        const word = await wordnet.getWord(sense.word);
-        const synset = await wordnet.getSynset(sense.synset);
+        const word = await wordnet.getWord(sense.wordId);
+        const synset = await wordnet.getSynset(sense.synsetId);
         
         expect(word).toBeDefined();
         expect(synset).toBeDefined();
@@ -186,12 +186,12 @@ describe(`Data Validation and Integrity Tests (Real + Mock Data)`, () => {
       const words = await wordnet.words({ form: 'computer' });
       if (words.length > 0) {
         for (const word of words) {
-          const senses = await wordnet.senses({ form: word.lemma, pos: word.pos });
+          const senses = await wordnet.senses({ wordIdOrForm: word.lemma, pos: word.pos });
           expect(senses.length).toBeGreaterThan(0);
           
           // Each sense should connect to a valid synset
           for (const sense of senses) {
-            const synset = await wordnet.getSynset(sense.synset);
+            const synset = await wordnet.getSynset(sense.synsetId);
             expect(synset).toBeDefined();
             if (synset) {
               // Adjective satellites ('s') are a type of adjective ('a')
@@ -215,11 +215,11 @@ describe(`Data Validation and Integrity Tests (Real + Mock Data)`, () => {
         for (const word of words) {
           expect(word.lexicon).toBe('oewn:2024');
           
-          const senses = await wordnet.senses({ form: word.lemma, pos: word.pos });
+          const senses = await wordnet.senses({ wordIdOrForm: word.lemma, pos: word.pos });
           for (const sense of senses) {
             try {
-              const referencedWord = await wordnet.getWord(sense.word);
-              const referencedSynset = await wordnet.getSynset(sense.synset);
+              const referencedWord = await wordnet.getWord(sense.wordId);
+              const referencedSynset = await wordnet.getSynset(sense.synsetId);
               
               if (referencedWord) {
                 expect(referencedWord.lexicon).toBe('oewn:2024');
@@ -241,16 +241,16 @@ describe(`Data Validation and Integrity Tests (Real + Mock Data)`, () => {
       const words = await wordnet.words({ form: 'information' });
       if (words.length > 0) {
         for (const word of words) {
-          const senses = await wordnet.senses({ form: word.lemma, pos: word.pos });
+          const senses = await wordnet.senses({ wordIdOrForm: word.lemma, pos: word.pos });
           
           for (const sense of senses) {
             // Ensure sense doesn't reference itself inappropriately
-            expect(sense.word).toBeDefined();
-            expect(sense.synset).toBeDefined();
+        expect(sense.wordId).toBeDefined();
+        expect(sense.synsetId).toBeDefined();
             
             // Verify the referenced entities exist
-            const referencedWord = await wordnet.getWord(sense.word);
-            const referencedSynset = await wordnet.getSynset(sense.synset);
+            const referencedWord = await wordnet.getWord(sense.wordId);
+            const referencedSynset = await wordnet.getSynset(sense.synsetId);
             
             expect(referencedWord).toBeDefined();
             expect(referencedSynset).toBeDefined();
@@ -406,15 +406,15 @@ describe(`Data Validation and Integrity Tests (Real + Mock Data)`, () => {
         const synsets = await wordnet.synsets({ form: testWord });
         if (synsets.length > 0) {
           // Query by sense
-          const senses = await wordnet.senses({ form: testWord });
+          const senses = await wordnet.senses({ wordIdOrForm: testWord });
           if (senses.length > 0) {
             // Verify relationships are consistent
             for (const word of words) {
-              const wordSenses = await wordnet.senses({ form: word.lemma, pos: word.pos });
+              const wordSenses = await wordnet.senses({ wordIdOrForm: word.lemma, pos: word.pos });
               expect(wordSenses.length).toBeGreaterThan(0);
               
               for (const sense of wordSenses) {
-                const synset = await wordnet.getSynset(sense.synset);
+                const synset = await wordnet.getSynset(sense.synsetId);
                 expect(synset).toBeDefined();
                 if (synset) {
                   // Adjective satellites ('s') are a type of adjective ('a')
@@ -435,16 +435,16 @@ describe(`Data Validation and Integrity Tests (Real + Mock Data)`, () => {
       const words = await wordnet.words({ form: 'self' });
       if (words.length > 0) {
         const word = words[0];
-        const senses = await wordnet.senses({ form: word.lemma, pos: word.pos });
+        const senses = await wordnet.senses({ wordIdOrForm: word.lemma, pos: word.pos });
         
         for (const sense of senses) {
           // Ensure sense doesn't reference itself inappropriately
-          expect(sense.word).toBeDefined();
-          expect(sense.synset).toBeDefined();
+        expect(sense.wordId).toBeDefined();
+        expect(sense.synsetId).toBeDefined();
           
           // Verify the referenced entities exist
-          const referencedWord = await wordnet.getWord(sense.word);
-          const referencedSynset = await wordnet.getSynset(sense.synset);
+          const referencedWord = await wordnet.getWord(sense.wordId);
+          const referencedSynset = await wordnet.getSynset(sense.synsetId);
           
           expect(referencedWord).toBeDefined();
           expect(referencedSynset).toBeDefined();

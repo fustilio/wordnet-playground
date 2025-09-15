@@ -4,7 +4,7 @@ import {
   categorizeWordNetUrls, 
   getWordNetUrls,
   type WordNetIndexEntry 
-} from '../src/utils/wordnet-analyzer.js';
+} from '../src/test/wordnet-analyzer.js';
 
 describe('WordNet Analyzer', () => {
   let sampleTomlContent: string;

@@ -80,7 +80,7 @@ describe(`Edge Case Validation Tests (Real + Mock Data)`, () => {
 
     it('should handle duplicate sense IDs gracefully', async () => {
       // This test simulates the E101-1.xml scenario where senses have duplicate IDs
-      const senses = await wordnet.senses({ form: 'test' });
+        const senses = await wordnet.senses({ wordIdOrForm: 'test' });
       
       if (senses.length > 0) {
         const senseIds = senses.map(s => s.id);
@@ -95,8 +95,8 @@ describe(`Edge Case Validation Tests (Real + Mock Data)`, () => {
         
         // Each sense should have valid references
         senses.forEach(sense => {
-          expect(sense.word).toBeDefined();
-          expect(sense.synset).toBeDefined();
+          expect(sense.wordId).toBeDefined();
+          expect(sense.synsetId).toBeDefined();
         });
       }
     });
@@ -131,7 +131,7 @@ describe(`Edge Case Validation Tests (Real + Mock Data)`, () => {
       
       const words = await wordnet.words({ form: testWord });
       const synsets = await wordnet.synsets({ form: testWord });
-      const senses = await wordnet.senses({ form: testWord });
+      const senses = await wordnet.senses({ wordIdOrForm: testWord });
       
       // Collect all IDs from different entity types
       const allIds = [
@@ -161,15 +161,15 @@ describe(`Edge Case Validation Tests (Real + Mock Data)`, () => {
         const words = await wordnet.words({ form: lemma });
         
         for (const word of words) {
-          const senses = await wordnet.senses({ form: word.lemma, pos: word.pos });
+          const senses = await wordnet.senses({ wordIdOrForm: word.lemma, pos: word.pos });
           
           for (const sense of senses) {
             // Verify that the sense references a valid word
-            const referencedWord = await wordnet.getWord(sense.word);
+            const referencedWord = await wordnet.getWord(sense.wordId);
             expect(referencedWord).toBeDefined();
             
             // Verify that the sense references a valid synset
-            const referencedSynset = await wordnet.getSynset(sense.synset);
+            const referencedSynset = await wordnet.getSynset(sense.synsetId);
             expect(referencedSynset).toBeDefined();
             
             // Verify that the referenced entities have consistent properties
@@ -195,13 +195,13 @@ describe(`Edge Case Validation Tests (Real + Mock Data)`, () => {
       
       if (words.length > 0) {
         for (const word of words) {
-          const senses = await wordnet.senses({ form: word.lemma, pos: word.pos });
+          const senses = await wordnet.senses({ wordIdOrForm: word.lemma, pos: word.pos });
           
           for (const sense of senses) {
             try {
               // These should either succeed or fail gracefully
-              const referencedWord = await wordnet.getWord(sense.word);
-              const referencedSynset = await wordnet.getSynset(sense.synset);
+              const referencedWord = await wordnet.getWord(sense.wordId);
+              const referencedSynset = await wordnet.getSynset(sense.synsetId);
               
               // If they exist, they should be valid
               if (referencedWord) {
@@ -232,11 +232,11 @@ describe(`Edge Case Validation Tests (Real + Mock Data)`, () => {
         for (const word of words) {
           expect(word.lexicon).toBe('oewn:2024');
           
-          const senses = await wordnet.senses({ form: word.lemma, pos: word.pos });
+          const senses = await wordnet.senses({ wordIdOrForm: word.lemma, pos: word.pos });
           for (const sense of senses) {
             try {
-              const referencedWord = await wordnet.getWord(sense.word);
-              const referencedSynset = await wordnet.getSynset(sense.synset);
+              const referencedWord = await wordnet.getWord(sense.wordId);
+              const referencedSynset = await wordnet.getSynset(sense.synsetId);
               
               if (referencedWord) {
                 expect(referencedWord.lexicon).toBe('oewn:2024');
@@ -301,14 +301,14 @@ describe(`Edge Case Validation Tests (Real + Mock Data)`, () => {
     });
 
     it('should handle senses with minimal required data', async () => {
-      const senses = await wordnet.senses({ form: 'test' });
+        const senses = await wordnet.senses({ wordIdOrForm: 'test' });
       
       if (senses.length > 0) {
         for (const sense of senses) {
           // Required properties should always be present
           expect(sense.id).toBeDefined();
-          expect(sense.word).toBeDefined();
-          expect(sense.synset).toBeDefined();
+          expect(sense.wordId).toBeDefined();
+          expect(sense.synsetId).toBeDefined();
           
           // Optional properties might be undefined but shouldn't cause errors
           // Note: These properties don't exist on the Sense type, so we skip them

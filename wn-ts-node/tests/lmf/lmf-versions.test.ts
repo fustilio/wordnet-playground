@@ -111,11 +111,29 @@ describe('LMF Version Support', () => {
       const word = result.words[0];
       const synset = result.synsets[0];
       
-      expect(word?.forms).toHaveLength(1);
-      expect(word?.tags).toHaveLength(1);
-      expect(synset?.definitions).toHaveLength(1);
-      expect(synset?.examples).toHaveLength(1);
-      expect(synset?.relations).toHaveLength(1);
+      if (!word) {
+        expect(word).toBeDefined();
+        return;
+      }
+      if (!word.forms) {
+        expect(word.forms).toBeDefined();
+        return;
+      }
+      expect(word.forms).toHaveLength(1);
+      
+      if (!word.tags) {
+        expect(word.tags).toBeDefined();
+        return;
+      }
+      expect(word.tags).toHaveLength(1);
+      
+      if (!synset) {
+        expect(synset).toBeDefined();
+        return;
+      }
+      expect(synset.definitions).toHaveLength(1);
+      expect(synset.examples).toHaveLength(1);
+      expect(synset.relations).toHaveLength(1);
     });
 
     it('should handle LMF 1.1+ advanced features', async () => {
@@ -146,8 +164,16 @@ describe('LMF Version Support', () => {
       expect(result.synsets).toHaveLength(1);
       
       const word = result.words[0];
-      expect(word?.pronunciations).toBeDefined();
-      expect(Array.isArray(word?.pronunciations)).toBe(true);
+      if (!word) {
+        expect(word).toBeDefined();
+        return;
+      }
+      if (!word.pronunciations) {
+        expect(word.pronunciations).toBeDefined();
+        return;
+      }
+      expect(word.pronunciations).toBeDefined();
+      expect(Array.isArray(word.pronunciations)).toBe(true);
     });
 
     it('should handle LMF 1.4 latest features', async () => {
@@ -175,8 +201,17 @@ describe('LMF Version Support', () => {
       const word = result.words[0];
       const sense = result.senses[0];
       
-      expect(word?.id).toBe('test-word');
-      expect(sense?.id).toBe('test-sense');
+      if (!word) {
+        expect(word).toBeDefined();
+        return;
+      }
+      expect(word.id).toBe('test-word');
+      
+      if (!sense) {
+        expect(sense).toBeDefined();
+        return;
+      }
+      expect(sense.id).toBe('test-sense');
     });
   });
 
@@ -199,8 +234,12 @@ describe('LMF Version Support', () => {
       
       expect(result.lexicons).toHaveLength(1);
       const lexicon = result.lexicons[0];
-      expect(lexicon?.id).toBe('test-en');
-      expect(lexicon?.label).toBe('Test Lexicon');
+      if (!lexicon) {
+        expect(lexicon).toBeDefined();
+        return;
+      }
+      expect(lexicon.id).toBe('test-en');
+      expect(lexicon.label).toBe('Test Lexicon');
     });
 
     it('should handle confidence scores', async () => {
@@ -227,8 +266,17 @@ describe('LMF Version Support', () => {
       const word = result.words[0];
       const synset = result.synsets[0];
       
-      expect(word?.id).toBe('test-word');
-      expect(synset?.id).toBe('test-synset');
+      if (!word) {
+        expect(word).toBeDefined();
+        return;
+      }
+      expect(word.id).toBe('test-word');
+      
+      if (!synset) {
+        expect(synset).toBeDefined();
+        return;
+      }
+      expect(synset.id).toBe('test-synset');
     });
   });
 });

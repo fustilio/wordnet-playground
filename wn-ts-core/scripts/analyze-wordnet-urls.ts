@@ -7,7 +7,7 @@ import {
   analyzeAllWordNetUrls, 
   categorizeWordNetUrls,
   type WordNetArchiveInfo 
-} from '../src/utils/wordnet-analyzer.js';
+} from '../src/test/wordnet-analyzer.js';
 
 /**
  * Script to analyze all WordNet URLs from index.toml using xml-introspect

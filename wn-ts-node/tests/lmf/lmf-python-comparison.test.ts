@@ -106,7 +106,16 @@ describe('LMF Python Compatibility Tests', () => {
         return;
       }
 
+      if (!word.forms) {
+        expect(word.forms).toBeDefined();
+        return;
+      }
       expect(word.forms.length).toBeGreaterThanOrEqual(1); // Should have at least the form
+      
+      if (!word.tags) {
+        expect(word.tags).toBeDefined();
+        return;
+      }
       expect(word.tags).toHaveLength(1);
       // Note: senses are now in result.senses array, not word.senses
       expect(result.senses).toHaveLength(1);
@@ -153,10 +162,19 @@ describe('LMF Python Compatibility Tests', () => {
         expect(word).toBeDefined();
         return;
       }
+      
+      if (!word.forms) {
+        expect(word.forms).toBeDefined();
+        return;
+      }
       expect(word.forms.length).toBeGreaterThanOrEqual(0); // May have forms depending on implementation
 
       // Note: pronunciations are now stored at the Word level, not Form level
       // The new implementation may not populate pronunciations from LMF
+      if (!word.pronunciations) {
+        expect(word.pronunciations).toBeDefined();
+        return;
+      }
       expect(Array.isArray(word.pronunciations)).toBe(true);
       // If pronunciations are present, check the first one
       if (word.pronunciations.length > 0 && word.pronunciations[0]) {
@@ -317,8 +335,8 @@ describe('LMF Python Compatibility Tests', () => {
         expect(extLexicon).toBeDefined();
         return;
       }
-      expect(baseLexicon).toBeDefined();
-      expect(extLexicon).toBeDefined();
+      expect(baseLexicon.id).toBe('test-en');
+      expect(extLexicon.id).toBe('test-ext');
     });
   });
 
@@ -352,10 +370,16 @@ describe('LMF Python Compatibility Tests', () => {
       const baseLexicon = result.lexicons.find(l => l.id === 'base-en');
       const extLexicon = result.lexicons.find(l => l.id === 'ext-en');
       
-      expect(baseLexicon).toBeDefined();
-      expect(extLexicon).toBeDefined();
-      expect(baseLexicon?.id).toBe('base-en');
-      expect(extLexicon?.id).toBe('ext-en');
+      if (!baseLexicon) {
+        expect(baseLexicon).toBeDefined();
+        return;
+      }
+      if (!extLexicon) {
+        expect(extLexicon).toBeDefined();
+        return;
+      }
+      expect(baseLexicon.id).toBe('base-en');
+      expect(extLexicon.id).toBe('ext-en');
     });
   });
 

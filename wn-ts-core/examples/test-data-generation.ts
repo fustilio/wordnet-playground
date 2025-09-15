@@ -9,7 +9,7 @@
  * Run with: pnpm tsx examples/test-data-generation.ts
  */
 
-import { createTestDataManager, DEFAULT_WORDNET_SOURCES } from '../src/utils/test-data-manager.js';
+import { createTestDataManager, DEFAULT_WORDNET_SOURCES } from '../src/test/test-data-manager.js';
 import { join } from 'path';
 
 async function main() {

@@ -1,1 +1,1 @@
-export * from '../utils/test-data-manager';
+export * from './test-data-manager';

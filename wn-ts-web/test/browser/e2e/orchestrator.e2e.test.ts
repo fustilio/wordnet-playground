@@ -58,9 +58,9 @@ describe('WordNetOrchestrator E2E (Browser)', () => {
       const progressEvents: Array<{ progress: number; stage: string }> = [];
       
       await expect(orchestrator.initialize(sqlModule, {
-        onProgress: (progress: number, stage: string) => {
-          console.log(`📊 Progress: ${progress * 100}% - ${stage}`);
-          progressEvents.push({ progress, stage });
+        onProgress: (progress: number) => {
+          console.log(`📊 Progress: ${progress * 100}%`);
+          progressEvents.push({ progress, stage: 'initialization' });
         }
       })).resolves.not.toThrow();
       
@@ -75,8 +75,8 @@ describe('WordNetOrchestrator E2E (Browser)', () => {
       console.log('🧪 Starting multiple initialization test...');
       
       await orchestrator.initialize(sqlModule, {
-        onProgress: (progress: number, stage: string) => {
-          console.log(`📊 Progress: ${progress * 100}% - ${stage}`);
+        onProgress: (progress: number) => {
+          console.log(`📊 Progress: ${progress * 100}%`);
         }
       });
       await orchestrator.initialize(sqlModule); // Should not throw
@@ -95,8 +95,8 @@ describe('WordNetOrchestrator E2E (Browser)', () => {
       });
 
       await orchestrator.initialize(sqlModule, {
-        onProgress: (progress: number, stage: string) => {
-          console.log(`📊 Progress: ${progress * 100}% - ${stage}`);
+        onProgress: (progress: number) => {
+          console.log(`📊 Progress: ${progress * 100}%`);
         }
       });
       

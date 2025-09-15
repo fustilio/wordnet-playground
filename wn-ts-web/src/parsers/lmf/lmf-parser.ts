@@ -17,9 +17,12 @@ import {
   DEFAULT_DUPLICATE_HANDLING,
   validateLMFContentEnhanced,
   applyDuplicateHandling,
-  LMFParseError
+  LMFParseError,
+  extractAndValidateLMFVersion,
+  SUPPORTED_LMF_VERSIONS
 } from "wn-ts-core/lmf";
 import { WarningAggregator } from "./warning-aggregator";
+
 
 /**
  * Progress callback for tracking parsing progress
@@ -188,6 +191,31 @@ export class LmfParser implements LMFParser {
             throw new Error(`Invalid LMF file: ${error.message}`);
           }
           throw error;
+        }
+        
+        // Extract and validate LMF version using shared utilities
+        const versionResult = extractAndValidateLMFVersion(xmlContent, {
+          debug,
+          allowUnsupported: false, // Don't allow unsupported versions
+          supportedVersions: SUPPORTED_LMF_VERSIONS
+        });
+        
+        if (debug) {
+          this.logger.debug(`[DEBUG] Extracted LMF version: ${versionResult.version}`);
+          this.logger.debug(`[DEBUG] Supported versions: ${Array.from(SUPPORTED_LMF_VERSIONS).join(', ')}`);
+          this.logger.debug(`[DEBUG] Version ${versionResult.version} supported: ${versionResult.isSupported}`);
+        }
+        
+        // Validate version - throw error for unsupported versions
+        if (!versionResult.isValid || !versionResult.isSupported) {
+          if (debug) {
+            this.logger.debug(`[DEBUG] Throwing error for version: ${versionResult.version}, error: ${versionResult.error}`);
+          }
+          throw new LMFParseError(
+            versionResult.error || `Unsupported LMF version: ${versionResult.version}`,
+            'UNSUPPORTED_VERSION',
+            { version: versionResult.version }
+          );
         }
         
         if (debug && this.options.verbose) {

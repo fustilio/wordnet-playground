@@ -202,11 +202,11 @@ describe.skipIf(isNode)('WordNet Interlingual Queries E2E', () => {
         
         if (words.length > 0) {
           const word = words[0];
-          const senses = await wordnet.senses({ form: word.lemma, pos: word.pos });
+          const senses = await wordnet.senses({ wordIdOrForm: word.lemma, pos: word.pos });
           expect(senses.length).toBeGreaterThan(0);
           
           for (const sense of senses) {
-            const synset = await wordnet.getSynset(sense.synset);
+            const synset = await wordnet.getSynset(sense.synsetId);
             expect(synset).toBeDefined();
           }
         }
@@ -255,14 +255,14 @@ describe.skipIf(isNode)('WordNet Interlingual Queries E2E', () => {
       expect(words.length).toBeGreaterThan(0);
       
       for (const word of words) {
-        const senses = await wordnet.senses({ form: word.lemma, pos: word.pos });
+        const senses = await wordnet.senses({ wordIdOrForm: word.lemma, pos: word.pos });
         expect(senses.length).toBeGreaterThan(0);
         
         for (const sense of senses) {
           // Each sense represents a specific meaning
           expect(sense.id).toBeDefined();
-          expect(sense.word).toBeDefined();
-          expect(sense.synset).toBeDefined();
+          expect(sense.wordId).toBeDefined();
+          expect(sense.synsetId).toBeDefined();
           
           // In a full implementation, we would test:
           // const translations = await sense.translate(lang='de');
@@ -356,11 +356,11 @@ describe.skipIf(isNode)('WordNet Interlingual Queries E2E', () => {
         
         if (words.length > 0) {
           const word = words[0];
-          const senses = await wordnet.senses({ form: word.lemma, pos: word.pos });
+          const senses = await wordnet.senses({ wordIdOrForm: word.lemma, pos: word.pos });
           expect(senses.length).toBeGreaterThan(0);
           
           for (const sense of senses) {
-            const synset = await wordnet.getSynset(sense.synset);
+            const synset = await wordnet.getSynset(sense.synsetId);
             expect(synset).toBeDefined();
             
             // In a full implementation, we would test:
@@ -459,7 +459,7 @@ describe.skipIf(isNode)('WordNet Interlingual Queries E2E', () => {
       const concurrentOperations = [
         wordnet.words({ form: 'happy' }),
         wordnet.synsets({ form: 'joy' }),
-        wordnet.senses({ form: 'run' }),
+        wordnet.senses({ wordIdOrForm: 'run' }),
         wordnet.getStatistics(),
         wordnet.getLexiconStatistics()
       ];
