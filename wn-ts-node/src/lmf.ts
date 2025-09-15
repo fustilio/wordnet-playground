@@ -153,7 +153,10 @@ export async function loadLMF(
     let filePath: string;
     
     // Check if input is URL or file path
-    if (isURL(filePathOrURL)) {
+    const isUrl = isURL(filePathOrURL);
+    if (debug) console.log(`[DEBUG] isURL(${filePathOrURL}) = ${isUrl}`);
+    
+    if (isUrl) {
       if (debug) console.log(`[DEBUG] Input is URL, loading from network`);
       content = await loadFromURL(filePathOrURL, options);
       
@@ -165,7 +168,6 @@ export async function loadLMF(
       if (debug) console.log(`[DEBUG] Created temporary file: ${filePath}`);
     } else {
       filePath = filePathOrURL;
-      content = ''; // Initialize content for file paths
       
       // Get file stats for size information (only if debug is enabled)
       if (debug) {
@@ -190,6 +192,7 @@ export async function loadLMF(
     
     // Enhanced content validation
     try {
+      // Load content for local files
       if (!content) {
         content = await readFile(filePath, 'utf-8');
       }

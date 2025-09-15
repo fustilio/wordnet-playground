@@ -4,7 +4,7 @@ import { existsSync, writeFileSync, unlinkSync, mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { loadLMF } from '../../src/lmf.js';
 import { StreamingSaxParser } from '../../src/parsers/streaming-sax.js';
-import { createTestDataManager } from 'wn-ts-core/utils';
+import { createTestDataManager } from 'wn-ts-core/test';
 
 /**
  * Enhanced LMF test suite that uses local test data and integrates with test data generation

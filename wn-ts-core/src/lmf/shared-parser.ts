@@ -334,7 +334,12 @@ export function validateLMFContentEnhanced(xmlContent: string, debug: boolean = 
   // Check for common error patterns first
   if (trimmedContent.toLowerCase().includes('<!doctype html>') || 
       trimmedContent.toLowerCase().includes('<html') ||
-      (trimmedContent.toLowerCase().includes('error') && trimmedContent.toLowerCase().includes('not found'))) {
+      (trimmedContent.toLowerCase().includes('error') && 
+       trimmedContent.toLowerCase().includes('not found') &&
+       (trimmedContent.toLowerCase().includes('http error') || 
+        trimmedContent.toLowerCase().includes('error 404') ||
+        trimmedContent.toLowerCase().includes('error 500') ||
+        trimmedContent.toLowerCase().includes('error 403')))) {
     throw new LMFParseError(
       'Content appears to be HTML error page, not XML',
       'HTML_ERROR_PAGE',
@@ -346,8 +351,9 @@ export function validateLMFContentEnhanced(xmlContent: string, debug: boolean = 
     );
   }
   
-  // Check for HTTP error responses
+  // Check for HTTP error responses (but not DOCTYPE declarations)
   if (trimmedContent.toLowerCase().includes('http') && 
+      !trimmedContent.toLowerCase().includes('<!doctype') &&
       (trimmedContent.toLowerCase().includes('404') || 
        trimmedContent.toLowerCase().includes('500') ||
        trimmedContent.toLowerCase().includes('403'))) {

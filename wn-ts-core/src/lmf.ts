@@ -58,12 +58,18 @@ export function validateLMFContent(xmlContent: string, debug: boolean = false): 
   // Check for common error patterns first
   if (trimmedContent.toLowerCase().includes('<!doctype html>') || 
       trimmedContent.toLowerCase().includes('<html') ||
-      (trimmedContent.toLowerCase().includes('error') && trimmedContent.toLowerCase().includes('not found'))) {
+      (trimmedContent.toLowerCase().includes('error') && 
+       trimmedContent.toLowerCase().includes('not found') &&
+       (trimmedContent.toLowerCase().includes('http error') || 
+        trimmedContent.toLowerCase().includes('error 404') ||
+        trimmedContent.toLowerCase().includes('error 500') ||
+        trimmedContent.toLowerCase().includes('error 403')))) {
     throw new Error('Invalid LMF file: Content appears to be HTML error page, not XML');
   }
   
-  // Check for HTTP error responses
+  // Check for HTTP error responses (but not DOCTYPE declarations)
   if (trimmedContent.toLowerCase().includes('http') && 
+      !trimmedContent.toLowerCase().includes('<!doctype') &&
       (trimmedContent.toLowerCase().includes('404') || 
        trimmedContent.toLowerCase().includes('500') ||
        trimmedContent.toLowerCase().includes('403'))) {
