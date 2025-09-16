@@ -26,7 +26,7 @@ export type {
   LexiconInfo,
   WordNetEventMap,
   WordNetEventListener
-} from './client/wordnet-worker-client.js';
+} from './types/index.js';
 export type { WordNetWorkerAPI } from './workers/type.js';
 
 // Worker factory exports (framework-agnostic)
@@ -34,38 +34,8 @@ export { createWordNetWorker } from './client/utils/worker-factory.js';
 export { parsePackageId, formatPackageId, isValidPackageId, getPackageBase, getPackageVersion } from 'wn-ts-core';
 export type { PackageIdParts } from 'wn-ts-core';
 
-// React hooks and types (framework-specific)
-export type {
-  WordNetStatistics,
-  CacheInfo,
-  WordQueryResult,
-  SynsetQueryResult,
-  SenseInfo,
-  DefinitionInfo,
-  WordInfo,
-  RelationInfo,
-  PackageInfo,
-  WorkerStatus,
-  LexiconsChangedEvent,
-  PackageLoadedEvent,
-  StatusUpdatedEvent,
-  ErrorEvent,
-  MemoryQueryTestResult,
-  DataSourceInfo,
-  IntegrityInfo,
-  WordNetState,
-  ProgressCallback,
-  // Lexicon introspection types
-  LexiconIntrospection,
-  ResourceTypeInfo,
-  CategorizedResources,
-  CrossLingualAnalysis,
-  MappingCoverage,
-  IntegrityReport,
-  CompatibilityReport,
-  // Database persistence types
-  DatabaseStorageInfo
-} from './react/hooks/useWordNet.js';
+// Export all types from centralized location
+export type * from './types/index.js';
 
 // Note: React hooks are not exported here to keep wn-ts-web framework-agnostic
 // They can be imported separately from './react-hooks' if needed, or moved to a separate package

@@ -46,7 +46,14 @@ export const StatusWidget: React.FC<WordNetState> = ({ isInitializing, loading, 
         'worker initialization': '🔧 Initializing worker system...',
         'testing worker connection': '🔌 Testing worker connection...',
         'worker ready': '✅ Worker system ready',
-        'packages refreshed': '✅ Package refresh complete'
+        'packages refreshed': '✅ Package refresh complete',
+        'Starting download...': '📥 Starting download...',
+        'Downloading data...': '📥 Downloading data...',
+        'Processing XML...': '🔍 Processing XML...',
+        'Parsing data...': '📖 Parsing data...',
+        'Loading into database...': '💾 Loading into database...',
+        'Finalizing...': '⏳ Finalizing...',
+        'Complete': '✅ Complete'
       };
 
     const displayText = stageMap[progressStage] || progressStage;

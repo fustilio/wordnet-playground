@@ -63,10 +63,14 @@ export interface WordNetDataSourceRegistry {
   [key: string]: WordNetDataSource;
 }
 
+// Progress callback type
+export type ProgressCallback = (progress: number, message?: string) => void;
+
 // WordNet processing options
 export interface WordNetProcessingOptions {
   projectId: string;
   enableTarExtraction?: boolean;
   extractMetadata?: boolean;
   validateLMF?: boolean;
+  onProgress?: ProgressCallback;
 }

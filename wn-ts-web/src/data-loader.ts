@@ -4,8 +4,7 @@ import {
   analyzeXMLContent,
 } from "./parsers/lmf/lmf-parser.js";
 import { Project } from "./project.js";
-// Progress callback type that matches the worker client interface
-type ProgressCallback = (progress: number, stage?: string) => void;
+import type { ProgressCallback } from "./types/progress.js";
 import { WebDatabase } from "./client/submodules/web-database.js";
 import { WebWordnet } from "./client/submodules/web-wordnet.js";
 import { createScopedLogger } from "utils/logger";
@@ -14,7 +13,7 @@ import type { Database } from "./types/database.js";
 import type { LMFDocument, Synset, Word, Sense, Lexicon } from "wn-ts-core";
 import { WarningAggregator } from "./parsers/lmf/warning-aggregator.js";
 import { WordNetProcessor } from "wn-data-loader";
-import { convertIndexToDataSources } from "wn-data-loader";
+import { WORDNET_DATA_SOURCES } from "wn-data-loader";
 import indexData from "./index.json" assert { type: "json" };
 
 // Note: ParsedNode interface removed - now using proper LMF parsing pipeline
@@ -552,22 +551,43 @@ export class DataLoader {
     projectIdWithVersion: string,
     progress?: ProgressCallback
   ): Promise<void> {
-    if (progress) progress(0.05, 'Starting data processing...');
+    this.logger.debug(`🔍 DataLoader.loadData called with progress callback: ${!!progress}`);
+    this.logger.debug(`🔍 DataLoader progress callback type:`, typeof progress);
+    if (progress) {
+      this.logger.debug(`🔍 Calling progress callback: 0.05, 'Starting data processing...'`);
+      try {
+        progress(0.05, 'Starting data processing...');
+        this.logger.debug(`🔍 Progress callback executed successfully`);
+      } catch (error) {
+        this.logger.error(`🔍 Progress callback failed:`, error);
+      }
+    }
 
     // Use the WordNet processor to handle all decompression and format detection
-    // Convert index.json data to the format expected by WordNetProcessor
-    const dataSources = convertIndexToDataSources(indexData);
-    const wordnetProcessor = new WordNetProcessor(dataSources);
+    // Use the pre-generated data sources from wn-data-loader
+    const wordnetProcessor = new WordNetProcessor(WORDNET_DATA_SOURCES);
     
     this.logger.info(`🚀 Starting WordNet processing for ${projectIdWithVersion}...`);
     if (progress) progress(0.1, 'Processing WordNet data format...');
+    
+    // Add progress updates during WordNet processing
+    if (progress) progress(0.15, 'Decompressing data...');
     
     const wordnetResult = await wordnetProcessor.processWordNetData(data, {
       projectId: projectIdWithVersion,
       enableTarExtraction: true,
       extractMetadata: true,
-      validateLMF: true
+      validateLMF: true,
+      onProgress: progress ? (progressValue: number, message?: string) => {
+        // Map WordNet processor progress (0-1) to our overall progress (0.15-0.25)
+        // The decompression step (0.15-0.25) now has more granular progress
+        const mappedProgress = 0.15 + (progressValue * 0.1);
+        this.logger.debug(`🔍 WordNet processor progress: ${progressValue} -> ${mappedProgress} (${message})`);
+        progress(mappedProgress, message);
+      } : undefined
     });
+    
+    if (progress) progress(0.25, 'WordNet processing completed...');
 
     if (!wordnetResult.success) {
       throw new Error(`WordNet processing failed: ${wordnetResult.error}`);
@@ -586,6 +606,7 @@ export class DataLoader {
       wordnetMetadata: wordnetResult.wordnetMetadata
     });
 
+    if (progress) progress(0.3, 'Analyzing content type...');
     const xmlText = wordnetResult.xmlContent!;
 
     // Check for XZ magic numbers: 0xfd 0x37 0x7a 0x58 0x5a 0x00
@@ -637,14 +658,14 @@ export class DataLoader {
       );
 
       // Parse ILI TSV data
-      if (progress) progress(0.15, 'Parsing ILI data...');
+      if (progress) progress(0.35, 'Parsing ILI data...');
       const iliData = await this.loadILI(xmlText);
       this.logger.info(`📊 Loaded ${iliData.length} ILI records`);
 
       // Yield to UI thread after ILI parsing to prevent freezing
       await new Promise((resolve) => setTimeout(resolve, 1));
 
-      if (progress) progress(0.4, 'Inserting ILI data...');
+      if (progress) progress(0.5, 'Inserting ILI data...');
 
       // Insert ILI data
       await this.insertILIData(iliData, projectIdWithVersion);
@@ -707,7 +728,7 @@ export class DataLoader {
       );
 
       // Lexicon information will be inserted from the file data
-      if (progress) progress(0.2, 'XML content verified');
+      if (progress) progress(0.35, 'XML content verified');
 
       this.logger.start(`processing LMF data for ${projectIdWithVersion}`);
       this.logger.step(`XML content verified`, {
@@ -717,7 +738,7 @@ export class DataLoader {
       // Use the proper LMF parsing pipeline for all LMF files
       try {
         this.logger.step(`starting LMF parsing`);
-        if (progress) progress(0.25, 'Starting LMF parsing...');
+        if (progress) progress(0.4, 'Starting LMF parsing...');
 
         // Import and use the proper LMF parser
         const { LmfParser } = await import("./parsers/lmf/lmf-parser.js");
@@ -732,8 +753,24 @@ export class DataLoader {
 
         this.logger.debug(`parser options`, parserOptions);
 
+        if (progress) progress(0.45, 'Initializing XML parser...');
         const lmfParser = new LmfParser(xmlText, parserOptions);
+        
+        if (progress) progress(0.5, 'Parsing XML content...');
+        
+        // Add a progress update timer during the long-running parse operation
+        let parseProgress = 0.5;
+        const parseInterval = setInterval(() => {
+          if (progress && parseProgress < 0.6) {
+            parseProgress += 0.02;
+            progress(parseProgress, 'Parsing XML content...');
+          }
+        }, 1000); // Update every second
+        
         const lmfDocument = await lmfParser.parse(xmlText, { debug: true });
+        
+        clearInterval(parseInterval);
+        if (progress) progress(0.6, 'XML parsing completed...');
 
         // Get any aggregated warnings from the parser
         if (lmfParser["warningAggregator"]) {
@@ -756,11 +793,24 @@ export class DataLoader {
         // Yield to UI thread after XML parsing to prevent freezing
         await new Promise((resolve) => setTimeout(resolve, 1));
 
-        if (progress) progress(0.5, 'LMF parsing completed, preparing database insertion...');
+        if (progress) progress(0.7, 'LMF parsing completed, preparing database insertion...');
 
         // Insert the parsed data into the database
         this.logger.step(`inserting parsed data into database`);
+        if (progress) progress(0.8, 'Inserting data into database...');
+        
+        // Add a progress update timer during the database insertion
+        let insertProgress = 0.8;
+        const insertInterval = setInterval(() => {
+          if (progress && insertProgress < 0.95) {
+            insertProgress += 0.05;
+            progress(insertProgress, 'Inserting data into database...');
+          }
+        }, 2000); // Update every 2 seconds
+        
         await this.insertLMFData(lmfDocument, projectIdWithVersion, progress);
+        
+        clearInterval(insertInterval);
 
         // Yield to UI thread after data insertion to prevent freezing
         await new Promise((resolve) => setTimeout(resolve, 1));

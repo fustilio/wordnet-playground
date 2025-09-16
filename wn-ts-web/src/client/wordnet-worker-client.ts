@@ -22,28 +22,10 @@
 
 import { createScopedLogger } from 'utils/logger';
 import { createWordNetWorker, type RemoteWordNetWorker } from './utils/worker-factory';
-
-export interface LexiconInfo {
-  id: string;
-  label: string;
-  language: string;
-  version: string;
-  wordCount: number;
-  synsetCount: number;
-  loadedAt: Date;
-}
-
-export interface WordNetEventMap {
-  'initialized': { success: boolean; error?: string };
-  'packageLoaded': { packageId: string; success: boolean; error?: string; lexiconInfo?: LexiconInfo };
-  'packageLoadProgress': { packageId: string; progress: number; stage: string };
-  'dataCleared': { success: boolean; error?: string };
-  'error': { error: string; context: string };
-  'statusUpdated': { status: any };
-  'lexiconsChanged': { lexicons: LexiconInfo[]; added?: LexiconInfo[]; removed?: string[] };
-}
-
-export type WordNetEventListener<K extends keyof WordNetEventMap> = (event: WordNetEventMap[K]) => void;
+import { proxy } from 'comlink';
+import type { PartOfSpeech } from 'wn-ts-core';
+import type { LexiconInfo, WordNetEventMap, WordNetEventListener } from '../types';
+import type { ProgressCallback } from '../types/progress';
 
 const logger = createScopedLogger('WordNetWorkerClient');
 
@@ -187,7 +169,7 @@ export class WordNetWorkerClient {
         // Update our local lexicon tracking
         await this.updateLexiconTracking();
         
-        this.emit('statusUpdated', result.data);
+        this.emit('statusUpdated', { status: result.data });
         return result.data;
       } else {
         throw new Error(result.error || 'Failed to get status');
@@ -258,10 +240,11 @@ export class WordNetWorkerClient {
     }
   }
 
+
   /**
    * Load a package by ID
    */
-  async loadPackage(packageId: string, progressCallback?: (progress: number, stage: string) => void): Promise<boolean> {
+  async loadPackage(packageId: string, progressCallback?: ProgressCallback): Promise<boolean> {
     await this.ensureInitialized();
     
     try {
@@ -272,7 +255,24 @@ export class WordNetWorkerClient {
         progressCallback(0, 'Starting download...');
       }
       
-      const result = await this.remote!.loadPackage(packageId);
+      // Create a Comlink proxy for the progress callback that can be transferred to the worker
+      const progressProxy = progressCallback ? proxy({
+        onProgress: (progress: number) => {
+          // Map progress to stage descriptions
+          let stage = 'Downloading...';
+          if (progress < 0.1) stage = 'Starting download...';
+          else if (progress < 0.3) stage = 'Downloading data...';
+          else if (progress < 0.5) stage = 'Processing XML...';
+          else if (progress < 0.7) stage = 'Parsing data...';
+          else if (progress < 0.9) stage = 'Loading into database...';
+          else stage = 'Finalizing...';
+          
+          progressCallback(progress, stage);
+        }
+      }) : undefined;
+      
+      // Pass progress callback directly to worker
+      const result = await this.remote!.loadPackage(packageId, progressProxy);
       
       if (result.success) {
         logger.info(`Package ${packageId} loaded successfully`);
@@ -302,53 +302,11 @@ export class WordNetWorkerClient {
     }
   }
 
-  /**
-   * Load demo data
-   */
-  async loadDemoData(progressCallback?: (progress: number, stage: string) => void): Promise<boolean> {
-    await this.ensureInitialized();
-    
-    try {
-      logger.info('Loading demo data');
-      
-      if (progressCallback) {
-        progressCallback(0, 'Starting demo data load...');
-      }
-      
-      const result = await this.remote!.loadDemoData();
-      
-      if (result.success) {
-        logger.info('Demo data loaded successfully');
-        
-        // Update lexicon tracking after successful load
-        await this.updateLexiconTracking();
-        
-        // Get the lexicon info for demo data
-        const lexiconInfo = this.getLexicon('oewn:2024');
-        
-        this.emit('packageLoaded', { packageId: 'oewn:2024', success: true, lexiconInfo });
-        
-        if (progressCallback) {
-          progressCallback(1, 'Complete');
-        }
-        
-        return true;
-      } else {
-        throw new Error(result.error || 'Demo data loading failed');
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      logger.error('Failed to load demo data', error);
-      this.emit('packageLoaded', { packageId: 'oewn:2024', success: false, error: errorMessage });
-      this.emit('error', { error: errorMessage, context: 'loadDemoData' });
-      throw error;
-    }
-  }
 
   /**
    * Query words
    */
-  async queryWords(term: string, pos?: string): Promise<any[]> {
+  async queryWords(term: string, pos?: PartOfSpeech): Promise<any[]> {
     await this.ensureInitialized();
     
     try {
@@ -371,7 +329,7 @@ export class WordNetWorkerClient {
   /**
    * Query synsets
    */
-  async querySynsets(term: string, pos?: string): Promise<any[]> {
+  async querySynsets(term: string, pos?: PartOfSpeech): Promise<any[]> {
     await this.ensureInitialized();
     
     try {
@@ -394,7 +352,7 @@ export class WordNetWorkerClient {
   /**
    * Query senses
    */
-  async querySenses(term: string, pos?: string): Promise<any[]> {
+  async querySenses(term: string, pos?: PartOfSpeech): Promise<any[]> {
     await this.ensureInitialized();
     
     try {
@@ -695,11 +653,11 @@ export class WordNetWorkerClient {
     try {
       const result = await this.remote!.hasLoadedData(packageId);
       
-      if (result.success) {
+      if (result.success && result.data) {
         if (packageId) {
-          return result.data.hasPackage;
+          return result.data.hasPackage ?? false;
         } else {
-          return result.data.hasData;
+          return result.data.hasData ?? false;
         }
       } else {
         return false;

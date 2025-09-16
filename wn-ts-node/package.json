@@ -80,7 +80,7 @@
     "lzma-native": "^8.0.6",
     "pythonia": "catalog:",
     "sax": "^1.4.1",
-    "smol-toml": "^1.4.1",
+    "smol-toml": "catalog:",
     "tar-stream": "^3.1.7",
     "wn-ts-core": "workspace:*"
   },

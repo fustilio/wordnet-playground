@@ -1,1 +1,1 @@
-export type ProgressCallback = (progress: number) => void;
+export type ProgressCallback = (progress: number, message?: string) => void;

@@ -12,12 +12,18 @@
   "scripts": {
     "test": "vitest run --reporter=verbose",
     "test:watch": "vitest --reporter=verbose",
+    "test:unit": "vitest run src/__tests__/unit.test.ts --reporter=verbose",
+    "test:decompression": "vitest run src/__tests__/decompression.test.ts --reporter=verbose",
+    "test:all": "vitest run src/__tests__/unit.test.ts src/__tests__/decompression.test.ts --reporter=verbose",
     "build": "tsc --noEmit",
-    "dev": "tsc --watch --noEmit"
+    "dev": "tsc --watch --noEmit",
+    "build:data-sources": "node ./scripts/build-data-sources.js",
+    "prebuild": "npm run build:data-sources"
   },
   "dependencies": {
     "@fustilio/data-loader": "catalog:",
     "fast-xml-parser": "^5.2.5",
+    "smol-toml": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

@@ -43,7 +43,7 @@
   "types": "./dist/wn-ts-web.d.ts",
   "scripts": {
     "bench": "pnpm with-memory-limit vitest --config=vitest.e2e.config.ts bench --run",
-    "prebuild": "node ./scripts/build-index.js",
+    "prebuild": "cd ../packages/wn-data-loader && npm run build:data-sources",
     "build": "vite build",
     "build:dev": "vite build --config vite.dev.config.ts",
     "build:watch": "vite build --watch",
@@ -89,7 +89,6 @@
     "kysely": "catalog:",
     "kysely-sqlite-builder": "^1.0.0",
     "kysely-wasm": "^1.2.1",
-    "smol-toml": "^1.4.1",
     "sqlite-wasm-kysely": "^0.3.0",
     "utils": "workspace:*",
     "wn-data-loader": "workspace:*",

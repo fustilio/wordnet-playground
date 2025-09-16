@@ -10,8 +10,7 @@ export { WordNetProvider, useWordNetContext } from './contexts/WordNetContext';
 export { WordNetConfigProvider, useWordNetConfig } from './contexts/WordNetConfigContext';
 
 // Export types
-export type { WordNetState } from './hooks/useWordNet';
-export type { WordNetConfig } from './contexts/WordNetConfigContext';
+export type * from './types/index.js';
 
 // Export utilities
 export { getAvailableProjects } from './utils/project-list';

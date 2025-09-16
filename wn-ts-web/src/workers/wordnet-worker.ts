@@ -93,7 +93,12 @@ export async function initializeWordNet(lexiconId = "oewn:2024") {
       autoCheckUpdates: false 
     });
     logger.step('orchestrator created, initializing');
-    await orchestrator.initialize(sqlModule);
+    await orchestrator.initialize(sqlModule, {
+      onProgress: (progress, message) => {
+        // Progress is handled by the orchestrator's internal logging
+        // No need for noisy console.log here - the progress callback is sufficient
+      }
+    });
     isInitialized = true;
     
     logger.step('orchestrator initialized successfully');
@@ -210,13 +215,17 @@ export async function getStatus() {
   }
 }
 
+
 export async function loadPackage(packageId: string, options?: { onProgress?: (progress: number) => void }) {
   try {
+    logger.debug(`🔍 Worker loadPackage called with packageId: ${packageId}, hasProgress: ${!!options?.onProgress}`);
+    
     if (!orchestrator) {
       return { success: false, error: "WordNet not initialized" };
     }
 
     logger.start(`Loading package ${packageId}`);
+    
     await orchestrator.loadLexicon(packageId, {
       onProgress: options?.onProgress
     });
@@ -240,46 +249,6 @@ export async function loadPackage(packageId: string, options?: { onProgress?: (p
   }
 }
 
-export async function loadDemoData(options?: { onProgress?: (progress: number) => void }) {
-  try {
-    if (!orchestrator) {
-      return { success: false, error: "WordNet not initialized" };
-    }
-
-    logger.start('Loading demo data');
-    // Load all default lexicons if they exist, otherwise fall back to oewn:2024
-    const defaultLexicons = orchestrator.getDefaultLexicons();
-    if (defaultLexicons.length > 0) {
-      for (const lexiconId of defaultLexicons) {
-        await orchestrator.loadLexicon(lexiconId, {
-          onProgress: options?.onProgress
-        });
-      }
-    } else {
-      // Fallback for backward compatibility
-      await orchestrator.loadLexicon('oewn:2024', {
-        onProgress: options?.onProgress
-      });
-    }
-
-    // Get updated state after successful load
-    const statistics = await orchestrator.getOverallStatistics();
-    const lexiconStats = await orchestrator.getLexiconStatistics();
-
-    logger.end('Loading demo data', { success: true });
-    return {
-      success: true,
-      data: {
-        statistics,
-        lexiconStats,
-      },
-    };
-  } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error('Failed to load demo data', { error });
-    return { success: false, error: errorMessage };
-  }
-}
 
 export async function queryWords(term: string, pos?: PartOfSpeech) {
   try {
@@ -808,7 +777,6 @@ expose({
   initializeWordNet,
   getStatus,
   loadPackage,
-  loadDemoData,
   queryWords,
   querySynsets,
   querySenses,

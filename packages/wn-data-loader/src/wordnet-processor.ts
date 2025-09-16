@@ -1,10 +1,11 @@
-import { FormatProcessor } from "@fustilio/data-loader";
+import { createDefaultProcessorFactory } from "@fustilio/data-loader";
 import type { 
   WordNetProcessingResult, 
   WordNetProcessingOptions, 
   WordNetContentType,
   WordNetDataSource,
-  WordNetDataSourceRegistry
+  WordNetDataSourceRegistry,
+  ProgressCallback
 } from "./types.js";
 import { WordNetContentDetector } from "./wordnet-content-detector.js";
 import { getWordNetDataSource, isValidWordNetProject, WORDNET_DATA_SOURCES } from "./data-sources.js";
@@ -14,56 +15,18 @@ import { getWordNetDataSource, isValidWordNetProject, WORDNET_DATA_SOURCES } fro
  * This extends the generic FormatProcessor with WordNet domain knowledge
  */
 export class WordNetProcessor {
-  private formatProcessor: FormatProcessor;
+  private formatProcessor: any; // Will be created by factory
   private contentDetector: WordNetContentDetector;
   private dataSources: WordNetDataSourceRegistry;
 
   constructor(dataSources?: WordNetDataSourceRegistry) {
-    this.formatProcessor = new FormatProcessor();
+    // Use the new factory pattern for FormatProcessor
+    const factory = createDefaultProcessorFactory();
+    this.formatProcessor = factory.createProcessor();
     this.contentDetector = new WordNetContentDetector();
     this.dataSources = dataSources || WORDNET_DATA_SOURCES;
   }
 
-  /**
-   * Decompress gzipped data
-   */
-  private async decompressGzip(data: ArrayBuffer): Promise<ArrayBuffer> {
-    // Use the browser's built-in DecompressionStream API
-    if (typeof DecompressionStream !== 'undefined') {
-      const stream = new DecompressionStream('gzip');
-      const writer = stream.writable.getWriter();
-      const reader = stream.readable.getReader();
-      
-      // Write the compressed data
-      await writer.write(data);
-      await writer.close();
-      
-      // Read the decompressed data
-      const chunks: Uint8Array[] = [];
-      let done = false;
-      while (!done) {
-        const { value, done: readerDone } = await reader.read();
-        done = readerDone;
-        if (value) {
-          chunks.push(value);
-        }
-      }
-      
-      // Combine all chunks
-      const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-      const result = new Uint8Array(totalLength);
-      let offset = 0;
-      for (const chunk of chunks) {
-        result.set(chunk, offset);
-        offset += chunk.length;
-      }
-      
-      return result.buffer;
-    } else {
-      // Fallback: try to use pako if available
-      throw new Error('Gzip decompression not supported in this environment. DecompressionStream API not available.');
-    }
-  }
 
   /**
    * Process WordNet data with domain-specific logic
@@ -74,8 +37,12 @@ export class WordNetProcessor {
   ): Promise<WordNetProcessingResult> {
     const startTime = Date.now();
     const originalSize = data.byteLength;
+    const { onProgress } = options;
 
     try {
+      // Initial progress
+      if (onProgress) onProgress(0.05, 'Starting WordNet processing...');
+
       // Validate project ID using instance data sources
       if (!(options.projectId in this.dataSources)) {
         throw new Error(`Invalid WordNet project ID: ${options.projectId}`);
@@ -87,49 +54,21 @@ export class WordNetProcessor {
         throw new Error(`WordNet data source not found: ${options.projectId}`);
       }
 
-      // Process data using generic format processor
-      // For .xml.gz files, handle decompression directly since they're just gzipped XML
-      let formatResult;
-      if (dataSource.format === 'xml.gz' || dataSource.format === 'gz') {
-        // Handle gzipped XML files directly
-        try {
-          // Decompress the gzipped data
-          const decompressedData = await this.decompressGzip(data);
-          
-          // Create a mock format result for XML content
-          formatResult = {
-            success: true,
-            projectId: options.projectId,
-            contentType: "xml" as WordNetContentType,
-            confidence: "high",
-            data: decompressedData,
-            processingSteps: ["gzip decompression", "XML content detection"],
-            metadata: {
-              originalSize: data.byteLength,
-              decompressedSize: decompressedData.byteLength,
-              compressionRatio: (data.byteLength / decompressedData.byteLength).toFixed(2)
-            }
-          };
-        } catch (error) {
-          formatResult = {
-            success: false,
-            projectId: options.projectId,
-            contentType: "unknown" as WordNetContentType,
-            confidence: "low",
-            error: `Failed to decompress gzipped data: ${error}`,
-            processingSteps: ["gzip decompression failed"]
-          };
-        }
-      } else {
-        // Use the generic format processor for other formats
-        const shouldEnableTarExtraction = options.enableTarExtraction ?? 
-          (dataSource.format !== 'xml.gz' && dataSource.format !== 'gz');
-        
-        formatResult = await this.formatProcessor.processData(data, {
-          projectId: options.projectId,
-          enableTarExtraction: shouldEnableTarExtraction
-        });
-      }
+      if (onProgress) onProgress(0.1, 'Validating data source...');
+
+      // Process data using the generic format processor
+      // The @fustilio/data-loader already handles gzip decompression with pako internally
+      if (onProgress) onProgress(0.15, 'Processing data format...');
+      
+      const shouldEnableTarExtraction = options.enableTarExtraction ?? 
+        !dataSource.format.includes('tar.gz');
+      
+      const formatResult = await this.formatProcessor.processData(data, {
+        projectId: options.projectId,
+        enableTarExtraction: shouldEnableTarExtraction
+      });
+      
+      if (onProgress) onProgress(0.25, 'Format processing completed...');
 
       if (!formatResult.success) {
         return {
@@ -147,7 +86,26 @@ export class WordNetProcessor {
         };
       }
 
+      // Ensure we have XML content for further processing
+      if (!formatResult.xmlContent) {
+        return {
+          success: false,
+          projectId: options.projectId,
+          language: dataSource.language,
+          version: dataSource.version,
+          contentType: "unknown",
+          confidence: "low",
+          error: "No XML content found after format processing",
+          processingSteps: [...formatResult.processingSteps, "No XML content found"],
+          totalProcessingTime: Date.now() - startTime,
+          originalSize,
+          finalSize: 0
+        };
+      }
+
       // Apply WordNet-specific content detection
+      if (onProgress) onProgress(0.3, 'Detecting WordNet content type...');
+      
       const wordnetDetection = this.contentDetector.detectWordNetContentType(
         formatResult.xmlContent!,
         options.projectId
@@ -156,17 +114,25 @@ export class WordNetProcessor {
       // Use WordNet-specific content type
       const finalContentType = wordnetDetection.type;
 
+      if (onProgress) onProgress(0.4, 'Content detection completed...');
+
       // Extract WordNet metadata if requested
       let wordnetMetadata;
       if (options.extractMetadata) {
+        if (onProgress) onProgress(0.5, 'Extracting WordNet metadata...');
+        
         wordnetMetadata = this.contentDetector.extractWordNetMetadata(
           formatResult.xmlContent!,
           options.projectId
         );
+        
+        if (onProgress) onProgress(0.6, 'Metadata extraction completed...');
       }
 
       // Validate LMF structure if requested
       if (options.validateLMF && wordnetDetection.type === "lmf") {
+        if (onProgress) onProgress(0.7, 'Validating LMF structure...');
+        
         const validation = this.contentDetector.validateLMFStructure(formatResult.xmlContent!);
         if (!validation.isValid) {
           console.warn("LMF validation failed:", validation.errors);
@@ -174,7 +140,11 @@ export class WordNetProcessor {
         if (validation.warnings.length > 0) {
           console.warn("LMF validation warnings:", validation.warnings);
         }
+        
+        if (onProgress) onProgress(0.8, 'LMF validation completed...');
       }
+
+      if (onProgress) onProgress(1.0, 'WordNet processing completed successfully');
 
       return {
         success: true,
@@ -183,7 +153,7 @@ export class WordNetProcessor {
         version: dataSource.version,
         contentType: finalContentType,
         confidence: wordnetDetection.confidence,
-        xmlContent: formatResult.xmlContent,
+        xmlContent: formatResult.xmlContent, // This should contain the decompressed XML content
         processingSteps: [
           ...formatResult.processingSteps,
           "WordNet content detection",
@@ -192,7 +162,7 @@ export class WordNetProcessor {
         ],
         totalProcessingTime: Date.now() - startTime,
         originalSize,
-        finalSize: formatResult.finalSize,
+        finalSize: formatResult.finalSize || originalSize,
         extractedFiles: formatResult.extractedXmlFiles,
         wordnetMetadata
       };

@@ -243,21 +243,22 @@ if (parseResult.success) {
 # Run all tests
 pnpm test
 
+# Run specific test suites
+pnpm test:unit          # Unit tests for individual components
+pnpm test:decompression # Decompression and performance tests
+pnpm test:all          # Both test suites
+
 # Run with watch mode
 pnpm test:watch
-
-# Run specific test files
-pnpm test wordnet-processor.test.ts
-pnpm test wordnet-parser.test.ts
 ```
 
 ### Test Coverage
 
-- **Unit Tests**: Individual component functionality
-- **Integration Tests**: End-to-end WordNet processing
-- **Real Data Tests**: Actual WordNet data processing
-- **Validation Tests**: LMF structure validation
-- **Error Handling Tests**: Graceful failure scenarios
+- **Unit Tests**: Individual component functionality (WordNetProcessor, WordNetContentDetector, Data Sources)
+- **Decompression Tests**: File size-based testing, performance, error handling, and integration patterns
+- **Real Data Tests**: Actual WordNet data processing with various file sizes
+- **Validation Tests**: LMF structure validation and data source consistency
+- **Error Handling Tests**: Graceful failure scenarios and timeout handling
 
 ## 🔧 Configuration
 

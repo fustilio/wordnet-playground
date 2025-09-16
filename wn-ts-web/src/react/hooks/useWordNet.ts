@@ -2,275 +2,93 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 import { createScopedLogger, setGlobalLogLevel } from "utils/logger";
 import { getAvailableProjects } from "../utils/project-list";
+import { WordNetWorkerClient, type LexiconInfo } from "../../";
 import {
-  WordNetWorkerClient,
-  type LexiconInfo,
-} from "../../";
-import { parsePackageId, formatPackageId, sanitizeLexiconId } from "wn-ts-core/utils";
+  sanitizeLexiconId,
+} from "wn-ts-core/utils";
 
-// Define types locally instead of importing from demo
-export interface WordNetStatistics {
-  totalWords: number;
-  totalSynsets: number;
-  totalSenses: number;
-  totalILIs?: number;
-  totalLexicons: number;
-  source: "Database" | "Worker" | "MainThread";
-}
-
-export interface CacheInfo {
-  hasStorageQuota: boolean;
-  hasIndexedDB: boolean;
-  hasLocalStorage: boolean;
-  hasSessionStorage: boolean;
-  source: "worker" | "dataLoader" | "fallback";
-  storageQuota?: {
-    usage: number;
-    quota: number;
-    percentage: number;
-  };
-  opfsUsage?: {
-    totalFiles: number;
-    totalSize: number;
-    availableSpace: number;
-  };
-}
-
-export interface WordQueryResult {
-  id: string;
-  lemma: string;
-  pos: string;
-  language: string;
-  lexicon: string;
-  senses: SenseInfo[];
-}
-
-export interface SynsetQueryResult {
-  id: string;
-  ili?: string;
-  pos: string;
-  language: string;
-  lexicon: string;
-  definitions: DefinitionInfo[];
-  words: WordInfo[];
-  relations: RelationInfo[];
-}
-
-export interface SenseInfo {
-  id: string;
-  wordId: string;
-  synsetId: string;
-  source?: string;
-  sensekey?: string;
-  adjposition?: string;
-  subcategory?: string;
-  domain?: string;
-  register?: string;
-}
-
-export interface DefinitionInfo {
-  id: string;
-  synsetId: string;
-  language: string;
-  text: string;
-  source?: string;
-}
-
-export interface WordInfo {
-  id: string;
-  lemma: string;
-  pos: string;
-  language: string;
-  lexicon: string;
-}
-
-export interface RelationInfo {
-  id: string;
-  sourceId: string;
-  targetId: string;
-  type: string;
-  source?: string;
-}
-
-export interface PackageInfo {
-  id: string;
-  label: string;
-  language?: string;
-  license?: string;
-  description?: string;
-  url?: string;
-  citation?: string;
-  versions: string[];
-}
-
-export interface WorkerStatus {
-  initialized: boolean;
-  error?: string;
-}
-
-export interface LexiconsChangedEvent {
-  type: "lexiconsChanged";
-  lexicons: LexiconInfo[];
-}
-
-export interface PackageLoadedEvent {
-  type: "packageLoaded";
-  packageId: string;
-  success: boolean;
-  error?: string;
-}
-
-export interface StatusUpdatedEvent {
-  type: "statusUpdated";
-  status: WorkerStatus;
-}
-
-export interface ErrorEvent {
-  type: "error";
-  error: string;
-}
-
-export interface MemoryQueryTestResult {
-  success: boolean;
-  queryTime: number;
-  resultCount: number;
-  error?: string;
-}
-
-export interface DataSourceInfo {
-  type: "worker" | "dataLoader" | "fallback";
-  initialized: boolean;
-  error?: string;
-}
-
-export interface IntegrityInfo {
-  totalChecks: number;
-  passedChecks: number;
-  failedChecks: number;
-  errors: string[];
-}
-
-// Lexicon Introspection Interfaces
-export interface LexiconIntrospection {
-  // Basic information
-  id: string;
-  label: string;
-  language: string;
-  version: string;
-  type: 'lexicon' | 'ili';
-  
-  // Content statistics
-  wordCount: number;
-  synsetCount: number;
-  senseCount: number;
-  iliCount?: number; // Only for ILI resources
-  
-  // Structural information
-  hasDefinitions: boolean;
-  hasRelations: boolean;
-  hasILIMappings: boolean;
-  
-  // Language-specific features
-  supportedPartsOfSpeech: string[];
-  supportedLanguages: string[];
-  
-  // Data quality metrics
-  iliCoverage?: number; // Percentage of synsets with ILI mappings
-  crossLingualLinks?: number; // Number of cross-language connections
-  
-  // Metadata
-  loadedAt: Date;
-  lastUpdated?: Date;
-  source: string;
-}
-
-export interface ResourceTypeInfo {
-  type: 'lexicon' | 'ili' | 'mixed';
-  hasCrossLingualMappings: boolean;
-  supportedLanguages: string[];
-  primaryLanguage: string;
-  mappingConfidence: number;
-}
-
-export interface CategorizedResources {
-  lexicons: LexiconIntrospection[];
-  ilis: LexiconIntrospection[];
-  mixed: LexiconIntrospection[];
-  total: number;
-}
-
-export interface CrossLingualAnalysis {
-  // Language coverage
-  supportedLanguages: string[];
-  primaryLanguage: string;
-  
-  // Cross-lingual mapping coverage
-  totalILIMappings: number;
-  languagePairCoverage: Record<string, Record<string, number>>;
-  
-  // Concept coverage analysis
-  conceptCoverage: {
-    total: number;
-    fullyMapped: number; // Available in all languages
-    partiallyMapped: number; // Available in some languages
-    unmapped: number; // Only available in one language
-  };
-  
-  // Quality metrics
-  mappingQuality: {
-    averageConfidence: number;
-    verifiedMappings: number;
-    unverifiedMappings: number;
-  };
-}
-
-export interface MappingCoverage {
-  totalMappings: number;
-  languagePairs: Array<{
-    source: string;
-    target: string;
-    mappingCount: number;
-    coveragePercentage: number;
-  }>;
-  conceptDistribution: Record<string, number>;
-}
-
-export interface IntegrityReport {
-  lexiconId: string;
-  isValid: boolean;
-  issues: Array<{
-    type: 'warning' | 'error' | 'info';
-    message: string;
-    details?: any;
-  }>;
-  recommendations: string[];
-}
-
-export interface CompatibilityReport {
-  compatible: boolean;
-  conflicts: Array<{
-    type: 'version' | 'language' | 'structure';
-    description: string;
-    severity: 'low' | 'medium' | 'high';
-  }>;
-  recommendations: string[];
-}
+// Import all types from the dedicated types file
+import type {
+  CacheInfo,
+  WordQueryResult,
+  SynsetQueryResult,
+  SenseInfo,
+  DefinitionInfo,
+  WordInfo,
+  MemoryQueryTestResult,
+  DatabaseStorageInfo,
+  WordNetState,
+  ProgressCallback,
+  LexiconIntrospection,
+  ResourceTypeInfo,
+  CategorizedResources,
+  CrossLingualAnalysis,
+  MappingCoverage,
+  IntegrityReport,
+  CompatibilityReport,
+} from "../../types/index.ts";
 
 setGlobalLogLevel("trace");
 
+// Utility functions
+const createWorkerClientQuery = <T>(
+  workerClient: WordNetWorkerClient | null,
+  queryFn: (wc: WordNetWorkerClient) => Promise<T>
+): Promise<T> => {
+  if (!workerClient?.initialized) {
+    throw new Error("Worker not available");
+  }
+  return queryFn(workerClient);
+};
+
+const createWorkerClientQueryWithErrorHandling = <T>(
+  workerClient: WordNetWorkerClient | null,
+  queryFn: (wc: WordNetWorkerClient) => Promise<T>,
+  errorContext: string
+): Promise<T> => {
+  if (!workerClient?.initialized) {
+    throw new Error("Worker not available");
+  }
+  try {
+    return queryFn(workerClient);
+  } catch (error) {
+    const logger = createScopedLogger("useWordNet");
+    logger.warn(`Worker query failed in ${errorContext}`, { error });
+    throw error;
+  }
+};
+
+const createProgressCallback =
+  (
+    setState: React.Dispatch<React.SetStateAction<WordNetState>>,
+    userProgress?: ProgressCallback
+  ) =>
+  (progressValue: number, message?: string) => {
+    setState((prev) => ({
+      ...prev,
+      progress: progressValue,
+      progressStage: message || prev.progressStage,
+      loading: progressValue < 1,
+    }));
+
+    if (userProgress) {
+      userProgress(progressValue);
+    }
+  };
+
 /**
  * useWordNet Hook
- * 
+ *
  * A React hook that provides WordNet functionality with a worker-first architecture.
  * All heavy operations (package loading, data processing, queries) are handled by
  * web workers to prevent UI freezing.
- * 
+ *
  * Architecture:
  * - useWordNet → WordNetWorkerClient → WordNetWorker → WordNetOrchestrator → DataLoader
  * - No direct access to DataLoader or WebWordnet instances from the hook
  * - All operations go through the worker client - no main-thread fallbacks
  * - Event-driven updates for package loading, status changes, and errors
- * 
+ *
  * Key Features:
  * - Worker-first: All operations go through Comlink workers
  * - No fallbacks: Pure worker architecture for consistency
@@ -278,56 +96,36 @@ setGlobalLogLevel("trace");
  * - Memory efficient: Heavy operations don't block the main thread
  * - Type-safe: Full TypeScript support with proper interfaces
  * - Queue system: Package load requests are queued if worker isn't ready
- * 
+ *
  * Usage:
  * ```tsx
- * const { 
+ * const {
  *   workerReady,
- *   loading, 
- *   loadPackageData, 
- *   queryWords 
+ *   loading,
+ *   loadPackageData,
+ *   queryWords
  * } = useWordNet();
- * 
+ *
  * // Check if worker is ready
  * if (workerReady) {
  *   // Load a package
  *   await loadPackageData('oewn:2024');
- *   
+ *
  *   // Query words
  *   const results = await queryWords('water');
  * }
  * ```
  */
-export interface DatabaseStorageInfo {
-  type: 'opfs' | 'memory' | 'unknown';
-  persistent: boolean;
-  path?: string;
-}
 
-export interface WordNetState {
-  loading: boolean;
-  isInitializing: boolean;
-  error: string | null;
-  statistics: WordNetStatistics | undefined;
-  integrity: IntegrityInfo | null;
-  dataSource: DataSourceInfo | null;
-  availablePackages: PackageInfo[];
-  loadedPackages: string[];
-  progress: number;
-  progressStage: string;
-  workerReady: boolean;
-}
-
-export interface ProgressCallback {
-  (progress: number): void;
-}
-
-export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolean; fallbackToMainThread?: boolean }): WordNetState & {
+export function useWordNet(config?: {
+  workerUrl?: string;
+  enableWorkers?: boolean;
+  fallbackToMainThread?: boolean;
+}): WordNetState & {
   loadPackageData: (
     packageId: string,
     progress?: ProgressCallback
   ) => Promise<void>;
-  loadDemoData: (progress?: ProgressCallback) => Promise<void>;
   queryWords: (term: string) => Promise<WordQueryResult[]>;
   querySynsets: (term: string) => Promise<SynsetQueryResult[]>;
   querySenses: (term: string) => Promise<SenseInfo[]>;
@@ -372,7 +170,9 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
   analyzeCrossLingualCapabilities: () => Promise<CrossLingualAnalysis>;
   getCrossLingualMappingCoverage: () => Promise<MappingCoverage>;
   validateResourceIntegrity: (lexiconId: string) => Promise<IntegrityReport>;
-  checkResourceCompatibility: (lexiconIds: string[]) => Promise<CompatibilityReport>;
+  checkResourceCompatibility: (
+    lexiconIds: string[]
+  ) => Promise<CompatibilityReport>;
   // Database persistence methods
   isDatabasePersistent: () => Promise<boolean>;
   getDatabaseStorageInfo: () => Promise<DatabaseStorageInfo>;
@@ -381,33 +181,35 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
 
   // Store the worker client in a ref to maintain it across renders
   const workerClientRef = useRef<WordNetWorkerClient | null>(null);
-  
+
   // Queue for package load requests made before worker is ready
-  const pendingPackageLoads = useRef<Array<{ packageId: string; progress?: ProgressCallback }>>([]);
-  
+  const pendingPackageLoads = useRef<
+    Array<{ packageId: string; progress?: ProgressCallback }>
+  >([]);
+
   // Track initialization state to prevent infinite loops
   const initializationStartedRef = useRef(false);
 
   // Initialize the worker client only once
   useEffect(() => {
-    logger.debug("Worker client effect running", { 
+    logger.debug("Worker client effect running", {
       hasWorkerClient: !!workerClientRef.current,
       componentMounted: true,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
-    
+
     if (!workerClientRef.current) {
       logger.debug("Creating new WordNetWorkerClient");
       workerClientRef.current = new WordNetWorkerClient();
       logger.debug("WordNetWorkerClient created successfully");
     }
-    
+
     // Cleanup function to dispose worker client on unmount
     return () => {
-      logger.debug("Worker client cleanup running", { 
+      logger.debug("Worker client cleanup running", {
         hasWorkerClient: !!workerClientRef.current,
         componentMounted: false,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
       if (workerClientRef.current) {
         logger.debug("Disposing WordNetWorkerClient");
@@ -422,20 +224,25 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
   useEffect(() => {
     const checkWorkerReady = () => {
       const isReady = workerClientRef.current?.initialized === true;
-      setState(prev => ({ ...prev, workerReady: isReady }));
-      
+      setState((prev) => ({ ...prev, workerReady: isReady }));
+
       // Process any pending package loads when worker becomes ready
       if (isReady && pendingPackageLoads.current.length > 0) {
-        logger.debug("Processing pending package loads", { count: pendingPackageLoads.current.length });
+        logger.debug("Processing pending package loads", {
+          count: pendingPackageLoads.current.length,
+        });
         const pending = [...pendingPackageLoads.current];
         pendingPackageLoads.current = []; // Clear the queue
-        
+
         // Process each pending load
         pending.forEach(async ({ packageId, progress }) => {
           try {
             await loadPackageData(packageId, progress);
           } catch (error) {
-            logger.warn("Failed to process pending package load", { packageId, error });
+            logger.warn("Failed to process pending package load", {
+              packageId,
+              error,
+            });
           }
         });
       }
@@ -536,11 +343,15 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
                 try {
                   return sanitizeLexiconId(ls.lexiconId, ls.version);
                 } catch (error) {
-                  logger.error("Failed to sanitize lexicon ID in detectExistingPackages", {
-                    originalLexiconId: ls.lexiconId,
-                    version: ls.version,
-                    error: error instanceof Error ? error.message : String(error)
-                  });
+                  logger.error(
+                    "Failed to sanitize lexicon ID in detectExistingPackages",
+                    {
+                      originalLexiconId: ls.lexiconId,
+                      version: ls.version,
+                      error:
+                        error instanceof Error ? error.message : String(error),
+                    }
+                  );
                   // Return the original lexicon ID as a fallback
                   return ls.lexiconId;
                 }
@@ -603,9 +414,10 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
       const catalog = getAvailableProjects();
       const mapped = catalog.map((p: any) => {
         // Get the first available version, ensuring we don't create malformed IDs
-        const firstVersion = p.versions && p.versions.length > 0 ? p.versions[0] : null;
+        const firstVersion =
+          p.versions && p.versions.length > 0 ? p.versions[0] : null;
         const packageId = firstVersion ? `${p.id}:${firstVersion}` : p.id;
-        
+
         return {
           id: packageId,
           label: p.label || p.id,
@@ -645,130 +457,78 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
   }, []);
 
   // Worker-backed helpers with main-thread fallback
-  const getSensesByWordIdOrForm = useCallback(
-    async (wordIdOrForm: string) => {
-      const wc = workerClientRef.current;
-      if (wc?.initialized) {
-        try {
-          return await wc.getSensesByWordIdOrForm(wordIdOrForm);
-        } catch (error) {
-          logger.warn("Worker query failed", { error });
-          throw error;
-        }
-      }
-      throw new Error("Worker not available");
-    },
-    []
-  );
+  const getSensesByWordIdOrForm = useCallback(async (wordIdOrForm: string) => {
+    return createWorkerClientQueryWithErrorHandling(
+      workerClientRef.current,
+      (wc) => wc.getSensesByWordIdOrForm(wordIdOrForm),
+      "getSensesByWordIdOrForm"
+    );
+  }, []);
 
   const getWordsBySynsetAndLanguage = useCallback(
     async (synsetId: string, language: string) => {
-      const wc = workerClientRef.current;
-      if (wc?.initialized) {
-        try {
-          return await wc.getWordsBySynsetAndLanguage(synsetId, language);
-        } catch (error) {
-          logger.warn("Worker query failed", { error });
-          throw error;
-        }
-      }
-      throw new Error("Worker not available");
+      return createWorkerClientQueryWithErrorHandling(
+        workerClientRef.current,
+        (wc) => wc.getWordsBySynsetAndLanguage(synsetId, language),
+        "getWordsBySynsetAndLanguage"
+      );
     },
     []
   );
 
-  const getDefinitionsBySynsetId = useCallback(
-    async (synsetId: string) => {
-      const wc = workerClientRef.current;
-      if (wc?.initialized) {
-        try {
-          return await wc.getDefinitionsBySynsetId(synsetId);
-        } catch (error) {
-          logger.warn("Worker query failed", { error });
-          throw error;
-        }
-      }
-      throw new Error("Worker not available");
-    },
-    []
-  );
+  const getDefinitionsBySynsetId = useCallback(async (synsetId: string) => {
+    return createWorkerClientQueryWithErrorHandling(
+      workerClientRef.current,
+      (wc) => wc.getDefinitionsBySynsetId(synsetId),
+      "getDefinitionsBySynsetId"
+    );
+  }, []);
 
-  const getSynsetById = useCallback(
-    async (synsetId: string) => {
-      const wc = workerClientRef.current;
-      if (wc?.initialized) {
-        try {
-          return await wc.getSynsetById(synsetId);
-        } catch (error) {
-          logger.warn("Worker query failed", { error });
-          throw error;
-        }
-      }
-      throw new Error("Worker not available");
-    },
-    []
-  );
+  const getSynsetById = useCallback(async (synsetId: string) => {
+    return createWorkerClientQueryWithErrorHandling(
+      workerClientRef.current,
+      (wc) => wc.getSynsetById(synsetId),
+      "getSynsetById"
+    );
+  }, []);
 
   const getWordsByIliAndLanguage = useCallback(
     async (ili: string, language: string) => {
-      const wc = workerClientRef.current;
-      if (wc?.initialized) {
-        try {
-          return await wc.getWordsByIliAndLanguage(ili, language);
-        } catch (error) {
-          logger.warn("Worker query failed", { error });
-          throw error;
-        }
-      }
-      throw new Error("Worker not available");
+      return createWorkerClientQueryWithErrorHandling(
+        workerClientRef.current,
+        (wc) => wc.getWordsByIliAndLanguage(ili, language),
+        "getWordsByIliAndLanguage"
+      );
     },
     []
   );
 
   const getWordsByIliAndLexiconPrefix = useCallback(
     async (ili: string, lexiconPrefix: string) => {
-      const wc = workerClientRef.current;
-      if (wc?.initialized) {
-        try {
-          return await wc.getWordsByIliAndLexiconPrefix(ili, lexiconPrefix);
-        } catch (error) {
-          logger.warn("Worker query failed", { error });
-          throw error;
-        }
-      }
-      throw new Error("Worker not available");
+      return createWorkerClientQueryWithErrorHandling(
+        workerClientRef.current,
+        (wc) => wc.getWordsByIliAndLexiconPrefix(ili, lexiconPrefix),
+        "getWordsByIliAndLexiconPrefix"
+      );
     },
     []
   );
 
-  const getIliForSynset = useCallback(
-    async (synsetId: string) => {
-      const wc = workerClientRef.current;
-      if (wc?.initialized) {
-        try {
-          return await wc.getIliForSynset(synsetId);
-        } catch (error) {
-          logger.warn("Worker query failed", { error });
-          throw error;
-        }
-      }
-      throw new Error("Worker not available");
-    },
-    []
-  );
+  const getIliForSynset = useCallback(async (synsetId: string) => {
+    return createWorkerClientQueryWithErrorHandling(
+      workerClientRef.current,
+      (wc) => wc.getIliForSynset(synsetId),
+      "getIliForSynset"
+    );
+  }, []);
 
   const searchWordsInLexicon = useCallback(
     async (term: string, lexicon: string, language?: string) => {
-      const wc = workerClientRef.current;
-      if (wc?.initialized) {
-        try {
-          return await wc.searchWordsInLexicon(term, lexicon, language);
-        } catch (error) {
-          logger.warn("Worker query failed", { error });
-          throw error;
-        }
-      }
-      throw new Error("Worker not available");
+      return createWorkerClientQueryWithErrorHandling(
+        workerClientRef.current,
+        (wc) => wc.searchWordsInLexicon(term, lexicon, language),
+        "searchWordsInLexicon"
+      );
     },
     []
   );
@@ -796,13 +556,9 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
   useEffect(() => {
     if (!initializationStartedRef.current) {
       initializationStartedRef.current = true;
-      logger.start("WordNet initialization");
       initializeWordNet();
     }
   }, []); // Only run once on mount
-
-
-
 
   // Set up event listeners when worker client is available
   useEffect(() => {
@@ -810,22 +566,29 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
     if (!wc) return;
 
     // Handle lexicon changes
-    const handleLexiconsChanged = (event: { lexicons: LexiconInfo[]; added?: LexiconInfo[]; removed?: string[] }) => {
+    const handleLexiconsChanged = (event: {
+      lexicons: LexiconInfo[];
+      added?: LexiconInfo[];
+      removed?: string[];
+    }) => {
       logger.debug("Lexicons changed event received", event);
 
       // Sanitize all lexicon IDs to prevent malformed IDs from propagating
-      const sanitizedLexicons = event.lexicons.map(lexicon => {
+      const sanitizedLexicons = event.lexicons.map((lexicon) => {
         try {
           return {
             ...lexicon,
-            id: sanitizeLexiconId(lexicon.id, lexicon.version)
+            id: sanitizeLexiconId(lexicon.id, lexicon.version),
           };
         } catch (error) {
-          logger.error("Failed to sanitize lexicon ID in lexicons changed event", {
-            originalId: lexicon.id,
-            version: lexicon.version,
-            error: error instanceof Error ? error.message : String(error)
-          });
+          logger.error(
+            "Failed to sanitize lexicon ID in lexicons changed event",
+            {
+              originalId: lexicon.id,
+              version: lexicon.version,
+              error: error instanceof Error ? error.message : String(error),
+            }
+          );
           // Return the original lexicon with a warning, but don't break the app
           return lexicon;
         }
@@ -886,68 +649,79 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
 
       const payload = event.status || (event as unknown as any);
       if (payload.lexiconStats) {
-        const loadedPackages = payload.lexiconStats.map((ls: {
-          lexiconId: string;
-          label: string;
-          language: string;
-          version: string;
-          wordCount: number;
-          synsetCount: number;
-        }) => {
-          try {
-            // Sanitize the lexicon ID to prevent malformed IDs from propagating
-            const sanitizedId = sanitizeLexiconId(ls.lexiconId, ls.version);
-            
-            // Debug logging to trace the issue
-            logger.debug("Package ID construction", {
-              originalLexiconId: ls.lexiconId,
-              version: ls.version,
-              sanitizedId: sanitizedId,
-              hasColon: sanitizedId.includes(':'),
-              hasVersion: !!ls.version
-            });
-            
-            // Check if sanitized ID already contains version information
-            if (sanitizedId.includes(':') && ls.version) {
-              // If sanitized ID already has colons, don't append version
-              // This prevents creating malformed IDs like 'cili:1.0:1.0:1.0'
-              logger.debug("Returning sanitized ID without appending version", { sanitizedId });
-              return sanitizedId;
-            } else if (ls.version) {
-              // Only append version if sanitized ID doesn't already have it
-              const result = `${sanitizedId}:${ls.version}`;
-              logger.debug("Appending version to sanitized ID", { sanitizedId, version: ls.version, result });
-              return result;
-            } else {
-              logger.debug("Returning sanitized ID as-is", { sanitizedId });
-              return sanitizedId;
+        const loadedPackages = payload.lexiconStats.map(
+          (ls: {
+            lexiconId: string;
+            label: string;
+            language: string;
+            version: string;
+            wordCount: number;
+            synsetCount: number;
+          }) => {
+            try {
+              // Sanitize the lexicon ID to prevent malformed IDs from propagating
+              const sanitizedId = sanitizeLexiconId(ls.lexiconId, ls.version);
+
+              // Debug logging to trace the issue
+              logger.debug("Package ID construction", {
+                originalLexiconId: ls.lexiconId,
+                version: ls.version,
+                sanitizedId: sanitizedId,
+                hasColon: sanitizedId.includes(":"),
+                hasVersion: !!ls.version,
+              });
+
+              // Check if sanitized ID already contains version information
+              if (sanitizedId.includes(":") && ls.version) {
+                // If sanitized ID already has colons, don't append version
+                // This prevents creating malformed IDs like 'cili:1.0:1.0:1.0'
+                logger.debug(
+                  "Returning sanitized ID without appending version",
+                  { sanitizedId }
+                );
+                return sanitizedId;
+              } else if (ls.version) {
+                // Only append version if sanitized ID doesn't already have it
+                const result = `${sanitizedId}:${ls.version}`;
+                logger.debug("Appending version to sanitized ID", {
+                  sanitizedId,
+                  version: ls.version,
+                  result,
+                });
+                return result;
+              } else {
+                logger.debug("Returning sanitized ID as-is", { sanitizedId });
+                return sanitizedId;
+              }
+            } catch (error) {
+              logger.error("Failed to sanitize lexicon ID in status update", {
+                originalLexiconId: ls.lexiconId,
+                version: ls.version,
+                error: error instanceof Error ? error.message : String(error),
+              });
+              // Return the original lexicon ID as a fallback, but this will likely cause issues
+              return ls.lexiconId;
             }
-          } catch (error) {
-            logger.error("Failed to sanitize lexicon ID in status update", {
-              originalLexiconId: ls.lexiconId,
-              version: ls.version,
-              error: error instanceof Error ? error.message : String(error)
-            });
-            // Return the original lexicon ID as a fallback, but this will likely cause issues
-            return ls.lexiconId;
           }
-        });
-        
+        );
+
         // Only update loadedPackages if we don't already have the same packages
         // This prevents duplicate entries from multiple status updates
         setState((prev) => {
           const existingPackages = new Set(prev.loadedPackages || []);
-          const newPackages = loadedPackages.filter((pkg: string) => !existingPackages.has(pkg));
-          
+          const newPackages = loadedPackages.filter(
+            (pkg: string) => !existingPackages.has(pkg)
+          );
+
           if (newPackages.length > 0) {
             return {
               ...prev,
-              loadedPackages: [...(prev.loadedPackages || []), ...newPackages]
+              loadedPackages: [...(prev.loadedPackages || []), ...newPackages],
             };
           }
           return prev;
         });
-        
+
         // Update statistics if provided
         if (payload.statistics) {
           setState((prev) => ({
@@ -958,20 +732,27 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
               totalSenses: (payload.statistics as any).totalSenses ?? 0,
               totalILIs: (payload.statistics as any).totalILIs ?? 0,
               totalRelations: (payload.statistics as any).totalRelations ?? 0,
-              totalDefinitions: (payload.statistics as any).totalDefinitions ?? 0,
+              totalDefinitions:
+                (payload.statistics as any).totalDefinitions ?? 0,
               totalLexicons: (payload.statistics as any).totalLexicons ?? 1,
-              languages: (payload.statistics as any).languages ?? ['en'],
-              partsOfSpeech: (payload.statistics as any).partsOfSpeech ?? ['n', 'v', 'a', 'r'],
+              languages: (payload.statistics as any).languages ?? ["en"],
+              partsOfSpeech: (payload.statistics as any).partsOfSpeech ?? [
+                "n",
+                "v",
+                "a",
+                "r",
+              ],
               dataSize: (payload.statistics as any).dataSize ?? 0,
               lastUpdated: new Date().toISOString(),
-              source: (payload.statistics as any).source ?? 'Worker' as const,
-              posDistribution: (payload.statistics as any).posDistribution ?? {}
+              source: (payload.statistics as any).source ?? ("Worker" as const),
+              posDistribution:
+                (payload.statistics as any).posDistribution ?? {},
             },
             progressStage:
-            loadedPackages.length > 0
-              ? "Ready - Packages loaded"
-              : "Ready - No packages loaded",
-        }));
+              loadedPackages.length > 0
+                ? "Ready - Packages loaded"
+                : "Ready - No packages loaded",
+          }));
         }
       }
     };
@@ -1016,16 +797,18 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
     try {
       // Initialize worker client for heavy operations (if enabled)
       const wc = workerClientRef.current;
-      logger.debug("Checking worker client for initialization", { 
-        hasWorkerClient: !!wc, 
+      logger.debug("Checking worker client for initialization", {
+        hasWorkerClient: !!wc,
         isInitialized: wc?.initialized,
         enableWorkers: config?.enableWorkers,
-        initializationStarted: initializationStartedRef.current
+        initializationStarted: initializationStartedRef.current,
       });
-      
+
       // Check if worker client is still available (might have been disposed by React StrictMode)
       if (!wc) {
-        logger.warn("Worker client not available during initialization, skipping");
+        logger.warn(
+          "Worker client not available during initialization, skipping"
+        );
         setState((prev) => ({
           ...prev,
           isInitializing: false,
@@ -1034,7 +817,7 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
         }));
         return;
       }
-      
+
       if (!wc.initialized && config?.enableWorkers !== false) {
         try {
           logger.step("initializing worker client");
@@ -1043,10 +826,7 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
 
           logger.success("Worker client initialized");
         } catch (error) {
-          logger.warn(
-            "Failed to initialize worker client",
-            { error }
-          );
+          logger.warn("Failed to initialize worker client", { error });
           throw error; // Don't fall back, just fail
         }
       }
@@ -1102,12 +882,15 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
 
           // Check if worker client is still available before proceeding
           if (!workerClientRef.current) {
-            logger.warn("Worker client became unavailable during data processing, stopping initialization");
+            logger.warn(
+              "Worker client became unavailable during data processing, stopping initialization"
+            );
             setState((prev) => ({
               ...prev,
               isInitializing: false,
               loading: false,
-              progressStage: "Worker client became unavailable during processing",
+              progressStage:
+                "Worker client became unavailable during processing",
             }));
             return;
           }
@@ -1126,19 +909,22 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
           return;
         } catch (e) {
           logger.warn("Failed to process worker data", { error: e });
-          
+
           // Check if worker client is still available before proceeding
           if (!workerClientRef.current) {
-            logger.warn("Worker client became unavailable during error handling, stopping initialization");
+            logger.warn(
+              "Worker client became unavailable during error handling, stopping initialization"
+            );
             setState((prev) => ({
               ...prev,
               isInitializing: false,
               loading: false,
-              progressStage: "Worker client became unavailable during error handling",
+              progressStage:
+                "Worker client became unavailable during error handling",
             }));
             return;
           }
-          
+
           setState((prev) => ({
             ...prev,
             isReady: true,
@@ -1155,7 +941,6 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
         logger.error("Worker initialization failed", { error });
         throw error; // Don't fall back, just fail
       }
-
     } catch (error) {
       logger.fail("Failed to initialize WordNet", error);
       logger.end("WordNet initialization");
@@ -1172,9 +957,13 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
   // Load package data with caching
   const loadPackageData = useCallback(
     async (packageId: string, progress?: ProgressCallback) => {
+      console.log("useWordNet, loadpackagedata", packageId, progress);
       // Check if we have a worker client
       if (!workerClientRef.current?.initialized) {
-        logger.warn("Worker client not initialized, queuing package load request", { packageId });
+        logger.warn(
+          "Worker client not initialized, queuing package load request",
+          { packageId }
+        );
         // Add to pending queue for when worker is ready
         pendingPackageLoads.current.push({ packageId, progress });
         setState((prev) => ({
@@ -1191,9 +980,12 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
       // Actually check if package is already loaded
       let isAlreadyLoaded = false;
       try {
-        isAlreadyLoaded = await workerClientRef.current.hasLoadedData(packageId);
+        isAlreadyLoaded =
+          await workerClientRef.current.hasLoadedData(packageId);
         if (isAlreadyLoaded) {
-          logger.success(`✅ Package ${packageId} already loaded in cache - skipping download`);
+          logger.success(
+            `✅ Package ${packageId} already loaded in cache - skipping download`
+          );
           setState((prev) => ({
             ...prev,
             loading: false,
@@ -1203,10 +995,15 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
           }));
           return; // Exit early since package is already loaded
         } else {
-          logger.info(`📥 Package ${packageId} not found in cache - proceeding with download`);
+          logger.info(
+            `📥 Package ${packageId} not found in cache - proceeding with download`
+          );
         }
       } catch (error) {
-        logger.warn(`⚠️ Cache check failed for ${packageId}, proceeding with download:`, error);
+        logger.warn(
+          `⚠️ Cache check failed for ${packageId}, proceeding with download:`,
+          error
+        );
       }
 
       setState((prev) => ({
@@ -1223,11 +1020,20 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
           progressStage: `Downloading ${packageId}...`,
         }));
 
-        // Use worker client for package loading
+        // Use worker client for package loading with progress tracking
         logger.step("using worker client for package loading", {
           packageId,
         });
-        const result = await workerClientRef.current.loadPackage(packageId);
+
+        // Create progress callback that updates the UI state
+        const progressCallback = createProgressCallback(setState, progress);
+
+        console.log("useWordNet, loadpackagedata", progressCallback);
+
+        const result = await workerClientRef.current.loadPackage(
+          packageId,
+          progressCallback
+        );
         if (result) {
           logger.success("Worker package loading successful");
           logger.end(`loading package ${packageId}`, {
@@ -1308,114 +1114,35 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
     []
   );
 
-  // Load demo data with caching
-  const loadDemoData = useCallback(
-    async (progress?: ProgressCallback) => {
-      if (!workerClientRef.current?.initialized) {
-        logger.warn("Worker client not initialized, demo data load will be queued");
-        setState((prev) => ({
-          ...prev,
-          error: "Worker not ready yet. Demo data will be loaded when worker initializes.",
-          progressStage: "Waiting for worker to initialize...",
-        }));
-        return; // Don't throw, just return early
-      }
-
-      logger.start("Demo data load");
-      setState((prev) => ({
-        ...prev,
-        loading: true,
-        progress: 0,
-        progressStage: "Loading demo data...",
-      }));
-
-      try {
-        logger.step("attempting to load oewn:2024");
-
-        // Use worker client for demo data loading
-        logger.step("using worker client for demo data loading");
-        const result = await workerClientRef.current.loadDemoData();
-        if (result) {
-          logger.step("worker demo data loading successful");
-          // Load the package data to ensure it's available for queries
-          await loadPackageData("oewn:2024", progress);
-        } else {
-          throw new Error("Worker demo data loading failed");
-        }
-
-        logger.end("Demo data load", { success: true });
-      } catch (error) {
-        logger.fail("Demo data load", error);
-        setState((prev) => ({
-          ...prev,
-          loading: false,
-          error: error instanceof Error ? error.message : "Unknown error",
-          progressStage: "Failed to load demo data",
-        }));
-      }
-    },
-    [loadPackageData]
-  );
-
   // Query words
-  const queryWords = useCallback(
-    async (term: string) => {
-      const wc = workerClientRef.current;
-      if (!wc?.initialized) {
-        throw new Error("Worker not available");
-      }
-      
-      try {
-        const result = await wc.queryWords(term);
-        if (result && result.length > 0) return result;
-        return [];
-      } catch (error) {
-        logger.error("Worker query failed", { error });
-        throw error;
-      }
-    },
-    []
-  );
+  const queryWords = useCallback(async (term: string) => {
+    const result = await createWorkerClientQueryWithErrorHandling(
+      workerClientRef.current,
+      (wc) => wc.queryWords(term),
+      "queryWords"
+    );
+    return result && result.length > 0 ? result : [];
+  }, []);
 
   // Query synsets
-  const querySynsets = useCallback(
-    async (term: string) => {
-      const wc = workerClientRef.current;
-      if (!wc?.initialized) {
-        throw new Error("Worker not available");
-      }
-      
-      try {
-        const result = await wc.querySynsets(term);
-        if (result && result.length > 0) return result;
-        return [];
-      } catch (error) {
-        logger.error("Worker query failed", { error });
-        throw error;
-      }
-    },
-    []
-  );
+  const querySynsets = useCallback(async (term: string) => {
+    const result = await createWorkerClientQueryWithErrorHandling(
+      workerClientRef.current,
+      (wc) => wc.querySynsets(term),
+      "querySynsets"
+    );
+    return result && result.length > 0 ? result : [];
+  }, []);
 
   // Query senses
-  const querySenses = useCallback(
-    async (term: string) => {
-      const wc = workerClientRef.current;
-      if (!wc?.initialized) {
-        throw new Error("Worker not available");
-      }
-      
-      try {
-        const result = await wc.querySenses(term);
-        if (result && result.length > 0) return result;
-        return [];
-      } catch (error) {
-        logger.error("Worker query failed", { error });
-        throw error;
-      }
-    },
-    []
-  );
+  const querySenses = useCallback(async (term: string) => {
+    const result = await createWorkerClientQueryWithErrorHandling(
+      workerClientRef.current,
+      (wc) => wc.querySenses(term),
+      "querySenses"
+    );
+    return result && result.length > 0 ? result : [];
+  }, []);
 
   // Unload data
   const unloadData = useCallback(async () => {
@@ -1429,10 +1156,15 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
           if (result) {
             logger.success("Worker data clearing successful");
           } else {
-            logger.warn("Worker data clearing failed, clearing local state only");
+            logger.warn(
+              "Worker data clearing failed, clearing local state only"
+            );
           }
         } catch (error) {
-          logger.warn("Worker data clearing failed, clearing local state only:", error);
+          logger.warn(
+            "Worker data clearing failed, clearing local state only:",
+            error
+          );
         }
       } else {
         // Worker not ready, just clear local state
@@ -1463,7 +1195,7 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
         loading: true,
         progressStage: "Clearing cache...",
       }));
-      
+
       if (workerClientRef.current?.initialized) {
         // Clear cache first
         await workerClientRef.current.clearCache();
@@ -1473,7 +1205,7 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
         // Worker not ready, just clear local state
         logger.warn("Worker client not initialized, clearing local state only");
       }
-      
+
       setState((prev) => ({
         ...prev,
         loadedPackages: [],
@@ -1505,9 +1237,10 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
         // Fall through to fallback
       }
     }
-    
+
     // Fallback: return basic storage availability info when worker isn't ready
-    const hasStorageQuota = "storage" in navigator && "estimate" in navigator.storage;
+    const hasStorageQuota =
+      "storage" in navigator && "estimate" in navigator.storage;
     const hasIndexedDB = "indexedDB" in window;
     const hasLocalStorage = "localStorage" in window;
     const hasSessionStorage = "sessionStorage" in window;
@@ -1528,331 +1261,382 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
   }, [state.workerReady]);
 
   // Lexicon introspection methods
-  const introspectLexicon = useCallback(async (lexiconId: string): Promise<LexiconIntrospection> => {
-    const wc = workerClientRef.current;
-    if (!wc?.initialized) {
-      throw new Error("Worker not available");
-    }
-    
-    try {
-      // Get comprehensive lexicon information from worker
-      const lexicons = wc.lexicons;
-      
-      // Try to find lexicon by exact ID first, then by base ID (without version)
-      let lexicon = lexicons.find(l => l.id === lexiconId);
-      
-      if (!lexicon) {
-        // If exact match fails, try to find by base lexicon ID (e.g., "oewn" from "oewn:2024")
-        const baseLexiconId = lexiconId.split(':')[0];
-        lexicon = lexicons.find(l => l.id === baseLexiconId);
-      }
-      
-      if (!lexicon) {
-        throw new Error(`Lexicon ${lexiconId} not found`);
+  const introspectLexicon = useCallback(
+    async (lexiconId: string): Promise<LexiconIntrospection> => {
+      const wc = workerClientRef.current;
+      if (!wc?.initialized) {
+        throw new Error("Worker not available");
       }
 
-      // Get detailed statistics from worker
-      const status = await wc.getStatus();
-      const lexiconStats = status?.data?.lexiconStats || [];
-      const detailedStats = lexiconStats.find((stat: any) => 
-        stat.lexiconId === lexicon.id || stat.lexiconId === lexiconId
-      );
-
-      // Get part of speech distribution from worker
-      let posDistribution: Record<string, number> = {};
-      let hasDefinitions = true;
-      let hasRelations = true;
-      
       try {
-        // Try to get POS distribution from worker
-        const posResponse = await wc.getPartOfSpeechDistribution();
-        if (posResponse) {
-          posDistribution = posResponse;
+        // Get comprehensive lexicon information from worker
+        const lexicons = wc.lexicons;
+
+        // Try to find lexicon by exact ID first, then by base ID (without version)
+        let lexicon = lexicons.find((l) => l.id === lexiconId);
+
+        if (!lexicon) {
+          // If exact match fails, try to find by base lexicon ID (e.g., "oewn" from "oewn:2024")
+          const baseLexiconId = lexiconId.split(":")[0];
+          lexicon = lexicons.find((l) => l.id === baseLexiconId);
         }
-      } catch (error) {
-        logger.debug("Could not get POS distribution, using defaults", { error });
-        // Fall back to default POS for English
-        posDistribution = { 'n': 0, 'v': 0, 'a': 0, 'r': 0 };
-      }
 
-      // Determine type based on lexicon ID and structure
-      const type: 'lexicon' | 'ili' = lexiconId.startsWith('cili') ? 'ili' : 'lexicon';
-      
-      // Calculate ILI coverage if we have detailed stats
-      let iliCoverage: number | undefined;
-      if (detailedStats && detailedStats.iliCount !== undefined && detailedStats.synsetCount > 0) {
-        iliCoverage = Math.round((detailedStats.iliCount / detailedStats.synsetCount) * 100);
-      }
+        if (!lexicon) {
+          throw new Error(`Lexicon ${lexiconId} not found`);
+        }
 
-      return {
-        id: lexicon.id,
-        label: lexicon.label,
-        language: lexicon.language,
-        version: lexicon.version,
-        type,
-        wordCount: lexicon.wordCount,
-        synsetCount: lexicon.synsetCount,
-        senseCount: detailedStats?.senseCount || 0,
-        iliCount: type === 'ili' ? lexicon.wordCount : detailedStats?.iliCount,
-        hasDefinitions: hasDefinitions,
-        hasRelations: hasRelations,
-        hasILIMappings: type === 'ili' || lexiconId.startsWith('omw') || (detailedStats?.iliCount || 0) > 0,
-        supportedPartsOfSpeech: Object.keys(posDistribution).filter(pos => posDistribution[pos] > 0),
-        supportedLanguages: [lexicon.language],
-        iliCoverage: iliCoverage,
-        crossLingualLinks: type === 'ili' ? lexicon.wordCount : detailedStats?.iliCount,
-        loadedAt: lexicon.loadedAt,
-        lastUpdated: undefined,
-        source: 'worker'
-      };
-    } catch (error) {
-      logger.error("Lexicon introspection failed", { error, lexiconId });
-      throw error;
-    }
-  }, []);
+        // Get detailed statistics from worker
+        const status = await wc.getStatus();
+        const lexiconStats = status?.data?.lexiconStats || [];
+        const detailedStats = lexiconStats.find(
+          (stat: any) =>
+            stat.lexiconId === lexicon.id || stat.lexiconId === lexiconId
+        );
 
-  const introspectAllResources = useCallback(async (): Promise<LexiconIntrospection[]> => {
-    const wc = workerClientRef.current;
-    if (!wc?.initialized) {
-      throw new Error("Worker not available");
-    }
-    
-    try {
-      const lexicons = wc.lexicons;
-      const introspectionPromises = lexicons.map(lexicon => introspectLexicon(lexicon.id));
-      return await Promise.all(introspectionPromises);
-    } catch (error) {
-      logger.error("Resource introspection failed", { error });
-      throw error;
-    }
-  }, [introspectLexicon]);
+        // Get part of speech distribution from worker
+        let posDistribution: Record<string, number> = {};
+        let hasDefinitions = true;
+        let hasRelations = true;
 
-  const detectResourceType = useCallback(async (lexiconId: string): Promise<ResourceTypeInfo> => {
-    const wc = workerClientRef.current;
-    if (!wc?.initialized) {
-      throw new Error("Worker not available");
-    }
-    
-    try {
-      const introspection = await introspectLexicon(lexiconId);
-      const hasCrossLingualMappings = introspection.hasILIMappings;
-      const supportedLanguages = introspection.supportedLanguages;
-      const primaryLanguage = introspection.language;
-      const mappingConfidence = introspection.iliCoverage ? introspection.iliCoverage / 100 : 0;
-      
-      return {
-        type: introspection.type,
-        hasCrossLingualMappings,
-        supportedLanguages,
-        primaryLanguage,
-        mappingConfidence
-      };
-    } catch (error) {
-      logger.error("Resource type detection failed", { error, lexiconId });
-      throw error;
-    }
-  }, [introspectLexicon]);
-
-  const categorizeResources = useCallback(async (): Promise<CategorizedResources> => {
-    const wc = workerClientRef.current;
-    if (!wc?.initialized) {
-      throw new Error("Worker not available");
-    }
-    
-    try {
-      const allResources = await introspectAllResources();
-      const lexicons = allResources.filter(r => r.type === 'lexicon');
-      const ilis = allResources.filter(r => r.type === 'ili');
-      const mixed = allResources.filter(r => r.type !== 'lexicon' && r.type !== 'ili');
-      
-      return {
-        lexicons,
-        ilis,
-        mixed,
-        total: allResources.length
-      };
-    } catch (error) {
-      logger.error("Resource categorization failed", { error });
-      throw error;
-    }
-  }, [introspectAllResources]);
-
-  const analyzeCrossLingualCapabilities = useCallback(async (): Promise<CrossLingualAnalysis> => {
-    const wc = workerClientRef.current;
-    if (!wc?.initialized) {
-      throw new Error("Worker not available");
-    }
-    
-    try {
-      const allResources = await introspectAllResources();
-      const supportedLanguages = Array.from(new Set(allResources.map(r => r.language)));
-      const primaryLanguage = 'en'; // Default to English
-      
-      const ilis = allResources.filter(r => r.type === 'ili');
-      const totalILIMappings = ilis.reduce((sum, ili) => sum + (ili.iliCount || 0), 0);
-      
-      // Calculate language pair coverage
-      const languagePairCoverage: Record<string, Record<string, number>> = {};
-      supportedLanguages.forEach(source => {
-        languagePairCoverage[source] = {};
-        supportedLanguages.forEach(target => {
-          if (source !== target) {
-            // TODO: Calculate actual coverage from worker
-            languagePairCoverage[source][target] = 50; // Placeholder
+        try {
+          // Try to get POS distribution from worker
+          const posResponse = await wc.getPartOfSpeechDistribution();
+          if (posResponse) {
+            posDistribution = posResponse;
           }
-        });
-      });
-      
-      // Calculate concept coverage
-      const totalConcepts = allResources.reduce((sum, r) => sum + r.synsetCount, 0);
-      const fullyMapped = Math.floor(totalConcepts * 0.3); // Placeholder
-      const partiallyMapped = Math.floor(totalConcepts * 0.4); // Placeholder
-      const unmapped = totalConcepts - fullyMapped - partiallyMapped;
-      
-      return {
-        supportedLanguages,
-        primaryLanguage,
-        totalILIMappings,
-        languagePairCoverage,
-        conceptCoverage: {
-          total: totalConcepts,
-          fullyMapped,
-          partiallyMapped,
-          unmapped
-        },
-        mappingQuality: {
-          averageConfidence: 0.8, // Placeholder
-          verifiedMappings: Math.floor(totalILIMappings * 0.8), // Placeholder
-          unverifiedMappings: Math.floor(totalILIMappings * 0.2) // Placeholder
+        } catch (error) {
+          logger.debug("Could not get POS distribution, using defaults", {
+            error,
+          });
+          // Fall back to default POS for English
+          posDistribution = { n: 0, v: 0, a: 0, r: 0 };
         }
-      };
-    } catch (error) {
-      logger.error("Cross-lingual analysis failed", { error });
-      throw error;
-    }
-  }, [introspectAllResources]);
 
-  const getCrossLingualMappingCoverage = useCallback(async (): Promise<MappingCoverage> => {
-    const wc = workerClientRef.current;
-    if (!wc?.initialized) {
-      throw new Error("Worker not available");
-    }
-    
-    try {
-      const analysis = await analyzeCrossLingualCapabilities();
-      const languagePairs = Object.entries(analysis.languagePairCoverage).flatMap(([source, targets]) =>
-        Object.entries(targets).map(([target, coverage]) => ({
-          source,
-          target,
-          mappingCount: Math.floor(coverage * analysis.totalILIMappings / 100),
-          coveragePercentage: coverage
-        }))
+        // Determine type based on lexicon ID and structure
+        const type: "lexicon" | "ili" = lexiconId.startsWith("cili")
+          ? "ili"
+          : "lexicon";
+
+        // Calculate ILI coverage if we have detailed stats
+        let iliCoverage: number | undefined;
+        if (
+          detailedStats &&
+          detailedStats.iliCount !== undefined &&
+          detailedStats.synsetCount > 0
+        ) {
+          iliCoverage = Math.round(
+            (detailedStats.iliCount / detailedStats.synsetCount) * 100
+          );
+        }
+
+        return {
+          id: lexicon.id,
+          label: lexicon.label,
+          language: lexicon.language,
+          version: lexicon.version,
+          type,
+          wordCount: lexicon.wordCount,
+          synsetCount: lexicon.synsetCount,
+          senseCount: detailedStats?.senseCount || 0,
+          iliCount:
+            type === "ili" ? lexicon.wordCount : detailedStats?.iliCount,
+          hasDefinitions: hasDefinitions,
+          hasRelations: hasRelations,
+          hasILIMappings:
+            type === "ili" ||
+            lexiconId.startsWith("omw") ||
+            (detailedStats?.iliCount || 0) > 0,
+          supportedPartsOfSpeech: Object.keys(posDistribution).filter(
+            (pos) => posDistribution[pos] > 0
+          ),
+          supportedLanguages: [lexicon.language],
+          iliCoverage: iliCoverage,
+          crossLingualLinks:
+            type === "ili" ? lexicon.wordCount : detailedStats?.iliCount,
+          loadedAt: lexicon.loadedAt,
+          lastUpdated: undefined,
+          source: "worker",
+        };
+      } catch (error) {
+        logger.error("Lexicon introspection failed", { error, lexiconId });
+        throw error;
+      }
+    },
+    []
+  );
+
+  const introspectAllResources = useCallback(async (): Promise<
+    LexiconIntrospection[]
+  > => {
+    return createWorkerClientQueryWithErrorHandling(
+      workerClientRef.current,
+      async (wc) => {
+        const lexicons = wc.lexicons;
+        const introspectionPromises = lexicons.map((lexicon) =>
+          introspectLexicon(lexicon.id)
+        );
+        return await Promise.all(introspectionPromises);
+      },
+      "introspectAllResources"
+    );
+  }, [introspectLexicon]);
+
+  const detectResourceType = useCallback(
+    async (lexiconId: string): Promise<ResourceTypeInfo> => {
+      return createWorkerClientQueryWithErrorHandling(
+        workerClientRef.current,
+        async (wc) => {
+          const introspection = await introspectLexicon(lexiconId);
+          const hasCrossLingualMappings = introspection.hasILIMappings;
+          const supportedLanguages = introspection.supportedLanguages;
+          const primaryLanguage = introspection.language;
+          const mappingConfidence = introspection.iliCoverage
+            ? introspection.iliCoverage / 100
+            : 0;
+
+          return {
+            type: introspection.type,
+            hasCrossLingualMappings,
+            supportedLanguages,
+            primaryLanguage,
+            mappingConfidence,
+          };
+        },
+        "detectResourceType"
       );
-      
-      return {
-        totalMappings: analysis.totalILIMappings,
-        languagePairs,
-        conceptDistribution: { 'n': 40, 'v': 30, 'a': 20, 'r': 10 } // Placeholder
-      };
-    } catch (error) {
-      logger.error("Mapping coverage analysis failed", { error });
-      throw error;
-    }
-  }, [analyzeCrossLingualCapabilities]);
+    },
+    [introspectLexicon]
+  );
 
-  const validateResourceIntegrity = useCallback(async (lexiconId: string): Promise<IntegrityReport> => {
-    const wc = workerClientRef.current;
-    if (!wc?.initialized) {
-      throw new Error("Worker not available");
-    }
-    
-    try {
-      const introspection = await introspectLexicon(lexiconId);
-      const issues: Array<{ type: 'warning' | 'error' | 'info'; message: string; details?: any }> = [];
-      const recommendations: string[] = [];
-      
-      // Basic validation checks
-      if (introspection.wordCount === 0) {
-        issues.push({ type: 'error', message: 'No words found in lexicon' });
-        recommendations.push('Check if lexicon was loaded correctly');
-      }
-      
-      if (introspection.synsetCount === 0) {
-        issues.push({ type: 'error', message: 'No synsets found in lexicon' });
-        recommendations.push('Check if lexicon was loaded correctly');
-      }
-      
-      if (introspection.type === 'ili' && !introspection.hasILIMappings) {
-        issues.push({ type: 'warning', message: 'ILI resource has no ILI mappings' });
-        recommendations.push('Verify ILI resource structure');
-      }
-      
-      const isValid = issues.filter(i => i.type === 'error').length === 0;
-      
-      return {
-        lexiconId,
-        isValid,
-        issues,
-        recommendations
-      };
-    } catch (error) {
-      logger.error("Resource integrity validation failed", { error, lexiconId });
-      throw error;
-    }
-  }, [introspectLexicon]);
+  const categorizeResources =
+    useCallback(async (): Promise<CategorizedResources> => {
+      return createWorkerClientQueryWithErrorHandling(
+        workerClientRef.current,
+        async (wc) => {
+          const allResources = await introspectAllResources();
+          const lexicons = allResources.filter((r) => r.type === "lexicon");
+          const ilis = allResources.filter((r) => r.type === "ili");
+          const mixed = allResources.filter(
+            (r) => r.type !== "lexicon" && r.type !== "ili"
+          );
 
-  const checkResourceCompatibility = useCallback(async (lexiconIds: string[]): Promise<CompatibilityReport> => {
-    const wc = workerClientRef.current;
-    if (!wc?.initialized) {
-      throw new Error("Worker not available");
-    }
-    
-    try {
-      const introspections = await Promise.all(lexiconIds.map(id => introspectLexicon(id)));
-      const conflicts: Array<{ type: 'version' | 'language' | 'structure'; description: string; severity: 'low' | 'medium' | 'high' }> = [];
-      const recommendations: string[] = [];
-      
-      // Check for language conflicts
-      const languages = introspections.map(i => i.language);
-      const uniqueLanguages = Array.from(new Set(languages));
-      if (uniqueLanguages.length !== languages.length) {
-        conflicts.push({
-          type: 'language',
-          description: 'Multiple lexicons with same language detected',
-          severity: 'medium'
-        });
-        recommendations.push('Consider using only one lexicon per language');
-      }
-      
-      // Check for version conflicts
-      const versions = introspections.map(i => i.version);
-      const uniqueVersions = Array.from(new Set(versions));
-      if (uniqueVersions.length !== versions.length) {
-        conflicts.push({
-          type: 'version',
-          description: 'Multiple lexicons with same version detected',
-          severity: 'low'
-        });
-        recommendations.push('Consider using different versions for variety');
-      }
-      
-      const compatible = conflicts.filter(c => c.severity === 'high').length === 0;
-      
-      return {
-        compatible,
-        conflicts,
-        recommendations
-      };
-    } catch (error) {
-      logger.error("Resource compatibility check failed", { error, lexiconIds });
-      throw error;
-    }
-  }, [introspectLexicon]);
+          return {
+            lexicons,
+            ilis,
+            mixed,
+            total: allResources.length,
+          };
+        },
+        "categorizeResources"
+      );
+    }, [introspectAllResources]);
+
+  const analyzeCrossLingualCapabilities =
+    useCallback(async (): Promise<CrossLingualAnalysis> => {
+      return createWorkerClientQueryWithErrorHandling(
+        workerClientRef.current,
+        async (wc) => {
+          const allResources = await introspectAllResources();
+          const supportedLanguages = Array.from(
+            new Set(allResources.map((r) => r.language))
+          );
+          const primaryLanguage = "en"; // Default to English
+
+          const ilis = allResources.filter((r) => r.type === "ili");
+          const totalILIMappings = ilis.reduce(
+            (sum, ili) => sum + (ili.iliCount || 0),
+            0
+          );
+
+          // Calculate language pair coverage
+          const languagePairCoverage: Record<
+            string,
+            Record<string, number>
+          > = {};
+          supportedLanguages.forEach((source) => {
+            languagePairCoverage[source] = {};
+            supportedLanguages.forEach((target) => {
+              if (source !== target) {
+                // TODO: Calculate actual coverage from worker
+                languagePairCoverage[source][target] = 50; // Placeholder
+              }
+            });
+          });
+
+          // Calculate concept coverage
+          const totalConcepts = allResources.reduce(
+            (sum, r) => sum + r.synsetCount,
+            0
+          );
+          const fullyMapped = Math.floor(totalConcepts * 0.3); // Placeholder
+          const partiallyMapped = Math.floor(totalConcepts * 0.4); // Placeholder
+          const unmapped = totalConcepts - fullyMapped - partiallyMapped;
+
+          return {
+            supportedLanguages,
+            primaryLanguage,
+            totalILIMappings,
+            languagePairCoverage,
+            conceptCoverage: {
+              total: totalConcepts,
+              fullyMapped,
+              partiallyMapped,
+              unmapped,
+            },
+            mappingQuality: {
+              averageConfidence: 0.8, // Placeholder
+              verifiedMappings: Math.floor(totalILIMappings * 0.8), // Placeholder
+              unverifiedMappings: Math.floor(totalILIMappings * 0.2), // Placeholder
+            },
+          };
+        },
+        "analyzeCrossLingualCapabilities"
+      );
+    }, [introspectAllResources]);
+
+  const getCrossLingualMappingCoverage =
+    useCallback(async (): Promise<MappingCoverage> => {
+      return createWorkerClientQueryWithErrorHandling(
+        workerClientRef.current,
+        async (wc) => {
+          const analysis = await analyzeCrossLingualCapabilities();
+          const languagePairs = Object.entries(
+            analysis.languagePairCoverage
+          ).flatMap(([source, targets]) =>
+            Object.entries(targets).map(([target, coverage]) => ({
+              source,
+              target,
+              mappingCount: Math.floor(
+                (coverage * analysis.totalILIMappings) / 100
+              ),
+              coveragePercentage: coverage,
+            }))
+          );
+
+          return {
+            totalMappings: analysis.totalILIMappings,
+            languagePairs,
+            conceptDistribution: { n: 40, v: 30, a: 20, r: 10 }, // Placeholder
+          };
+        },
+        "getCrossLingualMappingCoverage"
+      );
+    }, [analyzeCrossLingualCapabilities]);
+
+  const validateResourceIntegrity = useCallback(
+    async (lexiconId: string): Promise<IntegrityReport> => {
+      return createWorkerClientQueryWithErrorHandling(
+        workerClientRef.current,
+        async (wc) => {
+          const introspection = await introspectLexicon(lexiconId);
+          const issues: Array<{
+            type: "warning" | "error" | "info";
+            message: string;
+            details?: any;
+          }> = [];
+          const recommendations: string[] = [];
+
+          // Basic validation checks
+          if (introspection.wordCount === 0) {
+            issues.push({
+              type: "error",
+              message: "No words found in lexicon",
+            });
+            recommendations.push("Check if lexicon was loaded correctly");
+          }
+
+          if (introspection.synsetCount === 0) {
+            issues.push({
+              type: "error",
+              message: "No synsets found in lexicon",
+            });
+            recommendations.push("Check if lexicon was loaded correctly");
+          }
+
+          if (introspection.type === "ili" && !introspection.hasILIMappings) {
+            issues.push({
+              type: "warning",
+              message: "ILI resource has no ILI mappings",
+            });
+            recommendations.push("Verify ILI resource structure");
+          }
+
+          const isValid = issues.filter((i) => i.type === "error").length === 0;
+
+          return {
+            lexiconId,
+            isValid,
+            issues,
+            recommendations,
+          };
+        },
+        "validateResourceIntegrity"
+      );
+    },
+    [introspectLexicon]
+  );
+
+  const checkResourceCompatibility = useCallback(
+    async (lexiconIds: string[]): Promise<CompatibilityReport> => {
+      return createWorkerClientQueryWithErrorHandling(
+        workerClientRef.current,
+        async (wc) => {
+          const introspections = await Promise.all(
+            lexiconIds.map((id) => introspectLexicon(id))
+          );
+          const conflicts: Array<{
+            type: "version" | "language" | "structure";
+            description: string;
+            severity: "low" | "medium" | "high";
+          }> = [];
+          const recommendations: string[] = [];
+
+          // Check for language conflicts
+          const languages = introspections.map((i) => i.language);
+          const uniqueLanguages = Array.from(new Set(languages));
+          if (uniqueLanguages.length !== languages.length) {
+            conflicts.push({
+              type: "language",
+              description: "Multiple lexicons with same language detected",
+              severity: "medium",
+            });
+            recommendations.push(
+              "Consider using only one lexicon per language"
+            );
+          }
+
+          // Check for version conflicts
+          const versions = introspections.map((i) => i.version);
+          const uniqueVersions = Array.from(new Set(versions));
+          if (uniqueVersions.length !== versions.length) {
+            conflicts.push({
+              type: "version",
+              description: "Multiple lexicons with same version detected",
+              severity: "low",
+            });
+            recommendations.push(
+              "Consider using different versions for variety"
+            );
+          }
+
+          const compatible =
+            conflicts.filter((c) => c.severity === "high").length === 0;
+
+          return {
+            compatible,
+            conflicts,
+            recommendations,
+          };
+        },
+        "checkResourceCompatibility"
+      );
+    },
+    [introspectLexicon]
+  );
 
   return {
     ...state,
     loadPackageData,
-    loadDemoData,
     queryWords,
     querySynsets,
     querySenses,
@@ -1883,8 +1667,14 @@ export function useWordNet(config?: { workerUrl?: string; enableWorkers?: boolea
     validateResourceIntegrity,
     checkResourceCompatibility,
     // Database persistence methods
-    isDatabasePersistent: () => workerClientRef.current?.isDatabasePersistent() || Promise.resolve(false),
-    getDatabaseStorageInfo: () => workerClientRef.current?.getDatabaseStorageInfo() || Promise.resolve({ type: 'unknown', persistent: false } as DatabaseStorageInfo),
+    isDatabasePersistent: () =>
+      workerClientRef.current?.isDatabasePersistent() || Promise.resolve(false),
+    getDatabaseStorageInfo: () =>
+      workerClientRef.current?.getDatabaseStorageInfo() ||
+      Promise.resolve({
+        type: "unknown",
+        persistent: false,
+      } as DatabaseStorageInfo),
   };
 }
 

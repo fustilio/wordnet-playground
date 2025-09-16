@@ -6,7 +6,7 @@ import type { PartOfSpeech, Word, Synset, Sense, Definition, Relation } from 'wn
 import type { 
   CacheInfo,
   DatabaseStorageInfo
-} from '../react/hooks/useWordNet.js';
+} from '../types/index.js';
 
 // Re-export core types for convenience
 export type { PartOfSpeech, Word, Synset, Sense, Definition, Relation };
@@ -55,15 +55,6 @@ export interface WordNetWorkerAPI {
     }>;
     
     loadPackage(packageId: string, options?: { onProgress?: (progress: number) => void }): Promise<{
-      success: boolean;
-      data?: {
-        statistics: OverallStatistics;
-        lexiconStats: LexiconStatistics[];
-      };
-      error?: string;
-    }>;
-    
-    loadDemoData(options?: { onProgress?: (progress: number) => void }): Promise<{
       success: boolean;
       data?: {
         statistics: OverallStatistics;
