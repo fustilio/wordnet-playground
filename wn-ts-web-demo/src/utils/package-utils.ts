@@ -88,6 +88,12 @@ export function getPackageIdToLoad(requirementId: string, bestPackage: { id: str
     }
   }
   
+  // Check if bestPackage.id already contains a version (has a colon)
+  if (bestPackage.id.includes(':')) {
+    // bestPackage.id already has a version, return it as-is
+    return bestPackage.id;
+  }
+  
   // Handle case where bestPackage has versions and we need to pick the right one
   if (bestPackage.versions && bestPackage.versions.length > 0) {
     // If requirement has a specific version, try to match it

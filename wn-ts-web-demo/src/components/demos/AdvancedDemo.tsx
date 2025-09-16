@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useCallback } from 'react';
 import { Card } from '../shared/Card';
-import { useWordNetContext, getAvailableProjects, type ProjectInfo } from "wn-ts-web/react";
+import { useWordNetContext, getAvailableProjects, type ProjectInfo, type ProgressCallback } from "wn-ts-web/react";
 import { LexiconRequirements } from '../shared/LexiconRequirements';
 import { createScopedLogger } from 'utils/logger';
 import { ProjectList } from '../../examples/ProjectList';
@@ -9,8 +9,14 @@ import { Tabs } from '../shared/Tabs';
 const logger = createScopedLogger('AdvancedDemo');
 
 export const AdvancedDemo: React.FC = () => {
-  const { availablePackages, loadPackageData, loadedPackages } = useWordNetContext();
+  const context = useWordNetContext();
+  const { availablePackages, loadPackageData, loadedPackages } = context as any;
   const [activeTab, setActiveTab] = useState('Catalog');
+  
+  // Track loading state for individual packages
+  const [loadingPackages, setLoadingPackages] = useState<Map<string, { progress: number; message?: string }>>(new Map());
+  const [cancelledPackages, setCancelledPackages] = useState<Set<string>>(new Set());
+  const abortControllers = useRef<Map<string, AbortController>>(new Map());
   
   // Define lexicon requirements for this demo
   const lexiconRequirements = [
@@ -22,20 +28,71 @@ export const AdvancedDemo: React.FC = () => {
     }
   ];
   
-  const handleLoadPackage = async (packageId: string) => {
+  const handleLoadPackage = useCallback(async (packageId: string) => {
+    // Check if already loading or cancelled
+    if (loadingPackages.has(packageId) || cancelledPackages.has(packageId)) {
+      return;
+    }
+    
     logger.start(`loading package ${packageId} for advanced demo`);
     
+    // Create abort controller for this package
+    const abortController = new AbortController();
+    abortControllers.current.set(packageId, abortController);
+    
+    // Set initial loading state
+    setLoadingPackages(prev => new Map(prev).set(packageId, { progress: 0, message: 'Starting download...' }));
+    
     try {
-      await loadPackageData(packageId);
+      // Create progress callback
+      const progressCallback: ProgressCallback = (progress: number, message?: string) => {
+        setLoadingPackages(prev => new Map(prev).set(packageId, { progress, message }));
+      };
+      
+      // Load package with progress tracking
+      await loadPackageData(packageId, progressCallback);
+      
+      // Check if cancelled
+      if (abortController.signal.aborted) {
+        logger.info(`Package ${packageId} loading was cancelled`);
+        return;
+      }
+      
       logger.success('Package loaded successfully for advanced demo', { packageId });
       logger.end(`loading package ${packageId} for advanced demo`, { packageId });
     } catch (error) {
+      if (abortController.signal.aborted) {
+        logger.info(`Package ${packageId} loading was cancelled`);
+        return;
+      }
       logger.fail('Failed to load package for advanced demo', { packageId, error });
       logger.end(`loading package ${packageId} for advanced demo`);
+    } finally {
+      // Clean up loading state
+      setLoadingPackages(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(packageId);
+        return newMap;
+      });
+      abortControllers.current.delete(packageId);
     }
-  };
+  }, [loadPackageData, loadingPackages, cancelledPackages]);
+  
+  const handleCancelPackage = useCallback((packageId: string) => {
+    const abortController = abortControllers.current.get(packageId);
+    if (abortController) {
+      abortController.abort();
+      setCancelledPackages(prev => new Set(prev).add(packageId));
+      setLoadingPackages(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(packageId);
+        return newMap;
+      });
+      logger.info(`Cancelled loading package ${packageId}`);
+    }
+  }, []);
 
-  type Status = 'loaded' | 'unloaded' | 'superseded';
+  type Status = 'loaded' | 'unloaded' | 'superseded' | 'loading' | 'cancelled';
   interface Row { key: string; id: string; version: string; label: string; language: string; status: Status }
 
   const rows: Row[] = useMemo(() => {
@@ -57,6 +114,9 @@ export const AdvancedDemo: React.FC = () => {
 
     // Include any loaded versions that might not be in catalog (defensive)
     const loadedKeys = new Set(loadedPackages);
+    const loadingKeys = new Set(loadingPackages.keys());
+    const cancelledKeys = new Set(cancelledPackages);
+    
     for (const lp of loadedPackages) {
       const [base, version = ''] = lp.split(':');
       if (!byBaseId.has(base)) byBaseId.set(base, []);
@@ -82,7 +142,18 @@ export const AdvancedDemo: React.FC = () => {
       for (const { version } of versions) {
         const key = `${base}:${version}`;
         const meta = infoByKey.get(key) ?? { id: base, label: base, language: 'en', version };
-        const status: Status = loadedKeys.has(key) ? 'loaded' : (compareVersion(version, maxVersion) < 0 ? 'superseded' : 'unloaded');
+        
+        let status: Status;
+        if (loadedKeys.has(key)) {
+          status = 'loaded';
+        } else if (loadingKeys.has(key)) {
+          status = 'loading';
+        } else if (cancelledKeys.has(key)) {
+          status = 'cancelled';
+        } else {
+          status = compareVersion(version, maxVersion) < 0 ? 'superseded' : 'unloaded';
+        }
+        
         out.push({ key, id: base, version, label: meta.label || base, language: meta.language || 'en', status });
       }
     }
@@ -90,18 +161,22 @@ export const AdvancedDemo: React.FC = () => {
     // Sort by id then version desc
     out.sort((a, b) => (a.id === b.id ? compareVersion(b.version, a.version) : a.id.localeCompare(b.id)));
     return out;
-  }, [availablePackages, loadedPackages]);
+  }, [availablePackages, loadedPackages, loadingPackages, cancelledPackages]);
 
   const statusClasses: Record<Status, string> = {
     loaded: 'bg-green-100 text-green-800 border border-green-200',
     unloaded: 'bg-yellow-50 text-yellow-700 border border-yellow-200',
-    superseded: 'bg-gray-100 text-gray-700 border border-gray-200'
+    superseded: 'bg-gray-100 text-gray-700 border border-gray-200',
+    loading: 'bg-blue-50 text-blue-700 border border-blue-200',
+    cancelled: 'bg-red-50 text-red-700 border border-red-200'
   };
 
   const statusLabel: Record<Status, string> = {
     loaded: 'Loaded',
     unloaded: 'Available',
-    superseded: 'Superseded'
+    superseded: 'Superseded',
+    loading: 'Loading',
+    cancelled: 'Cancelled'
   };
   
   const TABS = ['Catalog', 'Browser'];
@@ -122,26 +197,71 @@ export const AdvancedDemo: React.FC = () => {
                 {rows.length === 0 ? (
                   <div className="text-sm text-gray-500">No lexicons detected yet.</div>
                 ) : (
-                  rows.map(row => (
-                    <div key={row.key} className={`flex items-center justify-between rounded-md px-3 py-2 ${statusClasses[row.status]}`}>
-                      <div className="flex items-center gap-3">
-                        <span className="font-medium">{row.label}</span>
-                        <span className="text-xs px-2 py-0.5 rounded bg-white/60 text-gray-800 border border-gray-300">{row.id}:{row.version}</span>
-                        <span className="text-xs px-2 py-0.5 rounded bg-white/60 text-gray-800 border border-gray-300">{row.language.toUpperCase()}</span>
-                        <span className="text-xs px-2 py-0.5 rounded bg-white/60 text-gray-800 border border-gray-300">{statusLabel[row.status]}</span>
+                  rows.map(row => {
+                    const loadingInfo = loadingPackages.get(row.key);
+                    const isCancelled = cancelledPackages.has(row.key);
+                    
+                    return (
+                      <div key={row.key} className={`flex items-center justify-between rounded-md px-3 py-2 ${statusClasses[row.status]}`}>
+                        <div className="flex items-center gap-3 flex-1">
+                          <span className="font-medium">{row.label}</span>
+                          <span className="text-xs px-2 py-0.5 rounded bg-white/60 text-gray-800 border border-gray-300">{row.id}:{row.version}</span>
+                          <span className="text-xs px-2 py-0.5 rounded bg-white/60 text-gray-800 border border-gray-300">{row.language.toUpperCase()}</span>
+                          <span className="text-xs px-2 py-0.5 rounded bg-white/60 text-gray-800 border border-gray-300">{statusLabel[row.status]}</span>
+                          
+                          {/* Progress bar for loading packages */}
+                          {row.status === 'loading' && loadingInfo && (
+                            <div className="flex-1 max-w-xs">
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+                                  style={{ width: `${Math.round(loadingInfo.progress * 100)}%` }}
+                                />
+                              </div>
+                              <div className="text-xs text-gray-600 mt-1">
+                                {Math.round(loadingInfo.progress * 100)}% - {loadingInfo.message || 'Loading...'}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          {row.status === 'unloaded' && !isCancelled && (
+                            <button
+                              onClick={() => handleLoadPackage(`${row.id}:${row.version}`)}
+                              className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                            >
+                              Load
+                            </button>
+                          )}
+                          
+                          {row.status === 'loading' && (
+                            <button
+                              onClick={() => handleCancelPackage(row.key)}
+                              className="px-3 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          )}
+                          
+                          {row.status === 'cancelled' && (
+                            <button
+                              onClick={() => {
+                                setCancelledPackages(prev => {
+                                  const newSet = new Set(prev);
+                                  newSet.delete(row.key);
+                                  return newSet;
+                                });
+                              }}
+                              className="px-3 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors"
+                            >
+                              Retry
+                            </button>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        {row.status === 'unloaded' && (
-                          <button
-                            onClick={() => handleLoadPackage(`${row.id}:${row.version}`)}
-                            className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-                          >
-                            Load
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
