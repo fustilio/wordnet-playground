@@ -577,8 +577,18 @@ export class WordNetWorkerClient {
     
     try {
       logger.info(`Getting words for synset ID: ${synsetId}, language: ${language}`);
-      // For now, return empty array as this method needs to be implemented in the worker
-      return [];
+      
+      if (!this.remote) {
+        throw new Error('Worker not available');
+      }
+      
+      const result = await this.remote.getWordsBySynsetAndLanguage(synsetId, language);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to get words by synset and language');
+      }
+      
+      return result.data || [];
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error(`Failed to get words for synset ID: ${synsetId}, language: ${language}`, { error: errorMessage });
@@ -595,8 +605,23 @@ export class WordNetWorkerClient {
     
     try {
       logger.info(`Getting definitions for synset ID: ${synsetId}`);
-      // For now, return empty array as this method needs to be implemented in the worker
-      return [];
+      
+      if (!this.remote) {
+        throw new Error('Worker not available');
+      }
+      
+      const result = await this.remote.getDefinitionsBySynsetId(synsetId);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to get definitions by synset ID');
+      }
+      
+      // Add synsetId to each definition for UI compatibility
+      const definitions = result.data || [];
+      return definitions.map(def => ({
+        ...def,
+        synsetId: synsetId
+      }));
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error(`Failed to get definitions for synset ID: ${synsetId}`, { error: errorMessage });
@@ -613,8 +638,43 @@ export class WordNetWorkerClient {
     
     try {
       console.log(`Getting synset by ID: ${synsetId}`);
-      // For now, return undefined as this method needs to be implemented in the worker
-      return undefined;
+      
+      if (!this.remote) {
+        throw new Error('Worker not available');
+      }
+      
+      const result = await this.remote.getSynsetById(synsetId);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to get synset by ID');
+      }
+      
+      const synset = result.data;
+      if (!synset) {
+        return undefined;
+      }
+      
+      // Transform Synset to SynsetQueryResult
+      return {
+        id: synset.id,
+        ili: synset.ili,
+        language: synset.language,
+        lexicon: synset.lexicon,
+        pos: synset.pos,
+        definitions: (synset.definitions || []).map(def => ({
+          ...def,
+          synsetId: synset.id
+        })),
+        words: [], // Will be populated separately if needed
+        relations: (synset.relations || []).map(rel => ({
+          id: rel.id,
+          type: rel.type,
+          sourceId: synset.id,
+          targetId: rel.target,
+          source: rel.source,
+          dcType: rel.dcType
+        }))
+      };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error(`Failed to get synset by ID: ${synsetId}`, { error: errorMessage });

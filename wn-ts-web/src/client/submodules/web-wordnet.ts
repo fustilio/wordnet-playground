@@ -1285,9 +1285,46 @@ export class WebWordnet extends BaseWordnet {
     if (!this.initialized || !this.queryService)
       throw new Error("WebWordnet not initialized");
     
-    // This would query the translations table for cross-language mappings
-    // For now, return empty array
-    return [];
+    try {
+      // Get the synset to find its ILI
+      const synset = await this.queryService.getSynsetById(synsetId);
+      if (!synset || !synset.ili) {
+        return [];
+      }
+
+      // Find all synsets with the same ILI in different languages
+      const db = (this.queryService as any).db;
+      if (!db) {
+        return [];
+      }
+
+      const relatedSynsets = await db
+        .selectFrom('synsets')
+        .select(['id', 'language', 'lexicon'])
+        .where('ili', '=', synset.ili)
+        .where('id', '!=', synsetId)
+        .execute();
+
+      // Get words for each related synset
+      const translations: TranslationInfo[] = [];
+      for (const relatedSynset of relatedSynsets) {
+        const words = await this.queryService.getWordsBySynsetAndLanguage(relatedSynset.id, relatedSynset.language);
+        if (words.length > 0) {
+          translations.push({
+            id: `${synsetId}-${relatedSynset.id}`,
+            sourceSynsetId: synsetId,
+            targetSynsetId: relatedSynset.id,
+            language: relatedSynset.language,
+            confidence: 1.0
+          });
+        }
+      }
+
+      return translations;
+    } catch (error) {
+      console.error('Error getting translations:', error);
+      return [];
+    }
   }
 
   // ============================================================================
@@ -1301,9 +1338,44 @@ export class WebWordnet extends BaseWordnet {
     if (!this.initialized || !this.queryService)
       throw new Error("WebWordnet not initialized");
     
-    // This would query the relations table for related synsets
-    // For now, return empty array
-    return [];
+    try {
+      const db = (this.queryService as any).db;
+      if (!db) {
+        return [];
+      }
+
+      // Query relations table for related synsets
+      let query = db
+        .selectFrom('relations')
+        .select(['target_id', 'type'])
+        .where('source_id', '=', synsetId);
+
+      if (relationType) {
+        query = query.where('type', '=', relationType);
+      }
+
+      const relations = await query.execute();
+      
+      if (relations.length === 0) {
+        return [];
+      }
+
+      // Get the related synsets
+      const relatedSynsetIds = relations.map((rel: any) => rel.target_id);
+      const relatedSynsets: Synset[] = [];
+      
+      for (const synsetId of relatedSynsetIds) {
+        const synset = await this.queryService.getSynsetById(synsetId);
+        if (synset) {
+          relatedSynsets.push(synset);
+        }
+      }
+
+      return relatedSynsets;
+    } catch (error) {
+      console.error('Error getting related synsets:', error);
+      return [];
+    }
   }
 
   /**
@@ -1313,9 +1385,44 @@ export class WebWordnet extends BaseWordnet {
     if (!this.initialized || !this.queryService)
       throw new Error("WebWordnet not initialized");
     
-    // This would query the relations table for related senses
-    // For now, return empty array
-    return [];
+    try {
+      const db = (this.queryService as any).db;
+      if (!db) {
+        return [];
+      }
+
+      // Query relations table for related senses
+      let query = db
+        .selectFrom('relations')
+        .select(['target_id', 'type'])
+        .where('source_id', '=', senseId);
+
+      if (relationType) {
+        query = query.where('type', '=', relationType);
+      }
+
+      const relations = await query.execute();
+      
+      if (relations.length === 0) {
+        return [];
+      }
+
+      // Get the related senses
+      const relatedSenseIds = relations.map((rel: any) => rel.target_id);
+      const relatedSenses: Sense[] = [];
+      
+      for (const senseId of relatedSenseIds) {
+        const sense = await this.queryService.getSenseById(senseId);
+        if (sense) {
+          relatedSenses.push(sense);
+        }
+      }
+
+      return relatedSenses;
+    } catch (error) {
+      console.error('Error getting related senses:', error);
+      return [];
+    }
   }
 
   /**
@@ -1325,9 +1432,46 @@ export class WebWordnet extends BaseWordnet {
     if (!this.initialized || !this.queryService)
       throw new Error("WebWordnet not initialized");
     
-    // This would implement path finding algorithm
-    // For now, return empty array
-    return [];
+    try {
+      // Simple BFS implementation for shortest path
+      const visited = new Set<string>();
+      const queue: { synsetId: string; path: Synset[] }[] = [];
+      
+      // Start with source synset
+      const sourceSynset = await this.queryService.getSynsetById(sourceId);
+      if (!sourceSynset) {
+        return [];
+      }
+      
+      queue.push({ synsetId: sourceId, path: [sourceSynset] });
+      visited.add(sourceId);
+      
+      while (queue.length > 0) {
+        const { synsetId, path } = queue.shift()!;
+        
+        if (synsetId === targetId) {
+          return path;
+        }
+        
+        // Get related synsets
+        const relatedSynsets = await this.getRelatedSynsets(synsetId);
+        
+        for (const relatedSynset of relatedSynsets) {
+          if (!visited.has(relatedSynset.id)) {
+            visited.add(relatedSynset.id);
+            queue.push({ 
+              synsetId: relatedSynset.id, 
+              path: [...path, relatedSynset] 
+            });
+          }
+        }
+      }
+      
+      return []; // No path found
+    } catch (error) {
+      console.error('Error getting shortest path:', error);
+      return [];
+    }
   }
 
   /**
@@ -1337,9 +1481,31 @@ export class WebWordnet extends BaseWordnet {
     if (!this.initialized || !this.queryService)
       throw new Error("WebWordnet not initialized");
     
-    // This would calculate depth in hierarchy
-    // For now, return 0
-    return 0;
+    try {
+      // Find the root of the hierarchy by following hypernym relations upward
+      let currentId = synsetId;
+      let depth = 0;
+      const visited = new Set<string>();
+      
+      while (currentId && !visited.has(currentId)) {
+        visited.add(currentId);
+        
+        // Get hypernym relations (parent synsets)
+        const hypernyms = await this.getRelatedSynsets(currentId, 'hypernym');
+        
+        if (hypernyms.length === 0) {
+          break; // Reached root
+        }
+        
+        currentId = hypernyms[0].id; // Take first hypernym
+        depth++;
+      }
+      
+      return depth;
+    } catch (error) {
+      console.error('Error getting synset depth:', error);
+      return 0;
+    }
   }
 
   /**
@@ -1373,9 +1539,20 @@ export class WebWordnet extends BaseWordnet {
     if (!this.initialized || !this.queryService)
       throw new Error("WebWordnet not initialized");
     
-    // This would calculate path similarity
-    // For now, return 0
-    return 0;
+    try {
+      // Find shortest path between synsets
+      const path = await this.getShortestPath(synsetId1, synsetId2);
+      
+      if (path.length === 0) {
+        return 0; // No path found
+      }
+      
+      // Path similarity = 1 / (path_length + 1)
+      return 1 / (path.length + 1);
+    } catch (error) {
+      console.error('Error getting path similarity:', error);
+      return 0;
+    }
   }
 
   /**
