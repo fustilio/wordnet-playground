@@ -1,4 +1,4 @@
-export * from './demos';
+export * from '../examples/tabs';
 export * from './developer-tools';
 export * from './screens';
 export * from './shared';

@@ -221,6 +221,7 @@ export const WordQuerySchema = z.object({
   fuzzy: z.boolean().optional(),
   maxResults: z.number().positive("Max results must be positive").optional(),
   includeInflected: z.boolean().optional(),
+  strategy: z.string().optional(),
 });
 
 export const SynsetQuerySchema = z.object({
@@ -235,12 +236,14 @@ export const SynsetQuerySchema = z.object({
   includeDefinitions: z.boolean().optional(),
   includeExamples: z.boolean().optional(),
   includeRelations: z.boolean().optional(),
+  strategy: z.string().optional(),
 });
 
 export const SenseQuerySchema = z.object({
   wordIdOrForm: z.string().optional(),
   pos: PartOfSpeechSchema.optional(),
   lexicon: z.string().optional(),
+  strategy: z.string().optional(),
 });
 
 // Configuration schemas
@@ -258,6 +261,7 @@ export const WordnetOptionsSchema = z.object({
   lemmatizer: z.any().optional(), // Function type
   searchAllForms: z.boolean().optional(),
   language: z.string().min(2, "Language code must be at least 2 characters").max(5, "Language code too long").optional(),
+  strategy: z.string().optional(),
 });
 
 export const DownloadOptionsSchema = z.object({

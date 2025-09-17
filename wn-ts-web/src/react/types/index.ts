@@ -108,6 +108,9 @@ export interface WordNetState {
   progress: number;
   progressStage: string;
   workerReady: boolean;
+  // Additional properties that are accessed in components
+  busy: boolean;
+  canQuery: boolean;
 }
 
 export interface ProgressCallback {

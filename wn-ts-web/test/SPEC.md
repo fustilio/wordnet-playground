@@ -23,13 +23,13 @@ The `test/` directory is organized to separate tests by their execution environm
 
 -   `wn-ts-web/test/`: **Node.js Tests**
     -   Contains unit and integration tests that run in a Node.js environment using `jsdom` to simulate browser APIs.
-    -   **Examples**: `web-wordnet.test.ts`, `wordnet-orchestrator.test.ts`, `kysely-integration-comprehensive.test.ts`.
+    -   **Examples**: `kysely-integration-comprehensive.test.ts`, `optimization-verification.test.ts`.
     -   **Setup**: `test/setup.ts` is used to mock browser-native APIs.
 
 -   `wn-ts-web/test/browser/`: **Browser Functional Tests**
     -   Contains tests that require a real browser environment but may mock network requests or use controlled data.
     -   Focuses on testing browser-specific APIs like OPFS and SQLite WASM integration.
-    -   **Examples**: `opfs-manager.test.ts`, `web-wordnet.test.ts`.
+    -   **Examples**: `opfs-manager.test.ts`, `web-wordnet.test.ts`, `wordnet-orchestrator.test.ts`.
     -   **Setup**: `test/browser/setup.ts` provides mocks suitable for a real browser environment.
 
 -   `wn-ts-web/test/browser/e2e/`: **Browser End-to-End (E2E) Tests**

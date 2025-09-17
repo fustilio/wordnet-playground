@@ -19,6 +19,84 @@ import type {
   SynsetQuery,
   SenseQuery,
 } from "wn-ts-core";
+
+// Type aliases for better reusability
+type LexiconStatistics = Awaited<ReturnType<WebWordnet['getLexiconStatistics']>>[0];
+type Statistics = Awaited<ReturnType<WebWordnet['getStatistics']>>;
+type PartOfSpeechDistribution = Awaited<ReturnType<WebWordnet['getPartOfSpeechDistribution']>>;
+
+// Export data structure types
+type ExportEntry = {
+  id: string;
+  lemma: {
+    writtenForm: string;
+    partOfSpeech: string;
+  };
+  senses: Array<{
+    id: string;
+    synset: string;
+  }>;
+};
+
+type ExportSynset = {
+  id: string;
+  ili: string | null;
+  partOfSpeech: string;
+  definitions: Array<{
+    id: string;
+    definition: string;
+    language: string;
+  }>;
+  examples: Array<{
+    id: string;
+    example: string;
+    language: string;
+  }>;
+  relations: Array<{
+    id: string;
+    target: string;
+    relation: string;
+  }>;
+};
+
+type ExportLexicon = {
+  id: string;
+  label: string;
+  language: string;
+  version: string;
+  entries: ExportEntry[];
+  synsets: ExportSynset[];
+};
+
+type ExportData = {
+  lexicons: ExportLexicon[];
+  exportDate: string;
+  format: string;
+};
+
+// Frame and translation types
+type FrameInfo = {
+  id: string;
+  frame: string;
+  synsetId: string;
+};
+
+type TranslationInfo = {
+  id: string;
+  sourceSynsetId: string;
+  targetSynsetId: string;
+  language: string;
+  confidence?: number;
+};
+
+type ProjectInfo = {
+  id: string;
+  label: string;
+  description?: string;
+  url?: string;
+  license?: string;
+  citation?: string;
+};
 import { BaseWordnet } from "wn-ts-core";
 import { WebDatabase } from "./web-database.js";
 import { KyselyQueryService } from "../../database/kysely-query-service.js";
@@ -96,7 +174,7 @@ export class WebWordnet extends BaseWordnet {
    * @param event - Event name to listen for
    * @param callback - Function to call when event occurs
    */
-  on(event: string, callback: (...args: any[]) => void): void {
+  on(event: string, callback: (...args: unknown[]) => void): void {
     this.eventEmitter.on(event, callback);
   }
 
@@ -105,7 +183,7 @@ export class WebWordnet extends BaseWordnet {
    * @param event - Event name to stop listening for
    * @param callback - Function to remove from listeners
    */
-  off(event: string, callback: (...args: any[]) => void): void {
+  off(event: string, callback: (...args: unknown[]) => void): void {
     this.eventEmitter.off(event, callback);
   }
 
@@ -114,7 +192,7 @@ export class WebWordnet extends BaseWordnet {
    * @param event - Event name to emit
    * @param args - Arguments to pass to event callbacks
    */
-  emit(event: string, ...args: any[]): void {
+  emit(event: string, ...args: unknown[]): void {
     this.eventEmitter.emit(event, ...args);
   }
 
@@ -123,7 +201,7 @@ export class WebWordnet extends BaseWordnet {
    * @param eventType - Type of data change event
    * @param data - Event data
    */
-  emitDataChanged(eventType: string, data: any): void {
+  emitDataChanged(eventType: string, data: Record<string, unknown>): void {
     this.eventEmitter.emit('dataChanged', { eventType, ...data });
   }
 
@@ -239,9 +317,9 @@ export class WebWordnet extends BaseWordnet {
    * This method is now internal and should not be called directly
    */
   async getStatisticsForEvents(): Promise<{
-    statistics: any;
-    posDistribution: Record<string, number>;
-    lexiconStats: any[];
+    statistics: Statistics;
+    posDistribution: PartOfSpeechDistribution;
+    lexiconStats: LexiconStatistics[];
   }> {
     if (!this.initialized) {
       throw new Error("WebWordnet not initialized");
@@ -363,7 +441,9 @@ export class WebWordnet extends BaseWordnet {
           lexiconFilter = query.lexicon;
         }
       } else {
-        lexiconFilter = this.getPrimaryLexiconId();
+        // Use the base lexicon ID (without version) for database queries
+        const primaryLexiconId = this.getPrimaryLexiconId();
+        lexiconFilter = primaryLexiconId.includes(':') ? primaryLexiconId.split(':')[0] : primaryLexiconId;
       }
       
       const result = await this.queryService.getWords({
@@ -401,7 +481,9 @@ export class WebWordnet extends BaseWordnet {
         lexiconFilter = lexicon;
       }
     } else {
-      lexiconFilter = this.getPrimaryLexiconId();
+      // Use the base lexicon ID (without version) for database queries
+      const primaryLexiconId = this.getPrimaryLexiconId();
+      lexiconFilter = primaryLexiconId.includes(':') ? primaryLexiconId.split(':')[0] : primaryLexiconId;
     }
     
     if (!form) {
@@ -480,8 +562,8 @@ export class WebWordnet extends BaseWordnet {
     if (!this.initialized || !this.queryService)
       throw new Error("WebWordnet not initialized");
 
-    const { wordIdOrForm, form, pos, lexicon } = query || {};
-    const searchTerm = wordIdOrForm || form;
+    const { wordIdOrForm, pos, lexicon } = query || {};
+    const searchTerm = wordIdOrForm;
     
     // Handle multi-lexicon queries
     let lexiconFilter: string | undefined;
@@ -494,7 +576,9 @@ export class WebWordnet extends BaseWordnet {
         lexiconFilter = lexicon;
       }
     } else {
-      lexiconFilter = this.getPrimaryLexiconId();
+      // Use the base lexicon ID (without version) for database queries
+      const primaryLexiconId = this.getPrimaryLexiconId();
+      lexiconFilter = primaryLexiconId.includes(':') ? primaryLexiconId.split(':')[0] : primaryLexiconId;
     }
     
     if (!searchTerm) {
@@ -521,10 +605,14 @@ export class WebWordnet extends BaseWordnet {
     if (!this.initialized || !this.queryService)
       throw new Error("WebWordnet not initialized");
 
+    // Use the base lexicon ID (without version) for database queries
+    const primaryLexiconId = this.getPrimaryLexiconId();
+    const lexiconFilter = primaryLexiconId.includes(':') ? primaryLexiconId.split(':')[0] : primaryLexiconId;
+
     return this.queryService.getSenses({
       wordIdOrForm,
       pos,
-      lexicon: this.getPrimaryLexiconId(),
+      lexicon: lexiconFilter,
     });
   }
 
@@ -652,7 +740,11 @@ export class WebWordnet extends BaseWordnet {
     const { includeExpensive = false } = options;
 
     const lexiconStats = await this.getLexiconStatistics();
-    const result: any = { lexiconStats };
+    const result: {
+      lexiconStats: LexiconStatistics[];
+      statistics?: Statistics;
+      posDistribution?: PartOfSpeechDistribution;
+    } = { lexiconStats };
 
     if (includeExpensive) {
       try {
@@ -865,7 +957,7 @@ export class WebWordnet extends BaseWordnet {
       fuzzy: true
     });
     
-    const result: Record<PartOfSpeech, Set<string>> = {} as any;
+    const result: Record<PartOfSpeech, Set<string>> = {} as Record<PartOfSpeech, Set<string>>;
     for (const word of words) {
       if (!result[word.pos]) {
         result[word.pos] = new Set();
@@ -1177,7 +1269,7 @@ export class WebWordnet extends BaseWordnet {
   /**
    * Get frames (frame relationships)
    */
-  async getFrames(synsetId: string): Promise<any[]> {
+  async getFrames(synsetId: string): Promise<FrameInfo[]> {
     if (!this.initialized || !this.queryService)
       throw new Error("WebWordnet not initialized");
     
@@ -1189,7 +1281,7 @@ export class WebWordnet extends BaseWordnet {
   /**
    * Get translations (cross-language mappings)
    */
-  async getTranslations(synsetId: string): Promise<any[]> {
+  async getTranslations(synsetId: string): Promise<TranslationInfo[]> {
     if (!this.initialized || !this.queryService)
       throw new Error("WebWordnet not initialized");
     
@@ -1642,11 +1734,11 @@ export class WebWordnet extends BaseWordnet {
   /**
    * Export data from the database
    */
-  async exportData(): Promise<any> {
+  async exportData(): Promise<ExportData> {
     if (!this.initialized || !this.queryService)
       throw new Error("WebWordnet not initialized");
 
-    const exportData: any = {
+    const exportData: ExportData = {
       lexicons: [],
       exportDate: new Date().toISOString(),
       format: "json",
@@ -1656,8 +1748,11 @@ export class WebWordnet extends BaseWordnet {
     const lexicons = await this.queryService.getLexicons();
 
     for (const lexicon of lexicons) {
-      const lexiconData: any = {
-        ...lexicon,
+      const lexiconData: ExportLexicon = {
+        id: lexicon.id,
+        label: lexicon.label,
+        language: lexicon.language,
+        version: lexicon.version || '1.0',
         entries: [],
         synsets: [],
       };
@@ -1665,7 +1760,7 @@ export class WebWordnet extends BaseWordnet {
       // Get words (entries) for this lexicon
       const words = await this.queryService.getWordsByLexicon(lexicon.id);
       for (const word of words) {
-        const entry: any = {
+        const entry: ExportEntry = {
           id: word.id,
           lemma: {
             writtenForm: word.lemma,
@@ -1689,7 +1784,7 @@ export class WebWordnet extends BaseWordnet {
       // Get synsets for this lexicon
       const synsets = await this.queryService.getSynsetsByLexicon(lexicon.id);
       for (const synset of synsets) {
-        const synsetData: any = {
+        const synsetData: ExportSynset = {
           id: synset.id,
           ili: synset.ili,
           partOfSpeech: synset.pos,
@@ -1747,8 +1842,8 @@ export class WebWordnet extends BaseWordnet {
    * Export the underlying SQLite database bytes
    */
   exportDataBytes(): Uint8Array {
-    if (typeof (this.database as any).exportBytes === "function") {
-      return (this.database as any).exportBytes();
+    if (typeof (this.database as { exportBytes?: () => Uint8Array }).exportBytes === "function") {
+      return (this.database as { exportBytes: () => Uint8Array }).exportBytes();
     }
     throw new Error("Export not supported");
   }
@@ -1773,7 +1868,7 @@ export class WebWordnet extends BaseWordnet {
   }
 
   // Placeholder for projects (not implemented in web version)
-  async getProjects(): Promise<any[]> {
+  async getProjects(): Promise<ProjectInfo[]> {
     return [];
   }
 }

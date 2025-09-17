@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { join } from 'path';
-import { analyzeLMFXML, generateXMLReport, validateLMFStructure } from '../src/utils/xml-analyzer';
+import { analyzeLMFXML, generateXMLReport, validateLMFStructure } from '../src/test/xml-analyzer';
 
 describe('XML Analyzer Tests', () => {
   let oewnSamplePath: string;

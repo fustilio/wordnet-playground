@@ -18,46 +18,12 @@ import type {
 	IntegrityReport,
 	CompatibilityReport,
 	DatabaseStorageInfo
-} from '../hooks/useWordNet';
+} from '../types';
 import type { LexiconInfo } from '../../';
 import { useWordNetConfig } from './WordNetConfigContext';
 
-interface WordNetContextValue extends WordNetState {
-	loadPackageData: (packageId: string, progress?: ProgressCallback) => Promise<void>;
-	loadDemoData: (progress?: ProgressCallback) => Promise<void>;
-	queryWords: (term: string) => Promise<WordQueryResult[]>;
-	querySynsets: (term: string) => Promise<SynsetQueryResult[]>;
-	querySenses: (term: string) => Promise<SenseInfo[]>;
-	unloadData: () => Promise<void>;
-	refreshPackages: () => Promise<void>;
-	getLexiconInfo: (id?: string) => LexiconInfo[] | undefined;
-	getCurrentLexicons: () => LexiconInfo[];
-	testMemoryQueries: () => Promise<MemoryQueryTestResult>;
-	// New helpers for bilingual flows
-	getSensesByWordIdOrForm: (wordIdOrForm: string) => Promise<SenseInfo[]>;
-	getWordsBySynsetAndLanguage: (synsetId: string, language: string) => Promise<WordInfo[]>;
-	getDefinitionsBySynsetId: (synsetId: string) => Promise<DefinitionInfo[]>;
-	getSynsetById: (synsetId: string) => Promise<SynsetQueryResult | undefined>;
-	getWordsByIliAndLanguage: (ili: string, language: string) => Promise<WordInfo[]>;
-	getWordsByIliAndLexiconPrefix: (ili: string, lexiconPrefix: string) => Promise<WordInfo[]>;
-	getIliForSynset: (synsetId: string) => Promise<string | null>;
-	searchWordsInLexicon: (term: string, lexicon: string, language?: string) => Promise<WordQueryResult[]>;
-	// Data management
-	clearCacheAndUnload: () => Promise<void>;
-	getCacheInfo: () => Promise<CacheInfo>;
-	// Lexicon introspection and resource analysis
-	introspectLexicon: (lexiconId: string) => Promise<LexiconIntrospection>;
-	introspectAllResources: () => Promise<LexiconIntrospection[]>;
-	detectResourceType: (lexiconId: string) => Promise<ResourceTypeInfo>;
-	categorizeResources: () => Promise<CategorizedResources>;
-	analyzeCrossLingualCapabilities: () => Promise<CrossLingualAnalysis>;
-	getCrossLingualMappingCoverage: () => Promise<MappingCoverage>;
-	validateResourceIntegrity: (lexiconId: string) => Promise<IntegrityReport>;
-	checkResourceCompatibility: (lexiconIds: string[]) => Promise<CompatibilityReport>;
-	// Database persistence methods
-	isDatabasePersistent: () => Promise<boolean>;
-	getDatabaseStorageInfo: () => Promise<DatabaseStorageInfo>;
-}
+// Use the same return type as useWordNet hook
+type WordNetContextValue = ReturnType<typeof useWordNet>;
 
 const WordNetContext = createContext<WordNetContextValue | null>(null);
 

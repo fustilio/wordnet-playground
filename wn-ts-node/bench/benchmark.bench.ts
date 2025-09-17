@@ -5,9 +5,9 @@ import { loadLMF, createMinimalLMF, parseLMFXML, isLMF } from 'wn-ts-core';
 import { taxonomyShortestPath } from '../src/taxonomy';
 import { path } from 'wn-ts-core';
 import { Morphy } from 'wn-ts-core';
-import { add, remove } from '../src/data-management';
+import { add, remove } from '../src/data-management-new';
 import { Wordnet } from '../src/wordnet';
-import { getTestContext, cleanupTestContext, createMockData } from 'wn-ts-core';
+import { getTestContext, cleanupTestContext, createMockData } from 'wn-ts-core/test';
 import type { TestContext } from 'wn-ts-core';
 
 let testContext: TestContext;

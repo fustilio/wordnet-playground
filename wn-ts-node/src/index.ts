@@ -95,6 +95,17 @@ export {
 } from './lmf.js';
 export type { LMFDocument, LMFLoadOptions } from 'wn-ts-core';
 
+// Translation utilities (re-exported from wn-ts-core)
+export {
+  TranslationHelper,
+  createTranslationHelper,
+  quickTranslate,
+} from 'wn-ts-core';
+export type {
+  TranslationResult,
+  BilingualQueryOptions,
+} from 'wn-ts-core';
+
 // Database exports - removed during Kysely migration
 // Use KyselyWordnet or Wordnet instance methods instead
 

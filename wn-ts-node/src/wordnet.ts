@@ -45,6 +45,7 @@ export class Wordnet extends BaseWordnet {
     this.kyselyWordnet = new KyselyWordnet(lexicon, {
       filename: config.databasePath,
       normalizer: this._defaultNormalizer,
+      strategy: options.strategy || 'default',
       ...options
     });
   }
@@ -145,7 +146,11 @@ export class Wordnet extends BaseWordnet {
     if (typeof formOrQuery === 'string') {
       // Called as senses(form, pos?, options?)
       const form = formOrQuery;
-      const query: SenseQuery = { form, pos, ...options };
+      const query: SenseQuery = { 
+        wordIdOrForm: form, 
+        pos, 
+        lexicon: Array.isArray(options?.lexicon) ? options.lexicon[0] : options?.lexicon 
+      };
       return this.kyselyWordnet.senses(query);
     } else {
       // Called as senses(query?)

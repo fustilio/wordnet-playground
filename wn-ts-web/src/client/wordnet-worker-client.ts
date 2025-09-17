@@ -24,7 +24,20 @@ import { createScopedLogger } from 'utils/logger';
 import { createWordNetWorker, type RemoteWordNetWorker } from './utils/worker-factory';
 import { proxy } from 'comlink';
 import type { PartOfSpeech } from 'wn-ts-core';
-import type { LexiconInfo, WordNetEventMap, WordNetEventListener } from '../types';
+import type { 
+  LexiconInfo, 
+  WordNetEventMap, 
+  WordNetEventListener,
+  WordNetStatistics,
+  WordQueryResult,
+  SynsetQueryResult,
+  SenseInfo,
+  DefinitionInfo,
+  WordInfo,
+  MemoryQueryTestResult,
+  CacheInfo,
+  DatabaseStorageInfo
+} from '../types';
 import type { ProgressCallback } from '../types/progress';
 
 const logger = createScopedLogger('WordNetWorkerClient');
@@ -37,7 +50,7 @@ export class WordNetWorkerClient {
   
   // Lexicon tracking state
   private loadedLexicons = new Map<string, LexiconInfo>();
-  private statistics: any = null;
+  private statistics: WordNetStatistics | null = null;
 
   constructor() {
     logger.info('WordNetWorkerClient created');
@@ -131,7 +144,24 @@ export class WordNetWorkerClient {
         new Promise<never>((_, reject) => 
           setTimeout(() => reject(new Error('Worker initialization timeout after 5 minutes')), 300000)
         )
-      ]) as any;
+      ]) as {
+        success: boolean;
+        error?: string;
+        data?: {
+          lexiconStats: Array<{
+            lexiconId: string;
+            label: string;
+            language: string;
+            version: string;
+            wordCount: number;
+            synsetCount: number;
+            senseCount: number;
+            iliCount: number;
+          }>;
+          statistics: WordNetStatistics;
+          hasInitialState: boolean;
+        };
+      };
       logger.info('Worker initialization result:', result);
 
       if (!result.success) {
@@ -156,7 +186,20 @@ export class WordNetWorkerClient {
   /**
    * Get the current status from the worker
    */
-  async getStatus(): Promise<any> {
+  async getStatus(): Promise<{
+    lexiconStats: Array<{
+      lexiconId: string;
+      label: string;
+      language: string;
+      version: string;
+      wordCount: number;
+      synsetCount: number;
+      senseCount: number;
+      iliCount: number;
+    }>;
+    statistics: WordNetStatistics;
+    hasData: boolean;
+  }> {
     await this.ensureInitialized();
     
     try {
@@ -169,8 +212,23 @@ export class WordNetWorkerClient {
         // Update our local lexicon tracking
         await this.updateLexiconTracking();
         
-        this.emit('statusUpdated', { status: result.data });
-        return result.data;
+        // Ensure statistics has the required source property
+        const statusData = {
+          ...result.data,
+          lexiconStats: result.data?.lexiconStats || [],
+          hasData: result.data?.hasData || false,
+          statistics: {
+            totalWords: result.data?.statistics?.totalWords || 0,
+            totalSynsets: result.data?.statistics?.totalSynsets || 0,
+            totalSenses: result.data?.statistics?.totalSenses || 0,
+            totalILIs: result.data?.statistics?.totalILIs || 0,
+            totalLexicons: result.data?.statistics?.totalLexicons || 0,
+            source: "Worker" as const,
+          },
+        };
+        
+        this.emit('statusUpdated', { status: statusData });
+        return statusData;
       } else {
         throw new Error(result.error || 'Failed to get status');
       }
@@ -224,7 +282,10 @@ export class WordNetWorkerClient {
         
         // Update local state
         this.loadedLexicons = newLexicons;
-        this.statistics = result.data.statistics;
+        this.statistics = {
+          ...result.data.statistics,
+          source: "Worker" as const,
+        };
         
         // Emit change event if there were changes
         if (added.length > 0 || removed.length > 0) {
@@ -306,7 +367,7 @@ export class WordNetWorkerClient {
   /**
    * Query words
    */
-  async queryWords(term: string, pos?: PartOfSpeech): Promise<any[]> {
+  async queryWords(term: string, pos?: PartOfSpeech): Promise<WordQueryResult[]> {
     await this.ensureInitialized();
     
     try {
@@ -314,7 +375,7 @@ export class WordNetWorkerClient {
       const result = await this.remote!.queryWords(term, pos);
       
       if (result.success) {
-        return result.data || [];
+        return (result.data || []) as unknown as WordQueryResult[];
       } else {
         throw new Error(result.error || 'Word query failed');
       }
@@ -329,7 +390,7 @@ export class WordNetWorkerClient {
   /**
    * Query synsets
    */
-  async querySynsets(term: string, pos?: PartOfSpeech): Promise<any[]> {
+  async querySynsets(term: string, pos?: PartOfSpeech): Promise<SynsetQueryResult[]> {
     await this.ensureInitialized();
     
     try {
@@ -337,7 +398,7 @@ export class WordNetWorkerClient {
       const result = await this.remote!.querySynsets(term, pos);
       
       if (result.success) {
-        return result.data || [];
+        return (result.data || []) as unknown as SynsetQueryResult[];
       } else {
         throw new Error(result.error || 'Synset query failed');
       }
@@ -352,7 +413,7 @@ export class WordNetWorkerClient {
   /**
    * Query senses
    */
-  async querySenses(term: string, pos?: PartOfSpeech): Promise<any[]> {
+  async querySenses(term: string, pos?: PartOfSpeech): Promise<SenseInfo[]> {
     await this.ensureInitialized();
     
     try {
@@ -418,7 +479,7 @@ export class WordNetWorkerClient {
   /**
    * Test memory queries for debugging
    */
-  async testMemoryQueries(): Promise<any> {
+  async testMemoryQueries(): Promise<MemoryQueryTestResult> {
     await this.ensureInitialized();
     
     try {
@@ -427,7 +488,7 @@ export class WordNetWorkerClient {
       
       if (result.success) {
         logger.info('Memory test completed successfully', { data: result.data });
-        return result.data;
+        return result.data as unknown as MemoryQueryTestResult;
       } else {
         throw new Error(result.error || 'Memory test failed');
       }
@@ -468,7 +529,7 @@ export class WordNetWorkerClient {
   /**
    * Get cache info
    */
-  async getCacheInfo(): Promise<any> {
+  async getCacheInfo(): Promise<CacheInfo> {
     await this.ensureInitialized();
     
     try {
@@ -477,7 +538,7 @@ export class WordNetWorkerClient {
       
       if (result.success) {
         logger.info('Cache info retrieved successfully', { data: result.data });
-        return result.data;
+        return result.data as CacheInfo;
       } else {
         throw new Error(result.error || 'Cache info retrieval failed');
       }
@@ -492,7 +553,7 @@ export class WordNetWorkerClient {
   /**
    * Get senses by word ID or form
    */
-  async getSensesByWordIdOrForm(wordIdOrForm: string): Promise<any[]> {
+  async getSensesByWordIdOrForm(wordIdOrForm: string): Promise<SenseInfo[]> {
     await this.ensureInitialized();
     
     try {
@@ -511,7 +572,7 @@ export class WordNetWorkerClient {
   /**
    * Get words by synset ID and language
    */
-  async getWordsBySynsetAndLanguage(synsetId: string, language: string): Promise<any[]> {
+  async getWordsBySynsetAndLanguage(synsetId: string, language: string): Promise<WordInfo[]> {
     await this.ensureInitialized();
     
     try {
@@ -529,7 +590,7 @@ export class WordNetWorkerClient {
   /**
    * Get definitions by synset ID
    */
-  async getDefinitionsBySynsetId(synsetId: string): Promise<any[]> {
+  async getDefinitionsBySynsetId(synsetId: string): Promise<DefinitionInfo[]> {
     await this.ensureInitialized();
     
     try {
@@ -547,7 +608,7 @@ export class WordNetWorkerClient {
   /**
    * Get synset by ID
    */
-  async getSynsetById(synsetId: string): Promise<any | undefined> {
+  async getSynsetById(synsetId: string): Promise<SynsetQueryResult | undefined> {
     await this.ensureInitialized();
     
     try {
@@ -565,13 +626,23 @@ export class WordNetWorkerClient {
   /**
    * Get words by ILI and language
    */
-  async getWordsByIliAndLanguage(ili: string, language: string): Promise<any[]> {
+  async getWordsByIliAndLanguage(ili: string, language: string): Promise<WordInfo[]> {
     await this.ensureInitialized();
     
     try {
       console.log(`Getting words for ILI: ${ili}, language: ${language}`);
-      // For now, return empty array as this method needs to be implemented in the worker
-      return [];
+      
+      if (!this.remote) {
+        throw new Error('Worker not available');
+      }
+      
+      const result = await this.remote.getWordsByIliAndLanguage(ili, language);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to get words by ILI and language');
+      }
+      
+      return result.data || [];
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error(`Failed to get words for ILI: ${ili}, language: ${language}`, { error: errorMessage });
@@ -583,13 +654,23 @@ export class WordNetWorkerClient {
   /**
    * Get words by ILI and lexicon prefix
    */
-  async getWordsByIliAndLexiconPrefix(ili: string, lexiconPrefix: string): Promise<any[]> {
+  async getWordsByIliAndLexiconPrefix(ili: string, lexiconPrefix: string): Promise<WordInfo[]> {
     await this.ensureInitialized();
     
     try {
       console.log(`Getting words for ILI: ${ili}, lexicon prefix: ${lexiconPrefix}`);
-      // For now, return empty array as this method needs to be implemented in the worker
-      return [];
+      
+      if (!this.remote) {
+        throw new Error('Worker not available');
+      }
+      
+      const result = await this.remote.getWordsByIliAndLexiconPrefix(ili, lexiconPrefix);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to get words by ILI and lexicon prefix');
+      }
+      
+      return result.data || [];
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error(`Failed to get words for ILI: ${ili}, lexicon prefix: ${lexiconPrefix}`, { error: errorMessage });
@@ -624,7 +705,7 @@ export class WordNetWorkerClient {
   /**
    * Search words in lexicon
    */
-  async searchWordsInLexicon(term: string, lexicon: string, language?: string): Promise<any[]> {
+  async searchWordsInLexicon(term: string, lexicon: string, language?: string): Promise<WordQueryResult[]> {
     await this.ensureInitialized();
     
     try {
@@ -632,7 +713,7 @@ export class WordNetWorkerClient {
       const result = await this.remote!.searchWordsInLexicon(term, lexicon, language);
       
       if (result.success) {
-        return result.data || [];
+        return (result.data || []) as unknown as WordQueryResult[];
       } else {
         throw new Error(result.error || 'Search words in lexicon failed');
       }
@@ -763,7 +844,7 @@ export class WordNetWorkerClient {
   /**
    * Get current statistics
    */
-  get currentStatistics(): any {
+  get currentStatistics(): WordNetStatistics | null {
     return this.statistics;
   }
 
@@ -836,7 +917,7 @@ export class WordNetWorkerClient {
   /**
    * Get part of speech distribution
    */
-  async getPartOfSpeechDistribution(): Promise<any> {
+  async getPartOfSpeechDistribution(): Promise<Record<string, number>> {
     await this.ensureInitialized();
     
     try {
@@ -844,7 +925,7 @@ export class WordNetWorkerClient {
       const result = await this.remote!.getPartOfSpeechDistribution();
       
       if (result.success) {
-        return result.data;
+        return result.data as Record<string, number>;
       } else {
         throw new Error(result.error || 'Failed to get part of speech distribution');
       }

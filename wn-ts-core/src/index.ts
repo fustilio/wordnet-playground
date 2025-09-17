@@ -89,6 +89,9 @@ export type {
   SenseQuery,
 } from './types.js';
 
+// Query strategy types
+export type { QueryStrategy, QueryOptions } from './shared/base-query-service.js';
+
 // Error classes (environment-agnostic)
 export {
   WnError as Error,
@@ -100,10 +103,16 @@ export {
 
 // LMF Parsers module (environment-agnostic)
 export * from './parsers/index.js';
-export { parseLMFXML, diagnoseDownloadIssue, analyzeXMLContent } from './lmf.js';
+export { parseLMFXML, diagnoseDownloadIssue, analyzeXMLContent, validateLMFContent, createMinimalLMF } from './lmf.js';
+
+// LMF utilities (environment-agnostic)
+// Note: loadLMF and isLMF functions are not currently implemented
 
 // LMF Validation system (environment-agnostic)
 export * from './validation.js';
+
+// Test utilities (environment-agnostic) exclue this since it doesn't work in browser, can be imported via /test
+// export * from './test/index.js';
 
 // Database types are now exported from shared
 

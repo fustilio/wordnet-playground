@@ -529,6 +529,106 @@ export const DEFAULT_WORDNET_SOURCES: WordNetDataSource[] = [
 ];
 
 /**
+ * Test context interface for benchmark and test files
+ */
+export interface TestContext {
+  dataDirectory: string;
+  tempDir: string;
+  cleanup: () => Promise<void>;
+}
+
+/**
+ * Create a test context for benchmarks and tests
+ */
+export async function getTestContext(): Promise<TestContext> {
+  const { tmpdir } = await import('os');
+  const { mkdtempSync } = await import('fs');
+  const { join } = await import('path');
+  
+  const tempDir = mkdtempSync(join(tmpdir(), 'wn-ts-test-'));
+  const dataDirectory = join(tempDir, 'data');
+  
+  // Create data directory
+  const { mkdir } = await import('fs/promises');
+  await mkdir(dataDirectory, { recursive: true });
+  
+  return {
+    dataDirectory,
+    tempDir,
+    cleanup: async () => {
+      const { rmSync } = await import('fs');
+      try {
+        rmSync(tempDir, { recursive: true, force: true });
+      } catch (error) {
+        // Ignore cleanup errors
+        console.warn('Failed to cleanup test context:', error);
+      }
+    }
+  };
+}
+
+/**
+ * Cleanup test context
+ */
+export async function cleanupTestContext(context?: TestContext): Promise<void> {
+  if (context) {
+    await context.cleanup();
+  }
+}
+
+/**
+ * Create mock data for testing
+ */
+export function createMockData(type: 'word' | 'synset' | 'sense' | 'definition', count: number = 10): any[] {
+  const data = [];
+  
+  for (let i = 0; i < count; i++) {
+    switch (type) {
+      case 'word':
+        data.push({
+          id: `w-${i}`,
+          lemma: `word${i}`,
+          pos: ['n', 'v', 'a', 'r'][i % 4],
+          forms: [{ id: `f-${i}`, writtenForm: `word${i}` }],
+          pronunciations: [],
+          syntacticBehaviours: []
+        });
+        break;
+      case 'synset':
+        data.push({
+          id: `s-${i}`,
+          pos: ['n', 'v', 'a', 'r'][i % 4],
+          definitions: [{ id: `d-${i}`, language: 'en', text: `Definition ${i}` }],
+          examples: [],
+          ili: `i-${i}`,
+          iliDefinitions: []
+        });
+        break;
+      case 'sense':
+        data.push({
+          id: `se-${i}`,
+          wordId: `w-${i}`,
+          synsetId: `s-${i}`,
+          examples: [],
+          counts: [],
+          register: 'standard'
+        });
+        break;
+      case 'definition':
+        data.push({
+          id: `d-${i}`,
+          language: 'en',
+          text: `Definition ${i}`,
+          source: 'test'
+        });
+        break;
+    }
+  }
+  
+  return data;
+}
+
+/**
  * Create a test data manager with default configuration
  * Uses a cache directory that's gitignored to avoid committing large test data
  */

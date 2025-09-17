@@ -93,6 +93,6 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    exclude: ["@sqlite.org/sqlite-wasm"],
+    exclude: ["@sqlite.org/sqlite-wasm", "xml-introspect"],
   },
 });

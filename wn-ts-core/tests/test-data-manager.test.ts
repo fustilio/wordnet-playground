@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { createTestDataManager, DEFAULT_WORDNET_SOURCES } from '../src/utils/test-data-manager.js';
+import { createTestDataManager, DEFAULT_WORDNET_SOURCES } from '../src/test/test-data-manager.js';
 import { join } from 'path';
 import { mkdir, rm } from 'fs/promises';
 import { existsSync } from 'fs';

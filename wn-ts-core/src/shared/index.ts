@@ -26,3 +26,14 @@ export type {
   DatabaseStats,
   DatabaseConnectionState
 } from './database-config.js';
+
+// Translation utilities
+export {
+  TranslationHelper,
+  createTranslationHelper,
+  quickTranslate,
+} from './translation-utils.js';
+export type {
+  TranslationResult,
+  BilingualQueryOptions,
+} from './translation-utils.js';

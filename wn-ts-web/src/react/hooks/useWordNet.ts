@@ -26,6 +26,8 @@ import type {
   MappingCoverage,
   IntegrityReport,
   CompatibilityReport,
+  PackageInfo,
+  WordNetStatistics,
 } from "../../types/index.ts";
 
 setGlobalLogLevel("trace");
@@ -339,7 +341,16 @@ export function useWordNet(config?: {
           // status is already the data payload from the worker client
           {
             const loaded =
-              status.lexiconStats?.map((ls: any) => {
+              status.lexiconStats?.map((ls: {
+                lexiconId: string;
+                label: string;
+                language: string;
+                version: string;
+                wordCount: number;
+                synsetCount: number;
+                senseCount: number;
+                iliCount: number;
+              }) => {
                 try {
                   return sanitizeLexiconId(ls.lexiconId, ls.version);
                 } catch (error) {
@@ -412,7 +423,7 @@ export function useWordNet(config?: {
       await detectExistingPackages();
       // Also refresh the catalog-based available list for UI discovery
       const catalog = getAvailableProjects();
-      const mapped = catalog.map((p: any) => {
+      const mapped = catalog.map((p: PackageInfo) => {
         // Get the first available version, ensuring we don't create malformed IDs
         const firstVersion =
           p.versions && p.versions.length > 0 ? p.versions[0] : null;
@@ -534,11 +545,11 @@ export function useWordNet(config?: {
   );
 
   // Test memory queries for debugging
-  const testMemoryQueries = useCallback(async () => {
+  const testMemoryQueries = useCallback(async (): Promise<MemoryQueryTestResult> => {
     const wc = workerClientRef.current;
     if (!wc) {
       logger.warn("No worker client available for memory testing");
-      return null;
+      throw new Error("No worker client available for memory testing");
     }
 
     try {
@@ -610,7 +621,7 @@ export function useWordNet(config?: {
       packageId: string;
       success: boolean;
       error?: string;
-      lexiconInfo?: any;
+      lexiconInfo?: LexiconInfo;
     }) => {
       logger.debug("Package loaded event received", event);
 
@@ -647,7 +658,19 @@ export function useWordNet(config?: {
     }) => {
       logger.debug("Status updated event received", event);
 
-      const payload = event.status || (event as unknown as any);
+      const payload = event.status || (event as unknown as {
+        lexiconStats?: Array<{
+          lexiconId: string;
+          label: string;
+          language: string;
+          version: string;
+          wordCount: number;
+          synsetCount: number;
+          senseCount: number;
+          iliCount: number;
+        }>;
+        statistics?: WordNetStatistics;
+      });
       if (payload.lexiconStats) {
         const loadedPackages = payload.lexiconStats.map(
           (ls: {
@@ -1068,7 +1091,7 @@ export function useWordNet(config?: {
             const totalSynsets = resp.statistics.totalSynsets;
             const totalSenses = resp.statistics.totalSenses;
             const totalILIs = resp.statistics.totalILIs;
-            const posDistribution = resp.posDistribution;
+            const posDistribution = await workerClientRef.current.getPartOfSpeechDistribution();
 
             const uiStatistics = {
               totalWords,
@@ -1287,7 +1310,7 @@ export function useWordNet(config?: {
 
         // Get detailed statistics from worker
         const status = await wc.getStatus();
-        const lexiconStats = status?.data?.lexiconStats || [];
+        const lexiconStats = status?.lexiconStats || [];
         const detailedStats = lexiconStats.find(
           (stat: any) =>
             stat.lexiconId === lexicon.id || stat.lexiconId === lexiconId

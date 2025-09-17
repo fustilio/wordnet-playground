@@ -22,6 +22,7 @@ import type {
   Sense,
   Synset,
   ILI,
+  Definition,
 } from "wn-ts-core";
 import { WebWordnet } from "../client/submodules/web-wordnet.js";
 import { DataLoader } from "../data-loader.js";
@@ -32,6 +33,7 @@ import type { ProgressCallback } from "../types/progress.js";
 import { createScopedLogger } from "utils/logger";
 import { createWordNetInstance } from "../factory.js";
 import type { WordQuery, SynsetQuery, SenseQuery } from "wn-ts-core";
+import type { KyselyQueryService } from "../database/kysely-query-service.js";
 
 export interface LexiconState {
   id: string;
@@ -521,7 +523,7 @@ export class WordNetOrchestrator {
         throw new Error("Query service not available");
       }
 
-      // Method 1: Check if the English synset already has an ILI
+      // Method 1: Check if the synset already has an ILI
       // We need to find the synset by its ID, not by form
       try {
         const db = (queryService as any).db;
@@ -531,7 +533,6 @@ export class WordNetOrchestrator {
             .selectFrom("synsets")
             .select(["id", "ili", "lexicon", "language"])
             .where("id", "=", synsetId)
-            .where("language", "=", "en")
             .executeTakeFirst();
 
           if (synsetResult && synsetResult.ili) {
@@ -649,7 +650,7 @@ export class WordNetOrchestrator {
       useDefinitionMatching?: boolean;
     } = {}
   ): Promise<{
-    words: any[];
+    words: Word[];
     strategy: string;
     confidence: number;
   }> {
@@ -802,10 +803,10 @@ export class WordNetOrchestrator {
    * Find definition-based matches by searching for key terms in definitions
    */
   private async findDefinitionBasedMatches(
-    definitions: any[],
+    definitions: Definition[],
     targetLanguage: string,
-    queryService: any
-  ): Promise<any[]> {
+    queryService: KyselyQueryService
+  ): Promise<Word[]> {
     // This is a simplified implementation
     // In a full implementation, you would:
     // 1. Extract key terms from definitions
@@ -820,8 +821,8 @@ export class WordNetOrchestrator {
   private async findCommonWordFallback(
     sourceSynsetId: string,
     targetLanguage: string,
-    queryService: any
-  ): Promise<any[]> {
+    queryService: KyselyQueryService
+  ): Promise<Word[]> {
     try {
       const db = (queryService as any).db;
       if (db) {
@@ -836,7 +837,7 @@ export class WordNetOrchestrator {
           // Try to find target language words with similar meanings
           // This is a simplified approach - in practice you'd want more sophisticated matching
           const targetWords = await queryService.getWords({
-            lang: targetLanguage,
+            language: targetLanguage,
             pos: sourceSynset.pos,
           });
 
@@ -1099,7 +1100,7 @@ export class WordNetOrchestrator {
         byLanguage: {} as Record<string, number>,
       };
 
-      synsetStats.forEach((row: any) => {
+      synsetStats.forEach((row: { count: string | number | bigint; ili?: string; language: string }) => {
         const count = Number(row.count);
         synsets.total += count;
         if (row.ili) synsets.withIli += count;
@@ -1116,7 +1117,7 @@ export class WordNetOrchestrator {
 
       const ilis = {
         total: iliStats.length,
-        sample: iliStats.slice(0, 10).map((row: any) => row.id),
+        sample: iliStats.slice(0, 10).map((row: { id: string }) => row.id),
       };
 
       // Get word statistics
@@ -1131,7 +1132,7 @@ export class WordNetOrchestrator {
         byLanguage: {} as Record<string, number>,
       };
 
-      wordStats.forEach((row: any) => {
+      wordStats.forEach((row: { count: string | number | bigint; language: string }) => {
         const count = Number(row.count);
         words.total += count;
         words.byLanguage[row.language] = count;
@@ -1181,10 +1182,10 @@ export class WordNetOrchestrator {
    * Debug a specific synset to understand its ILI mapping
    */
   async debugSynset(synsetId: string): Promise<{
-    synset: any;
-    words: any[];
+    synset: Synset;
+    words: Word[];
     ili: string | null;
-    crossLingualMatches: any[];
+    crossLingualMatches: Word[];
   }> {
     if (!this.wordnet) {
       throw new Error("Orchestrator not initialized");
@@ -1224,7 +1225,7 @@ export class WordNetOrchestrator {
       const ili = synset.ili;
 
       // Find cross-lingual matches if ILI exists
-      let crossLingualMatches: any[] = [];
+      let crossLingualMatches: Word[] = [];
       if (ili) {
         crossLingualMatches = await db
           .selectFrom("synsets")
@@ -1251,7 +1252,7 @@ export class WordNetOrchestrator {
    */
   async findSynsetsByIli(ili: string): Promise<{
     ili: string;
-    synsets: any[];
+    synsets: Synset[];
     languages: string[];
     coverage: Record<string, number>;
   }> {
@@ -1279,13 +1280,13 @@ export class WordNetOrchestrator {
 
       // Group by language
       const languages = [
-        ...new Set(synsets.map((s: any) => s.language)),
+        ...new Set(synsets.map((s: Synset) => s.language)),
       ] as string[];
       const coverage: Record<string, number> = {};
 
       languages.forEach((lang) => {
         coverage[lang as string] = synsets.filter(
-          (s: any) => s.language === lang
+          (s: Synset) => s.language === lang
         ).length;
       });
 
@@ -1425,7 +1426,7 @@ export class WordNetOrchestrator {
    * Emit data changed event
    * This consolidates data change emission from the orchestrator
    */
-  emitDataChanged(operation: string, details?: any): void {
+  emitDataChanged(operation: string, details?: Record<string, unknown>): void {
     this.eventEmitter.emit(
       WordNetEvents.DATA_CHANGED,
       operation,

@@ -4,7 +4,7 @@ import { XMLParser } from "fast-xml-parser";
 /**
  * Represents an XML element with its properties
  */
-interface XMLElement {
+export interface XMLElement {
   name: string;
   attributes: Record<string, string>;
   children: (XMLElement | XMLTextNode)[];
@@ -15,7 +15,7 @@ interface XMLElement {
 /**
  * Represents a text node in XML
  */
-interface XMLTextNode {
+export interface XMLTextNode {
   name: "#text";
   text: string;
 }
@@ -239,7 +239,7 @@ export class MultiXMLParser {
   /**
    * Convert fast-xml-parser output to our standard format
    */
-  private convertFastXMLParserOutput(parsedData: any): { data: ParsedXMLResult; elementCount: number; rootElements: string[] } {
+  private convertFastXMLParserOutput(parsedData: Record<string, unknown>): { data: ParsedXMLResult; elementCount: number; rootElements: string[] } {
     const result: ParsedXMLResult = {};
     let elementCount = 0;
     const rootElements: string[] = [];
@@ -254,7 +254,7 @@ export class MultiXMLParser {
       rootElements.push(rootKey);
       
       if (typeof rootData === 'object' && rootData !== null) {
-        const convertedElement = this.convertFastXMLParserElement(rootKey, rootData);
+        const convertedElement = this.convertFastXMLParserElement(rootKey, rootData as Record<string, unknown>);
         result[rootKey] = convertedElement;
         elementCount = this.countElements(convertedElement);
       }
@@ -266,7 +266,7 @@ export class MultiXMLParser {
   /**
    * Convert a fast-xml-parser element to our format
    */
-  private convertFastXMLParserElement(name: string, data: any, parent?: XMLElement): XMLElement {
+  private convertFastXMLParserElement(name: string, data: Record<string, unknown>, parent?: XMLElement): XMLElement {
     const attributes: Record<string, string> = {};
     const children: (XMLElement | XMLTextNode)[] = [];
     let text = '';
@@ -316,7 +316,7 @@ export class MultiXMLParser {
         } else if (typeof data[key] === 'object' && data[key] !== null) {
           if (Array.isArray(data[key])) {
             // Handle arrays of elements
-            data[key].forEach((child: any) => {
+            data[key].forEach((child: Record<string, unknown>) => {
               if (typeof child === 'object' && child !== null) {
                 // Preserve the original tag name for each array element
                 const converted = this.convertFastXMLParserElement(key, child, undefined);
@@ -334,7 +334,7 @@ export class MultiXMLParser {
             });
           } else {
             // Handle single child element
-            children.push(this.convertFastXMLParserElement(key, data[key], undefined));
+            children.push(this.convertFastXMLParserElement(key, data[key] as Record<string, unknown>, undefined));
           }
         }
       }

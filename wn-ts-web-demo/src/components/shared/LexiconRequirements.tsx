@@ -41,30 +41,12 @@ export const LexiconRequirements: React.FC<LexiconRequirementsProps> = React.mem
   const loadingCount = requirements.filter(r => loading && !isRequirementSatisfied(r.id, loadedPackages)).length;
   const progressPercentage = (loadedCount / totalRequired) * 100;
 
+  // Only log when there are issues with package availability
   useEffect(() => {
-    logger.debug('LexiconRequirements render', {
-      requirements: requirements.length,
-      availablePackages: availablePackages.length,
-      loadedPackages: loadedPackages.length
-    });
-    
-    if (availablePackages.length > 0) {
-      logger.debug('First few available packages', { packages: availablePackages.slice(0, 3) });
-      logger.debug('Package structure sample', {
-        firstPackage: availablePackages[0],
-        hasId: !!availablePackages[0]?.id,
-        hasVersion: !!availablePackages[0]?.versions?.length
-      });
+    if (availablePackages.length === 0) {
+      logger.debug('No available packages found');
     }
-    
-    if (availablePackages.length > 0 && availablePackages[0]) {
-      logger.debug('Package ID format analysis', {
-        sampleId: availablePackages[0].id,
-        hasColon: availablePackages[0].id.includes(':'),
-        parts: availablePackages[0].id.split(':')
-      });
-    }
-  }, [requirements, availablePackages, loadedPackages]);
+  }, [availablePackages.length]);
 
   useEffect(() => {
     const checkRequirements = () => {

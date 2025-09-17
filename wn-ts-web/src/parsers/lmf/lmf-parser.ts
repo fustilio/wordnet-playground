@@ -1,6 +1,15 @@
 import { createScopedLogger, setGlobalLogLevel } from "utils/logger";
 import { MultiXMLParser } from "../xml/multi-xml-parser";
-import type { ParserOptions } from "../xml/multi-xml-parser";
+import type { ParserOptions, XMLElement, XMLTextNode } from "../xml/multi-xml-parser";
+
+// Type for the parsed XML structure that has direct properties
+type ParsedXMLStructure = {
+  [key: string]: any; // Allow dynamic property access for XML elements
+  name?: string;
+  attributes?: Record<string, string>;
+  children?: (XMLElement | XMLTextNode)[];
+  text?: string;
+};
 import type {
   LMFParser,
   LMFDocument,
@@ -10,6 +19,9 @@ import type {
   Sense,
   Lexicon,
   PartOfSpeech,
+  Form,
+  Definition,
+  Relation,
 } from "wn-ts-core";
 import { 
   DuplicateHandler, 
@@ -245,7 +257,7 @@ export class LmfParser implements LMFParser {
       // Convert the XML result to LMF document
       progressCallback?.("converting", 0, 1);
       const result = this.convertXMLResultToLMFDocument(
-        xmlResult,
+        xmlResult as { data?: ParsedXMLStructure; error?: string },
         xmlContent,
         progressCallback,
         mergedOptions
@@ -355,7 +367,7 @@ export class LmfParser implements LMFParser {
    * Convert the parsed XML result to an LMFDocument
    */
   private convertXMLResultToLMFDocument(
-    xmlResult: any,
+    xmlResult: { data?: ParsedXMLStructure; error?: string },
     originalContent: string,
     progressCallback?: LMFProgressCallback,
     mergedOptions?: LmfParseOptions
@@ -391,10 +403,10 @@ export class LmfParser implements LMFParser {
     };
 
     // Handle MultiXMLParser result structure
-    let xmlData: any;
+    let xmlData: ParsedXMLStructure;
     if (xmlResult.data) {
       // MultiXMLParser result structure
-      xmlData = xmlResult.data;
+      xmlData = xmlResult.data as ParsedXMLStructure;
       this.logger.debug(`Using MultiXMLParser result structure with data property`);
     } else {
       // Direct XML result structure
@@ -441,7 +453,7 @@ export class LmfParser implements LMFParser {
         this.logger.debug(`LexicalResource.children is array:`, Array.isArray(xmlData.LexicalResource.children));
         if (Array.isArray(xmlData.LexicalResource.children)) {
           this.logger.debug(`LexicalResource.children length:`, xmlData.LexicalResource.children.length);
-          this.logger.debug(`First few children:`, xmlData.LexicalResource.children.slice(0, 3).map((c: any) => ({ name: c.name, type: typeof c })));
+          this.logger.debug(`First few children:`, xmlData.LexicalResource.children.slice(0, 3).map((c: XMLElement | XMLTextNode) => ({ name: c.name, type: typeof c })));
         }
       }
       this.processLexicalResource(xmlData.LexicalResource, result, progressCallback, options);
@@ -478,20 +490,20 @@ export class LmfParser implements LMFParser {
    * Process the LexicalResource element and extract all LMF data
    */
   private processLexicalResource(
-    element: any,
+    element: ParsedXMLStructure,
     result: LMFDocument,
     progressCallback?: LMFProgressCallback,
     mergedOptions?: LmfParseOptions
   ): void {
     // Use instance options as fallback if mergedOptions not provided
     const options = mergedOptions || this.options;
-    this.logger.debug(`processLexicalResource called with element:`, {
-      type: typeof element,
-      keys: Object.keys(element),
-      hasChildren: !!element.children,
-      childrenType: element.children ? typeof element.children : "none",
-      childrenLength: element.children ? element.children.length : 0,
-    });
+      this.logger.debug(`processLexicalResource called with element:`, {
+        type: typeof element,
+        keys: Object.keys(element),
+        hasChildren: !!element.children,
+        childrenType: element.children ? typeof element.children : "none",
+        childrenLength: element.children && Array.isArray(element.children) ? (element.children as any[]).length : 0,
+      });
     
     // Log potential issues with element structure
     if (!element) {
@@ -517,7 +529,7 @@ export class LmfParser implements LMFParser {
       this.logger.warn("processLexicalResource: unexpected element structure", {
         hasChildren: !!element.children,
         childrenType: element.children ? typeof element.children : "none",
-        childrenLength: element.children ? element.children.length : 0,
+        childrenLength: element.children && Array.isArray(element.children) ? (element.children as any[]).length : 0,
       });
     }
 
@@ -525,13 +537,13 @@ export class LmfParser implements LMFParser {
     if (element.children && Array.isArray(element.children)) {
       // New MultiXMLParser structure with children array
       this.logger.debug(`Using new MultiXMLParser structure with ${element.children.length} children`);
-      const totalChildren = element.children.length;
+      const totalChildren = element.children?.length || 0;
       progressCallback?.("processing_children", 0, totalChildren, {
         totalChildren,
       });
 
       const hasLexiconChildren = element.children.some(
-        (c: any) => c?.name === "Lexicon" || c?.name === "LexiconExtension"
+        (c: XMLElement | XMLTextNode) => c?.name === "Lexicon" || c?.name === "LexiconExtension"
       );
       let primaryLanguage: string | null = null;
 
@@ -685,7 +697,7 @@ export class LmfParser implements LMFParser {
         {
           hasChildren: !!element.children,
           childrenType: element.children ? typeof element.children : "none",
-          childrenLength: element.children ? element.children.length : 0,
+          childrenLength: element.children && Array.isArray(element.children) ? (element.children as any[]).length : 0,
         }
       );
     }
@@ -709,7 +721,7 @@ export class LmfParser implements LMFParser {
    * Process the contents of a Lexicon element (LexicalEntry, Synset, Sense)
    */
   private processLexiconContents(
-    lexiconElement: any,
+    lexiconElement: ParsedXMLStructure,
     words: Word[],
     synsets: Synset[],
     senses: Sense[],
@@ -780,7 +792,7 @@ export class LmfParser implements LMFParser {
                 if (senseChild.name === "Sense") {
                   const sense = this.processSense(senseChild, word.id);
                   if (sense) {
-                    const lexicalizedAttr = senseChild.attributes?.lexicalized ?? (senseChild.lexicalized as string | undefined);
+                    const lexicalizedAttr = (senseChild as ParsedXMLStructure).attributes?.lexicalized ?? (senseChild as ParsedXMLStructure).lexicalized as string | undefined;
                     if (typeof lexicalizedAttr === 'string' && lexicalizedAttr === 'false') {
                       // skip unlexicalized senses
                     } else {
@@ -1032,7 +1044,7 @@ export class LmfParser implements LMFParser {
   /**
    * Process a Lexicon element
    */
-  private processLexicon(element: any): Lexicon | null {
+  private processLexicon(element: ParsedXMLStructure): Lexicon | null {
     // Log potential issues with element structure
     if (!element) {
       this.logger.warn("processLexicon: element is null/undefined");
@@ -1122,7 +1134,7 @@ export class LmfParser implements LMFParser {
   /**
    * Process a LexicalEntry element
    */
-  private processLexicalEntry(element: any, lexiconId: string): Word | null {
+  private processLexicalEntry(element: ParsedXMLStructure, lexiconId: string): Word | null {
     // Log potential issues with element structure
     if (!element) {
       this.logger.warn("processLexicalEntry: element is null/undefined");
@@ -1161,26 +1173,27 @@ export class LmfParser implements LMFParser {
     }
 
     // Find Lemma element - handle both structures
-    let lemmaElement: any;
+    let lemmaElement: XMLElement | undefined;
     if (element.children && Array.isArray(element.children)) {
       // New structure - look for Lemma in children
       lemmaElement = element.children.find(
-        (child: any) => child.name === "Lemma"
-      );
+        (child: XMLElement | XMLTextNode) => child.name === "Lemma"
+      ) as XMLElement | undefined;
     } else {
       // Old structure - direct property
       lemmaElement = element.Lemma;
     }
 
     if (lemmaElement) {
-      if (lemmaElement.attributes) {
+      const lemmaData = lemmaElement as ParsedXMLStructure;
+      if (lemmaData.attributes) {
         // New structure
-        lemma = lemmaElement.attributes.writtenForm;
-        partOfSpeech = lemmaElement.attributes.partOfSpeech;
+        lemma = lemmaData.attributes.writtenForm;
+        partOfSpeech = lemmaData.attributes.partOfSpeech;
       } else {
         // Old structure
-        lemma = lemmaElement.writtenForm;
-        partOfSpeech = lemmaElement.partOfSpeech;
+        lemma = lemmaData.writtenForm;
+        partOfSpeech = lemmaData.partOfSpeech;
       }
     }
 
@@ -1188,17 +1201,18 @@ export class LmfParser implements LMFParser {
     partOfSpeech = partOfSpeech || "n";
 
     // Process forms - handle both structures
-    const forms: any[] = [];
+    const forms: Form[] = [];
     if (element.children && Array.isArray(element.children)) {
       // New structure - look for Form in children
       const formElements = element.children.filter(
-        (child: any) => child.name === "Form"
-      );
+        (child: XMLElement | XMLTextNode) => child.name === "Form"
+      ) as XMLElement[];
       for (const formElement of formElements) {
         forms.push({
+          id: formElement.attributes?.id || `${id}_form_${forms.length}`,
           writtenForm: formElement.attributes?.writtenForm || "",
           tag: formElement.attributes?.tag || "",
-          language: formElement.attributes?.language || "en",
+          script: formElement.attributes?.script,
         });
       }
     } else if (element.Form) {
@@ -1206,9 +1220,10 @@ export class LmfParser implements LMFParser {
       for (const key in element.Form) {
         if (Object.prototype.hasOwnProperty.call(element.Form, key)) {
           forms.push({
+            id: key,
             writtenForm: element.Form[key].writtenForm || "",
             tag: element.Form[key].tag || "",
-            language: element.Form[key].language || "en",
+            script: element.Form[key].script,
           });
         }
       }
@@ -1234,7 +1249,7 @@ export class LmfParser implements LMFParser {
   /**
    * Process a Synset element
    */
-  private processSynset(element: any, lexiconId: string): Synset | null {
+  private processSynset(element: ParsedXMLStructure, lexiconId: string): Synset | null {
     // Log potential issues with element structure
     if (!element) {
       this.logger.warn("processSynset: element is null/undefined");
@@ -1280,14 +1295,14 @@ export class LmfParser implements LMFParser {
       return null;
     }
 
-    const definitions: any[] = [];
+    const definitions: Definition[] = [];
 
     // Process Definition elements - handle both structures
     if (element.children && Array.isArray(element.children)) {
       // New structure - look for Definition in children
       const definitionElements = element.children.filter(
-        (child: any) => child.name === "Definition"
-      );
+        (child: XMLElement | XMLTextNode) => child.name === "Definition"
+      ) as XMLElement[];
       
       // Update statistics
       if (definitionElements.length > 0) {
@@ -1307,14 +1322,14 @@ export class LmfParser implements LMFParser {
         // If no direct text, look for gloss element in children
         else if (defElement.children && Array.isArray(defElement.children)) {
           const glossElement = defElement.children.find(
-            (child: any) => child.name === "gloss"
-          );
+            (child: XMLElement | XMLTextNode) => child.name === "gloss"
+          ) as XMLElement | undefined;
           if (glossElement) {
             gloss = glossElement.text || "";
           } else {
             // If no gloss element, collect text from all child elements
             gloss = defElement.children
-              .map((child: any) => child.text || "")
+              .map((child: XMLElement | XMLTextNode) => child.text || "")
               .filter(Boolean)
               .join(" ");
           }
@@ -1375,17 +1390,19 @@ export class LmfParser implements LMFParser {
     // Note: Statistics are tracked incrementally above
 
     // Process relations - handle both structures
-    const relations: any[] = [];
+    const relations: Relation[] = [];
     if (element.children && Array.isArray(element.children)) {
       // New structure - look for SynsetRelation in children
       const relationElements = element.children.filter(
-        (child: any) => child.name === "SynsetRelation"
-      );
+        (child: XMLElement | XMLTextNode) => child.name === "SynsetRelation"
+      ) as XMLElement[];
       for (const relElement of relationElements) {
         relations.push({
+          id: relElement.attributes?.id || `${id}.rel.${relations.length}`,
           type: relElement.attributes?.relType || "unknown",
           target: relElement.attributes?.target || "",
-          language: relElement.attributes?.language || "en",
+          source: relElement.attributes?.source,
+          dcType: relElement.attributes?.dcType,
         });
       }
     } else if (element.SynsetRelation) {
@@ -1393,9 +1410,11 @@ export class LmfParser implements LMFParser {
       for (const key in element.SynsetRelation) {
         if (Object.prototype.hasOwnProperty.call(element.SynsetRelation, key)) {
           relations.push({
+            id: key,
             type: element.SynsetRelation[key].relType || "unknown",
             target: element.SynsetRelation[key].target || "",
-            language: element.SynsetRelation[key].language || "en",
+            source: element.SynsetRelation[key].source,
+            dcType: element.SynsetRelation[key].dcType,
           });
         }
       }
@@ -1418,7 +1437,7 @@ export class LmfParser implements LMFParser {
   /**
    * Process a Sense element
    */
-  private processSense(element: any, lexicalEntryId?: string): Sense | null {
+  private processSense(element: ParsedXMLStructure, lexicalEntryId?: string): Sense | null {
     // Log potential issues with element structure
     if (!element) {
       this.logger.warn("processSense: element is null/undefined");
@@ -1579,27 +1598,21 @@ export class LmfParser implements LMFParser {
         const lastLexiconAttrs = attrs(lastLexiconMatch[lastLexiconMatch.length - 1]);
         const wordLanguage = lastLexiconAttrs.language || "en";
         
-        // Only include English words in the aggregated arrays
-        if (wordLanguage === "en") {
-          if (options.debug) {
-            this.logger.debug(`Found English word:`, { entry: ea, lemma: la, language: wordLanguage });
-          }
-          result.words.push({
-            id: ea.id || "unknown",
-            lemma: la.writtenForm || ea.id || "unknown",
-            pos: (la.partOfSpeech || "n") as any,
-            forms: [],
-            pronunciations: [],
-            tags: [],
-            counts: [],
-            language: wordLanguage,
-            lexicon: lastLexiconAttrs.id || "unknown",
-          });
-        } else {
-          if (options.debug) {
-            this.logger.debug(`Skipping non-English word:`, { entry: ea, lemma: la, language: wordLanguage });
-          }
+        // Include all words regardless of language
+        if (options.debug) {
+          this.logger.debug(`Found word:`, { entry: ea, lemma: la, language: wordLanguage });
         }
+        result.words.push({
+          id: ea.id || "unknown",
+          lemma: la.writtenForm || ea.id || "unknown",
+          pos: (la.partOfSpeech || "n") as any,
+          forms: [],
+          pronunciations: [],
+          tags: [],
+          counts: [],
+          language: wordLanguage,
+          lexicon: lastLexiconAttrs.id || "unknown",
+        });
       }
     }
 
@@ -1630,44 +1643,35 @@ export class LmfParser implements LMFParser {
         const lastLexiconAttrs = attrs(lastLexiconMatch[lastLexiconMatch.length - 1]);
         const synsetLanguage = lastLexiconAttrs.language || "en";
         
-        // Only include English synsets in the aggregated arrays
-        if (synsetLanguage === "en") {
-          if (options.debug) {
-            this.logger.debug(`Found English synset:`, {
-              synset: sa,
-              definition: defText,
-              language: synsetLanguage,
-            });
-          }
-          result.synsets.push({
-            id: sa.id || "unknown",
-            ili: sa.ili || undefined,
-            pos: (sa.partOfSpeech || "n") as any,
-            definitions: defText
-              ? [
-                  {
-                    id: `${sa.id || "syn"}.def.${defLang}`,
-                    language: defLang,
-                    text: defText,
-                    source: "",
-                  },
-                ]
-              : [],
-            examples: [],
-            relations: [],
+        // Include all synsets regardless of language
+        if (options.debug) {
+          this.logger.debug(`Found synset:`, {
+            synset: sa,
+            definition: defText,
             language: synsetLanguage,
-            lexicon: lastLexiconAttrs.id || "unknown",
-            memberIds: [],
-            senseIds: [],
           });
-        } else {
-          if (options.debug) {
-            this.logger.debug(`Skipping non-English synset:`, {
-              synset: sa,
-              language: synsetLanguage,
-            });
-          }
         }
+        result.synsets.push({
+          id: sa.id || "unknown",
+          ili: sa.ili || undefined,
+          pos: (sa.partOfSpeech || "n") as any,
+          definitions: defText
+            ? [
+                {
+                  id: `${sa.id || "syn"}.def.${defLang}`,
+                  language: defLang,
+                  text: defText,
+                  source: "",
+                },
+              ]
+            : [],
+          examples: [],
+          relations: [],
+          language: synsetLanguage,
+          lexicon: lastLexiconAttrs.id || "unknown",
+          memberIds: [],
+          senseIds: [],
+        });
       }
     }
 

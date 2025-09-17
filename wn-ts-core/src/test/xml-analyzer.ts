@@ -1,33 +1,35 @@
-// Try to import xml-introspect, but make it optional
-let XMLIntrospector: any;
-let StreamingXMLIntrospector: any;
-let XMLAnalyzer: any;
-let XSDGenerator: any;
-let XMLValidator: any;
-let SampleGenerator: any;
-let XMLFakerGenerator: any;
+// xml-introspect is optional and only available in Node.js environment
+let XMLIntrospector: any = null;
+let StreamingXMLIntrospector: any = null;
+let XMLAnalyzer: any = null;
+let XSDGenerator: any = null;
+let XMLValidator: any = null;
+let SampleGenerator: any = null;
+let XMLFakerGenerator: any = null;
 
 // Import shared LMF version utilities
 import { extractLMFVersion, extractDTDVersion } from '../lmf/version-utils.js';
 
-try {
-  const xmlIntrospect = require('xml-introspect');
-  XMLIntrospector = xmlIntrospect.XMLIntrospector;
-  StreamingXMLIntrospector = xmlIntrospect.StreamingXMLIntrospector;
-  XMLAnalyzer = xmlIntrospect.XMLAnalyzer;
-  XSDGenerator = xmlIntrospect.XSDGenerator;
-  XMLValidator = xmlIntrospect.XMLValidator;
-  SampleGenerator = xmlIntrospect.SampleGenerator;
-  XMLFakerGenerator = xmlIntrospect.XMLFakerGenerator;
-} catch (error) {
-  // xml-introspect not available
-  XMLIntrospector = null;
-  StreamingXMLIntrospector = null;
-  XMLAnalyzer = null;
-  XSDGenerator = null;
-  XMLValidator = null;
-  SampleGenerator = null;
-  XMLFakerGenerator = null;
+// Function to initialize xml-introspect in Node.js environment
+async function initializeXmlIntrospect() {
+  // Only try to import in Node.js environment and avoid browser bundlers
+  if (typeof window === 'undefined' && 
+      typeof process !== 'undefined' && 
+      process.versions?.node &&
+      !globalThis.__vitest_browser_runner__) {
+    try {
+      const xmlIntrospect = await import('xml-introspect');
+      XMLIntrospector = xmlIntrospect.XMLIntrospector;
+      StreamingXMLIntrospector = xmlIntrospect.StreamingXMLIntrospector;
+      XMLAnalyzer = xmlIntrospect.XMLAnalyzer;
+      XSDGenerator = xmlIntrospect.XSDGenerator;
+      XMLValidator = xmlIntrospect.XMLValidator;
+      SampleGenerator = xmlIntrospect.SampleGenerator;
+      XMLFakerGenerator = xmlIntrospect.XMLFakerGenerator;
+    } catch (error) {
+      // xml-introspect not available, keep variables as null
+    }
+  }
 }
 
 // Browser-safe file reading - only available in Node.js environment
@@ -83,6 +85,9 @@ export interface ILIAnalysis {
  * Now leverages xml-introspect XMLAnalyzer for comprehensive analysis
  */
 export async function analyzeLMFXML(filePathOrContent: string): Promise<XMLAnalysisResult> {
+  // Initialize xml-introspect if available
+  await initializeXmlIntrospect();
+  
   let xmlContent: string;
   
   // Check if we're in a browser environment or if the input looks like XML content

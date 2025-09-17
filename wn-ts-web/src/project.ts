@@ -39,10 +39,10 @@ function deepMergeProjectData(
   if ("error" in existing) return incoming;
 
   // Merge shallow props and merge versions record
-  const merged: any = { ...existing, ...incoming };
+  const merged = { ...existing, ...incoming };
   merged.versions = {
-    ...(existing as any).versions,
-    ...(incoming as any).versions,
+    ...existing.versions,
+    ...incoming.versions,
   };
   return merged;
 }

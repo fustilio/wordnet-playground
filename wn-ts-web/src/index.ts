@@ -34,6 +34,17 @@ export { createWordNetWorker } from './client/utils/worker-factory.js';
 export { parsePackageId, formatPackageId, isValidPackageId, getPackageBase, getPackageVersion } from 'wn-ts-core';
 export type { PackageIdParts } from 'wn-ts-core';
 
+// Translation utilities (re-exported from wn-ts-core)
+export {
+  TranslationHelper,
+  createTranslationHelper,
+  quickTranslate,
+} from 'wn-ts-core';
+export type {
+  TranslationResult,
+  BilingualQueryOptions,
+} from 'wn-ts-core';
+
 // Export all types from centralized location
 export type * from './types/index.js';
 

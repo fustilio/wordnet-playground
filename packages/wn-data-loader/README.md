@@ -3,6 +3,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-4.9+-blue.svg)](https://www.typescriptlang.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Tests](https://img.shields.io/badge/Tests-39%20passing-brightgreen.svg)](./TESTING.md)
 
 A WordNet-specific extension of `@fustilio/data-loader` that demonstrates how to build domain-specific data processing pipelines on top of the generic data-loader package. This example shows how to create specialized handlers for lexical data while leveraging the robust, generic data processing capabilities of the base package.
 
@@ -237,6 +238,18 @@ if (parseResult.success) {
 
 ## 🧪 Testing
 
+The `wn-data-loader` package includes a comprehensive test suite that covers all functionality with proper organization and minimal duplication.
+
+### Test Structure
+
+```
+src/__tests__/
+├── unit.test.ts              # Unit tests for individual components
+├── decompression.test.ts     # Decompression and performance tests
+├── test-utils.ts            # Shared utilities and helpers
+└── README-decompression-tests.md  # Detailed test documentation
+```
+
 ### Running Tests
 
 ```bash
@@ -254,11 +267,51 @@ pnpm test:watch
 
 ### Test Coverage
 
-- **Unit Tests**: Individual component functionality (WordNetProcessor, WordNetContentDetector, Data Sources)
-- **Decompression Tests**: File size-based testing, performance, error handling, and integration patterns
-- **Real Data Tests**: Actual WordNet data processing with various file sizes
-- **Validation Tests**: LMF structure validation and data source consistency
-- **Error Handling Tests**: Graceful failure scenarios and timeout handling
+#### Unit Tests (`unit.test.ts`)
+- **WordNetProcessor**: Core processing functionality, validation, error handling
+- **WordNetContentDetector**: Content type detection, metadata extraction, LMF validation
+- **Data Sources**: Registry management, filtering, validation, consistency checks
+
+#### Decompression Tests (`decompression.test.ts`)
+- **Basic Decompression**: Small files, corrupted data, empty data handling
+- **File Size Testing**: Small (80B), medium (512KB), large (2MB), very large (5MB) files
+- **OEWN Simulation**: Real-world scenarios with OEWN-like data structures
+- **WordNet-Specific**: XML structure validation, progress reporting
+- **Error Handling**: Timeout scenarios, graceful failure handling
+- **Integration Patterns**: End-to-end processing workflows
+
+### Test Utilities (`test-utils.ts`)
+
+Shared utilities that eliminate duplication across test files:
+
+- **Data Generation**: `generateWordNetXmlData()`, `generateOewnLikeXmlData()`, `generateSimpleXmlData()`
+- **Compression**: `compressGzip()` for consistent test data
+- **Test Helpers**: `testWordNetProcessing()` with timing and validation
+- **Constants**: File size categories, expected timeouts, test timeouts
+
+### Performance Testing
+
+The test suite includes comprehensive performance testing:
+
+- **File Size Categories**: Small (80B) to OEWN-like (8MB) files
+- **Timing Validation**: Each test has appropriate timeout expectations
+- **Progress Reporting**: Tests verify progress callbacks work correctly
+- **Memory Management**: Large file processing without memory leaks
+
+### Test Data
+
+Tests use realistic WordNet data structures:
+
+- **LMF XML**: Proper LexicalResource, Lexicon, LexicalEntry structures
+- **Compression**: Real gzip compression ratios and patterns
+- **Metadata**: Accurate synset counts, lemma counts, language codes
+- **Relations**: Hyponym, hypernym, meronym, holonym relationships
+
+### Comprehensive Testing Documentation
+
+For detailed testing information, see:
+- **[TESTING.md](./TESTING.md)** - Complete testing strategy and documentation
+- **[src/__tests__/README-decompression-tests.md](./src/__tests__/README-decompression-tests.md)** - Test suite details
 
 ## 🔧 Configuration
 

@@ -4,17 +4,27 @@ import { StatisticsWidget } from '../components/widgets/StatisticsWidget';
 import { DataManager } from '../components/DataManager';
 import { LexiconRequirementsWidget } from '../components/widgets/LexiconRequirementsWidget';
 import { Tabs } from '../components/shared/Tabs';
-import { BasicDemo, BilingualDictionary, AdvancedDemo, DeveloperDemo, 
-  VisualizationDemo, LexiconIntrospectionDemo
- } from '../components/demos';
+import { 
+  BasicDemo, 
+  AdvancedDemo, 
+  DeveloperDemo, 
+  VisualizationDemo, 
+  LexiconIntrospectionDemo,
+  TranslationShowcase
+} from '../examples/tabs';
 import { useWordNetContext } from 'wn-ts-web/react';
-import { createScopedLogger } from 'utils/logger';
+import { createScopedLogger, setGlobalLogLevel } from 'utils/logger';
 
 const logger = createScopedLogger('App');
 
 function App() {
   const [activeTab, setActiveTab] = useState('Basic');
   const wordNetState = useWordNetContext();
+
+  // Set log level to reduce noise - only show warnings and errors by default
+  useEffect(() => {
+    setGlobalLogLevel('warn');
+  }, []);
 
   // Debug logging
   useEffect(() => {
@@ -26,7 +36,14 @@ function App() {
     });
   }, [wordNetState]);
 
-  const tabs = ['Basic', 'Bilingual', 'Data Catalog', 'Visualizations', 'Developer', 'Introspection'];
+  const tabs = [
+    'Basic', 
+    'Translation Showcase',
+    'Data Catalog', 
+    'Visualizations', 
+    'Developer', 
+    'Introspection'
+  ];
 
   const handleTabChange = (tab: string) => {
     logger.info('Tab changed', { from: activeTab, to: tab });
@@ -77,7 +94,7 @@ function App() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <aside className="lg:col-span-1 space-y-6">
             <StatusWidget 
-              {...wordNetState}
+              {...wordNetState as any}
             />
             <LexiconRequirementsWidget />
             <DataManager 
@@ -95,7 +112,7 @@ function App() {
             <Tabs tabs={tabs} activeTab={activeTab} setActiveTab={handleTabChange} />
             <div className="mt-6">
               {activeTab === 'Basic' && <BasicDemo />}
-              {activeTab === 'Bilingual' && <BilingualDictionary />}
+              {activeTab === 'Translation Showcase' && <TranslationShowcase />}
               {activeTab === 'Data Catalog' && <AdvancedDemo />}
               {activeTab === 'Visualizations' && <VisualizationDemo />}
               {activeTab === 'Developer' && <DeveloperDemo />}

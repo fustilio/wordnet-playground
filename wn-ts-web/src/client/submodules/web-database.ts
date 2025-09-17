@@ -113,7 +113,7 @@ export class WebDatabase {
     }
   }
 
-  run(sql: string, params: any[] = []): void {
+  run(sql: string, params: (string | number | null)[] = []): void {
     if (!this.db) {
       throw new Error("Database not initialized");
     }
@@ -152,7 +152,13 @@ export class WebDatabase {
     }
   }
 
-  async getStatistics(): Promise<any> {
+  async getStatistics(): Promise<{
+    totalWords: number;
+    totalSynsets: number;
+    totalSenses: number;
+    totalILIs: number;
+    totalLexicons: number;
+  }> {
     // This is a mock-like implementation to allow DataLoader to proceed.
     // The actual getStatistics is on WebWordnet and uses Kysely.
     return {

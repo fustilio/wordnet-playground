@@ -65,7 +65,7 @@ describe.skipIf(isNode)('Bilingual Dictionary Functionality E2E', () => {
       // Ensure we have the basic English WordNet package loaded
       const lexicons = await wordnet.lexicons();
       const hasRequiredPackages = 
-        lexicons.some(l => l.id === 'oewn:2024');
+        lexicons.some(l => l.id === 'oewn');
       
       if (!hasRequiredPackages) {
         throw new Error('Required packages not loaded for bilingual testing');
@@ -77,12 +77,12 @@ describe.skipIf(isNode)('Bilingual Dictionary Functionality E2E', () => {
       // Verify that English WordNet data is available for source queries
       
       const lexicons = await wordnet.lexicons();
-      const englishLexicon = lexicons.find(l => l.id === 'oewn:2024');
+      const englishLexicon = lexicons.find(l => l.id === 'oewn');
       expect(englishLexicon).toBeDefined();
       
       if (englishLexicon) {
         const lexiconStats = await wordnet.getLexiconStatistics(englishLexicon.id);
-        const stats = lexiconStats.find(s => s.lexiconId === 'oewn:2024');
+        const stats = lexiconStats.find(s => s.lexiconId === 'oewn');
         expect(stats).toBeDefined();
         
         if (stats) {
@@ -130,12 +130,12 @@ describe.skipIf(isNode)('Bilingual Dictionary Functionality E2E', () => {
       // This test validates that French WordNet data is available
       
       const lexicons = await wordnet.lexicons();
-      const frenchLexicon = lexicons.find(l => l.id === 'omw-fr:1.4');
+      const frenchLexicon = lexicons.find(l => l.id === 'omw-fr');
       expect(frenchLexicon).toBeDefined();
       
       if (frenchLexicon) {
         const lexiconStats = await wordnet.getLexiconStatistics(frenchLexicon.id);
-        const frenchStats = lexiconStats.find(s => s.lexiconId === 'omw-fr:1.4');
+        const frenchStats = lexiconStats.find(s => s.lexiconId === 'omw-fr');
         expect(frenchStats).toBeDefined();
         
         if (frenchStats) {
@@ -158,12 +158,12 @@ describe.skipIf(isNode)('Bilingual Dictionary Functionality E2E', () => {
       // This test validates that Thai WordNet data is available
       
       const lexicons = await wordnet.lexicons();
-      const thaiLexicon = lexicons.find(l => l.id === 'omw-th:1.4');
+      const thaiLexicon = lexicons.find(l => l.id === 'omw-th');
       expect(thaiLexicon).toBeDefined();
       
       if (thaiLexicon) {
         const lexiconStats = await wordnet.getLexiconStatistics(thaiLexicon.id);
-        const thaiStats = lexiconStats.find(s => s.lexiconId === 'omw-th:1.4');
+        const thaiStats = lexiconStats.find(s => s.lexiconId === 'omw-th');
         expect(thaiStats).toBeDefined();
         
         if (thaiStats) {

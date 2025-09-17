@@ -3,7 +3,9 @@
  * Provides a lightweight way to subscribe to database and state changes
  */
 
-export type EventCallback = (...args: any[]) => void;
+import type { WordNetEventMap, WordNetEventListener } from './types/index.js';
+
+export type EventCallback = (...args: unknown[]) => void;
 
 export class WordNetEventEmitter {
   private listeners: Map<string, Set<EventCallback>> = new Map();
@@ -41,7 +43,7 @@ export class WordNetEventEmitter {
    * @param event - Event name to emit
    * @param args - Arguments to pass to event callbacks
    */
-  emit(event: string, ...args: any[]): void {
+  emit(event: string, ...args: unknown[]): void {
     const eventListeners = this.listeners.get(event);
     if (eventListeners) {
       eventListeners.forEach(callback => {

@@ -16,6 +16,7 @@ import type {
   WordQuery,
   SynsetQuery,
   SenseQuery,
+  QueryStrategy,
 } from 'wn-ts-core';
 import { Kysely } from 'kysely';
 import type { NodeDatabaseConfig } from 'wn-ts-core';
@@ -33,6 +34,7 @@ export interface NodeWordnetConfig extends NodeDatabaseConfig {
   foreignKeys?: boolean;
   recursiveTriggers?: boolean;
   forceRecreate?: boolean;
+  strategy?: QueryStrategy;
 }
 
 // Local base class that doesn't depend on wn-ts-core database types
@@ -85,13 +87,15 @@ export abstract class LocalBaseWordnet {
 export class KyselyWordnet extends LocalBaseWordnet {
   private nodeDatabase: NodeKyselyDatabase;
   private queryService!: KyselyQueryService;
+  private strategy: QueryStrategy;
 
   constructor(
     lexicon: string | string[] = '*',
     options: Partial<NodeWordnetConfig> = {}
   ) {
-    const { filename, forceRecreate, ...wordnetOptions } = options;
+    const { filename, forceRecreate, strategy = 'default', ...wordnetOptions } = options;
     super(lexicon, wordnetOptions);
+    this.strategy = strategy;
 
     if (!filename) {
       throw new Error('filename is required for NodeWordnetConfig');
@@ -109,7 +113,7 @@ export class KyselyWordnet extends LocalBaseWordnet {
     await this.nodeDatabase.initialize();
     await this.configureSQLite();
     this.initialized = true;
-    this.queryService = new KyselyQueryService(this.getDb());
+    this.queryService = new KyselyQueryService(this.getDb(), { strategy: this.strategy });
   }
 
   private async configureSQLite(): Promise<void> {

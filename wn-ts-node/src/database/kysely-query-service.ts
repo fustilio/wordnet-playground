@@ -5,12 +5,12 @@
  */
 
 import { Kysely } from 'kysely';
-import { BaseKyselyQueryService, SchemaBuilder, DatabaseUtils } from 'wn-ts-core';
+import { BaseKyselyQueryService, SchemaBuilder, DatabaseUtils, type QueryStrategy } from 'wn-ts-core';
 import type { Database } from './types/database.js';
 
 export class KyselyQueryService extends BaseKyselyQueryService {
-  constructor(db: Kysely<Database>) {
-    super(db);
+  constructor(db: Kysely<Database>, options?: { strategy?: QueryStrategy }) {
+    super(db, options);
   }
 
   // Implement the abstract createTables method using shared SchemaBuilder

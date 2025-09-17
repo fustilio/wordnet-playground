@@ -1,34 +1,12 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { join, basename, dirname } from 'path';
 import { tmpdir } from 'os';
 import { existsSync, rmSync, mkdtempSync } from 'fs';
 import { config, download, add, Wordnet } from '../../src/index.js';
 import { decompressXz } from '../../src/utils/archive.js';
-import { logger, type PartOfSpeech } from 'wn-ts-core';
-
-class ProgressLogger {
-  private startTime: number;
-  private stage: string;
-  private lastLoggedPercent: number;
-  constructor(stage: string) {
-    this.stage = stage;
-    this.startTime = Date.now();
-    this.lastLoggedPercent = -1;
-    logger.info(`\n[${this.stage}] Starting...`);
-  }
-  update(progress: number) {
-    const percent = Math.floor(progress * 100);
-    if (percent >= this.lastLoggedPercent + 5) {
-      const elapsed = ((Date.now() - this.startTime) / 1000).toFixed(1);
-      process.stdout.write(`\r[${this.stage}] ${percent}% complete (${elapsed}s)`);
-      this.lastLoggedPercent = percent;
-    }
-  }
-  finish() {
-    const elapsed = ((Date.now() - this.startTime) / 1000).toFixed(1);
-    process.stdout.write(`\r[${this.stage}] 100% complete (${elapsed}s)\n`);
-  }
-}
+import { logger } from 'wn-ts-core/utils';
+import { ProgressLogger } from '../utils/progress-logger.js';
+import type { Synset } from 'wn-ts-core';
 
 describe('Quarantined E2E Tests', () => {
   let e2eDataDir: string;
@@ -93,6 +71,9 @@ describe('Quarantined E2E Tests', () => {
     });
     frAddProgress.finish();
 
+    // Initialize the wordnet client once for all tests
+    wordnetClient = new Wordnet('*');
+
     logger.success('Quarantine e2e setup complete.');
   }, 900000); // 15 minute timeout for setup
 
@@ -107,18 +88,13 @@ describe('Quarantined E2E Tests', () => {
     }
   });
 
-  beforeEach(async () => {
-    config.dataDirectory = e2eDataDir;
-    new Wordnet('*');
-    wordnetClient = new Wordnet('*');
-  });
 
   it('should support enhanced synset data', async () => {
     logger.info('📊 Testing enhanced synset data...');
 
     // First, let's find a synset that actually has definitions
     const allSynsets = await wordnetClient.synsets({ maxResults: 100 });
-    let synsetWithDefinitions: any = null;
+    let synsetWithDefinitions: Synset | null = null;
 
     for (const synset of allSynsets) {
       if (synset.definitions && synset.definitions.length > 0) {
@@ -150,7 +126,7 @@ describe('Quarantined E2E Tests', () => {
 
     // Find a synset with definitions
     const allSynsets = await wordnetClient.synsets({ maxResults: 100 });
-    let synsetWithDefinitions: any = null;
+    let synsetWithDefinitions: Synset | null = null;
 
     for (const synset of allSynsets) {
       if (synset.definitions && synset.definitions.length > 0) {
@@ -186,16 +162,12 @@ describe('Quarantined E2E Tests', () => {
     const queryService = await wordnetClient.getQueryService();
     console.log('\\n=== Finding synsets with definitions ===');
     
-    const synsetsWithDefs = await queryService.db
-      .selectFrom('definitions')
-      .select('synset_id')
-      .groupBy('synset_id')
-      .limit(5)
-      .execute();
-    console.log('Sample synset IDs with definitions:', synsetsWithDefs.map(d => d.synset_id));
+    // Use the public API instead of accessing protected db property
+    const synsetsWithDefs = await queryService.getSynsets({ maxResults: 5 });
+    console.log('Sample synset IDs with definitions:', synsetsWithDefs.map(d => d.id));
     
     // 2. Test with a synset that we know has definitions
-    const testSynsetId = synsetsWithDefs[0]?.synset_id;
+    const testSynsetId = synsetsWithDefs[0]?.id;
     if (!testSynsetId) {
       throw new Error('No synsets with definitions found in database');
     }
