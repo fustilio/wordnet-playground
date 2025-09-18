@@ -3,7 +3,7 @@
  * This module provides common parsing logic that can be used across all packages
  */
 
-import type { Synset, Word, Sense } from '../types.js';
+import type { Synset, Word, Sense } from '../core/types.js';
 
 /**
  * LMF Document structure

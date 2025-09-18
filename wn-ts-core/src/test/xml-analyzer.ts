@@ -18,7 +18,7 @@ async function initializeXmlIntrospect() {
       process.versions?.node &&
       !globalThis.__vitest_browser_runner__) {
     try {
-      const xmlIntrospect = await import('xml-introspect');
+      const xmlIntrospect = await import('xml-introspect/browser');
       XMLIntrospector = xmlIntrospect.XMLIntrospector;
       StreamingXMLIntrospector = xmlIntrospect.StreamingXMLIntrospector;
       XMLAnalyzer = xmlIntrospect.XMLAnalyzer;
@@ -32,8 +32,11 @@ async function initializeXmlIntrospect() {
   }
 }
 
+// Type import for fs/promises
+import type { readFile as NodeReadFile } from 'fs/promises';
+
 // Browser-safe file reading - only available in Node.js environment
-let readFile: typeof import('fs/promises').readFile;
+let readFile: typeof NodeReadFile | undefined;
 try {
   // Only import fs/promises in Node.js environment
   if (typeof globalThis !== 'undefined' && typeof (globalThis as any).window === 'undefined') {
@@ -41,7 +44,7 @@ try {
   }
 } catch (error) {
   // fs/promises not available (browser environment)
-  readFile = undefined as any;
+  readFile = undefined;
 }
 
 export interface XMLAnalysisResult {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { setupTestEnvironment } from './e2e/shared/test-setup.js';
-import { TranslationHelper, quickTranslate } from '../src/translation-utils.js';
+import { TranslationHelper, quickTranslate } from 'wn-ts-core';
 import type { Wordnet } from '../src/wordnet.js';
 
 describe('Translation Utilities', () => {

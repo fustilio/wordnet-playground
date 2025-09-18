@@ -17,6 +17,7 @@ import type {
   SynsetQuery,
   SenseQuery,
   QueryStrategy,
+  Definition,
 } from 'wn-ts-core';
 import { Kysely } from 'kysely';
 import type { NodeDatabaseConfig } from 'wn-ts-core';
@@ -145,7 +146,11 @@ export class KyselyWordnet extends LocalBaseWordnet {
   // Implement abstract methods from LocalBaseWordnet
   async words(query?: WordQuery): Promise<Word[]> {
     if (query && Object.keys(query).length > 0) {
-      return this.queryService.getWords(query);
+      const { strategy, ...otherQuery } = query;
+      return this.queryService.getWords({
+        ...otherQuery,
+        strategy: strategy ?? 'default'
+      });
     }
     // If no query provided, get all words
     return this.queryService.getWords();
@@ -153,7 +158,14 @@ export class KyselyWordnet extends LocalBaseWordnet {
 
   async synsets(query?: SynsetQuery): Promise<Synset[]> {
     if (query && Object.keys(query).length > 0) {
-      return this.queryService.getSynsets(query);
+      const { strategy, includeDefinitions, includeExamples, includeRelations, ...otherQuery } = query;
+      return this.queryService.getSynsets({
+        ...otherQuery,
+        strategy: strategy ?? 'default',
+        includeDefinitions: includeDefinitions ?? true,
+        includeExamples: includeExamples ?? true,
+        includeRelations: includeRelations ?? true
+      });
     }
     // If no query provided, get all synsets
     return this.queryService.getSynsets();
@@ -161,7 +173,11 @@ export class KyselyWordnet extends LocalBaseWordnet {
 
   async senses(query?: SenseQuery): Promise<Sense[]> {
     if (query && Object.keys(query).length > 0) {
-      return this.queryService.getSenses(query);
+      const { strategy, ...otherQuery } = query;
+      return this.queryService.getSenses({
+        ...otherQuery,
+        strategy: strategy ?? 'default'
+      });
     }
     // If no query provided, get all senses
     return this.queryService.getSenses();
@@ -373,14 +389,19 @@ export class KyselyWordnet extends LocalBaseWordnet {
     return {};
   }
 
-  async getDefinitions(synsetId: string): Promise<string[]> {
+  async getDefinitions(synsetId: string): Promise<Definition[]> {
     const db = this.getDb();
     const definitions = await db
       .selectFrom('definitions')
-      .select('text')
+      .select(['id', 'language', 'text', 'source'])
       .where('synset_id', '=', synsetId)
       .execute();
-    return definitions.map(d => d.text || '');
+    return definitions.map(d => ({
+      id: d.id,
+      language: d.language || 'en',
+      text: d.text || '',
+      source: d.source
+    }));
   }
 
   async getExamples(synsetId: string): Promise<string[]> {

@@ -5,7 +5,7 @@
  * between different languages using the WordNet database.
  */
 
-import type { Wordnet } from '../wordnet.js';
+import type { WordNetCore } from '../wordnet-kernel.js';
 import { logger } from '../utils/logger.js';
 
 export interface TranslationResult {
@@ -35,7 +35,7 @@ export interface BilingualQueryOptions {
  * Convenience class for easy translation queries
  */
 export class TranslationHelper {
-  constructor(private wordnetClient: Wordnet) {}
+  constructor(private wordnetClient: WordNetCore) {}
 
   /**
    * Get translations for a word from one language to another
@@ -226,7 +226,7 @@ export class TranslationHelper {
  * @param wordnetClient - WordNet client instance
  * @returns TranslationHelper instance
  */
-export function createTranslationHelper(wordnetClient: Wordnet): TranslationHelper {
+export function createTranslationHelper(wordnetClient: WordNetCore): TranslationHelper {
   return new TranslationHelper(wordnetClient);
 }
 
@@ -240,7 +240,7 @@ export function createTranslationHelper(wordnetClient: Wordnet): TranslationHelp
  * @returns Promise<string[]> Array of translated words
  */
 export async function quickTranslate(
-  wordnetClient: Wordnet,
+  wordnetClient: WordNetCore,
   word: string,
   fromLang: string,
   toLang: string

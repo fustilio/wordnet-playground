@@ -1,10 +1,31 @@
 # WordNet TypeScript Architecture
 
-This document provides a comprehensive overview of the architecture and relationships between the various projects in the WordNet TypeScript ecosystem.
+## 🏗️ **Overview**
 
-## 🏗️ **Architecture Overview**
+The WordNet TypeScript ecosystem has evolved to use a modern **microkernel architecture** with a plugin system that provides:
 
-The WordNet TypeScript project follows a **layered architecture** with clear separation of concerns and **explicit client passing** patterns. Each package is optimized for its target environment while maintaining API consistency across platforms.
+- **Plugin System**: Extensible, composable, and type-safe plugins
+- **Type Safety**: Full TypeScript support with compile-time type checking
+- **Cross-Platform**: Works in Node.js, browsers, and other JavaScript environments
+- **Modern Design**: Clean, type-safe architecture built for the future
+
+## 🎯 **Architecture Design**
+
+### **Current Architecture**
+```
+WordNetCore (interface)
+├── MyWordnetCore (implements WordNetCore)
+│   ├── words()
+│   ├── synsets()
+│   └── query()
+└── WordNetKernel (composition)
+    ├── relations plugin    ← Modular
+    ├── similarity plugin   ← Modular
+    ├── translation plugin  ← Modular
+    └── schema management   ← Built-in
+```
+
+## 📦 **Package Structure**
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -36,116 +57,155 @@ The WordNet TypeScript project follows a **layered architecture** with clear sep
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## 📦 **Package Relationships**
+## 🔧 **Core Components**
 
-### **Core Dependencies**
-
-```mermaid
-graph TD
-    A[wn-ts-core] --> B[wn-ts-node]
-    A --> C[wn-ts-web]
-    B --> D[wn-cli]
-    C --> E[wn-ts-web-demo]
-    
-    A --> F[Shared Types]
-    A --> G[Module Functions]
-    A --> H[Base Classes]
-    
-    B --> I[better-sqlite3]
-    C --> J[@sqlite.org/sqlite-wasm]
-    E --> K[React + Vite]
-```
-
-### **Data Flow Architecture**
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   wn-ts-core    │    │   wn-ts-node    │    │   wn-ts-web     │
-│                 │    │                 │    │                 │
-│ • Package       │───▶│ • Downloads     │───▶│ • Browser       │
-│   definitions   │    │   real data     │    │   distribution  │
-│ • index.toml    │    │ • E2E tests     │    │ • SQLite WASM   │
-│ • Available     │    │ • File system   │    │ • OPFS storage  │
-│   packages      │    │   operations    │    │ • WebAssembly   │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    wn-ts-web-demo                             │
-│                                                               │
-│ • React application using wn-ts-web                          │
-│ • Real data loading from wn-ts-core/index.toml              │
-│ • Interactive UI with data management                        │
-│ • E2E tests matching wn-ts-node patterns                     │
-│ • Multilingual exploration and search                        │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-## 🎯 **Design Principles**
-
-### **1. Explicit Client Passing**
-
-All module functions explicitly receive `BaseWordnet` instances as their first parameter:
-
+### **WordNetCore Interface**
 ```typescript
-// Core module functions
-import { words, synsets, lexicons } from 'wn-ts-core';
-
-const wordnetClient = new Wordnet('oewn:2024'); // From wn-ts-node
-const wordResults = await words(wordnetClient, 'run', 'v');
-const synsetResults = await synsets(wordnetClient, 'run', 'v');
-const lexiconResults = await lexicons(wordnetClient);
-```
-
-**Benefits:**
-- **Decoupling**: Module functions don't instantiate their own clients
-- **Testability**: Easy to mock and test individual functions
-- **Flexibility**: Can use different client implementations
-- **Performance**: No hidden database connections
-
-### **2. Environment-Agnostic Core**
-
-The `wn-ts-core` package contains only environment-agnostic code:
-
-```typescript
-// wn-ts-core - Environment-agnostic
-export abstract class BaseWordnet {
-  abstract async words(form: string, pos?: PartOfSpeech): Promise<Word[]>;
-  abstract async synsets(form: string, pos?: PartOfSpeech): Promise<Synset[]>;
-  // ... other abstract methods
+export interface WordNetCore {
+  // Database operations
+  query(sql: string, params?: unknown[]): Promise<unknown[]>;
+  
+  // Base WordNet methods
+  words(query?: WordQuery): Promise<Word[]>;
+  word(wordId: string): Promise<Word>;
+  synsets(query?: SynsetQuery): Promise<Synset[]>;
+  synset(synsetId: string): Promise<Synset>;
+  senses(query?: SenseQuery): Promise<Sense[]>;
+  sense(senseId: string): Promise<Sense>;
+  
+  // Interlingual queries
+  ili(iliId: string): Promise<ILI>;
+  ilis(status?: string): Promise<ILI[]>;
+  synsetsByILI(iliId: string): Promise<Synset[]>;
 }
+```
 
-// wn-ts-node - Node.js implementation
-export class Wordnet extends BaseWordnet {
-  async words(form: string, pos?: PartOfSpeech): Promise<Word[]> {
-    // Node.js-specific implementation using better-sqlite3
+### **WordNetKernel Class**
+```typescript
+export class WordNetKernel<TPlugins extends readonly Plugin[]> {
+  constructor(core: WordNetCore, kyselyDb?: KyselyDatabase) {
+    this.core = core;
+    this.kyselyDb = kyselyDb;
   }
-}
-
-// wn-ts-web - Browser implementation  
-export class WebWordnet extends BaseWordnet {
-  async words(form: string, pos?: PartOfSpeech): Promise<Word[]> {
-    // Browser-specific implementation using SQLite WASM
+  
+  // Delegate to core
+  async words(query?: WordQuery): Promise<Word[]> {
+    return this.core.words(query);
+  }
+  
+  // Plugin system
+  use<TNewPlugin extends Plugin>(plugin: TNewPlugin): WordNetWithPlugins<[...TPlugins, TNewPlugin]> {
+    // Add plugin methods
   }
 }
 ```
 
-### **3. Consistent APIs Across Environments**
-
-All environment-specific packages implement the same interfaces:
-
+### **Factory Function**
 ```typescript
-// Same API, different implementations
-const nodeWordnet = new Wordnet('oewn:2024');        // Node.js
-const webWordnet = new WebWordnet('oewn:2024');      // Browser
-
-// Identical usage patterns
-const words = await nodeWordnet.words('run', 'v');
-const words = await webWordnet.words('run', 'v');
+export function createWordNet<TPlugins extends readonly Plugin[]>(config: { 
+  core: WordNetCore;
+  kyselyDb?: KyselyDatabase;
+  plugins?: TPlugins;
+}): WordNetWithPlugins<TPlugins> {
+  const kernel = new WordNetKernel(config.core, config.kyselyDb);
+  config.plugins?.forEach(plugin => kernel.use(plugin));
+  return kernel as any;
+}
 ```
 
-## 🔧 **Implementation Details**
+## 🚀 **Quick Start**
+
+### **Node.js**
+```typescript
+import { NodeWordNetKernel } from 'wn-ts-node';
+
+const wordnet = new NodeWordNetKernel('oewn:2024', {
+  filename: 'wordnet.db'
+});
+
+await wordnet.initialize();
+
+// Basic operations
+const words = await wordnet.words({ form: 'computer' });
+const synsets = await wordnet.synsets({ wordId: words[0].id });
+
+// Plugin operations
+const hypernyms = await wordnet.getHypernyms(synsets[0].id);
+const similarity = await wordnet.getPathSimilarity(synsets[0].id, synsets[1].id);
+const translations = await wordnet.getTranslations(synsets[0].id);
+
+await wordnet.close();
+```
+
+### **Web/Browser**
+```typescript
+import { WebWordNetKernel } from 'wn-ts-web';
+
+const wordnet = new WebWordNetKernel('oewn:2024');
+
+await wordnet.initialize();
+
+// Same API as Node.js
+const words = await wordnet.words({ form: 'computer' });
+const hypernyms = await wordnet.getHypernyms(synsets[0].id);
+
+await wordnet.close();
+```
+
+## 🔌 **Plugin System**
+
+### **Available Plugins**
+
+1. **Relations Plugin**: WordNet relationship queries
+   - `getHypernyms()`, `getHyponyms()`, `getMeronyms()`, etc.
+   - `getRelationsByType()`, `getAllRelations()`
+
+2. **Similarity Plugin**: Semantic similarity calculations
+   - `getPathSimilarity()`, `getWuPalmerSimilarity()`
+   - `getLeacockChodorowSimilarity()`, `getJaccardSimilarity()`
+   - `getBestSimilarity()`, `findMostSimilar()`
+
+3. **Translation Plugin**: Cross-lingual operations
+   - `getTranslations()`, `getTranslationsByWord()`
+   - `getAvailableLanguages()`, `getSynsetsByIli()`
+   - `getTranslationConfidence()`, `getTranslationSuggestions()`
+
+### **Type Safety**
+```typescript
+// TypeScript knows the exact return types
+const hypernyms: Array<{
+  id: string;
+  lemma: string;
+  pos: string;
+  language: string;
+}> = await wordnet.getHypernyms(synsetId);
+
+// Compile-time checking ensures correct usage
+const similarity: number = await wordnet.getPathSimilarity(synset1, synset2);
+```
+
+### **Custom Plugins**
+```typescript
+import type { Plugin, WordNetCore } from 'wn-ts-core';
+
+const customPlugin: Plugin<WordNetCore, 'custom'> = {
+  name: 'custom',
+  methods: {
+    customMethod: async (core, param: string) => {
+      // Your custom implementation
+      return core.query('SELECT * FROM words WHERE form = ?', [param]);
+    }
+  }
+};
+
+// Use with createWordNet
+const wordnet = createWordNet({
+  core: myCore,
+  plugins: [relations, similarity, translation, customPlugin]
+});
+```
+
+## 🏗️ **Implementation Details**
 
 ### **Database Layer**
 
@@ -188,76 +248,43 @@ class WebDatabase implements DatabaseInterface {
 }
 ```
 
-### **Configuration Management**
-
-#### **Node.js Configuration**
-```typescript
-// wn-ts-node/src/config.ts
-export class ConfigManager extends BaseConfigManager {
-  get dataDirectory(): string {
-    return process.env.WN_DATA_DIR || path.join(os.homedir(), '.wordnet');
-  }
-  
-  get downloadDirectory(): string {
-    return path.join(this.dataDirectory, 'downloads');
-  }
-}
-```
-
-#### **Browser Configuration**
-```typescript
-// wn-ts-web/src/config.ts
-export class ConfigManager extends BaseConfigManager {
-  get dataDirectory(): string {
-    return 'opfs://wordnet-data';
-  }
-  
-  get downloadDirectory(): string {
-    return 'opfs://wordnet-downloads';
-  }
-}
-```
-
 ## 📊 **Current Status**
 
 ### **✅ Completed Packages**
 
 #### **wn-ts-core** - Environment-Agnostic Core
 - **Status**: ✅ Complete
-- **Tests**: 204 tests passing
 - **Features**:
-  - Abstract `BaseWordnet` class
-  - Environment-agnostic utilities
-  - Shared types and interfaces
-  - Module functions with explicit client passing
+  - `WordNetCore` interface
+  - `WordNetKernel` class with plugin system
+  - Plugin system (relations, similarity, translation)
+  - Schema management
+  - Type-safe plugin architecture
 
 #### **wn-ts-node** - Node.js Implementation
 - **Status**: ✅ Complete
-- **Tests**: 119 tests passing
 - **Features**:
+  - `NodeWordNetCore` implementation
+  - `NodeWordNetKernel` with full plugin support
   - better-sqlite3 integration
   - File system operations
-  - Node.js-specific optimizations
 
 #### **wn-ts-web** - Browser Implementation
 - **Status**: ✅ Complete
-- **Tests**: 70 tests passing
 - **Features**:
+  - `WebWordNetCore` implementation
+  - `WebWordNetKernel` with full plugin support
   - SQLite WASM integration
   - OPFS (Origin Private File System) support
-  - IndexedDB fallback
-  - Browser-optimized performance
+  - React integration with hooks
 
 #### **wn-ts-web-demo** - Demo Application
 - **Status**: ✅ Complete
 - **Features**:
-  - React-based demo
+  - React-based demo using new kernel architecture
   - Interactive WordNet exploration
   - Real data loading and display
-
-### **🔄 In Progress**
-
-### **📋 Planned**
+  - Plugin system demonstration
 
 ## 🚀 **Performance Characteristics**
 
@@ -273,27 +300,37 @@ export class ConfigManager extends BaseConfigManager {
 - **Memory**: Limited by browser constraints
 - **Concurrency**: Non-blocking async operations
 
-## 🔄 **Migration Strategy**
+## 🚀 **Usage Examples**
 
-### **From Mixed Architecture**
+### **Modern Approach**
 ```typescript
-// Old: Mixed Node.js/browser code
-import { Wordnet } from 'wn-ts'; // ❌ Environment-specific
+import { createWordNet, WordNetCore } from 'wn-ts-core/wordnet-kernel';
+import { relations, similarity } from 'wn-ts-core/plugins';
 
-// New: Environment-agnostic with explicit client
-import { words, synsets } from 'wn-ts-core';
-import { Wordnet } from 'wn-ts-node'; // ✅ Node.js-specific
+class MyWordnetCore implements WordNetCore {
+  async words(query?: WordQuery): Promise<Word[]> {
+    // Implementation
+  }
+  // ... other required methods
+}
 
-const wordnet = new Wordnet('oewn:2024');
-const results = await words(wordnet, 'run', 'v');
+const wordnet = createWordNet({
+  core: new MyWordnetCore(),
+  plugins: [relations, similarity] as const
+});
+
+const hypernyms = await wordnet.getHypernyms(synset.id);
 ```
 
-### **Benefits of New Architecture**
-1. **Clear separation**: Environment-specific code is isolated
-2. **Better testing**: Easier to mock and test
-3. **Performance**: Optimized for each environment
-4. **Maintainability**: Simpler to add new environments
-5. **Type safety**: Better TypeScript support
+## 🎯 **Benefits of New Architecture**
+
+1. **Modularity**: Only load plugins you need
+2. **Type Safety**: Full TypeScript support with compile-time checking
+3. **Performance**: Better tree-shaking and smaller bundles
+4. **Extensibility**: Easy to add new functionality via plugins
+5. **Testing**: Easier to test individual components
+6. **Schema Management**: Built-in database schema handling
+7. **Future-Proof**: Architecture designed for growth
 
 ## 📚 **Documentation Structure**
 
@@ -302,14 +339,16 @@ docs/
 ├── architecture/          # Architecture decisions and patterns
 ├── api/                  # API documentation
 ├── examples/             # Usage examples
-├── migration/            # Migration guides
 └── performance/          # Performance benchmarks
 ```
 
 ## 🎯 **Next Steps**
 
-1. **Complete Phase 3**: Finish wn-ts-node integration
-2. **Begin Phase 4**: Integration testing across all packages
-3. **Performance optimization**: Benchmark and optimize for each environment
-4. **Documentation**: Complete API documentation and examples
-5. **Release preparation**: Prepare for major version release 
+1. **Performance Optimization**: Benchmark and optimize for each environment
+2. **Documentation**: Complete API documentation and examples
+3. **Plugin Marketplace**: Expand plugin ecosystem
+4. **Advanced Features**: Machine learning integrations, advanced caching
+
+---
+
+**This architecture document is the single source of truth for the WordNet TypeScript ecosystem.**

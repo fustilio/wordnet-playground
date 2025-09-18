@@ -6,128 +6,78 @@
  * Concrete implementations are provided by environment-specific packages.
  */
 
-// Core abstract classes only
-export { BaseWordnet } from './wordnet.js';
-export { config, ConfigManager } from './config.js';
+// Core abstract classes removed - use WordNetCore interface instead
+
+// New kernel-based architecture (recommended)
+export { 
+  WordNetKernel, 
+  createWordNet
+} from './wordnet-kernel.js';
+export type { 
+  WordNetCore,
+  KyselyDatabase,
+  WordNetWithPlugins,
+  Plugin,
+  PluginMethod,
+  PluginSchemaRequirements,
+  HealthCheckResult,
+  ConflictResolutionStrategy
+} from './wordnet-kernel.js';
+
+// Core functionality
+export * from './core/index.js';
+
+// Core modules (essential functionality)
+export * from './modules/index.js';
+
+// Basic query functions are now available through the WordNetCore client
+
+// True plugins (optional functionality)
+export * from './plugins/index.js';
 
 // Abstract query classes have been replaced by Kysely-based implementations
 
 // Shared Kysely-based implementations
 export * from './shared/index.js';
 
-// Download utilities (environment-agnostic)
+// Additional utilities (environment-agnostic)
 export { downloadFile, DownloadError } from './utils/download.js';
-export type { DownloadOptions } from './types.js';
-
-// Logger utility (environment-agnostic)
 export { logger, Logger, LogLevel } from './utils/logger.js';
-
-// Archive utilities (environment-agnostic)
 export { extractTarArchive, decompressXz, decompressGz, findLMFiles } from './utils/archive.js';
-
-// Package ID utilities (environment-agnostic)
 export { parsePackageId, formatPackageId, isValidPackageId, getPackageBase, getPackageVersion } from './utils/package-id.js';
 export type { PackageIdParts } from './utils/package-id.js';
-
-// Data management functions - environment-agnostic
-export {
-  download,
-  loadLexicalResource,
-} from './data-management.js';
-
-// ILI functions (environment-agnostic)
-export { isILI, loadILI, type IliRecord } from './ili.js';
-
-// Module functions - environment-agnostic stubs
-export {
-  projects,
-  lexicons,
-  word,
-  words,
-  sense,
-  senses,
-  synset,
-  synsets,
-  ili,
-  ilis,
-} from './module-functions.js';
-
-// Project management functions (environment-agnostic)
-export {
-  getProjects,
-  getProject,
-  getProjectVersions,
-  getProjectVersionUrls,
-  getProjectVersionError,
-  loadProjectIndex,
-  clearProjectIndexCache,
-} from './project.js';
-export type { ProjectIndex, ProjectVersion } from './project.js';
-
-// Types and interfaces (environment-agnostic)
-export type {
-  Word,
-  Sense,
-  Synset,
-  Lexicon,
-  Project,
-  ILI,
-  Form,
-  Pronunciation,
-  Tag,
-  Count,
-  Example,
-  Definition,
-  Relation,
-  PartOfSpeech,
-  WordnetConfig,
-  WordnetOptions,
-  AddOptions,
-  ExportOptions,
-  WordQuery,
-  SynsetQuery,
-  SenseQuery,
-} from './types.js';
 
 // Query strategy types
 export type { QueryStrategy, QueryOptions } from './shared/base-query-service.js';
 
-// Error classes (environment-agnostic)
-export {
-  WnError as Error,
-  DatabaseError,
-  ConfigurationError,
-  ProjectError,
-  WnWarning,
-} from './types.js';
-
 // LMF Parsers module (environment-agnostic)
-export * from './parsers/index.js';
-export { parseLMFXML, diagnoseDownloadIssue, analyzeXMLContent, validateLMFContent, createMinimalLMF } from './lmf.js';
+export type { LMFParser as LMFXMLParser, LMFDocument, LMFLoadOptions } from './parsers/index.js';
+export { StreamingSaxParser } from './parsers/index.js';
 
-// LMF utilities (environment-agnostic)
-// Note: loadLMF and isLMF functions are not currently implemented
+// LMF utilities - use explicit exports to avoid conflicts
+export type { 
+  Lexicon as LMFlexicon
+} from './lmf.js';
+export { 
+  analyzeXMLContent,
+  parseLMFXML,
+  createMinimalLMF
+} from './lmf.js';
 
-// LMF Validation system (environment-agnostic)
+// Validation utilities
 export * from './validation.js';
 
-// Test utilities (environment-agnostic) exclue this since it doesn't work in browser, can be imported via /test
-// export * from './test/index.js';
+// Translation utilities
+export * from './shared/translation-utils.js';
 
-// Database types are now exported from shared
-
-// Abstract database interfaces and query builders (environment-agnostic)
-// export * from './queries/abstract-word-queries.js'; // Removed - no longer needed with Kysely
-
-// Utility functions (environment-agnostic)
-export { Morphy, createMorphy } from './morphy.js';
-export { path, wup, lch, res, jcn, lin } from './similarity.js';
-export { hypernyms, shortestPath, maxDepth, lowestCommonHypernyms } from './synset-utils.js';
-export { minDepth, taxonomyShortestPath, roots, leaves, taxonomyDepth, hypernymPaths } from './taxonomy.js';
-export { validateSynset, validateSense, validateWord, validateRelation, validateWordnet } from './validate.js';
-export type { Freq } from './ic.js';
+// Test utilities (Node.js only - not exported for browser compatibility)
+// export * from './test/test-data-manager.js';
 
 // Version
 export const __version__ = '0.1.1';
+
+// Additional exports for compatibility
+export type { ProjectIndex } from './modules/data-management/project.js';
+export { WnError } from './core/errors.js';
 
  

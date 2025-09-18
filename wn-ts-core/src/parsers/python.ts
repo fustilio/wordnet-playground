@@ -8,6 +8,9 @@
 import type { LMFParser } from './base.js';
 import type { LMFDocument, LMFLoadOptions } from '../lmf.js';
 
+// Type import for pythonia
+import type { python as PythoniaPython } from 'pythonia';
+
 let pythonParser: any = null;
 
 async function getOrSetupPythonParser() {
@@ -16,7 +19,7 @@ async function getOrSetupPythonParser() {
   }
   
   try {
-    const { python } = await import('pythonia');
+    const { python } = await import('pythonia') as { python: typeof PythoniaPython };
     pythonParser = await python('./lmf.py');
     return pythonParser;
   } catch (error) {

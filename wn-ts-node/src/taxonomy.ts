@@ -7,7 +7,7 @@
  */
 
 import type { Synset, PartOfSpeech } from 'wn-ts-core';
-import { Error as WnError } from 'wn-ts-core';
+import { WnError } from 'wn-ts-core';
 import { Wordnet } from './wordnet.js';
 import { hypernyms, shortestPath, maxDepth } from 'wn-ts-core';
 import type { SynsetQuery } from 'wn-ts-core';

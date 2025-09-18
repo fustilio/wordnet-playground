@@ -2,7 +2,30 @@
 
 ## 🎯 **Overview**
 
-`wn-ts-core` is the foundational library that provides the core types, interfaces, and utilities for the entire WordNet TypeScript ecosystem. It defines the data structures, parsing logic, and database schemas used across all `wn-ts` modules.
+`wn-ts-core` is the foundational library that provides the core types, interfaces, and utilities for the entire WordNet TypeScript ecosystem. It defines the data structures, parsing logic, database schemas, and kernel-based architecture used across all `wn-ts` modules.
+
+## 🏗️ **Architecture Overview**
+
+### **Kernel-Based Design**
+
+The library uses a modern **microkernel architecture** with a plugin system:
+
+```
+WordNetCore (interface)
+├── WordNetKernel (composition)
+│   ├── Core Modules (essential)
+│   │   ├── Morphology (lemmatization)
+│   │   ├── Relations (hypernyms, hyponyms)
+│   │   ├── Data Management (projects, ILI)
+│   │   └── Environment (configuration)
+│   ├── Plugins (optional)
+│   │   ├── Similarity (path, Wu-Palmer, etc.)
+│   │   └── Translation (cross-lingual)
+│   └── Schema Management (built-in)
+└── Concrete Implementations
+    ├── wn-ts-web (browser)
+    └── wn-ts-node (Node.js)
+```
 
 ## 📚 **Core Types & Interfaces**
 
@@ -15,32 +38,44 @@ The core types define the fundamental structure of WordNet data:
 interface Word {
   id: string;
   lemma: string;
-  partOfSpeech: string;
-  lexiconId: string;
-  syntacticBehaviours?: SyntacticBehaviour[];
-  // ... other properties
+  pos: PartOfSpeech;
+  forms: Form[];
+  pronunciations: Pronunciation[];
+  tags: Tag[];
+  counts: Count[];
+  frames?: SyntacticBehaviour[];
+  language: string;
+  lexicon: string;
 }
 
 interface Synset {
   id: string;
-  partOfSpeech: string;
-  iliId?: string;
-  memberIds: string[];        // References Word.id[]
-  senseIds: string[];         // References Sense.id[]
-  // ... other properties
+  ili?: string;
+  pos: PartOfSpeech;
+  definitions: Definition[];
+  examples: Example[];
+  relations: Relation[];
+  iliDefinitions?: Definition[];
+  language: string;
+  lexicon: string;
+  members: string[];
+  senses: string[];
 }
 
 interface Sense {
   id: string;
-  wordId: string;             // References Word.id
-  synsetId: string;           // References Synset.id
-  // ... other properties
-}
-
-interface SyntacticBehaviour {
-  id: string;
-  senseIds: string[];         // References Sense.id[]
-  // ... other properties
+  word: string;
+  synset: string;
+  examples: Example[];
+  counts: Count[];
+  tags: Tag[];
+  relations?: Relation[];
+  source?: string;
+  sensekey?: string;
+  adjposition?: string;
+  subcategory?: string;
+  domain?: string;
+  register?: string;
 }
 ```
 
@@ -86,7 +121,7 @@ interface Database {
 The `SchemaBuilder` class provides static methods to create all database tables and indexes:
 
 ```typescript
-import { SchemaBuilder } from '@wn-ts/core'
+import { SchemaBuilder } from 'wn-ts-core/shared'
 
 // Create all tables with proper foreign key dependencies
 const schema = SchemaBuilder.createAllTables()
@@ -94,6 +129,137 @@ const schema = SchemaBuilder.createAllTables()
 // Create specific table
 const sensesTable = SchemaBuilder.createSensesTable()
 ```
+
+## 🔧 **Core Components**
+
+### **WordNetCore Interface**
+
+The fundamental interface that all implementations must provide:
+
+```typescript
+interface WordNetCore {
+  // Database operations
+  query(sql: string, params?: unknown[]): Promise<unknown[]>;
+  
+  // Base WordNet methods
+  words(query?: WordQuery): Promise<Word[]>;
+  word(wordId: string): Promise<Word>;
+  synsets(query?: SynsetQuery): Promise<Synset[]>;
+  synset(synsetId: string): Promise<Synset>;
+  senses(query?: SenseQuery): Promise<Sense[]>;
+  sense(senseId: string): Promise<Sense>;
+  
+  // Interlingual queries
+  ili(iliId: string): Promise<ILI>;
+  ilis(status?: string): Promise<ILI[]>;
+  synsetsByILI(iliId: string): Promise<Synset[]>;
+  
+  // Lexicon queries
+  lexicons(): Promise<Lexicon[]>;
+}
+```
+
+### **WordNetKernel Class**
+
+The kernel that provides plugin management and schema management:
+
+```typescript
+class WordNetKernel<TPlugins extends readonly Plugin[]> {
+  constructor(core: WordNetCore, kyselyDb?: KyselyDatabase);
+  
+  // Delegate to core
+  async words(query?: WordQuery): Promise<Word[]>;
+  async synsets(query?: SynsetQuery): Promise<Synset[]>;
+  // ... other core methods
+  
+  // Plugin system
+  use<TNewPlugin extends Plugin>(plugin: TNewPlugin): WordNetWithPlugins<[...TPlugins, TNewPlugin]>;
+  remove(name: string): WordNetWithPlugins<TPlugins>;
+  has(name: string): boolean;
+  
+  // Schema management
+  get schemaManager(): SchemaManager;
+}
+```
+
+## 📦 **Module Structure**
+
+### **Core Modules (Essential)**
+
+These modules provide essential WordNet functionality and are **not plugins**:
+
+#### **Morphology Module** (`src/modules/morphology/`)
+- **Purpose**: Lemmatization and morphological analysis
+- **Key Features**:
+  - `Morphy` class for finding base forms
+  - Exception handling for irregular forms
+  - Part-of-speech specific rules
+- **Usage**: `import { Morphy, morphy } from 'wn-ts-core'`
+
+#### **Relations Module** (`src/modules/relations/`)
+- **Purpose**: Synset relationship queries and taxonomy analysis
+- **Key Features**:
+  - Hypernym/hyponym queries
+  - Shortest path calculations
+  - Taxonomy depth analysis
+  - Simple relation queries
+- **Usage**: `import { getHypernyms, shortestPath } from 'wn-ts-core'`
+
+#### **Data Management Module** (`src/modules/data-management/`)
+- **Purpose**: WordNet project and data management
+- **Key Features**:
+  - Project discovery and loading
+  - ILI (Interlingual Index) handling
+  - Lexical resource management
+- **Usage**: `import { getProjects, loadLexicalResource } from 'wn-ts-core'`
+
+#### **Environment Module** (`src/modules/environment/`)
+- **Purpose**: Configuration and environment management
+- **Key Features**:
+  - Configuration management
+  - Environment-specific settings
+- **Usage**: `import { getConfig } from 'wn-ts-core'`
+
+### **Plugins (Optional)**
+
+These are true plugins that can be added/removed without breaking core functionality:
+
+#### **Similarity Plugin** (`src/plugins/similarity/`)
+- **Purpose**: Semantic similarity calculations
+- **Algorithms**:
+  - Path similarity
+  - Wu-Palmer similarity
+  - Leacock-Chodorow similarity
+  - Information Content-based metrics (Resnik, Lin, Jiang-Conrath)
+- **Usage**: `import { similarity } from 'wn-ts-core/plugins'`
+
+#### **Translation Plugin** (`src/plugins/translation/`)
+- **Purpose**: Cross-lingual operations
+- **Features**:
+  - ILI-based translations
+  - Multi-language synset lookup
+  - Translation confidence scoring
+- **Usage**: `import { translation } from 'wn-ts-core/plugins'`
+
+### **Shared Components**
+
+#### **Base Query Service** (`src/shared/`)
+- **Purpose**: Kysely-based query implementations
+- **Features**:
+  - Strategy-based query optimization
+  - Batch operations
+  - Database utilities
+  - Translation helpers
+- **Usage**: `import { BaseKyselyQueryService } from 'wn-ts-core/shared'`
+
+#### **LMF Parsers** (`src/parsers/`)
+- **Purpose**: LMF XML parsing implementations
+- **Parsers**:
+  - Streaming SAX parser (recommended)
+  - Native XML parser
+  - Optimized SAX parser
+  - Legacy parser
+- **Usage**: `import { getDefaultParser } from 'wn-ts-core/parsers'`
 
 ## 🔍 **LMF XML Parser**
 
@@ -118,221 +284,199 @@ interface LmfParseOptions {
 ### **Usage Example**
 
 ```typescript
-import { LmfParser } from '@wn-ts/core'
+import { getDefaultParser } from 'wn-ts-core/parsers'
 
-const parser = new LmfParser({
-  mergeStrategy: 'keep-last',
-  validateSchema: true
-})
-
+const parser = getDefaultParser()
 const result = await parser.parse(xmlContent)
 ```
 
-## ✅ **Data Validation**
+## 🔌 **Plugin System**
 
-### **Validation Pipeline**
-
-The validation system ensures data integrity at multiple levels:
-
-1. **XML Structure**: Schema compliance and well-formedness
-2. **Data Consistency**: Referential integrity validation
-3. **Business Rules**: WordNet-specific validation logic
-4. **Cross-Reference**: ILI mapping validation
-
-### **Validation Results**
+### **Creating Custom Plugins**
 
 ```typescript
-interface ValidationResult {
-  isValid: boolean;
-  errors: ValidationError[];
-  warnings: ValidationWarning[];
-  statistics: ValidationStatistics;
-}
+import type { Plugin, WordNetCore } from 'wn-ts-core';
+
+const customPlugin: Plugin = {
+  name: 'analytics',
+  methods: {
+    getWordFrequency: async (core: WordNetCore, wordId: string) => {
+      const result = await core.query(
+        'SELECT COUNT(*) as frequency FROM senses WHERE word_id = ?',
+        [wordId]
+      );
+      return result[0]?.frequency || 0;
+    },
+    
+    getSynsetComplexity: async (core: WordNetCore, synsetId: string) => {
+      const senses = await core.getSenses(synsetId);
+      return senses.length;
+    }
+  }
+};
+
+// Use the plugin
+const wordnet = createWordNet({
+  core: myCore,
+  plugins: [customPlugin]
+});
+
+// Access plugin methods
+const frequency = await wordnet.getWordFrequency('word-id');
+const complexity = await wordnet.getSynsetComplexity('synset-id');
 ```
 
-## 🔧 **Utilities & Helpers**
-
-### **Common Utilities**
-
-- **ID Generation**: Consistent ID generation patterns
-- **Data Conversion**: Format conversion utilities
-- **Validation Helpers**: Common validation functions
-- **Performance Tools**: Benchmarking and profiling utilities
-
-### **Constants & Enums**
+### **Plugin Collections**
 
 ```typescript
-// Part of speech constants
-enum PartOfSpeech {
-  NOUN = 'n',
-  VERB = 'v',
-  ADJECTIVE = 'a',
-  ADVERB = 'r',
-  // ... other POS values
-}
+import { allPlugins, similarityPlugins, translationPlugins } from 'wn-ts-core/plugins';
 
-// Relation types
-enum RelationType {
-  HYPERNYM = 'hypernym',
-  HYPONYM = 'hyponym',
-  SYNONYM = 'synonym',
-  // ... other relation types
-}
+// Use all available plugins
+const wordnet = createWordNet({
+  core: myCore,
+  plugins: allPlugins
+});
+
+// Use only similarity plugins
+const wordnet = createWordNet({
+  core: myCore,
+  plugins: similarityPlugins
+});
 ```
 
 ## 🧪 **Testing Support**
 
 ### **Test Utilities**
 
-- **Mock Data Generators**: Create test data with proper relationships
-- **Validation Helpers**: Test data integrity and consistency
-- **Performance Benchmarks**: Measure parsing and validation performance
-
-### **Test Data**
-
 ```typescript
-import { createTestLexicon, createTestWord, createTestSynset } from '@wn-ts/core/test'
+import { createTestLexicon, createTestWord } from 'wn-ts-core/test';
 
-const testLexicon = createTestLexicon('en', '1.0.0')
-const testWord = createTestWord('test-word', testLexicon.id)
-const testSynset = createTestSynset('test-synset', testLexicon.id)
+const testLexicon = createTestLexicon('en', '1.0.0');
+const testWord = createTestWord('test-word', testLexicon.id);
 ```
 
-## 📊 **Performance Considerations**
-
-### **Optimization Features**
-
-- **Streaming Parsing**: Memory-efficient XML processing
-- **Lazy Loading**: Load data on-demand
-- **Caching**: Intelligent caching strategies
-- **Parallel Processing**: Concurrent operation support
-
-### **Benchmark Results**
-
-- **XML Parsing**: < 100ms for 1MB files
-- **Validation**: < 50ms for standard lexicons
-- **Memory Usage**: < 2x input size for processing
-
-## 🔗 **Integration Patterns**
-
-### **Module Integration**
-
-`wn-ts-core` is designed to integrate seamlessly with other `wn-ts` modules:
+### **Mock Implementations**
 
 ```typescript
-// Web implementation
-import { Word, Synset, Sense } from '@wn-ts/core'
-import { WebWordnet } from '@wn-ts/web'
+import type { WordNetCore } from 'wn-ts-core';
 
-// Node.js implementation
-import { LmfParser } from '@wn-ts/core'
-import { NodeWordnet } from '@wn-ts/node'
+class MockWordNetCore implements WordNetCore {
+  async words(query?: WordQuery): Promise<Word[]> {
+    return []; // Mock implementation
+  }
+  // ... implement other methods
+}
 ```
 
-### **Extension Points**
+## 📊 **Performance Features**
 
-The core library provides extension points for custom functionality:
+### **Query Optimization**
+- Strategy-based query execution
+- Lazy loading for large datasets
+- Intelligent caching
+- Batch operations
 
-- **Custom Parsers**: Implement additional format support
-- **Validation Rules**: Add custom business logic validation
-- **Data Transformers**: Custom data transformation pipelines
+### **Parser Performance**
+- Streaming parsers for large files
+- Memory-efficient processing
+- Parallel parsing support
+- Progress callbacks
 
-## 📖 **API Reference**
+### **Memory Management**
+- Efficient resource handling
+- Garbage collection optimization
+- Memory usage monitoring
+
+## 📚 **API Reference**
 
 ### **Core Exports**
 
 ```typescript
-// Main types
-export { Word, Synset, Sense, Lexicon, Relation }
-export { LmfParser, LmfParseOptions }
-export { SchemaBuilder, Database }
+// Main kernel
+export { WordNetKernel, createWordNet, WordNetCore };
 
-// Utilities
-export { createId, validateId, normalizeLemma }
-export { ValidationResult, ValidationError }
+// Core modules
+export { Morphy, morphy } from './modules/morphology';
+export { getHypernyms, shortestPath } from './modules/relations';
+export { getProjects, loadLexicalResource } from './modules/data-management';
 
-// Constants
-export { PartOfSpeech, RelationType, ErrorCode }
+// Plugins
+export { similarity, translation } from './plugins';
+
+// Shared components
+export { BaseKyselyQueryService, SchemaBuilder } from './shared';
+
+// Parsers
+export { getDefaultParser, getParser } from './parsers';
+
+// Types
+export type { Word, Synset, Sense, Lexicon, ILI, Plugin };
 ```
 
 ### **Type Definitions**
 
 All types are fully documented with JSDoc comments and include:
-
-- **Property descriptions**: Clear explanation of each field
-- **Usage examples**: Practical examples of type usage
-- **Validation rules**: Constraints and requirements
-- **Relationships**: How types relate to each other
+- Property descriptions
+- Usage examples
+- Validation rules
+- Relationships between types
 
 ## 🚀 **Getting Started**
 
 ### **Installation**
 
 ```bash
-pnpm add @wn-ts/core
+pnpm add wn-ts-core
 ```
 
-### **Basic Usage**
+### **Basic Setup**
 
 ```typescript
-import { LmfParser, Word, Synset } from '@wn-ts/core'
+import { createWordNet } from 'wn-ts-core';
+import { similarity, translation } from 'wn-ts-core/plugins';
 
-// Parse LMF XML
-const parser = new LmfParser()
-const result = await parser.parse(xmlContent)
+// Create WordNet instance
+const wordnet = createWordNet({
+  core: myWordNetCore, // Your implementation
+  plugins: [similarity, translation]
+});
 
-// Work with parsed data
-const words: Word[] = result.words
-const synsets: Synset[] = result.synsets
-const senses: Sense[] = result.senses
+// Use it
+const words = await wordnet.words({ form: 'computer' });
 ```
 
-### **Advanced Usage**
+## 🔗 **Integration with Other Packages**
 
+### **wn-ts-web (Browser)**
 ```typescript
-import { SchemaBuilder, ValidationResult } from '@wn-ts/core'
+import { WebWordNetCore } from 'wn-ts-web';
+import { createWordNet } from 'wn-ts-core';
 
-// Create database schema
-const schema = SchemaBuilder.createAllTables()
-
-// Validate data
-const validation = await validateWordNetData(result)
-if (!validation.isValid) {
-  console.error('Validation errors:', validation.errors)
-}
+const wordnet = createWordNet({
+  core: new WebWordNetCore('oewn:2024'),
+  plugins: [similarity, translation]
+});
 ```
 
-## 🔍 **Common Use Cases**
+### **wn-ts-node (Node.js)**
+```typescript
+import { NodeWordNetCore } from 'wn-ts-node';
+import { createWordNet } from 'wn-ts-core';
 
-### **LMF XML Processing**
+const wordnet = createWordNet({
+  core: new NodeWordNetCore('oewn:2024', { filename: 'wordnet.db' }),
+  plugins: [similarity, translation]
+});
+```
 
-- Parse WordNet LMF XML files
-- Validate against official schemas
-- Handle duplicate IDs and conflicts
-- Extract structured data for database storage
-
-### **Data Validation**
-
-- Ensure referential integrity
-- Validate business rules
-- Check schema compliance
-- Generate validation reports
-
-### **Schema Management**
-
-- Create database schemas
-- Manage table relationships
-- Optimize for query performance
-- Support schema evolution
-
-## 📚 **Related Documentation**
+## 📖 **Related Documentation**
 
 - **[Main Project README](../README.md)** - Project overview and lexicon format details
+- **[Architecture Guide](../ARCHITECTURE.md)** - Complete system architecture
 - **[Development Conventions](../docs/DEVELOPMENT_CONVENTIONS.md)** - Coding standards and patterns
 - **[Database Schema Standards](../docs/DATABASE_SCHEMA_STANDARDS.md)** - Database design and optimization
-- **[wn-ts-web Documentation](../wn-ts-web/docs/)** - Browser implementation guide
-- **[wn-ts-node Documentation](../wn-ts-node/docs/)** - Node.js implementation guide
+- **[Testing Strategy](../docs/TESTING_STRATEGY.md)** - Testing approach and coverage requirements
 
 ---
 
-**Note**: This is the foundational library for the entire `wn-ts` ecosystem. All other modules depend on the types and interfaces defined here.
+**Note**: This is the foundational library for the entire `wn-ts` ecosystem. All other modules depend on the types, interfaces, and utilities defined here.

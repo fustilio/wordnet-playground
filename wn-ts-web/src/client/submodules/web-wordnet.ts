@@ -97,7 +97,7 @@ type ProjectInfo = {
   license?: string;
   citation?: string;
 };
-import { BaseWordnet } from "wn-ts-core";
+import type { WordNetCore } from "wn-ts-core";
 import { WebDatabase } from "./web-database.js";
 import { KyselyQueryService } from "../../database/kysely-query-service.js";
 import type { Database } from "../../types/database.js";
@@ -111,7 +111,7 @@ const logger = createScopedLogger("WebWordnet");
 
 /**
  * WebWordnet provides a streamlined interface for WordNet operations in the browser.
- * It extends BaseWordnet and implements the core database operations using SQLite WASM.
+ * It implements the WordNetCore interface and provides database operations using SQLite WASM.
  * 
  * This class is designed to work alongside WordNetOrchestrator, which handles
  * higher-level operations like lexicon management and cross-lexicon queries.
@@ -119,7 +119,7 @@ const logger = createScopedLogger("WebWordnet");
  * NOTE: Event emission is now handled by the orchestrator to avoid duplication.
  * This class focuses purely on database operations and WordNet queries.
  */
-export class WebWordnet extends BaseWordnet {
+export class WebWordnet implements WordNetCore {
   private database: WebDatabase;
   private kyselyDb: Kysely<Database> | undefined;
   private queryService: KyselyQueryService | undefined;
@@ -137,12 +137,8 @@ export class WebWordnet extends BaseWordnet {
   private eventEmitter: WordNetEventEmitter;
 
   constructor(lexicon: string | string[] = "*", options: WordnetOptions = {}) {
-    // Create options object with lexicon property
-    const baseOptions = {
-      ...options,
-      lexicon: Array.isArray(lexicon) ? lexicon : [lexicon], // Convert to array for BaseWordnet
-    };
-    super(baseOptions);
+    // Initialize properties directly since we're implementing WordNetCore interface
+    this.eventEmitter = new WordNetEventEmitter();
 
     // Parse lexicon specifier(s) for special presets
     if (Array.isArray(lexicon)) {
@@ -2047,5 +2043,30 @@ export class WebWordnet extends BaseWordnet {
   // Placeholder for projects (not implemented in web version)
   async getProjects(): Promise<ProjectInfo[]> {
     return [];
+  }
+
+  // Required WordNetCore interface methods
+  async query(sql: string, params?: unknown[]): Promise<unknown[]> {
+    if (!this.initialized || !this.queryService)
+      throw new Error("WebWordnet not initialized");
+
+    try {
+      return await this.queryService.query(sql, params);
+    } catch (error) {
+      logger.error("Error executing query:", error);
+      throw error;
+    }
+  }
+
+  async getRelations(synsetId: string, type?: string): Promise<any[]> {
+    if (!this.initialized || !this.queryService)
+      throw new Error("WebWordnet not initialized");
+
+    try {
+      return await this.queryService.getRelations(synsetId, type);
+    } catch (error) {
+      logger.error("Error getting relations:", error);
+      throw error;
+    }
   }
 }

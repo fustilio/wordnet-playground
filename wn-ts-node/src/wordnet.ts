@@ -8,13 +8,14 @@ import type {
   ILI,
   WordQuery,
   SynsetQuery,
-  SenseQuery
+  SenseQuery,
+  WordNetCore,
+  Definition
 } from 'wn-ts-core';
-import { BaseWordnet } from 'wn-ts-core';
 import { KyselyWordnet } from './kysely-wordnet.js';
 import { config } from './config.js';
 
-export class Wordnet extends BaseWordnet {
+export class Wordnet implements WordNetCore {
   private kyselyWordnet: KyselyWordnet;
   private _expand: string[];
   private _defaultNormalizer: (form: string) => string;
@@ -26,13 +27,7 @@ export class Wordnet extends BaseWordnet {
     lexicon: string = '*',
     options: WordnetOptions = {}
   ) {
-    // Create options object with lexicon property
-    const baseOptions = {
-      ...options,
-      lexicon
-    };
-    super(baseOptions);
-
+    // Initialize properties directly since we're implementing WordNetCore interface
     this._expand = Array.isArray(options.expand) ? options.expand : options.expand ? [options.expand] : [];
     
     // Set default normalizer and lemmatizer
@@ -42,11 +37,12 @@ export class Wordnet extends BaseWordnet {
 
 
     // Initialize the KyselyWordnet instance
+    const { strategy, ...otherOptions } = options;
     this.kyselyWordnet = new KyselyWordnet(lexicon, {
       filename: config.databasePath,
       normalizer: this._defaultNormalizer,
-      strategy: options.strategy || 'default',
-      ...options
+      strategy: strategy ?? 'default',
+      ...otherOptions
     });
   }
 
@@ -114,6 +110,15 @@ export class Wordnet extends BaseWordnet {
     return this.kyselyWordnet.lexicons();
   }
 
+  // Required WordNetCore interface method
+  async query(_sql: string, _params?: unknown[]): Promise<unknown[]> {
+    await this.ensureInitialized();
+    // KyselyWordnet doesn't have a direct query method, so we'll need to implement this
+    // For now, return empty array - this would need to be implemented using the database directly
+    console.warn('Direct SQL queries not implemented in Wordnet. Use specific methods instead.');
+    return [];
+  }
+
   /**
    * Get synsets with various query options
    */
@@ -178,21 +183,35 @@ export class Wordnet extends BaseWordnet {
     }
   }
 
-  async getWord(id: string): Promise<Word | undefined> {
+  async getWord(form: string): Promise<Word[]> {
     await this.ensureInitialized();
-    return this.kyselyWordnet.getWord(id);
+    return this.kyselyWordnet.words({ form });
   }
 
-  async getSynset(id: string): Promise<Synset | undefined> {
+  async getSynset(id: string): Promise<Synset | null> {
     await this.ensureInitialized();
-    return this.kyselyWordnet.getSynset(id);
+    const result = await this.kyselyWordnet.getSynset(id);
+    return result || null;
   }
 
   /**
    * Alias for getSynset for consistency with other methods
    */
-  async getSynsetById(id: string): Promise<Synset | undefined> {
+  async getSynsetById(id: string): Promise<Synset | null> {
     return this.getSynset(id);
+  }
+
+  async getSenses(form: string, pos?: PartOfSpeech, options?: { lexicon?: string | string[] }): Promise<Sense[]> {
+    await this.ensureInitialized();
+    const lexicon = Array.isArray(options?.lexicon) ? options.lexicon[0] : options?.lexicon;
+    return this.kyselyWordnet.senses({ wordIdOrForm: form, pos, lexicon });
+  }
+
+  async getRelations(_synsetId: string, _relationType?: string): Promise<any[]> {
+    await this.ensureInitialized();
+    // This is a placeholder implementation - would need to be implemented based on the actual relations module
+    console.warn('getRelations not fully implemented in Wordnet class');
+    return [];
   }
 
   async getSense(id: string): Promise<Sense | undefined> {
@@ -207,15 +226,15 @@ export class Wordnet extends BaseWordnet {
 
   // Add the missing "OrUndefined" methods that tests expect
   async getWordOrUndefined(id: string): Promise<Word | undefined> {
-    return this.getWord(id);
+    return this.word(id).catch(() => undefined);
   }
 
   async getSynsetOrUndefined(id: string): Promise<Synset | undefined> {
-    return this.getSynset(id);
+    return this.synset(id).catch(() => undefined);
   }
 
   async getSenseOrUndefined(id: string): Promise<Sense | undefined> {
-    return this.getSense(id);
+    return this.sense(id).catch(() => undefined);
   }
 
   async getStatistics(): Promise<{
@@ -256,29 +275,29 @@ export class Wordnet extends BaseWordnet {
 
   async word(wordId: string): Promise<Word> {
     await this.ensureInitialized();
-    const word = await this.kyselyWordnet.getWord(wordId);
-    if (!word) {
+    const result = await this.kyselyWordnet.getWord(wordId);
+    if (!result) {
       throw new Error(`Word not found: ${wordId}`);
     }
-    return word;
+    return result;
   }
 
   async synset(synsetId: string): Promise<Synset> {
     await this.ensureInitialized();
-    const synset = await this.kyselyWordnet.getSynset(synsetId);
-    if (!synset) {
+    const result = await this.kyselyWordnet.getSynset(synsetId);
+    if (!result) {
       throw new Error(`Synset not found: ${synsetId}`);
     }
-    return synset;
+    return result;
   }
 
   async sense(senseId: string): Promise<Sense> {
     await this.ensureInitialized();
-    const sense = await this.kyselyWordnet.getSense(senseId);
-    if (!sense) {
+    const result = await this.kyselyWordnet.getSense(senseId);
+    if (!result) {
       throw new Error(`Sense not found: ${senseId}`);
     }
-    return sense;
+    return result;
   }
 
   async ili(iliId: string): Promise<ILI> {
@@ -386,7 +405,7 @@ export class Wordnet extends BaseWordnet {
     return this.kyselyWordnet.getCrossLingualSynsets(iliId, targetLangs);
   }
 
-  async getDefinitions(synsetId: string): Promise<string[]> {
+  async getDefinitions(synsetId: string): Promise<Definition[]> {
     await this.ensureInitialized();
     return this.kyselyWordnet.getDefinitions(synsetId);
   }

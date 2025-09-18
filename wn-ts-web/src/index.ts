@@ -6,11 +6,22 @@
 // Project/index utilities
 import { Project } from './project.js';
 
-// Core exports
+// Core exports (deprecated - use WebWordNetKernel instead)
 export { createWebWordnet, createDataLoader, createWordNetInstance } from './factory.js';
 export { WebWordnet } from './client/submodules/web-wordnet.js';
 export { WebDatabase } from './client/submodules/web-database.js';
 export { DataLoader } from './data-loader.js';
+
+// New kernel-based architecture (recommended)
+export { WebWordNetKernel } from './wordnet-kernel.js';
+export { WebWordNetCore } from './wordnet-core.js';
+
+// React components for kernel architecture
+export { 
+  useWordNetKernel, 
+  WordNetKernelProvider, 
+  useWordNetKernelContext 
+} from './react/index.js';
 
 
 // Orchestration and worker exports

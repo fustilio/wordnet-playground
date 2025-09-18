@@ -9,6 +9,10 @@ export { useWordNet } from './hooks';
 export { WordNetProvider, useWordNetContext } from './contexts/WordNetContext';
 export { WordNetConfigProvider, useWordNetConfig } from './contexts/WordNetConfigContext';
 
+// New kernel-based architecture (recommended)
+export { useWordNetKernel } from './hooks';
+export { WordNetKernelProvider, useWordNetKernelContext } from './contexts/WordNetKernelContext';
+
 // Export types
 export type * from './types/index.js';
 

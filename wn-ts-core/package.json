@@ -35,6 +35,14 @@
       "types": "./src/test/index.ts",
       "default": "./src/test/index.ts"
     },
+    "./plugins": {
+      "types": "./src/plugins/index.ts",
+      "default": "./src/plugins/index.ts"
+    },
+    "./plugins/microkernel": {
+      "types": "./src/plugins/microkernel/index.ts",
+      "default": "./src/plugins/microkernel/index.ts"
+    },
     "./index.json": "./src/index.json",
     "./lmf": {
       "default": "./src/lmf/index.ts"

@@ -1,52 +1,55 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { BaseWordnet } from '../src/wordnet.js';
+import type { WordNetCore } from '../src/wordnet-kernel.js';
 
 describe('Basic Wordnet Functionality', () => {
-  let wordnet: BaseWordnet;
+  let wordnet: WordNetCore;
 
   beforeEach(() => {
-    // Create a mock implementation of BaseWordnet for testing
+    // Create a mock implementation of WordNetCore for testing
     wordnet = {
+      query: async () => [],
       lexicons: async () => [],
-      expandedLexicons: async () => [],
       words: async () => [],
       synsets: async () => [],
-      synset: async () => undefined,
+      synset: async () => ({
+        id: 'mock-synset',
+        pos: 'n',
+        definitions: [],
+        examples: [],
+        memberIds: [],
+        senseIds: [],
+        relations: [],
+        language: 'en',
+        lexicon: 'mock-lexicon',
+        ili: 'mock-ili'
+      }),
       senses: async () => [],
       word: async () => undefined,
-      sense: async () => undefined,
-      ili: async () => undefined,
+      sense: async () => ({
+        id: 'mock-sense',
+        wordId: 'mock-word',
+        synsetId: 'mock-synset',
+        examples: [],
+        counts: [],
+        language: 'en',
+        lexicon: 'mock-lexicon'
+      }),
+      ili: async () => ({
+        id: 'mock-ili',
+        status: 'standard'
+      }),
       ilis: async () => [],
-      getStatistics: async () => ({
-        totalWords: 0,
-        totalSynsets: 0,
-        totalSenses: 0,
-        totalILIs: 0,
-        totalLexicons: 0
-      }),
-      getLexiconStatistics: async () => [],
-      getDataQualityMetrics: async () => ({
-        synsetsWithILI: 0,
-        synsetsWithoutILI: 0,
-        iliCoveragePercentage: 0,
-        emptySynsets: 0,
-        synsetsWithDefinitions: 0,
-        synsetsWithExamples: 0,
-        averageSynsetSize: 0
-      }),
-      getPartOfSpeechDistribution: async () => ({}),
-      getSynsetSizeAnalysis: async () => ({
-        averageSize: 0,
-        maxSize: 0,
-        minSize: 0,
-        sizeDistribution: {}
-      }),
-      close: async () => {}
-    } as unknown as BaseWordnet;
+      synsetsByILI: async () => [],
+      getWord: async () => [],
+      getSynset: async () => null,
+      getSenses: async () => [],
+      getDefinitions: async () => [],
+      getRelations: async () => []
+    } as unknown as WordNetCore;
   });
 
   afterEach(async () => {
-    await wordnet.close();
+    // No close method in WordNetCore interface
   });
 
   it('should create a Wordnet instance', () => {
@@ -78,36 +81,20 @@ describe('Basic Wordnet Functionality', () => {
     expect(Array.isArray(lexicons)).toBe(true);
   });
 
-  it('should handle statistics queries', async () => {
-    const stats = await wordnet.getStatistics();
-    expect(stats).toHaveProperty('totalWords');
-    expect(stats).toHaveProperty('totalSynsets');
-    expect(stats).toHaveProperty('totalSenses');
-    expect(stats).toHaveProperty('totalILIs');
-    expect(stats).toHaveProperty('totalSynsets');
-  });
-
-  it('should handle data quality metrics', async () => {
-    const metrics = await wordnet.getDataQualityMetrics();
-    expect(metrics).toHaveProperty('synsetsWithILI');
-    expect(metrics).toHaveProperty('synsetsWithoutILI');
-    expect(metrics).toHaveProperty('iliCoveragePercentage');
-    expect(metrics).toHaveProperty('emptySynsets');
-    expect(metrics).toHaveProperty('synsetsWithDefinitions');
-    expect(metrics).toHaveProperty('synsetsWithExamples');
-    expect(metrics).toHaveProperty('averageSynsetSize');
-  });
-
-  it('should handle part of speech distribution', async () => {
-    const distribution = await wordnet.getPartOfSpeechDistribution();
-    expect(typeof distribution).toBe('object');
-  });
-
-  it('should handle synset size analysis', async () => {
-    const analysis = await wordnet.getSynsetSizeAnalysis();
-    expect(analysis).toHaveProperty('averageSize');
-    expect(analysis).toHaveProperty('maxSize');
-    expect(analysis).toHaveProperty('minSize');
-    expect(analysis).toHaveProperty('sizeDistribution');
+  it('should handle additional methods', async () => {
+    const words = await wordnet.getWord('test');
+    expect(Array.isArray(words)).toBe(true);
+    
+    const synset = await wordnet.getSynset('test-id');
+    expect(synset).toBeNull();
+    
+    const senses = await wordnet.getSenses('test-word');
+    expect(Array.isArray(senses)).toBe(true);
+    
+    const definitions = await wordnet.getDefinitions('test-synset');
+    expect(Array.isArray(definitions)).toBe(true);
+    
+    const relations = await wordnet.getRelations('test-synset');
+    expect(Array.isArray(relations)).toBe(true);
   });
 });

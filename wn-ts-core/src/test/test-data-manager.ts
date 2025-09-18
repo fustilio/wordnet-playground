@@ -540,23 +540,29 @@ export interface TestContext {
 /**
  * Create a test context for benchmarks and tests
  */
+// Type imports for Node.js modules
+import type { tmpdir as NodeTmpdir } from 'os';
+import type { mkdtempSync as NodeMkdtempSync, rmSync as NodeRmSync } from 'fs';
+import type { join as NodeJoin } from 'path';
+import type { mkdir as NodeMkdir } from 'fs/promises';
+
 export async function getTestContext(): Promise<TestContext> {
-  const { tmpdir } = await import('os');
-  const { mkdtempSync } = await import('fs');
-  const { join } = await import('path');
+  const { tmpdir } = await import('os') as { tmpdir: typeof NodeTmpdir };
+  const { mkdtempSync } = await import('fs') as { mkdtempSync: typeof NodeMkdtempSync };
+  const { join } = await import('path') as { join: typeof NodeJoin };
   
   const tempDir = mkdtempSync(join(tmpdir(), 'wn-ts-test-'));
   const dataDirectory = join(tempDir, 'data');
   
   // Create data directory
-  const { mkdir } = await import('fs/promises');
+  const { mkdir } = await import('fs/promises') as { mkdir: typeof NodeMkdir };
   await mkdir(dataDirectory, { recursive: true });
   
   return {
     dataDirectory,
     tempDir,
     cleanup: async () => {
-      const { rmSync } = await import('fs');
+      const { rmSync } = await import('fs') as { rmSync: typeof NodeRmSync };
       try {
         rmSync(tempDir, { recursive: true, force: true });
       } catch (error) {

@@ -132,24 +132,24 @@ describe('Module Functions', () => {
 
   describe('synsets', () => {
     it('should return synsets when they exist', async () => {
-      const result = await synsets('information');
+      const result = await synsets({ form: 'information' });
       expect(result.length).toBeGreaterThan(0);
       expect(result.some(s => s.id === 'test-en-0001-n' && s.pos === 'n')).toBe(true);
     });
 
     it('should return empty array for non-existent word', async () => {
-      const result = await synsets('nonexistent');
+      const result = await synsets({ form: 'nonexistent' });
       expect(result).toEqual([]);
     });
 
     it('should handle part of speech filtering', async () => {
-      const result = await synsets('information', 'n');
+      const result = await synsets({ form: 'information', pos: 'n' });
       expect(result.length).toBeGreaterThan(0);
       expect(result.every(s => s.pos === 'n')).toBe(true);
     });
 
     it('should handle lexicon filtering', async () => {
-      const result = await synsets('information', undefined, { lexicon: 'test-en' });
+      const result = await synsets({ form: 'information', lexicon: 'test-en' });
       expect(result.length).toBeGreaterThan(0);
       expect(result.every(s => s.lexicon === 'test-en')).toBe(true);
     });

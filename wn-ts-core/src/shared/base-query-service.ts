@@ -7,7 +7,7 @@
 
 import { Kysely, sql } from 'kysely';
 import type { Database } from './database-types.js';
-import type { PartOfSpeech, Lexicon, Word, Synset, Sense, ILI, WordQuery, SynsetQuery, SenseQuery } from '../types.js';
+import type { PartOfSpeech, Lexicon, Word, Synset, Sense, ILI, WordQuery, SynsetQuery, SenseQuery } from '../core/types.js';
 import { batchInsert } from './batch-insert.js';
 
 /**
@@ -148,7 +148,7 @@ export abstract class BaseKyselyQueryService {
           query = query.where('words.lexicon', 'in', lexicon);
         }
       } else {
-        query = query.where('words.lexicon', '=', lexicon);
+        query = query.where(sql`words.lexicon`, '=', lexicon);
       }
     }
 
@@ -159,7 +159,7 @@ export abstract class BaseKyselyQueryService {
 
     // Handle part of speech filtering
     if (pos) {
-      query = query.where('words.pos', '=', pos);
+      query = query.where(sql`words.pos`, '=', pos);
     }
 
     // Handle form searching with enhanced capabilities
@@ -300,15 +300,20 @@ export abstract class BaseKyselyQueryService {
             .where('words.pos', '=', pos!)
             .distinct();
         } else {
-          // If form is already joined, just add POS filter
-          return qb.where('words.pos', '=', pos!);
+          // Use subquery to filter by POS when no form is provided
+          return qb.where('synsets.id', 'in', 
+            this.db.selectFrom('senses')
+              .leftJoin('words', 'words.id', 'senses.word_id')
+              .select('senses.synset_id')
+              .where('words.pos', '=', pos!)
+          );
         }
       })
       .$if(!!lexicon && lexicon !== '*', qb => {
       if (Array.isArray(lexicon)) {
           return lexicon.length > 0 ? qb.where('synsets.lexicon', 'in', lexicon) : qb;
         } else {
-          return qb.where('synsets.lexicon', '=', lexicon);
+          return qb.where('synsets.lexicon', '=', lexicon!);
         }
       })
       .$if(!!language, qb => qb.where('synsets.language', '=', language!))
@@ -318,7 +323,7 @@ export abstract class BaseKyselyQueryService {
 
     const results = await query.execute();
     const transformedSynsets: Synset[] = [];
-    for (const record of results || []) {
+    for (const record of results) {
       transformedSynsets.push(await this.transformSynsetRecordV2(record));
     }
     return transformedSynsets;
@@ -358,14 +363,20 @@ export abstract class BaseKyselyQueryService {
             .where('words.pos', '=', pos!)
             .distinct();
       } else {
-          return qb.where('words.pos', '=', pos!);
+          // Use subquery to filter by POS when no form is provided
+          return qb.where('synsets.id', 'in', 
+            this.db.selectFrom('senses')
+              .leftJoin('words', 'words.id', 'senses.word_id')
+              .select('senses.synset_id')
+              .where('words.pos', '=', pos!)
+          );
         }
       })
       .$if(!!lexicon && lexicon !== '*', qb => {
         if (Array.isArray(lexicon)) {
           return lexicon.length > 0 ? qb.where('synsets.lexicon', 'in', lexicon) : qb;
         } else {
-          return qb.where('synsets.lexicon', '=', lexicon);
+          return qb.where('synsets.lexicon', '=', lexicon!);
         }
       })
       .$if(!!language, qb => qb.where('synsets.language', '=', language!))
@@ -394,23 +405,23 @@ export abstract class BaseKyselyQueryService {
     const sensesBySynset = new Map<string, any[]>();
 
     allDefinitions.forEach(def => {
-      if (!definitionsBySynset.has(def.synset_id)) definitionsBySynset.set(def.synset_id, []);
-      definitionsBySynset.get(def.synset_id)!.push(def);
+      if (def.synset_id && !definitionsBySynset.has(def.synset_id)) definitionsBySynset.set(def.synset_id, []);
+      if (def.synset_id) definitionsBySynset.get(def.synset_id)!.push(def);
     });
 
     allExamples.forEach(ex => {
-      if (!examplesBySynset.has(ex.synset_id)) examplesBySynset.set(ex.synset_id, []);
-      examplesBySynset.get(ex.synset_id)!.push(ex);
+      if (ex.synset_id && !examplesBySynset.has(ex.synset_id)) examplesBySynset.set(ex.synset_id, []);
+      if (ex.synset_id) examplesBySynset.get(ex.synset_id)!.push(ex);
     });
 
     allRelations.forEach(rel => {
-      if (!relationsBySynset.has(rel.source_id)) relationsBySynset.set(rel.source_id, []);
-      relationsBySynset.get(rel.source_id)!.push(rel);
+      if (rel.source_id && !relationsBySynset.has(rel.source_id)) relationsBySynset.set(rel.source_id, []);
+      if (rel.source_id) relationsBySynset.get(rel.source_id)!.push(rel);
     });
 
     allSenses.forEach(sense => {
-      if (!sensesBySynset.has(sense.synset_id)) sensesBySynset.set(sense.synset_id, []);
-      sensesBySynset.get(sense.synset_id)!.push(sense);
+      if (sense.synset_id && !sensesBySynset.has(sense.synset_id)) sensesBySynset.set(sense.synset_id, []);
+      if (sense.synset_id) sensesBySynset.get(sense.synset_id)!.push(sense);
     });
 
     // Transform synsets with pre-loaded data (no more individual queries!)
@@ -505,19 +516,16 @@ export abstract class BaseKyselyQueryService {
           .distinct();
       })
       .$if(!!pos, qb => {
-        if (!form) {
-          return qb
-            .where('words.pos', '=', pos!)
-            .distinct();
-        } else {
-          return qb.where('words.pos', '=', pos!);
-        }
+        // Always ensure words table is joined when filtering by POS
+        return qb
+          .where('words.pos', '=', pos!)
+          .distinct();
       })
       .$if(!!lexicon && lexicon !== '*', qb => {
         if (Array.isArray(lexicon)) {
           return lexicon.length > 0 ? qb.where('synsets.lexicon', 'in', lexicon) : qb;
         } else {
-          return qb.where('synsets.lexicon', '=', lexicon);
+          return qb.where('synsets.lexicon', '=', lexicon!);
         }
       })
       .$if(!!language, qb => qb.where('synsets.language', '=', language!))
@@ -555,8 +563,8 @@ export abstract class BaseKyselyQueryService {
       if (row.def_id && !synset.definitions.some(d => d.id === row.def_id)) {
         synset.definitions.push({
           id: row.def_id,
-          language: row.def_language,
-          text: row.def_text,
+          language: row.def_language || '',
+          text: row.def_text || '',
           source: row.def_source || '',
         });
       }
@@ -565,8 +573,8 @@ export abstract class BaseKyselyQueryService {
       if (row.ex_id && !synset.examples.some(e => e.id === row.ex_id)) {
         synset.examples.push({
           id: row.ex_id,
-          language: row.ex_language,
-          text: row.ex_text,
+          language: row.ex_language || '',
+          text: row.ex_text || '',
           source: row.ex_source || '',
         });
       }
@@ -575,8 +583,8 @@ export abstract class BaseKyselyQueryService {
       if (row.rel_id && !synset.relations.some(r => r.id === row.rel_id)) {
         synset.relations.push({
           id: row.rel_id,
-          type: row.rel_type,
-          target: row.rel_target,
+          type: row.rel_type || '',
+          target: row.rel_target || '',
           source: row.rel_source || '',
         });
       }
@@ -649,27 +657,23 @@ export abstract class BaseKyselyQueryService {
         'senses.id as sense_id',
         'senses.word_id as sense_word_id'
       ])
+      .distinct()
       .$if(!!form, qb => {
         if (!form) return qb;
         // V5 Optimization: Use indexed column directly
-            return qb
-          .where('words.lemma', fuzzy ? 'like' : '=', fuzzy ? `%${form.toLowerCase()}%` : form.toLowerCase())
-          .distinct();
+        return qb
+          .where('words.lemma', fuzzy ? 'like' : '=', fuzzy ? `%${form.toLowerCase()}%` : form.toLowerCase());
       })
       .$if(!!pos, qb => {
-        if (!form) {
-          return qb
-            .where('words.pos', '=', pos!)
-            .distinct();
-          } else {
-          return qb.where('words.pos', '=', pos!);
-        }
+        // Always ensure words table is joined when filtering by POS
+        return qb
+          .where('words.pos', '=', pos!);
       })
       .$if(!!lexicon && lexicon !== '*', qb => {
         if (Array.isArray(lexicon)) {
           return lexicon.length > 0 ? qb.where('synsets.lexicon', 'in', lexicon) : qb;
         } else {
-          return qb.where('synsets.lexicon', '=', lexicon);
+          return qb.where('synsets.lexicon', '=', lexicon!);
         }
       })
       .$if(!!language, qb => qb.where('synsets.language', '=', language!))
@@ -715,8 +719,8 @@ export abstract class BaseKyselyQueryService {
         seenDefinitions.add(row.def_id);
         synset.definitions.push({
           id: row.def_id,
-          language: row.def_language,
-          text: row.def_text,
+          language: row.def_language || '',
+          text: row.def_text || '',
           source: row.def_source || '',
         });
       }
@@ -726,8 +730,8 @@ export abstract class BaseKyselyQueryService {
         seenExamples.add(row.ex_id);
         synset.examples.push({
           id: row.ex_id,
-          language: row.ex_language,
-          text: row.ex_text,
+          language: row.ex_language || '',
+          text: row.ex_text || '',
           source: row.ex_source || '',
         });
       }
@@ -737,8 +741,8 @@ export abstract class BaseKyselyQueryService {
         seenRelations.add(row.rel_id);
         synset.relations.push({
           id: row.rel_id,
-          type: row.rel_type,
-          target: row.rel_target,
+          type: row.rel_type || '',
+          target: row.rel_target || '',
           source: row.rel_source || '',
         });
       }
@@ -761,7 +765,7 @@ export abstract class BaseKyselyQueryService {
     // Limit cache size to prevent memory issues
     if (this.queryCache.size > 1000) {
       const firstKey = this.queryCache.keys().next().value;
-      this.queryCache.delete(firstKey);
+      if (firstKey) this.queryCache.delete(firstKey);
     }
     
     return result;
@@ -792,21 +796,18 @@ export abstract class BaseKyselyQueryService {
           .distinct();
       })
       .$if(!!pos, qb => {
-        if (!form) {
-          return qb
-            .innerJoin('senses', 'senses.synset_id', 'synsets.id')
-            .innerJoin('words', 'words.id', 'senses.word_id')
-            .where('words.pos', '=', pos!)
-            .distinct();
-        } else {
-          return qb.where('words.pos', '=', pos!);
-        }
+        // Always ensure words table is joined when filtering by POS
+        return qb
+          .innerJoin('senses', 'senses.synset_id', 'synsets.id')
+          .innerJoin('words', 'words.id', 'senses.word_id')
+          .where('words.pos', '=', pos!)
+          .distinct();
       })
       .$if(!!lexicon && lexicon !== '*', qb => {
         if (Array.isArray(lexicon)) {
           return lexicon.length > 0 ? qb.where('synsets.lexicon', 'in', lexicon) : qb;
         } else {
-          return qb.where('synsets.lexicon', '=', lexicon);
+          return qb.where('synsets.lexicon', '=', lexicon!);
         }
       })
       .$if(!!language, qb => qb.where('synsets.language', '=', language!))
@@ -836,38 +837,39 @@ export abstract class BaseKyselyQueryService {
     // Use for loops for maximum performance
     for (let i = 0; i < allDefinitions.length; i++) {
       const def = allDefinitions[i];
-      if (!definitionsBySynset.has(def.synset_id)) definitionsBySynset.set(def.synset_id, []);
-      definitionsBySynset.get(def.synset_id)!.push(def);
+      if (def && def.synset_id && !definitionsBySynset.has(def.synset_id)) definitionsBySynset.set(def.synset_id, []);
+      if (def && def.synset_id) definitionsBySynset.get(def.synset_id)!.push(def);
     }
 
     for (let i = 0; i < allExamples.length; i++) {
       const ex = allExamples[i];
-      if (!examplesBySynset.has(ex.synset_id)) examplesBySynset.set(ex.synset_id, []);
-      examplesBySynset.get(ex.synset_id)!.push(ex);
+      if (ex && ex.synset_id && !examplesBySynset.has(ex.synset_id)) examplesBySynset.set(ex.synset_id, []);
+      if (ex && ex.synset_id) examplesBySynset.get(ex.synset_id)!.push(ex);
     }
 
     for (let i = 0; i < allRelations.length; i++) {
       const rel = allRelations[i];
-      if (!relationsBySynset.has(rel.source_id)) relationsBySynset.set(rel.source_id, []);
-      relationsBySynset.get(rel.source_id)!.push(rel);
+      if (rel && rel.source_id && !relationsBySynset.has(rel.source_id)) relationsBySynset.set(rel.source_id, []);
+      if (rel && rel.source_id) relationsBySynset.get(rel.source_id)!.push(rel);
     }
 
     for (let i = 0; i < allSenses.length; i++) {
       const sense = allSenses[i];
-      if (!sensesBySynset.has(sense.synset_id)) sensesBySynset.set(sense.synset_id, []);
-      sensesBySynset.get(sense.synset_id)!.push(sense);
+      if (sense && sense.synset_id && !sensesBySynset.has(sense.synset_id)) sensesBySynset.set(sense.synset_id, []);
+      if (sense && sense.synset_id) sensesBySynset.get(sense.synset_id)!.push(sense);
     }
 
     // V6 Optimization: Build objects with minimal overhead
-    const transformedSynsets: Synset[] = new Array(results.length);
-    for (let i = 0; i < results.length; i++) {
-      const record = results[i];
+    const transformedSynsets: Synset[] = [];
+    for (const record of results) {
+     
+      
       const definitions = definitionsBySynset.get(record.id) || [];
       const examples = examplesBySynset.get(record.id) || [];
       const relations = relationsBySynset.get(record.id) || [];
       const senses = sensesBySynset.get(record.id) || [];
 
-      transformedSynsets[i] = {
+      transformedSynsets.push({
         id: record.id,
         pos: record.pos as PartOfSpeech,
         language: record.language,
@@ -890,10 +892,10 @@ export abstract class BaseKyselyQueryService {
           target: rel.target_id,
           source: rel.source || '',
         })),
-        memberIds: senses.map(s => s.word_id),
-        senseIds: senses.map(s => s.id),
+        memberIds: senses.map(s => s?.word_id).filter(Boolean),
+        senseIds: senses.map(s => s?.id).filter(Boolean),
         ili: record.ili
-      };
+      })
     }
     
     return transformedSynsets;
@@ -924,21 +926,18 @@ export abstract class BaseKyselyQueryService {
           .distinct();
       })
       .$if(!!pos, qb => {
-        if (!form) {
-          return qb
-            .innerJoin('senses', 'senses.synset_id', 'synsets.id')
-            .innerJoin('words', 'words.id', 'senses.word_id')
-            .where('words.pos', '=', pos!)
-            .distinct();
-        } else {
-          return qb.where('words.pos', '=', pos!);
-        }
+        // Always ensure words table is joined when filtering by POS
+        return qb
+          .innerJoin('senses', 'senses.synset_id', 'synsets.id')
+          .innerJoin('words', 'words.id', 'senses.word_id')
+          .where('words.pos', '=', pos!)
+          .distinct();
       })
       .$if(!!lexicon && lexicon !== '*', qb => {
         if (Array.isArray(lexicon)) {
           return lexicon.length > 0 ? qb.where('synsets.lexicon', 'in', lexicon) : qb;
         } else {
-          return qb.where('synsets.lexicon', '=', lexicon);
+          return qb.where('synsets.lexicon', '=', lexicon!);
         }
       })
       .$if(!!language, qb => qb.where('synsets.language', '=', language!))
@@ -948,7 +947,7 @@ export abstract class BaseKyselyQueryService {
 
     const results = await query.execute();
     const transformedSynsets: Synset[] = [];
-    for (const record of results || []) {
+    for (const record of results) {
       transformedSynsets.push(await this.transformSynsetRecordFast(record));
     }
     return transformedSynsets;
@@ -980,7 +979,7 @@ export abstract class BaseKyselyQueryService {
 
       const results = await query.execute();
     const transformedSynsets: Synset[] = [];
-    for (const record of results || []) {
+    for (const record of results) {
       transformedSynsets.push(await this.transformSynsetRecord(record, options));
     }
     return transformedSynsets;
@@ -1009,7 +1008,7 @@ export abstract class BaseKyselyQueryService {
       .selectAll('senses');
 
     // Determine if we need to join with words table
-    const needsWordsJoin = !!(wordIdOrForm && !wordIdOrForm.includes('-')) || pos || (lexicon && lexicon !== '*');
+    let needsWordsJoin = !!(wordIdOrForm && !wordIdOrForm.includes('-')) || pos || (lexicon && lexicon !== '*');
     
     if (needsWordsJoin) {
       query = query.innerJoin('words', 'senses.word_id', 'words.id');
@@ -1027,11 +1026,19 @@ export abstract class BaseKyselyQueryService {
     }
 
     if (pos) {
-      query = query.where('words.pos', '=', pos);
+      if (!needsWordsJoin) {
+        query = query.innerJoin('words', 'senses.word_id', 'words.id');
+        needsWordsJoin = true; // Update the flag
+      }
+      query = query.where(sql`words.pos`, '=', pos);
     }
 
     if (lexicon && lexicon !== '*') {
-      query = query.where('words.lexicon', '=', lexicon);
+      if (!needsWordsJoin) {
+        query = query.innerJoin('words', 'senses.word_id', 'words.id');
+        needsWordsJoin = true; // Update the flag
+      }
+      query = query.where(sql`words.lexicon`, '=', lexicon);
     }
 
     const results = await query.execute();
@@ -1065,7 +1072,7 @@ export abstract class BaseKyselyQueryService {
       .selectAll('senses');
 
     // Determine if we need to join with words table
-    const needsWordsJoin = !!(wordIdOrForm && !wordIdOrForm.includes('-')) || pos || (lexicon && lexicon !== '*');
+    let needsWordsJoin = !!(wordIdOrForm && !wordIdOrForm.includes('-')) || pos || (lexicon && lexicon !== '*');
     
     if (needsWordsJoin) {
       query = query.innerJoin('words', 'senses.word_id', 'words.id');
@@ -1078,16 +1085,24 @@ export abstract class BaseKyselyQueryService {
         query = query.where('senses.word_id', '=', wordIdOrForm);
       } else {
         // Form lookup - words table already joined
-        query = query.where('words.lemma', '=', wordIdOrForm.toLowerCase());
+        query = query.where(sql`words.lemma`, '=', wordIdOrForm.toLowerCase());
       }
     }
 
     if (pos) {
-      query = query.where('words.pos', '=', pos);
+      if (!needsWordsJoin) {
+        query = query.innerJoin('words', 'senses.word_id', 'words.id');
+        needsWordsJoin = true; // Update the flag
+      }
+      query = query.where(sql`words.pos`, '=', pos);
     }
 
     if (lexicon && lexicon !== '*') {
-      query = query.where('words.lexicon', '=', lexicon);
+      if (!needsWordsJoin) {
+        query = query.innerJoin('words', 'senses.word_id', 'words.id');
+        needsWordsJoin = true; // Update the flag
+      }
+      query = query.where(sql`words.lexicon`, '=', lexicon);
     }
 
     const results = await query.execute();
@@ -1104,7 +1119,7 @@ export abstract class BaseKyselyQueryService {
     // Limit cache size to prevent memory issues
     if (this.queryCache.size > 1000) {
       const firstKey = this.queryCache.keys().next().value;
-      this.queryCache.delete(firstKey);
+      if (firstKey) this.queryCache.delete(firstKey);
     }
     
     return senses;
@@ -1126,7 +1141,7 @@ export abstract class BaseKyselyQueryService {
       .selectAll('senses');
 
     // Determine if we need to join with words table
-    const needsWordsJoin = !!(wordIdOrForm && !wordIdOrForm.includes('-')) || pos || (lexicon && lexicon !== '*');
+    let needsWordsJoin = !!(wordIdOrForm && !wordIdOrForm.includes('-')) || pos || (lexicon && lexicon !== '*');
     
     if (needsWordsJoin) {
       query = query.innerJoin('words', 'senses.word_id', 'words.id');
@@ -1139,16 +1154,24 @@ export abstract class BaseKyselyQueryService {
         query = query.where('senses.word_id', '=', wordIdOrForm);
       } else {
         // Form lookup - words table already joined
-        query = query.where('words.lemma', '=', wordIdOrForm.toLowerCase());
+        query = query.where(sql`words.lemma`, '=', wordIdOrForm.toLowerCase());
       }
     }
 
     if (pos) {
-      query = query.where('words.pos', '=', pos);
+      if (!needsWordsJoin) {
+        query = query.innerJoin('words', 'senses.word_id', 'words.id');
+        needsWordsJoin = true; // Update the flag
+      }
+      query = query.where(sql`words.pos`, '=', pos);
     }
 
     if (lexicon && lexicon !== '*') {
-      query = query.where('words.lexicon', '=', lexicon);
+      if (!needsWordsJoin) {
+        query = query.innerJoin('words', 'senses.word_id', 'words.id');
+        needsWordsJoin = true; // Update the flag
+      }
+      query = query.where(sql`words.lexicon`, '=', lexicon);
     }
 
     const results = await query.execute();

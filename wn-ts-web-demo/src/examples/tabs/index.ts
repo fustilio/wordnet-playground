@@ -6,3 +6,4 @@ export { VisualizationDemo } from "./visualizations/VisualizationDemo";
 export { LexiconIntrospectionDemo } from "./developers/LexiconIntrospectionDemo";
 
 export { TranslationShowcase } from "./multilingual/TranslationShowcase";
+export { KernelDemo } from "../../components/screens/KernelDemo";

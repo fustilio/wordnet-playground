@@ -5,14 +5,14 @@
  * the entire file into memory.
  */
 import sax from 'sax';
-import type { LMFParser, LMFDocument, LMFLoadOptions } from 'wn-ts-core';
+import type { LMFXMLParser, LMFDocument, LMFLoadOptions } from 'wn-ts-core';
 import type { Synset, Word, Sense, Lexicon } from 'wn-ts-core';
 
 /**
  * Streaming SAX parser for memory-efficient parsing of large LMF files
  * This parser implements the common LMFParser interface
  */
-export class StreamingSaxParser implements LMFParser {
+export class StreamingSaxParser implements LMFXMLParser {
   readonly name = 'Streaming SAX Parser';
   readonly description = 'Memory-efficient streaming parser for large LMF files using SAX';
 
@@ -275,7 +275,7 @@ export class StreamingSaxParser implements LMFParser {
  * Full streaming parser that actually parses LMF content
  * This is the production-ready version
  */
-export class FullStreamingParser implements LMFParser {
+export class FullStreamingParser implements LMFXMLParser {
   readonly name = 'Full Streaming Parser';
   readonly description = 'Complete LMF streaming parser with full data extraction';
 
@@ -288,5 +288,5 @@ export class FullStreamingParser implements LMFParser {
 }
 
 // Factory functions
-export const createStreamingSaxParser = (): LMFParser => new StreamingSaxParser();
-export const createFullStreamingParser = (): LMFParser => new FullStreamingParser();
+export const createStreamingSaxParser = (): LMFXMLParser => new StreamingSaxParser();
+export const createFullStreamingParser = (): LMFXMLParser => new FullStreamingParser();

@@ -226,7 +226,7 @@ describe('Wordnet', () => {
   describe('senses', () => {
     it('should return empty array for non-existent word', async () => {
       const en = new Wordnet('test-en');
-      const senses = await en.senses({ form: 'nonexistent-word' });
+      const senses = await en.senses({ wordIdOrForm: 'nonexistent-word' });
       expect(senses).toHaveLength(0);
     });
   });

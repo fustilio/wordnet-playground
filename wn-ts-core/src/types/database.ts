@@ -15,6 +15,19 @@ export interface Database {
   examples: ExampleTable;
   relations: RelationTable;
   ilis: IliTable;
+  sqlite_master: SqliteMasterTable;
+}
+
+// ============================================================================
+// SQLITE_MASTER TABLE (for database introspection)
+// ============================================================================
+
+export interface SqliteMasterTable {
+  type: string;
+  name: string;
+  tbl_name: string;
+  rootpage: number;
+  sql: string;
 }
 
 // ============================================================================

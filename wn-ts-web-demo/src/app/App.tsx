@@ -10,7 +10,8 @@ import {
   DeveloperDemo, 
   VisualizationDemo, 
   LexiconIntrospectionDemo,
-  TranslationShowcase
+  TranslationShowcase,
+  KernelDemo
 } from '../examples/tabs';
 import { useWordNetContext } from 'wn-ts-web/react';
 import { createScopedLogger, setGlobalLogLevel } from 'utils/logger';
@@ -38,6 +39,7 @@ function App() {
 
   const tabs = [
     'Basic', 
+    'Kernel Demo',
     'Translation Showcase',
     'Data Catalog', 
     'Visualizations', 
@@ -112,6 +114,7 @@ function App() {
             <Tabs tabs={tabs} activeTab={activeTab} setActiveTab={handleTabChange} />
             <div className="mt-6">
               {activeTab === 'Basic' && <BasicDemo />}
+              {activeTab === 'Kernel Demo' && <KernelDemo />}
               {activeTab === 'Translation Showcase' && <TranslationShowcase />}
               {activeTab === 'Data Catalog' && <AdvancedDemo />}
               {activeTab === 'Visualizations' && <VisualizationDemo />}

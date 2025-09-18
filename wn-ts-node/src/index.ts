@@ -4,14 +4,18 @@
  * A modern TypeScript implementation of the wn library for accessing WordNet data.
  */
 
-// Core classes
+// Core classes (deprecated - use NodeWordNetKernel instead)
 export { Wordnet } from './wordnet.js';
 export { config, ConfigManager } from './config.js';
 // Note: db export is for internal debugging only - use Wordnet instance methods instead
 
-// New Kysely-based implementation
+// New Kysely-based implementation (deprecated - use NodeWordNetKernel instead)
 export { KyselyWordnet, type NodeWordnetConfig } from './kysely-wordnet.js';
 export * from './database/index.js';
+
+// New kernel-based architecture (recommended)
+export { NodeWordNetKernel } from './wordnet-kernel.js';
+export { NodeWordNetCore } from './wordnet-core.js';
 
 // Download utilities
 export { downloadFile, DownloadError } from 'wn-ts-core';
@@ -77,7 +81,7 @@ export type {
 
 // Error classes - matching Python wn API exactly
 export {
-  Error as WnError,
+  WnError,
   DatabaseError,
   ConfigurationError,
   ProjectError,

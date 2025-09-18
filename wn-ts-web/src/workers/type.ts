@@ -26,8 +26,8 @@ export type WordInfo = Word;
 export type RelationInfo = Relation;
 
 // Use return types from core library methods instead of redefining
-export type LexiconStatistics = Awaited<ReturnType<import('wn-ts-core').BaseWordnet['getLexiconStatistics']>>[0];
-export type OverallStatistics = Awaited<ReturnType<import('wn-ts-core').BaseWordnet['getStatistics']>>;
+export type LexiconStatistics = Awaited<ReturnType<import('wn-ts-core').WordNetKernel['getLexiconStatistics']>>[0];
+export type OverallStatistics = Awaited<ReturnType<import('wn-ts-core').WordNetKernel['getStatistics']>>;
 
 export interface MemoryQueryTestResult {
   lexicons: {

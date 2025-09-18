@@ -4,6 +4,9 @@
  * across wn-ts-node, wn-ts-web, and wn-ts-core
  */
 
+// Type import for fs/promises
+import type { readFile as NodeReadFile } from 'fs/promises';
+
 // XML declaration and DOCTYPE patterns
 export const DOCTYPE_PATTERN = /<!DOCTYPE LexicalResource SYSTEM "([^"]+)">/;
 
@@ -237,7 +240,7 @@ export async function quickScanLMF(
   }
   
   // This function requires Node.js fs module
-  let readFile: typeof import('fs/promises').readFile;
+  let readFile: typeof NodeReadFile;
   try {
     readFile = require('fs/promises').readFile;
   } catch (error) {

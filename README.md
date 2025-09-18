@@ -1,6 +1,6 @@
 # WordNet TypeScript Ecosystem
 
-A comprehensive TypeScript ecosystem for working with WordNet data, featuring cross-lingual support, multiple lexicon formats, and optimized database operations.
+A comprehensive TypeScript ecosystem for working with WordNet data, featuring a modern **microkernel architecture** with plugin system, cross-lingual support, and optimized database operations.
 
 ## 🚀 **Quick Start**
 
@@ -16,6 +16,197 @@ pnpm test:browser
 
 # Run all demo examples
 cd demo && pnpm all-use-cases
+```
+
+## 🏗️ **Modern Architecture**
+
+The WordNet TypeScript ecosystem has evolved to use a **microkernel architecture** with a plugin system that provides:
+
+- **Plugin System**: Extensible, composable, and type-safe plugins
+- **Type Safety**: Full TypeScript support with compile-time type checking
+- **Cross-Platform**: Works in Node.js, browsers, and other JavaScript environments
+- **Modern Design**: Clean, type-safe architecture built for the future
+
+### **Architecture Overview**
+
+```
+WordNetCore (interface)
+├── MyWordnetCore (implements WordNetCore)
+│   ├── words()
+│   ├── synsets()
+│   └── query()
+└── WordNetKernel (composition)
+    ├── relations plugin    ← Modular
+    ├── similarity plugin   ← Modular
+    ├── translation plugin  ← Modular
+    └── schema management   ← Built-in
+```
+
+## 📦 **Package Structure**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Application Layer                            │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
+│  │ wn-ts-web-  │  │   wn-cli    │  │  Custom     │              │
+│  │    demo     │  │             │  │  Apps       │              │
+│  └─────────────┘  └─────────────┘  └─────────────┘              │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    Platform Layer                               │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
+│  │ wn-ts-node  │  │ wn-ts-web   │  │ Future:     │              │
+│  │ (Node.js)   │  │ (Browser)   │  │ wn-ts-deno  │              │
+│  │ ✅ Complete │  │ ✅ Complete  │  │ 📋 Planned  │           │
+│  └─────────────┘  └─────────────┘  └─────────────┘              │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                      Core Layer                                 │
+│                    ┌─────────────┐                              │
+│                    │ wn-ts-core  │                              │
+│                    │ (Shared)    │                              │
+│                    │ ✅ Complete  │                            │
+│                    └─────────────┘                              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## 🔧 **Core Components**
+
+### **WordNetCore Interface**
+```typescript
+export interface WordNetCore {
+  // Database operations
+  query(sql: string, params?: unknown[]): Promise<unknown[]>;
+  
+  // Base WordNet methods
+  words(query?: WordQuery): Promise<Word[]>;
+  word(wordId: string): Promise<Word>;
+  synsets(query?: SynsetQuery): Promise<Synset[]>;
+  synset(synsetId: string): Promise<Synset>;
+  senses(query?: SenseQuery): Promise<Sense[]>;
+  sense(senseId: string): Promise<Sense>;
+  
+  // Interlingual queries
+  ili(iliId: string): Promise<ILI>;
+  ilis(status?: string): Promise<ILI[]>;
+  synsetsByILI(iliId: string): Promise<Synset[]>;
+}
+```
+
+### **WordNetKernel Class**
+```typescript
+export class WordNetKernel<TPlugins extends readonly Plugin[]> {
+  constructor(core: WordNetCore, kyselyDb?: KyselyDatabase) {
+    this.core = core;
+    this.kyselyDb = kyselyDb;
+  }
+  
+  // Delegate to core
+  async words(query?: WordQuery): Promise<Word[]> {
+    return this.core.words(query);
+  }
+  
+  // Plugin system
+  use<TNewPlugin extends Plugin>(plugin: TNewPlugin): WordNetWithPlugins<[...TPlugins, TNewPlugin]> {
+    // Add plugin methods
+  }
+}
+```
+
+## 🚀 **Usage Examples**
+
+### **Node.js**
+```typescript
+import { NodeWordNetKernel } from 'wn-ts-node';
+
+const wordnet = new NodeWordNetKernel('oewn:2024', {
+  filename: 'wordnet.db'
+});
+
+await wordnet.initialize();
+
+// Basic operations
+const words = await wordnet.words({ form: 'computer' });
+const synsets = await wordnet.synsets({ wordId: words[0].id });
+
+// Plugin operations
+const hypernyms = await wordnet.getHypernyms(synsets[0].id);
+const similarity = await wordnet.getPathSimilarity(synsets[0].id, synsets[1].id);
+const translations = await wordnet.getTranslations(synsets[0].id);
+
+await wordnet.close();
+```
+
+### **Web/Browser**
+```typescript
+import { WebWordNetKernel } from 'wn-ts-web';
+
+const wordnet = new WebWordNetKernel('oewn:2024');
+
+await wordnet.initialize();
+
+// Same API as Node.js
+const words = await wordnet.words({ form: 'computer' });
+const hypernyms = await wordnet.getHypernyms(synsets[0].id);
+
+await wordnet.close();
+```
+
+## 🔌 **Plugin System**
+
+### **Available Plugins**
+
+1. **Relations Plugin**: WordNet relationship queries
+   - `getHypernyms()`, `getHyponyms()`, `getMeronyms()`, etc.
+   - `getRelationsByType()`, `getAllRelations()`
+
+2. **Similarity Plugin**: Semantic similarity calculations
+   - `getPathSimilarity()`, `getWuPalmerSimilarity()`
+   - `getLeacockChodorowSimilarity()`, `getJaccardSimilarity()`
+   - `getBestSimilarity()`, `findMostSimilar()`
+
+3. **Translation Plugin**: Cross-lingual operations
+   - `getTranslations()`, `getTranslationsByWord()`
+   - `getAvailableLanguages()`, `getSynsetsByIli()`
+   - `getTranslationConfidence()`, `getTranslationSuggestions()`
+
+### **Type Safety**
+```typescript
+// TypeScript knows the exact return types
+const hypernyms: Array<{
+  id: string;
+  lemma: string;
+  pos: string;
+  language: string;
+}> = await wordnet.getHypernyms(synsetId);
+
+// Compile-time checking ensures correct usage
+const similarity: number = await wordnet.getPathSimilarity(synset1, synset2);
+```
+
+### **Custom Plugins**
+```typescript
+import type { Plugin, WordNetCore } from 'wn-ts-core';
+
+const customPlugin: Plugin<WordNetCore, 'custom'> = {
+  name: 'custom',
+  methods: {
+    customMethod: async (core, param: string) => {
+      // Your custom implementation
+      return core.query('SELECT * FROM words WHERE form = ?', [param]);
+    }
+  }
+};
+
+// Use with createWordNet
+const wordnet = createWordNet({
+  core: myCore,
+  plugins: [relations, similarity, translation, customPlugin]
+});
 ```
 
 ## 📚 **Lexicon Formats & Data Structure**
@@ -55,15 +246,6 @@ LMF XML follows the official WordNet-LMF schema with these key elements:
 5. **Relations** (cross-synset connections)
 6. **Definitions & Examples** (descriptive content)
 
-### **Data Preservation Strategy**
-
-The system preserves all original data while optimizing for cross-lingual operations:
-
-- **Full XML Preservation**: All attributes, elements, and metadata retained
-- **ILI-Based Linking**: Interlingual Index entries enable cross-language concept mapping
-- **Deduplication Handling**: Configurable strategies for duplicate ID resolution
-- **Validation Pipeline**: Multi-stage validation ensuring data integrity
-
 ## 🗄️ **Database Schema & Data Mapping**
 
 The system uses a normalized relational database schema optimized for cross-lingual linking and efficient querying:
@@ -83,13 +265,6 @@ interface Database {
   forms: FormTable;            // Alternative word forms
 }
 ```
-
-### **Key Data Mapping Principles**
-
-- **ID Consistency**: All entities use consistent ID patterns (`wordId`, `synsetId`, `lexiconId`)
-- **Foreign Key Relationships**: Proper referential integrity with database constraints
-- **Cross-Lingual Linking**: ILI-based concept mapping across languages
-- **Performance Optimization**: Strategic indexing for common query patterns
 
 ### **Cross-Lingual Linking Strategy**
 
@@ -120,73 +295,24 @@ The validation pipeline ensures data quality at every stage:
 3. **Business Rules**: WordNet-specific validation logic
 4. **Cross-Reference**: ILI mapping validation across lexicons
 
-### **Strategic Indexing**
-
-Performance-optimized database design:
-
-```sql
--- Core lookup indexes
-CREATE INDEX idx_senses_word_id ON senses(word_id);
-CREATE INDEX idx_senses_synset_id ON senses(synset_id);
-CREATE INDEX idx_synsets_ili_id ON synsets(ili_id);
-
--- Cross-lexicon performance
-CREATE INDEX idx_synset_relations_source ON synset_relations(source_synset_id);
-CREATE INDEX idx_synset_relations_target ON synset_relations(target_synset_id);
-```
-
-## 🏗️ **Architecture Overview**
-
-### **Layered Design**
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        React Application                        │
-├─────────────────────────────────────────────────────────────────┤
-│  useWordNet Hook                                               │
-│  ├─ State Management                                           │
-│  ├─ Worker Coordination                                        │
-│  └─ Fallback Logic                                            │
-├─────────────────────────────────────────────────────────────────┤
-│  WordNetOrchestrator (High-level orchestration)                │
-│  ├─ Multi-lexicon management                                  │
-│  ├─ Cross-lexicon operations                                  │
-│  └─ Resource lifecycle management                             │
-├─────────────────────────────────────────────────────────────────┤
-│  WebWordnet (Core WordNet operations)                         │
-│  ├─ Data loading and validation                               │
-│  ├─ Query processing                                          │
-│  └─ Cache management                                          │
-├─────────────────────────────────────────────────────────────────┤
-│  Database Layer (SQLite/Kysely)                               │
-│  ├─ Schema management                                         │
-│  ├─ Data persistence                                          │
-│  └─ Query optimization                                        │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### **Worker-First Architecture**
-
-- **UI Responsiveness**: Heavy operations offloaded to Web Workers
-- **Parallel Processing**: Multiple workers for concurrent operations
-- **Memory Management**: Efficient resource handling and cleanup
-- **Fallback Support**: Graceful degradation when workers unavailable
-
 ## 📦 **Core Modules**
 
 ### **`wn-ts-core`** - Foundation Library
-- Core types and interfaces
+- `WordNetCore` interface and `WordNetKernel` class
+- Plugin system (relations, similarity, translation)
 - LMF XML parser and validator
 - Database schema definitions
 - Shared utilities and constants
 
 ### **`wn-ts-web`** - Browser Implementation
+- `WebWordNetCore` and `WebWordNetKernel` implementations
 - React hooks and components
 - Web Worker integration
 - SQLite with OPFS storage
 - Browser-optimized performance
 
 ### **`wn-ts-node`** - Node.js Implementation
+- `NodeWordNetCore` and `NodeWordNetKernel` implementations
 - Server-side processing
 - File system operations
 - Database management
@@ -218,6 +344,7 @@ CREATE INDEX idx_synset_relations_target ON synset_relations(target_synset_id);
 ## 📖 **Documentation**
 
 ### **Core Standards**
+- **[Architecture](./ARCHITECTURE.md)** - Complete system architecture
 - **[Development Conventions](./docs/DEVELOPMENT_CONVENTIONS.md)** - Coding standards and patterns
 - **[Database Schema Standards](./docs/DATABASE_SCHEMA_STANDARDS.md)** - Database design and optimization
 - **[Testing Strategy](./docs/TESTING_STRATEGY.md)** - Testing approach and coverage requirements
@@ -227,10 +354,6 @@ CREATE INDEX idx_synset_relations_target ON synset_relations(target_synset_id);
 - **[wn-ts-node Documentation](./wn-ts-node/docs/)** - Node.js implementation guide
 - **[API Reference](./wn-ts-web/docs/API.md)** - Complete API documentation
 
-### **Architecture & Design**
-- **[System Architecture](./wn-ts-web/docs/ARCHITECTURE.md)** - Comprehensive system design
-- **[Worker Architecture](./wn-ts-web/docs/WORKER_ARCHITECTURE.md)** - Web Worker implementation details
-- **[React Integration](./wn-ts-web/docs/REACT_INTEGRATION.md)** - React-specific patterns and examples
 
 ## 🚀 **Performance & Optimization**
 
@@ -297,4 +420,3 @@ We welcome contributions! Please see our contributing guidelines and development
 - **[LMF Specification](https://www.lexicalmarkupframework.org/)** - Lexical Markup Framework standard
 - **[Interlingual Index](https://en.wikipedia.org/wiki/Interlingual_Index)** - Cross-lingual concept mapping
 - **[TypeScript Handbook](https://www.typescriptlang.org/docs/)** - TypeScript language reference
-

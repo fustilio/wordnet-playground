@@ -4,7 +4,7 @@
  * The Node.js implementation is in 'wn-ts-node/src/utils/download.ts'.
  */
 
-import { ProjectError } from '../types.js';
+import { ProjectError } from '../core/errors.js';
 
 export interface DownloadOptions {
   timeout?: number;
