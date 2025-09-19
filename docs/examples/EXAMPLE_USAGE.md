@@ -1,6 +1,50 @@
-# WordNet Query Service Usage Examples
+# WordNet Usage Examples
 
-This document provides comprehensive examples of how to use each query method in the WordNet query service, organized by importance and use case categories.
+This document provides examples of how to use the WordNet TypeScript ecosystem, organized by use case categories.
+
+## 🏗️ **Microkernel Architecture Examples**
+
+The WordNet TypeScript ecosystem uses a microkernel architecture with plugin system:
+
+### **Basic Kernel Usage**
+```typescript
+import { createWordNet } from '@wn-ts/core';
+import { NodeWordNetCore } from '@wn-ts/node';
+
+// Create kernel with Node.js core
+const wordnet = createWordNet(new NodeWordNetCore('path/to/database.db'));
+
+// Use kernel API with plugins
+const word = await wordnet.words({ lemma: 'car' });
+const hypernyms = await wordnet.getHypernyms(word[0].id);
+const similarity = await wordnet.getPathSimilarity(word[0].id, 'vehicle');
+```
+
+### **Plugin System Usage**
+```typescript
+// Relations Plugin
+const relations = await wordnet.getRelations(wordId, 'hypernym');
+const antonyms = await wordnet.getAntonyms(wordId);
+
+// Similarity Plugin
+const pathSim = await wordnet.getPathSimilarity(wordId1, wordId2);
+const wupSim = await wordnet.getWuPalmerSimilarity(wordId1, wordId2);
+
+// Translation Plugin
+const translations = await wordnet.getTranslations(wordId, 'es');
+const crossLingual = await wordnet.getCrossLingualRelations(wordId, 'hypernym');
+```
+
+### **Schema Management**
+```typescript
+// Health checks
+const health = await wordnet.getHealth();
+console.log('Database health:', health);
+
+// Statistics
+const stats = await wordnet.getStatistics();
+console.log('Database statistics:', stats);
+```
 
 ## Query Method Categories
 

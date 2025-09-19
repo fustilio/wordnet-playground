@@ -4,6 +4,19 @@
 
 This document explains the cross-lingual dependency system in WordNet TypeScript, which is crucial for proper interlingual operations. Many WordNets depend on other lexicons for their taxonomic scaffolding and cross-lingual relationships.
 
+## 🏗️ **Microkernel Architecture Integration**
+
+The cross-lingual dependency system is integrated with the microkernel architecture:
+
+### **Translation Plugin**
+- **Cross-Lingual Relations**: Access relations across different languages
+- **ILI Mapping**: Map synsets between languages using Interlingual Index
+- **Dependency Resolution**: Automatically resolve lexicon dependencies
+
+### **Kernel Management**
+- **Dependency Tracking**: Kernel tracks and manages lexicon dependencies
+- **Health Checks**: Validate cross-lingual dependencies and ILI mappings
+
 ## 🔗 **Understanding Lexicon Dependencies**
 
 ### **The `Requires` Field**

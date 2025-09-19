@@ -2,13 +2,11 @@
 
 ## 🎯 **Overview**
 
-`wn-ts-core` is the foundational library that provides the core types, interfaces, and utilities for the entire WordNet TypeScript ecosystem. It defines the data structures, parsing logic, database schemas, and kernel-based architecture used across all `wn-ts` modules.
+`wn-ts-core` is the foundational library that provides the core types, interfaces, and utilities for the entire WordNet TypeScript ecosystem. It defines the data structures, parsing logic, database schemas, and microkernel architecture used across all `wn-ts` modules.
 
-## 🏗️ **Architecture Overview**
+## 🏗️ **Microkernel Architecture**
 
-### **Kernel-Based Design**
-
-The library uses a modern **microkernel architecture** with a plugin system:
+The library uses a microkernel architecture with a plugin system:
 
 ```
 WordNetCore (interface)

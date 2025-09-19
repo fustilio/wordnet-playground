@@ -4,6 +4,20 @@
 
 This document establishes shared development conventions, architectural patterns, and coding standards for all `wn-ts` modules. Following these conventions ensures consistency, maintainability, and interoperability across the ecosystem.
 
+## 🏗️ **Microkernel Architecture**
+
+The WordNet TypeScript ecosystem is built on a microkernel architecture:
+
+### **Core Components**
+- **`WordNetCore`**: Interface defining core database and WordNet methods
+- **`WordNetKernel`**: Central component managing plugins and schema
+- **Plugins**: Type-safe, composable, and optional functionalities
+
+### **Plugin System**
+- **Relations Plugin**: WordNet relations (hypernym, hyponym, etc.)
+- **Similarity Plugin**: Semantic similarity metrics
+- **Translation Plugin**: Cross-lingual mapping and translation
+
 ## 📝 **Naming Conventions**
 
 ### **ID Properties & References**

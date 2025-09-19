@@ -4,6 +4,20 @@
 
 This document establishes the comprehensive testing strategy and standards that all `wn-ts` modules must follow. Our testing approach ensures code quality, reliability, and maintainability across the entire WordNet TypeScript ecosystem.
 
+## 🏗️ **Microkernel Architecture Testing**
+
+The WordNet TypeScript ecosystem uses a microkernel architecture with plugin system:
+
+### **Core Component Testing**
+- **`WordNetCore` Interface**: Test all implementations against the interface contract
+- **`WordNetKernel` Class**: Test plugin management, schema handling, and delegation
+- **Plugin System**: Test individual plugins and their integration with the kernel
+
+### **Plugin Testing Requirements**
+- **Relations Plugin**: Test all WordNet relations (hypernym, hyponym, etc.)
+- **Similarity Plugin**: Test semantic similarity metrics and algorithms
+- **Translation Plugin**: Test cross-lingual mapping and translation features
+
 ## 🏗️ **Testing Pyramid**
 
 ### **Test Distribution**

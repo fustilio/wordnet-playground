@@ -4,6 +4,20 @@
 
 This document defines the standard database schema structure, naming conventions, and data integrity requirements for all `wn-ts` modules. The schema is designed to support cross-lingual WordNet operations with optimal performance and data integrity.
 
+## 🏗️ **Microkernel Architecture Integration**
+
+The database schema is designed to work with the microkernel architecture:
+
+### **Core Schema Components**
+- **`WordNetCore` Interface**: Defines core database operations and schema requirements
+- **`WordNetKernel` Class**: Manages schema validation, health checks, and plugin integration
+- **Plugin Support**: Schema extensions for relations, similarity, and translation plugins
+
+### **Cross-Platform Compatibility**
+- **Node.js**: SQLite with better-sqlite3 and Kysely
+- **Browser**: SQLite WASM with OPFS for persistence
+- **Unified Interface**: Same schema across all platforms
+
 ## 📝 **Naming Conventions**
 
 ### **ID Properties & References**

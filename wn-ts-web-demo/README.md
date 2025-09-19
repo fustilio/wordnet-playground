@@ -1,14 +1,17 @@
 # WordNet TypeScript Web Demo
 
-An interactive demo for exploring the WordNet API in the browser using SQLite WASM and OPFS.
+An interactive demo for exploring the WordNet API in the browser using SQLite WASM, OPFS, and the new **microkernel architecture** with plugin system.
 
 ## 🚀 Features
 
+- **Microkernel Architecture** - Modern plugin-based design with relations, similarity, and translation plugins
 - **Interactive WordNet Exploration** - Search words, synsets, and explore relationships
+- **Plugin System Demo** - Live demonstration of the kernel architecture and plugins
 - **Multi-language Support** - English, French, Thai, and more
 - **Real-time Statistics** - Live database statistics and integrity checks
 - **Advanced Data Management** - Backup, restore, and cache management
 - **Developer Tools** - Built-in debug console and performance monitoring
+- **React Integration** - Custom hooks and context providers for easy integration
 - **Responsive Design** - Works on desktop and mobile devices
 
 ## 📚 Documentation
@@ -18,12 +21,28 @@ An interactive demo for exploring the WordNet API in the browser using SQLite WA
 - **[Hooks Documentation](./src/hooks/SPEC.md)** - Custom React hooks guide
 - **[Utils Documentation](./src/utils/SPEC.md)** - Utility functions reference
 
+## 🏗️ **Microkernel Architecture Demo**
+
+The demo showcases the new **microkernel architecture** with plugin system:
+
+### **Kernel Demo Tab**
+- **Plugin System**: Live demonstration of relations, similarity, and translation plugins
+- **Type Safety**: Full TypeScript support with compile-time checking
+- **Plugin Status**: Real-time display of active plugins and their capabilities
+- **Interactive Queries**: Search words and explore relationships using plugin methods
+
+### **Available Plugins**
+- **Relations Plugin**: Hypernyms, hyponyms, meronyms, holonyms, entailments, similar-to
+- **Similarity Plugin**: Path similarity, Wu-Palmer similarity, Leacock-Chodorow similarity, Jaccard similarity
+- **Translation Plugin**: Cross-lingual translations, available languages, translation confidence
+
 ## 🧵 Using Web Workers with `wn-ts-web`
 
 This demo runs `wn-ts-web` inside a dedicated Web Worker to keep SQLite/OPFS and heavy processing off the main thread. We use `vite-plugin-comlink` for ergonomic worker RPC.
 
 - Worker implementation: `src/workers/wordnetWorker.ts`
 - Hook integration: `src/hooks/useWordNet.ts`, `src/hooks/useWordNetWorker.ts`
+- Kernel integration: `src/components/screens/KernelDemo.tsx`
 - Vite setup: `vite.config.mjs` (includes Comlink plugin and COOP/COEP headers for OPFS)
 
 ### Quick example (Comlink worker)
@@ -107,10 +126,31 @@ logger.end('loading data', { totalRecords: 1000 });
 
 See [Logger Documentation](./src/LOGGER_README.md) for complete usage guide.
 
+## 🎯 **Demo Tabs**
+
+The demo includes several interactive tabs showcasing different aspects of WordNet:
+
+### **Core Tabs**
+- **Basic** - Simple word and synset search
+- **Kernel Demo** - Microkernel architecture and plugin system demonstration
+- **Translation Showcase** - Cross-lingual translation capabilities
+- **Data Catalog** - Advanced data management and lexicon exploration
+- **Visualizations** - Interactive data visualization components
+- **Developer** - Developer tools and debugging utilities
+- **Introspection** - Lexicon introspection and statistics
+
+### **Key Features by Tab**
+- **Plugin System**: Live demonstration of relations, similarity, and translation plugins
+- **Real-time Statistics**: Live database statistics and integrity checks
+- **Multi-language Support**: English, French, Thai, and more
+- **Advanced Data Management**: Backup, restore, and cache management
+- **Developer Tools**: Built-in debug console and performance monitoring
+
 ## 🏗️ Architecture
 
 - **React 19** - Modern React with hooks and context
 - **TypeScript** - Full type safety
+- **Microkernel Architecture** - Plugin-based design with relations, similarity, and translation plugins
 - **SQLite WASM** - Client-side database
 - **OPFS** - Persistent file storage
 - **Web Workers** - Background processing

@@ -1,14 +1,8 @@
 # Advanced WordNet Operations & Use Cases
 
-> **📚 Related Documentation:**
-> - [XSD Sample Generation](./XSD_SAMPLE_GENERATION.md) - Sample generation and ILI analysis
-> - [Data Integrity Validation](./VALIDATION.md) - Complete validation system
-> - [Global WordNet Schemas](./GLOBAL_WORDNET_SCHEMAS.md) - Official schema reference
-> - [Testing Strategy](./TESTING_STRATEGY.md) - Testing guidelines and patterns
+## 🚀 **Advanced Use Cases**
 
-## Superpower Operations: Advanced Use Cases
-
-Go beyond simple lookups and unlock the full potential of WordNet with these "superpower" operations. These examples show how to combine different `wn-ts` functions to perform complex semantic analysis.
+These examples show how to combine different `wn-ts` functions to perform complex semantic analysis and unlock the full potential of WordNet.
 
 ### 1. Conceptual Difference Analysis
 

@@ -1,14 +1,28 @@
 # wn-ts-core
 
-**Core TypeScript library for the WordNet ecosystem** - Environment-agnostic foundation with kernel-based architecture, plugin system, and comprehensive WordNet functionality.
+**Core TypeScript library for the WordNet ecosystem** - Environment-agnostic foundation with microkernel architecture, plugin system, and comprehensive WordNet functionality.
 
 ## 🎯 **Overview**
 
-`wn-ts-core` is the foundational library that provides the core types, interfaces, and utilities for the entire WordNet TypeScript ecosystem. It defines the data structures, parsing logic, database schemas, and kernel-based architecture used across all `wn-ts` modules.
+`wn-ts-core` is the foundational library that provides the core types, interfaces, and utilities for the entire WordNet TypeScript ecosystem. It defines the data structures, parsing logic, database schemas, and microkernel architecture used across all `wn-ts` modules.
+
+## ✨ **Key Features**
+
+- **Microkernel Architecture**: Modern plugin-based design with composable functionality
+- **Environment Agnostic**: Works in browsers, Node.js, and other JavaScript environments
+- **TypeScript First**: Full TypeScript support with comprehensive type definitions
+- **Plugin System**: Extensible, composable, and type-safe plugins
+- **Core Modules**: Essential WordNet functionality (morphology, relations, data management)
+- **LMF Parsing**: Multiple parser implementations for LMF XML files (1.0-1.4)
+- **Schema Management**: Built-in database schema management and health checking
+- **Cross-Lingual Support**: ILI-based translation and cross-language queries
+- **Lexicon-Aware Similarity**: Proper handling of synset IDs with lexicon context
+- **Performance Optimized**: Query strategies, caching, and batch operations
+- **Comprehensive Testing**: Full test coverage with mock implementations
 
 ## 🏗️ **Architecture**
 
-### **Kernel-Based Design**
+### **Microkernel Design**
 
 The library uses a modern **microkernel architecture** with a plugin system:
 
@@ -29,17 +43,15 @@ WordNetCore (interface)
     └── wn-ts-node (Node.js)
 ```
 
-## ✨ **Key Features**
+### **Plugin System**
 
-- **Kernel-Based Architecture**: Modern microkernel design with plugin system
-- **Environment Agnostic**: Works in browsers, Node.js, and other JavaScript environments
-- **TypeScript First**: Full TypeScript support with comprehensive type definitions
-- **Plugin System**: Extensible, composable, and type-safe plugins
-- **Core Modules**: Essential WordNet functionality (morphology, relations, data management)
-- **LMF Parsing**: Multiple parser implementations for LMF XML files
-- **Schema Management**: Built-in database schema management and health checking
-- **Cross-Lingual Support**: ILI-based translation and cross-language queries
-- **Lexicon-Aware Similarity**: Proper handling of synset IDs with lexicon context and cross-lingual comparisons
+The plugin system allows for modular, composable functionality:
+
+- **Type-Safe**: Full TypeScript support with compile-time checking
+- **Composable**: Plugins can be combined in any order
+- **Extensible**: Easy to add new functionality via plugins
+- **Optional**: Core functionality works without any plugins
+
 
 ## 🔧 **Core Components**
 
@@ -91,6 +103,17 @@ class WordNetKernel<TPlugins extends readonly Plugin[]> {
 }
 ```
 
+### **3. Factory Function**
+Convenient factory for creating WordNet instances:
+
+```typescript
+function createWordNet<TPlugins extends readonly Plugin[]>(config: {
+  core: WordNetCore;
+  kyselyDb?: KyselyDatabase;
+  plugins?: TPlugins;
+}): WordNetWithPlugins<TPlugins>;
+```
+
 ## 📦 **Module Structure**
 
 ### **Core Modules (Essential)**
@@ -103,6 +126,7 @@ These modules provide essential WordNet functionality and are **not plugins**:
   - `Morphy` class for finding base forms
   - Exception handling for irregular forms
   - Part-of-speech specific rules
+  - Comprehensive morphological rules for English
 - **Usage**: `import { Morphy, morphy } from 'wn-ts-core'`
 
 #### **Relations Module** (`src/modules/relations/`)
@@ -112,6 +136,7 @@ These modules provide essential WordNet functionality and are **not plugins**:
   - Shortest path calculations
   - Taxonomy depth analysis
   - Simple relation queries
+  - Lexicon-aware relationship handling
 - **Usage**: `import { getHypernyms, shortestPath } from 'wn-ts-core'`
 
 #### **Data Management Module** (`src/modules/data-management/`)
@@ -120,6 +145,7 @@ These modules provide essential WordNet functionality and are **not plugins**:
   - Project discovery and loading
   - ILI (Interlingual Index) handling
   - Lexical resource management
+  - TOML-based project configuration
 - **Usage**: `import { getProjects, loadLexicalResource } from 'wn-ts-core'`
 
 #### **Environment Module** (`src/modules/environment/`)
@@ -127,6 +153,7 @@ These modules provide essential WordNet functionality and are **not plugins**:
 - **Key Features**:
   - Configuration management
   - Environment-specific settings
+  - Cross-platform compatibility
 - **Usage**: `import { getConfig } from 'wn-ts-core'`
 
 ### **Plugins (Optional)**
@@ -140,6 +167,7 @@ These are true plugins that can be added/removed without breaking core functiona
   - Wu-Palmer similarity
   - Leacock-Chodorow similarity
   - Information Content-based metrics (Resnik, Lin, Jiang-Conrath)
+  - Jaccard similarity
 - **Usage**: `import { similarity } from 'wn-ts-core/plugins'`
 
 #### **Translation Plugin** (`src/plugins/translation/`)
@@ -148,7 +176,20 @@ These are true plugins that can be added/removed without breaking core functiona
   - ILI-based translations
   - Multi-language synset lookup
   - Translation confidence scoring
+  - Cross-lingual similarity
 - **Usage**: `import { translation } from 'wn-ts-core/plugins'`
+
+### **Parser System** (`src/parsers/`)
+
+Multiple LMF XML parser implementations for different use cases:
+
+- **Streaming SAX Parser**: Memory-efficient for large files
+- **In-Memory SAX Parser**: Fast parsing for smaller files
+- **Legacy Parser**: Original fast-xml-parser implementation
+- **Native XML Parser**: Regex-based ultra-fast parsing
+- **Python Parser**: Python-based parsing via pythonia
+
+**Usage**: `import { getDefaultParser, getParser } from 'wn-ts-core/parsers'`
 
 ## 🚀 **Quick Start**
 
@@ -161,10 +202,10 @@ pnpm add wn-ts-core
 ### **Basic Usage**
 
 ```typescript
-import { WordNetKernel, createWordNet } from 'wn-ts-core';
+import { createWordNet } from 'wn-ts-core';
 import { similarity, translation } from 'wn-ts-core/plugins';
 
-// Create a kernel with plugins
+// Create a WordNet instance with plugins
 const wordnet = createWordNet({
   core: myWordNetCore, // Your implementation
   plugins: [similarity, translation] as const
@@ -176,8 +217,36 @@ const synsets = await wordnet.synsets({ wordId: words[0].id });
 
 // Plugin methods
 const hypernyms = await wordnet.getHypernyms(synsets[0].id);
-const similarity = await wordnet.path(synsets[0].id, synsets[1].id);
+const similarity = await wordnet.getPathSimilarity(synsets[0].id, synsets[1].id);
 const translations = await wordnet.getTranslations(synsets[0].id, 'fr');
+```
+
+### **Using Core Modules Directly**
+
+```typescript
+import { Morphy, getHypernyms, shortestPath } from 'wn-ts-core';
+
+// Morphological analysis
+const morphy = new Morphy();
+const baseForms = await morphy.analyze('running', 'v');
+// Returns: { 'v': Set { 'run' } }
+
+// Relation queries
+const hypernyms = await getHypernyms(wordnet, 'synset-id');
+const path = await shortestPath(wordnet, 'synset1', 'synset2');
+```
+
+### **LMF Parsing**
+
+```typescript
+import { getDefaultParser } from 'wn-ts-core/parsers';
+
+const parser = getDefaultParser();
+const result = await parser.parse(xmlContent);
+
+console.log('Words:', result.words.length);
+console.log('Synsets:', result.synsets.length);
+console.log('Senses:', result.senses.length);
 ```
 
 ## 🔧 **Core Types & Schemas**

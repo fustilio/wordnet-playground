@@ -2,14 +2,41 @@
 
 ## 🎯 **Overview**
 
-This directory contains the comprehensive documentation for the WordNet TypeScript ecosystem. All documentation follows established standards and conventions to ensure consistency, maintainability, and ease of use across all `wn-ts` modules.
+This directory contains the documentation for the WordNet TypeScript ecosystem. All documentation follows established standards and conventions to ensure consistency, maintainability, and ease of use across all `wn-ts` modules.
 
-## 📚 **Core Standards & Conventions**
+## 🏗️ **Microkernel Architecture**
 
-### **Development Standards**
-- **[Development Conventions](./DEVELOPMENT_CONVENTIONS.md)** - Coding standards, architectural patterns, and best practices
-- **[Database Schema Standards](./DATABASE_SCHEMA_STANDARDS.md)** - Database design, naming conventions, and optimization strategies
-- **[Testing Strategy](./TESTING_STRATEGY.md)** - Testing approach, coverage requirements, and quality assurance
+The ecosystem uses a **microkernel architecture** with plugin system:
+- **wn-ts-core**: Microkernel foundation with plugin system
+- **wn-ts-node**: Node.js kernel implementation
+- **wn-ts-web**: Browser kernel implementation with React integration
+- **wn-ts-web-demo**: Interactive demo showcasing capabilities
+
+## 📚 **Documentation Structure**
+
+### **Project Overview**
+- **[Project Overview](./PROJECT_OVERVIEW.md)** - Complete project overview and ecosystem details
+- **[Architecture Overview](./architecture/ARCHITECTURE_OVERVIEW.md)** - Microkernel architecture and design patterns
+
+### **Architecture**
+- **[System Architecture](./architecture/SYSTEM_ARCHITECTURE.md)** - Microkernel architecture and design patterns
+- **[Web Architecture](./architecture/WEB_ARCHITECTURE.md)** - Browser-specific architecture and worker patterns
+
+### **API Reference**
+- **[Web API](./api/WEB_API.md)** - Complete web API reference and React integration
+
+### **Usage Guides**
+- **[Web Usage](./guides/WEB_USAGE.md)** - Web usage patterns, React integration, and examples
+
+### **Standards & Conventions**
+- **[Development Conventions](./standards/DEVELOPMENT_CONVENTIONS.md)** - Coding standards, architectural patterns, and best practices
+- **[Database Schema Standards](./standards/DATABASE_SCHEMA_STANDARDS.md)** - Database design, naming conventions, and optimization strategies
+- **[Testing Strategy](./standards/TESTING_STRATEGY.md)** - Testing approach, coverage requirements, and quality assurance
+- **[Cross-Lingual Dependencies](./standards/CROSS_LINGUAL_DEPENDENCIES.md)** - Understanding lexicon dependencies
+
+### **Examples & Use Cases**
+- **[Usage Examples](./examples/EXAMPLE_USAGE.md)** - Comprehensive examples and use cases
+- **[Future Potential](./examples/FUTURE_POTENTIAL.md)** - Advanced applications and future possibilities
 
 ### **Key Naming Conventions**
 

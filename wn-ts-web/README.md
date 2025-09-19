@@ -1,12 +1,19 @@
 # wn-ts-web
 
-Browser-compatible WordNet TypeScript implementation using SQLite WASM with advanced orchestration capabilities and comprehensive lexicon introspection.
+Browser-compatible WordNet TypeScript implementation using SQLite WASM with **microkernel architecture**, plugin system, and comprehensive lexicon introspection.
 
-## Status: ✅ **PRODUCTION READY** with Enhanced Lexicon Introspection
+## Status: ✅ **PRODUCTION READY** with Microkernel Architecture
 
-This package provides a fully functional browser-based WordNet implementation using [@sqlite.org/sqlite-wasm](https://github.com/sqlite/sqlite-wasm) for optimal performance and persistence, now with enhanced orchestration for managing multiple lexicons and **real-time lexicon introspection**.
+This package provides a fully functional browser-based WordNet implementation using [@sqlite.org/sqlite-wasm](https://github.com/sqlite/sqlite-wasm) for optimal performance and persistence, now with a modern **microkernel architecture** with plugin system and enhanced orchestration for managing multiple lexicons.
 
 ## 🎯 **Recent Major Updates**
+
+### **Microkernel Architecture** ✅ COMPLETED
+- **Plugin System**: Modern plugin-based architecture with relations, similarity, and translation plugins
+- **Type Safety**: Full TypeScript support with compile-time checking for all plugin methods
+- **React Integration**: New React hooks and context providers for easy integration
+- **Cross-Package Compatibility**: Works seamlessly with wn-ts-core plugin system
+- **Zero Runtime Overhead**: Type-safe plugin system with no performance impact
 
 ### **Enhanced Lexicon Introspection System** ✅ COMPLETED
 - **Real Data Integration**: Replaced all placeholder values with actual database statistics
@@ -22,27 +29,74 @@ This package provides a fully functional browser-based WordNet implementation us
 
 ## Features
 
-- ✅ **SQLite WASM Integration**: Fully working with local WASM files.
-- ✅ **Kysely Query Engine**: Type-safe SQL query building for enhanced reliability and developer experience.
-- ✅ **OPFS Support**: Persistent storage using the Origin Private File System.
-- ✅ **In-Memory Fallback**: Automatic fallback when OPFS is unavailable.
-- ✅ **Cross-Browser Compatibility**: Works in all modern browsers.
-- ✅ **TypeScript Support**: Full type safety and IntelliSense.
-- ✅ **Performance Optimized**: Fast queries and efficient memory usage.
-- ✅ **Framework Agnostic**: Core library works with any JavaScript framework.
-- ✅ **Worker-First Architecture**: Designed to run in Web Workers for optimal performance.
-- ✅ **Multi-Lexicon Orchestration**: Advanced management of multiple lexicons with state tracking.
-- ✅ **Cross-Lexicon Queries**: Efficient queries across multiple lexicons in a single database.
-- ✅ **Lexicon Lifecycle Management**: Automatic update detection and redownload management.
-- ✅ **Resource Type Introspection**: Automatic detection and analysis of lexicons vs. ILIs.
-- ✅ **Cross-Lingual Analysis**: Comprehensive analysis of multilingual capabilities and mapping coverage.
-- ✅ **Enhanced Lexicon Introspection**: Real-time statistics, sense counts, and data quality metrics.
+- ✅ **Microkernel Architecture**: Modern plugin-based design with relations, similarity, and translation plugins
+- ✅ **SQLite WASM Integration**: Fully working with local WASM files
+- ✅ **Kysely Query Engine**: Type-safe SQL query building for enhanced reliability and developer experience
+- ✅ **OPFS Support**: Persistent storage using the Origin Private File System
+- ✅ **In-Memory Fallback**: Automatic fallback when OPFS is unavailable
+- ✅ **Cross-Browser Compatibility**: Works in all modern browsers
+- ✅ **TypeScript Support**: Full type safety and IntelliSense
+- ✅ **Performance Optimized**: Fast queries and efficient memory usage
+- ✅ **Framework Agnostic**: Core library works with any JavaScript framework
+- ✅ **Worker-First Architecture**: Designed to run in Web Workers for optimal performance
+- ✅ **React Integration**: Custom hooks and context providers for React applications
+- ✅ **Multi-Lexicon Orchestration**: Advanced management of multiple lexicons with state tracking
+- ✅ **Cross-Lexicon Queries**: Efficient queries across multiple lexicons in a single database
+- ✅ **Lexicon Lifecycle Management**: Automatic update detection and redownload management
+- ✅ **Resource Type Introspection**: Automatic detection and analysis of lexicons vs. ILIs
+- ✅ **Cross-Lingual Analysis**: Comprehensive analysis of multilingual capabilities and mapping coverage
+- ✅ **Enhanced Lexicon Introspection**: Real-time statistics, sense counts, and data quality metrics
+
+## 🏗️ **Microkernel Architecture**
+
+The library now uses a modern **microkernel architecture** with a plugin system:
+
+```
+WebWordNetKernel
+├── WebWordNetCore (implements WordNetCore)
+│   ├── WebWordnet (database operations)
+│   └── WebKyselyDatabase (SQLite WASM integration)
+├── Plugin System
+│   ├── Relations Plugin (hypernyms, hyponyms, etc.)
+│   ├── Similarity Plugin (path, Wu-Palmer, etc.)
+│   └── Translation Plugin (cross-lingual operations)
+└── Schema Management (built-in)
+```
+
+### **Plugin System Features**
+
+- **Type-Safe**: Full TypeScript support with compile-time checking
+- **Composable**: Plugins can be combined in any order
+- **Extensible**: Easy to add new functionality via plugins
+- **Zero Runtime Overhead**: Type-safe plugin system with no performance impact
+- **React Integration**: Custom hooks and context providers for easy React integration
 
 ## Architecture
 
 The library now provides three levels of abstraction for different use cases:
 
-### 1. WordNetOrchestrator (High-level)
+### 1. WebWordNetKernel (Kernel API - Recommended)
+For modern applications using the microkernel architecture with plugins:
+
+```typescript
+import { WebWordNetKernel } from 'wn-ts-web';
+
+const wordnet = new WebWordNetKernel('oewn:2024');
+await wordnet.initialize(sqlModule);
+
+// Basic queries
+const words = await wordnet.words({ form: 'computer' });
+const synsets = await wordnet.synsets({ wordId: words[0].id });
+
+// Plugin methods
+const hypernyms = await wordnet.getHypernyms(synsets[0].id);
+const similarity = await wordnet.getPathSimilarity(synsets[0].id, synsets[1].id);
+const translations = await wordnet.getTranslations(synsets[0].id, 'fr');
+
+await wordnet.close();
+```
+
+### 2. WordNetOrchestrator (High-level)
 For applications that need to manage multiple lexicons with cross-lexicon operations:
 
 ```typescript
@@ -67,7 +121,7 @@ console.log('Sense count:', lexiconInfo.senseCount); // Real data: 212,478
 console.log('ILI coverage:', lexiconInfo.iliCoverage); // Calculated percentage
 ```
 
-### 2. WordNetWorkerClient (Mid-level)
+### 3. WordNetWorkerClient (Mid-level)
 For worker-based operations and lexicon state tracking:
 
 ```typescript
@@ -83,7 +137,7 @@ await client.loadPackage('oewn:2024', (progress, stage) => {
 const words = await client.queryWords('example');
 ```
 
-### 3. WebWordnet (Low-level)
+### 4. WebWordnet (Low-level)
 For direct lexicon operations (existing API):
 
 ```typescript
@@ -92,6 +146,79 @@ import { WebWordnet } from 'wn-ts-web';
 const wordnet = new WebWordnet('oewn:2024');
 await wordnet.initialize(sqlModule);
 const words = await wordnet.words('example');
+```
+
+## ⚛️ **React Integration**
+
+### **React Hooks**
+
+For React applications, use the custom hooks for easy integration:
+
+```tsx
+import React from 'react';
+import { useWordNetKernel } from 'wn-ts-web';
+
+const MyComponent: React.FC = () => {
+  const {
+    wordnet,
+    loading,
+    error,
+    initialized,
+    initialize,
+    getHypernyms,
+    getPathSimilarity,
+    getTranslations
+  } = useWordNetKernel({ lexicon: 'oewn:2024' });
+
+  useEffect(() => {
+    if (!initialized) {
+      initialize();
+    }
+  }, [initialized, initialize]);
+
+  const handleSearch = async () => {
+    if (!initialized) return;
+    
+    const words = await wordnet.words({ form: 'computer' });
+    const synsets = await wordnet.synsets({ wordId: words[0].id });
+    const hypernyms = await getHypernyms(synsets[0].id);
+    const similarity = await getPathSimilarity(synsets[0].id, hypernyms[0].id);
+    const translations = await getTranslations(synsets[0].id);
+    
+    console.log({ words, synsets, hypernyms, similarity, translations });
+  };
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+
+  return (
+    <div>
+      <button onClick={handleSearch}>Search</button>
+    </div>
+  );
+};
+```
+
+### **Context Provider**
+
+For global state management across your React application:
+
+```tsx
+import React from 'react';
+import { WordNetKernelProvider, useWordNetKernelContext } from 'wn-ts-web';
+
+const MyComponent: React.FC = () => {
+  const { wordnet, getHypernyms } = useWordNetKernelContext();
+  // Use wordnet methods here
+};
+
+const App: React.FC = () => {
+  return (
+    <WordNetKernelProvider lexicon="oewn:2024">
+      <MyComponent />
+    </WordNetKernelProvider>
+  );
+};
 ```
 
 For detailed architecture information, see:

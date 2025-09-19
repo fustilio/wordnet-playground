@@ -1,10 +1,10 @@
-# wn-ts-web API Documentation
+# Web API Documentation
 
-## 📖 Overview
+## 📖 **Overview**
 
-This document provides comprehensive API documentation for `wn-ts-web`, including React hooks, worker APIs, and core functionality. The library now features **enhanced lexicon introspection** providing real-time statistics and data quality metrics.
+This document provides comprehensive API documentation for `wn-ts-web`, including React hooks, worker APIs, and core functionality. The library features a **microkernel architecture** with plugin system and enhanced lexicon introspection.
 
-## 🔧 React Integration
+## 🔧 **React Integration**
 
 ### `useWordNet(config?)`
 
@@ -36,6 +36,7 @@ interface WordNetState {
   loadedPackages: string[];             // Currently loaded packages
   progress: number;                     // Operation progress (0-1)
   progressStage: string;                // Current operation stage
+  workerReady: boolean;                 // Worker readiness state
 }
 ```
 
@@ -100,26 +101,7 @@ getWordsByIliAndLexiconPrefix(ili: string, lexiconPrefix: string): Promise<WordI
 searchWordsInLexicon(term: string, lexicon: string, language?: string): Promise<WordQueryResult[]>
 ```
 
-##### Utility Methods
-
-```typescript
-// Refresh available packages
-refreshPackages(): Promise<void>
-
-// Get lexicon information
-getLexiconInfo(id?: string): LexiconInfo[] | undefined
-
-// Get current lexicons
-getCurrentLexicons(): LexiconInfo[]
-
-// Test memory queries
-testMemoryQueries(): Promise<MemoryQueryTestResult>
-
-// Get cache information
-getCacheInfo(): Promise<CacheInfo>
-```
-
-##### **Enhanced Lexicon Introspection and Analysis** ✅ NEW
+##### **Enhanced Lexicon Introspection and Analysis**
 
 ```typescript
 // Resource introspection with REAL DATA
@@ -192,7 +174,7 @@ const handleQuery = async () => {
 };
 ```
 
-##### **Enhanced Lexicon Introspection** ✅ NEW
+##### **Enhanced Lexicon Introspection**
 
 ```typescript
 const { introspectLexicon, introspectAllResources } = useWordNet();
@@ -267,7 +249,7 @@ function MyComponent() {
 }
 ```
 
-## 🚀 Worker API
+## 🚀 **Worker API**
 
 ### `WordNetWorkerClient`
 
@@ -364,7 +346,7 @@ client.addEventListener('packageLoaded', (event) => {
 client.dispose();
 ```
 
-## 🏗️ Core API
+## 🏗️ **Core API**
 
 ### `WordNetOrchestrator`
 
@@ -408,7 +390,7 @@ class WordNetOrchestrator {
 }
 ```
 
-### **Enhanced Lexicon Introspection and Resource Analysis** ✅ NEW
+### **Enhanced Lexicon Introspection and Resource Analysis**
 
 The orchestrator now provides comprehensive introspection capabilities with **real data** instead of placeholder values:
 
@@ -430,7 +412,119 @@ class WordNetOrchestrator {
 }
 ```
 
-#### **Enhanced Introspection Types** ✅ NEW
+### `WebWordnet`
+
+Browser-compatible WordNet implementation.
+
+#### Methods
+
+```typescript
+class WebWordnet extends BaseWordnet {
+  // Initialization
+  async initialize(sqlJsModule: Sqlite3Static): Promise<void>
+  
+  // Core queries
+  async words(form?: string, pos?: PartOfSpeech): Promise<Word[]>
+  async synsets(form: string, pos?: PartOfSpeech, ili?: string | ILI): Promise<Synset[]>
+  async senses(form?: string, pos?: PartOfSpeech): Promise<Sense[]>
+  
+  // Individual entity queries
+  async getWord(wordId: string): Promise<Word | undefined>
+  async getSynset(synsetId: string): Promise<Synset | undefined>
+  async getSense(senseId: string): Promise<Sense | undefined>
+  async getIli(iliId: string): Promise<ILI | undefined>
+  
+  // Lexicon management
+  async lexicons(): Promise<Lexicon[]>
+  async expandedLexicons(): Promise<Lexicon[]>
+  
+  // Statistics
+  async getStatistics(): Promise<Statistics>
+  async getLexiconStatistics(lexiconId?: string): Promise<LexiconStatistics[]>
+  async getPartOfSpeechDistribution(): Promise<Record<string, number>>
+  
+  // Data quality
+  async getDataQualityMetrics(): Promise<DataQualityMetrics>
+  async getSynsetSizeAnalysis(): Promise<SynsetSizeAnalysis>
+  
+  // Search
+  async searchWords(searchTerm: string, options?: SearchOptions): Promise<SearchResult[]>
+  
+  // Export
+  async exportData(): Promise<ExportData>
+  exportDataBytes(): Uint8Array
+  
+  // Utility
+  async hasLoadedLexicons(): Promise<boolean>
+  async getQuickStatus(options?: { includeExpensive?: boolean }): Promise<QuickStatus>
+  
+  // Cleanup
+  async close(): Promise<void>
+  
+  // Events
+  on(event: string, callback: EventCallback): void
+  off(event: string, callback: EventCallback): void
+  removeAllListeners(event?: string): void
+  listenerCount(event: string): number
+}
+```
+
+## 📊 **Data Types**
+
+### Core Types
+
+```typescript
+interface Word {
+  id: string;
+  lemma: string;
+  pos: PartOfSpeech;
+  language: string;
+  lexicon: string;
+}
+
+interface Synset {
+  id: string;
+  ili?: string;
+  pos: PartOfSpeech;
+  language: string;
+  lexicon: string;
+  definitions: Definition[];
+  words: Word[];
+  relations: Relation[];
+}
+
+interface Sense {
+  id: string;
+  wordId: string;
+  synsetId: string;
+  source?: string;
+  sensekey?: string;
+  adjposition?: string;
+  subcategory?: string;
+  domain?: string;
+  register?: string;
+}
+
+interface Definition {
+  id: string;
+  synsetId: string;
+  language: string;
+  text: string;
+  source?: string;
+}
+
+interface Relation {
+  id: string;
+  sourceId: string;
+  targetId: string;
+  type: string;
+  source?: string;
+}
+
+type PartOfSpeech = 'n' | 'v' | 'a' | 'r' | 's' | 'c' | 'x' | 'u';
+```
+
+### **Enhanced Introspection Types**
 
 ```typescript
 interface LexiconIntrospection {
@@ -505,263 +599,9 @@ interface CrossLingualAnalysis {
     unverifiedMappings: number;
   };
 }
-
-interface MappingCoverage {
-  totalMappings: number;
-  languagePairs: Array<{
-    source: string;
-    target: string;
-    mappingCount: number;
-    coveragePercentage: number;
-  }>;
-  conceptDistribution: Record<string, number>;
-}
-
-interface IntegrityReport {
-  lexiconId: string;
-  isValid: boolean;
-  issues: Array<{
-    type: 'warning' | 'error' | 'info';
-    message: string;
-    details?: any;
-  }>;
-  recommendations: string[];
-}
-
-interface CompatibilityReport {
-  compatible: boolean;
-  conflicts: Array<{
-    type: 'version' | 'language' | 'structure';
-    description: string;
-    severity: 'low' | 'medium' | 'high';
-  }>;
-  recommendations: string[];
-}
 ```
 
-#### **Usage Examples with Real Data** ✅ NEW
-
-```typescript
-// Basic introspection with REAL DATA
-const orchestrator = new WordNetOrchestrator();
-await orchestrator.initialize(sqlModule);
-
-// Load resources
-await orchestrator.loadLexicon('oewn:2024');
-await orchestrator.loadLexicon('cili:1.0');
-await orchestrator.loadLexicon('omw-fr:1.4');
-
-// Enhanced lexicon introspection with real data
-const oewnInfo = await orchestrator.introspectLexicon('oewn:2024');
-console.log('OEWN type:', oewnInfo.type); // 'lexicon'
-console.log('Word count:', oewnInfo.wordCount); // 161,705 (real data!)
-console.log('Sense count:', oewnInfo.senseCount); // 212,478 (real data!)
-console.log('Has ILI mappings:', oewnInfo.hasILIMappings); // Verified from database
-
-const ciliInfo = await orchestrator.introspectLexicon('cili:1.0');
-console.log('CILI type:', ciliInfo.type); // 'ili'
-console.log('ILI count:', ciliInfo.iliCount);
-console.log('Cross-lingual links:', ciliInfo.crossLingualLinks);
-
-// Detect resource types automatically
-const resourceType = await orchestrator.detectResourceType('cili:1.0');
-console.log('Resource type:', resourceType.type);
-console.log('Supported languages:', resourceType.supportedLanguages);
-
-// Categorize all resources
-const categorized = await orchestrator.categorizeResources();
-console.log('Lexicons:', categorized.lexicons.length);
-console.log('ILIs:', categorized.ilis.length);
-
-// Analyze cross-lingual capabilities
-const crossLingualAnalysis = await orchestrator.analyzeCrossLingualCapabilities();
-console.log('Supported languages:', crossLingualAnalysis.supportedLanguages);
-console.log('Concept coverage:', crossLingualAnalysis.conceptCoverage);
-
-// Get mapping coverage
-const mappingCoverage = await orchestrator.getCrossLingualMappingCoverage();
-console.log('Total mappings:', mappingCoverage.totalMappings);
-console.log('Language pairs:', mappingCoverage.languagePairs);
-
-// Validate resource integrity
-const integrityReport = await orchestrator.validateResourceIntegrity('oewn:2024');
-if (!integrityReport.isValid) {
-  console.warn('Integrity issues found:', integrityReport.issues);
-}
-
-// Check resource compatibility
-const compatibilityReport = await orchestrator.checkResourceCompatibility(['oewn:2024', 'omw-fr:1.4']);
-if (!compatibilityReport.compatible) {
-  console.warn('Compatibility issues:', compatibilityReport.conflicts);
-}
-```
-
-### `WebWordnet`
-
-Browser-compatible WordNet implementation.
-
-#### Methods
-
-```typescript
-class WebWordnet extends BaseWordnet {
-  // Initialization
-  async initialize(sqlJsModule: Sqlite3Static): Promise<void>
-  
-  // Core queries
-  async words(form?: string, pos?: PartOfSpeech): Promise<Word[]>
-  async synsets(form: string, pos?: PartOfSpeech, ili?: string | ILI): Promise<Synset[]>
-  async senses(form?: string, pos?: PartOfSpeech): Promise<Sense[]>
-  
-  // Individual entity queries
-  async getWord(wordId: string): Promise<Word | undefined>
-  async getSynset(synsetId: string): Promise<Synset | undefined>
-  async getSense(senseId: string): Promise<Sense | undefined>
-  async getIli(iliId: string): Promise<ILI | undefined>
-  
-  // Lexicon management
-  async lexicons(): Promise<Lexicon[]>
-  async expandedLexicons(): Promise<Lexicon[]>
-  
-  // Statistics
-  async getStatistics(): Promise<Statistics>
-  async getLexiconStatistics(lexiconId?: string): Promise<LexiconStatistics[]>
-  async getPartOfSpeechDistribution(): Promise<Record<string, number>>
-  
-  // Data quality
-  async getDataQualityMetrics(): Promise<DataQualityMetrics>
-  async getSynsetSizeAnalysis(): Promise<SynsetSizeAnalysis>
-  
-  // Search
-  async searchWords(searchTerm: string, options?: SearchOptions): Promise<SearchResult[]>
-  
-  // Export
-  async exportData(): Promise<ExportData>
-  exportDataBytes(): Uint8Array
-  
-  // Utility
-  async hasLoadedLexicons(): Promise<boolean>
-  async getQuickStatus(options?: { includeExpensive?: boolean }): Promise<QuickStatus>
-  
-  // Cleanup
-  async close(): Promise<void>
-  
-  // Events
-  on(event: string, callback: EventCallback): void
-  off(event: string, callback: EventCallback): void
-  removeAllListeners(event?: string): void
-  listenerCount(event: string): number
-}
-```
-
-## 📊 Data Types
-
-### Core Types
-
-```typescript
-interface Word {
-  id: string;
-  lemma: string;
-  pos: PartOfSpeech;
-  language: string;
-  lexicon: string;
-}
-
-interface Synset {
-  id: string;
-  ili?: string;
-  pos: PartOfSpeech;
-  language: string;
-  lexicon: string;
-  definitions: Definition[];
-  words: Word[];
-  relations: Relation[];
-}
-
-interface Sense {
-  id: string;
-  wordId: string;
-  synsetId: string;
-  source?: string;
-  sensekey?: string;
-  adjposition?: string;
-  subcategory?: string;
-  domain?: string;
-  register?: string;
-}
-
-interface Definition {
-  id: string;
-  synsetId: string;
-  language: string;
-  text: string;
-  source?: string;
-}
-
-interface Relation {
-  id: string;
-  sourceId: string;
-  targetId: string;
-  type: string;
-  source?: string;
-}
-
-type PartOfSpeech = 'n' | 'v' | 'a' | 'r' | 's' | 'c' | 'x' | 'u';
-```
-
-### Statistics Types
-
-```typescript
-interface WordNetStatistics {
-  totalWords: number;
-  totalSynsets: number;
-  totalSenses: number;
-  totalRelations: number;
-  totalDefinitions: number;
-  totalLexicons: number;
-  languages: string[];
-  partsOfSpeech: string[];
-  dataSize: number;
-  lastUpdated: string;
-  source: "Database" | "Worker" | "MainThread";
-  posDistribution: Record<string, number>;
-}
-
-interface LexiconStatistics {
-  lexiconId: string;
-  label: string;
-  language: string;
-  version: string;
-  wordCount: number;
-  synsetCount: number;
-}
-```
-
-### Package Types
-
-```typescript
-interface PackageInfo {
-  id: string;
-  label: string;
-  language?: string;
-  license?: string;
-  description?: string;
-  url?: string;
-  citation?: string;
-  versions: string[];
-}
-
-interface LexiconInfo {
-  id: string;
-  label: string;
-  language: string;
-  version: string;
-  wordCount: number;
-  synsetCount: number;
-  loadedAt: Date;
-}
-```
-
-## 🔧 Configuration
+## 🔧 **Configuration**
 
 ### Worker Configuration
 
@@ -793,7 +633,7 @@ interface LoadLexiconOptions {
 }
 ```
 
-## 🚨 Error Handling
+## 🚨 **Error Handling**
 
 ### Error Types
 
@@ -835,7 +675,7 @@ const retryLoad = async (maxRetries = 3) => {
 };
 ```
 
-## 📚 Examples
+## 📚 **Examples**
 
 ### Complete Application Setup
 
@@ -935,113 +775,7 @@ function AdvancedWordNetDemo() {
 }
 ```
 
-### **Enhanced Lexicon Introspection and Analysis** ✅ NEW
-
-```typescript
-function LexiconIntrospectionDemo() {
-  const { 
-    introspectLexicon, 
-    introspectAllResources, 
-    categorizeResources,
-    analyzeCrossLingualCapabilities 
-  } = useWordNet();
-  
-  const [lexiconInfo, setLexiconInfo] = useState<LexiconIntrospection | null>(null);
-  const [allResources, setAllResources] = useState<LexiconIntrospection[]>([]);
-  const [categorized, setCategorized] = useState<CategorizedResources | null>(null);
-  const [crossLingualAnalysis, setCrossLingualAnalysis] = useState<CrossLingualAnalysis | null>(null);
-
-  const handleIntrospectLexicon = async (lexiconId: string) => {
-    try {
-      const info = await introspectLexicon(lexiconId);
-      setLexiconInfo(info);
-      console.log(`${lexiconId} introspection:`, info);
-      console.log('Real sense count:', info.senseCount); // No more placeholder 0!
-    } catch (error) {
-      console.error('Introspection failed:', error);
-    }
-  };
-
-  const handleIntrospectAll = async () => {
-    try {
-      const resources = await introspectAllResources();
-      setAllResources(resources);
-      
-      const categorized = await categorizeResources();
-      setCategorized(categorized);
-      
-      const analysis = await analyzeCrossLingualCapabilities();
-      setCrossLingualAnalysis(analysis);
-      
-      console.log('All resources:', resources);
-      console.log('Categorized:', categorized);
-      console.log('Cross-lingual analysis:', analysis);
-    } catch (error) {
-      console.error('Full introspection failed:', error);
-    }
-  };
-
-  return (
-    <div>
-      <h3>Enhanced Lexicon Introspection</h3>
-      
-      <div className="space-y-4">
-        <div>
-          <button onClick={() => handleIntrospectLexicon('oewn:2024')}>
-            Introspect OEWN
-          </button>
-          <button onClick={() => handleIntrospectLexicon('cili:1.0')}>
-            Introspect CILI
-          </button>
-          <button onClick={handleIntrospectAll}>
-            Introspect All Resources
-          </button>
-        </div>
-
-        {lexiconInfo && (
-          <div className="border p-4 rounded">
-            <h4>Lexicon Info: {lexiconInfo.id}</h4>
-            <p><strong>Type:</strong> {lexiconInfo.type}</p>
-            <p><strong>Language:</strong> {lexiconInfo.language}</p>
-            <p><strong>Words:</strong> {lexiconInfo.wordCount.toLocaleString()}</p>
-            <p><strong>Synsets:</strong> {lexiconInfo.synsetCount.toLocaleString()}</p>
-            <p><strong>Senses:</strong> {lexiconInfo.senseCount.toLocaleString()}</p>
-            {lexiconInfo.type === 'ili' && (
-              <p><strong>ILI Count:</strong> {lexiconInfo.iliCount?.toLocaleString()}</p>
-            )}
-            <p><strong>Has ILI Mappings:</strong> {lexiconInfo.hasILIMappings ? '✅ Yes' : '❌ No'}</p>
-            {lexiconInfo.iliCoverage && (
-              <p><strong>ILI Coverage:</strong> {lexiconInfo.iliCoverage}%</p>
-            )}
-          </div>
-        )}
-
-        {categorized && (
-          <div className="border p-4 rounded">
-            <h4>Resource Categorization</h4>
-            <p><strong>Lexicons:</strong> {categorized.lexicons.length}</p>
-            <p><strong>ILIs:</strong> {categorized.ilis.length}</p>
-            <p><strong>Mixed:</strong> {categorized.mixed.length}</p>
-            <p><strong>Total:</strong> {categorized.total}</p>
-          </div>
-        )}
-
-        {crossLingualAnalysis && (
-          <div className="border p-4 rounded">
-            <h4>Cross-Lingual Analysis</h4>
-            <p><strong>Supported Languages:</strong> {crossLingualAnalysis.supportedLanguages.join(', ')}</p>
-            <p><strong>Total ILI Mappings:</strong> {crossLingualAnalysis.totalILIMappings.toLocaleString()}</p>
-            <p><strong>Fully Mapped Concepts:</strong> {crossLingualAnalysis.conceptCoverage.fullyMapped.toLocaleString()}</p>
-            <p><strong>Partially Mapped Concepts:</strong> {crossLingualAnalysis.conceptCoverage.partiallyMapped.toLocaleString()}</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-```
-
-## 🔍 Debugging
+## 🔍 **Debugging**
 
 ### Enable Debug Logging
 
@@ -1089,5 +823,5 @@ useEffect(() => {
 
 **This API documentation is maintained alongside the codebase and should be updated as new features are added.**
 
-**Status**: ✅ **Production Ready** with Enhanced Lexicon Introspection
-**Last Updated**: 2025-08-20
+**Status**: ✅ **Production Ready** with Enhanced Lexicon Introspection  
+**Last Updated**: 2025-01-20

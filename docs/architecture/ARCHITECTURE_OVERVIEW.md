@@ -1,20 +1,20 @@
 # WordNet TypeScript Architecture
 
-## 🏗️ **Overview**
+## 🏗️ **Microkernel Architecture**
 
-The WordNet TypeScript ecosystem has evolved to use a modern **microkernel architecture** with a plugin system that provides:
+The WordNet TypeScript ecosystem uses a microkernel architecture with a plugin system:
 
 - **Plugin System**: Extensible, composable, and type-safe plugins
 - **Type Safety**: Full TypeScript support with compile-time type checking
 - **Cross-Platform**: Works in Node.js, browsers, and other JavaScript environments
-- **Modern Design**: Clean, type-safe architecture built for the future
+- **Modularity**: Core functionality separated from environment-specific implementations
 
 ## 🎯 **Architecture Design**
 
-### **Current Architecture**
+### **Microkernel Architecture**
 ```
 WordNetCore (interface)
-├── MyWordnetCore (implements WordNetCore)
+├── NodeWordNetCore (Node.js implementation)
 │   ├── words()
 │   ├── synsets()
 │   └── query()
@@ -22,7 +22,7 @@ WordNetCore (interface)
     ├── relations plugin    ← Modular
     ├── similarity plugin   ← Modular
     ├── translation plugin  ← Modular
-    └── schema management   ← Built-in
+    └── schema management   ← Core
 ```
 
 ## 📦 **Package Structure**
@@ -42,7 +42,7 @@ WordNetCore (interface)
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
 │  │ wn-ts-node  │  │ wn-ts-web   │  │ Future:     │              │
 │  │ (Node.js)   │  │ (Browser)   │  │ wn-ts-deno  │              │
-│  │ ✅ Complete │  │ ✅ Complete  │  │ 📋 Planned  │           │
+│  │ ✅ Kernel   │  │ ✅ Kernel    │  │ 📋 Planned  │           │
 │  └─────────────┘  └─────────────┘  └─────────────┘              │
 └─────────────────────────────────────────────────────────────────┘
                               │
@@ -51,8 +51,8 @@ WordNetCore (interface)
 │                      Core Layer                                 │
 │                    ┌─────────────┐                              │
 │                    │ wn-ts-core  │                              │
-│                    │ (Shared)    │                              │
-│                    │ ✅ Complete  │                            │
+│                    │ (Microkernel)│                              │
+│                    │ ✅ Plugins   │                            │
 │                    └─────────────┘                              │
 └─────────────────────────────────────────────────────────────────┘
 ```

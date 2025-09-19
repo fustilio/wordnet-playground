@@ -1,10 +1,10 @@
-# wn-ts-web Architecture Documentation
+# Web Implementation Architecture
 
-## 🏗️ System Overview
+## 🏗️ **System Overview**
 
-`wn-ts-web` is designed as a layered, worker-first architecture that provides high-performance WordNet operations while maintaining reliability through graceful fallbacks. The system operates at three distinct abstraction levels for optimal resource management and cross-lingual capabilities.
+The `wn-ts-web` implementation uses a **worker-first architecture** with React integration, providing high-performance WordNet operations while maintaining UI responsiveness through Web Workers and persistent storage via SQLite WASM with OPFS.
 
-## 📊 Architecture Diagram
+## 📊 **Architecture Diagram**
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -37,65 +37,78 @@
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## 🏛️ Layer Responsibilities
+## 🏛️ **Layer Responsibilities**
 
-### **1. WordNetOrchestrator (High-level)**
+### **1. React Integration Layer**
 
-**Purpose**: Manages a single WordNet instance with multiple lexicons, provides cross-lexicon operations, and handles lexicon lifecycle management.
+**Purpose**: Provides React hooks and components for seamless integration with React applications.
 
 **Key Features**:
-- Single WebWordnet instance management
+- `useWordNet` hook for state management
+- Context providers for global state
+- Automatic worker coordination
+- Graceful fallback mechanisms
+
+**Components**:
+- `useWordNet()` - Main React hook
+- `WordNetProvider` - Context provider
+- `useWordNetContext()` - Context consumer
+
+### **2. Worker Communication Layer**
+
+**Purpose**: Handles communication between React components and Web Workers using Comlink.
+
+**Key Features**:
+- Comlink-based worker communication
+- Event-driven state synchronization
+- Automatic error handling and recovery
+- Queue management for early requests
+
+**Components**:
+- `WordNetWorkerClient` - Main thread client
+- `WordNetWorkerAPI` - Worker interface
+- Event system for real-time updates
+
+### **3. Orchestration Layer**
+
+**Purpose**: Manages WordNet operations, lexicon lifecycle, and cross-lingual capabilities.
+
+**Key Features**:
+- Single database instance for multiple lexicons
 - Cross-lexicon query optimization
-- Lexicon state tracking and lifecycle management
-- Update checking and redownload detection
-- Concurrent lexicon loading with queuing
-- Resource type introspection and categorization
-- Cross-lingual analysis capabilities
+- Resource type introspection
+- Update detection and management
 
-**Use Cases**:
-- Applications that need to work with multiple lexicons
-- Cross-lexicon search and analysis
-- Lexicon version management
-- Resource optimization for large-scale operations
-- Multilingual applications requiring cross-lingual mapping
+**Components**:
+- `WordNetOrchestrator` - Main orchestrator
+- `LexiconState` - State tracking
+- `ResourceIntrospection` - Analysis capabilities
 
-### **2. WordNetWorkerClient (Mid-level)**
+### **4. Core Implementation Layer**
 
-**Purpose**: Handles worker communication, lexicon state tracking, and provides a clean API for WordNet operations via Comlink workers.
+**Purpose**: Provides core WordNet functionality and database operations.
 
 **Key Features**:
-- Worker communication via Comlink
-- Lexicon state tracking and synchronization
-- Event-driven architecture for state changes
-- Progress tracking and error handling
-- Memory-efficient operations
-
-**Use Cases**:
-- Browser applications that need background processing
-- Memory-intensive operations
-- Real-time lexicon state updates
-- Worker-based architecture requirements
-
-### **3. WebWordnet (Low-level)**
-
-**Purpose**: Individual lexicon instance operations and database management.
-
-**Key Features**:
-- Direct database operations
-- Lexicon-specific queries
 - SQLite WASM integration
-- Event emission for state changes
+- OPFS persistent storage
+- Kysely query building
+- LMF XML parsing
 
-## 🔄 Request Flow
+**Components**:
+- `WebWordnet` - Core WordNet implementation
+- `WebKyselyDatabase` - Database wrapper
+- `LmfParser` - XML processing
 
-### 1. **User Request**
+## 🔄 **Request Flow**
+
+### **1. User Request**
 ```typescript
 // User calls a method on useWordNet
 const { loadPackageData } = useWordNet();
 await loadPackageData('oewn:2024');
 ```
 
-### 2. **Hook Processing**
+### **2. Hook Processing**
 ```typescript
 // useWordNet processes the request
 const loadPackageData = useCallback(async (packageId) => {
@@ -110,7 +123,7 @@ const loadPackageData = useCallback(async (packageId) => {
 }, []);
 ```
 
-### 3. **Worker Communication**
+### **3. Worker Communication**
 ```typescript
 // WordNetWorkerClient forwards to worker via Comlink
 async loadPackage(packageId: string) {
@@ -119,7 +132,7 @@ async loadPackage(packageId: string) {
 }
 ```
 
-### 4. **Worker Processing**
+### **4. Worker Processing**
 ```typescript
 // wordnet-worker processes the request
 export async function loadPackage(packageId: string) {
@@ -133,7 +146,7 @@ export async function loadPackage(packageId: string) {
 }
 ```
 
-### 5. **Orchestrator Management**
+### **5. Orchestrator Management**
 ```typescript
 // WordNetOrchestrator manages the operation
 async loadLexicon(lexiconId: string) {
@@ -146,7 +159,7 @@ async loadLexicon(lexiconId: string) {
 }
 ```
 
-### 6. **Database Operations**
+### **6. Database Operations**
 ```typescript
 // WebWordnet performs database operations
 async downloadAndLoad(packageId: string) {
@@ -155,39 +168,7 @@ async downloadAndLoad(packageId: string) {
 }
 ```
 
-## 🚀 Key Benefits of the Architecture
-
-### **1. Single Database Instance**
-- **Before**: Multiple WebWordnet instances, each with their own database connection
-- **After**: Single WebWordnet instance managing multiple lexicons in one database
-- **Benefit**: Better resource utilization, no database conflicts, efficient cross-lexicon queries
-
-### **2. Cross-Lexicon Query Optimization**
-- **Before**: Manual iteration across multiple instances
-- **After**: Single query that can span multiple lexicons
-- **Benefit**: Better performance, optimized SQL queries, reduced memory usage
-
-### **3. Lexicon State Management**
-- **Before**: No centralized state tracking
-- **After**: Comprehensive state management with update detection
-- **Benefit**: Know when lexicons need updates, track loading states, monitor health
-
-### **4. Resource Management**
-- **Before**: Potential resource conflicts between instances
-- **After**: Coordinated resource usage with queuing and concurrency control
-- **Benefit**: Better memory management, controlled concurrent operations
-
-### **5. Resource Type Introspection**
-- **Before**: No distinction between lexicons and ILIs
-- **After**: Automatic detection and categorization of resource types
-- **Benefit**: Better understanding of resource capabilities, optimized query strategies, improved user experience
-
-### **6. Cross-Lingual Analysis**
-- **Before**: Manual analysis of multilingual capabilities
-- **After**: Automated analysis of cross-lingual mapping coverage and quality
-- **Benefit**: Data-driven decisions about resource usage, quality assessment, coverage analysis
-
-## 🔧 Key Design Patterns
+## 🚀 **Key Design Patterns**
 
 ### **Worker-First Architecture**
 - All heavy operations default to worker threads
@@ -209,7 +190,114 @@ async downloadAndLoad(packageId: string) {
 - State updates trigger UI re-renders
 - Clean separation of concerns
 
-## 🚀 Performance Optimizations
+## 🔧 **Worker Architecture**
+
+### **Worker-First Principles**
+
+1. **No Direct DataLoader Access**
+   ```tsx
+   // ❌ Wrong: Direct access
+   const dataLoader = useDataLoader();
+   await dataLoader.downloadAndLoad('oewn:2024');
+   
+   // ✅ Correct: Through worker
+   const { loadPackageData } = useWordNet();
+   await loadPackageData('oewn:2024');
+   ```
+
+2. **Worker Readiness Checks**
+   ```tsx
+   const { workerReady, loadPackageData } = useWordNet();
+   
+   if (workerReady) {
+     await loadPackageData('oewn:2024');
+   } else {
+     console.log('Worker not ready yet');
+   }
+   ```
+
+3. **Automatic Queue Management**
+   ```tsx
+   // Requests are automatically queued if worker isn't ready
+   await loadPackageData('oewn:2024'); // Queued if needed
+   ```
+
+### **Event System**
+
+The architecture uses events for real-time updates:
+
+- `packageLoaded` - When a package finishes loading
+- `lexiconsChanged` - When lexicon state changes
+- `statusUpdated` - When statistics are updated
+- `error` - When operations fail
+
+## 🗄️ **Storage Architecture**
+
+### **SQLite with OPFS**
+
+Persistent storage using the Origin Private File System:
+
+```typescript
+// OPFS provides high-performance persistent storage
+const wordnet = new WebWordnet({
+  databasePath: '/wordnet.db',
+  enablePersistence: true
+});
+```
+
+### **Fallback Strategy**
+
+- **Primary**: OPFS for persistent storage
+- **Fallback**: In-memory database when OPFS unavailable
+- **Automatic**: Seamless fallback without code changes
+
+### **Schema Management**
+
+Automatic database schema creation and management:
+
+```typescript
+interface Database {
+  lexicons: LexiconTable;      // Lexicon metadata
+  words: WordTable;            // Lexical entries
+  synsets: SynsetTable;        // Concept groupings
+  senses: SenseTable;          // Word-synset relationships
+  definitions: DefinitionTable; // Synset definitions
+  relations: RelationTable;    // Cross-synset relationships
+  ilis: IliTable;              // Interlingual Index
+}
+```
+
+## 🌐 **Cross-Lingual Architecture**
+
+### **ILI-Based Linking**
+
+Interlingual Index enables powerful cross-language operations:
+
+```typescript
+// Load multiple language lexicons
+await wordnet.loadLexicon('en', '1.0.0');
+await wordnet.loadLexicon('fr', '1.0.0');
+
+// Find equivalent concepts across languages
+const englishSynset = await wordnet.getSynset('en', 'synset-1');
+const iliId = englishSynset.iliId;
+
+const frenchSynsets = await wordnet.findSynsetsByIli('fr', iliId);
+```
+
+### **Resource Introspection**
+
+Comprehensive analysis of resource capabilities:
+
+```typescript
+// Analyze resource types and capabilities
+const info = await orchestrator.introspectLexicon('oewn:2024');
+console.log('Type:', info.type); // 'lexicon' or 'ili'
+console.log('Languages:', info.supportedLanguages);
+console.log('ILI Coverage:', info.iliCoverage);
+```
+
+## 🚀 **Performance Optimizations**
 
 ### **Worker Isolation**
 - Heavy operations don't block main thread
@@ -226,7 +314,7 @@ async downloadAndLoad(packageId: string) {
 - Efficient SQLite operations
 - Smart data loading and unloading
 
-## 🔒 Error Handling
+## 🔒 **Error Handling**
 
 ### **Graceful Degradation**
 - Worker failures don't crash the application
@@ -243,24 +331,19 @@ async downloadAndLoad(packageId: string) {
 - Progress indicators for long operations
 - Clear feedback for user actions
 
-## 🧪 Testing Strategy
+## 🧪 **Testing Strategy**
 
-### **Unit Testing**
-- Test each layer independently
-- Mock dependencies for isolation
-- Comprehensive coverage of edge cases
+### **Multi-Layered Testing**
+- **Node.js Tests**: Unit and integration tests with jsdom
+- **Browser Tests**: Real browser testing with Playwright
+- **E2E Tests**: Full workflow testing with real data
 
-### **Integration Testing**
-- Test communication between layers
-- Verify worker communication
-- Test fallback mechanisms
+### **Test Environment Separation**
+- Clean separation between test environments
+- Mocking strategies for different contexts
+- Performance testing and validation
 
-### **Performance Testing**
-- Measure worker initialization time
-- Test memory usage patterns
-- Benchmark query performance
-
-## 🔮 Future Enhancements
+## 🔮 **Future Enhancements**
 
 ### **Multiple Worker Support**
 - Load balancing across multiple workers
@@ -277,13 +360,6 @@ async downloadAndLoad(packageId: string) {
 - Custom data processors
 - Third-party integrations
 
-## 📚 Related Documentation
-
-- [SPEC.md](../SPEC.md) - Project specification
-- [React Integration](./REACT_INTEGRATION.md) - React integration guide
-- [API Documentation](./API.md) - Complete API reference
-- [Worker Architecture](./WORKER_ARCHITECTURE.md) - Detailed worker implementation
-
 ---
 
-**This architecture document is maintained alongside the codebase and should be updated as the system evolves.**
+**This architecture document provides the foundation for understanding the web implementation's design patterns, data flow, and performance characteristics.**

@@ -1,11 +1,13 @@
 # WordNet TypeScript Node.js Implementation
 
-A modern TypeScript implementation of the [wn library](https://github.com/goodmami/wn) for accessing WordNet data. This port provides full API parity with the Python `wn` library while leveraging TypeScript's type safety and modern JavaScript features.
+A modern TypeScript implementation of the [wn library](https://github.com/goodmami/wn) for accessing WordNet data. This port provides full API parity with the Python `wn` library while leveraging TypeScript's type safety, modern JavaScript features, and a new **microkernel architecture** with plugin system.
 
 ## 🎯 Status: ✅ PRODUCTION READY
 
 **Major Features Implemented:**
+- ✅ **Microkernel Architecture**: Modern plugin-based design with composable functionality
 - ✅ **Core API**: Complete parity with Python wn library
+- ✅ **Plugin System**: Relations, similarity, and translation plugins with full type safety
 - ✅ **Examples System**: Full examples support for synsets and senses
 - ✅ **Project Index**: TOML-based project management
 - ✅ **Information Content**: Complete IC calculations with hypernym traversal
@@ -39,6 +41,31 @@ This TypeScript port has undergone a thorough parity review against the Python `
 - **Explicit Client Passing**: Module functions now explicitly receive clients, eliminating internal instantiation.
 
 All core logic, algorithms, and API signatures are now at full parity with the Python version. Remaining differences are limited to advanced features (see Roadmap below).
+
+## 🏗️ **Architecture**
+
+### **Microkernel Design**
+
+The library now uses a modern **microkernel architecture** with a plugin system:
+
+```
+NodeWordNetKernel
+├── NodeWordNetCore (implements WordNetCore)
+│   ├── KyselyWordnet (database operations)
+│   └── NodeKyselyDatabase (SQLite integration)
+├── Plugin System
+│   ├── Relations Plugin (hypernyms, hyponyms, etc.)
+│   ├── Similarity Plugin (path, Wu-Palmer, etc.)
+│   └── Translation Plugin (cross-lingual operations)
+└── Schema Management (built-in)
+```
+
+### **Two API Styles**
+
+The library provides two API styles for different use cases:
+
+1. **Kernel API** (Recommended): Modern plugin-based architecture
+2. **Legacy API**: Direct compatibility with Python wn library
 
 ## 🚀 Quick Start
 
@@ -88,6 +115,36 @@ wn-ts-node config
 
 ### Basic Usage
 
+#### **Kernel API (Recommended)**
+
+```typescript
+import { NodeWordNetKernel, download, add } from 'wn-ts-node';
+
+// Download and add a WordNet project
+await download('oewn:2024');
+await add('oewn-2024-english-wordnet-2024.xml.gz');
+
+// Create a kernel-based WordNet instance
+const wordnet = new NodeWordNetKernel('oewn:2024', {
+  filename: 'wordnet.db'
+});
+
+await wordnet.initialize();
+
+// Basic queries
+const words = await wordnet.words({ form: 'run' });
+const synsets = await wordnet.synsets({ wordId: words[0].id });
+
+// Plugin methods
+const hypernyms = await wordnet.getHypernyms(synsets[0].id);
+const similarity = await wordnet.getPathSimilarity(synsets[0].id, synsets[1].id);
+const translations = await wordnet.getTranslations(synsets[0].id, 'fr');
+
+await wordnet.close();
+```
+
+#### **Legacy API (Python wn compatibility)**
+
 ```typescript
 import { Wordnet, download, add } from 'wn-ts-node';
 
@@ -114,6 +171,52 @@ for (const synset of synsets) {
 import { words, synsets } from 'wn-ts-core';
 const wordResults = await words(wn, 'run', 'v');
 const synsetResults = await synsets(wn, 'run', 'v');
+```
+
+## 🔌 **Kernel API Features**
+
+### **Plugin System**
+
+The kernel API provides a modern plugin system with full type safety:
+
+```typescript
+import { NodeWordNetKernel } from 'wn-ts-node';
+
+const wordnet = new NodeWordNetKernel('oewn:2024');
+
+// Relations plugin
+const hypernyms = await wordnet.getHypernyms(synsetId);
+const hyponyms = await wordnet.getHyponyms(synsetId);
+const meronyms = await wordnet.getMeronyms(synsetId);
+const holonyms = await wordnet.getHolonyms(synsetId);
+
+// Similarity plugin
+const pathSim = await wordnet.getPathSimilarity(synset1, synset2);
+const wuPalmerSim = await wordnet.getWuPalmerSimilarity(synset1, synset2);
+const lchSim = await wordnet.getLeacockChodorowSimilarity(synset1, synset2);
+const jaccardSim = await wordnet.getJaccardSimilarity(synset1, synset2);
+
+// Translation plugin
+const translations = await wordnet.getTranslations(synsetId, 'fr');
+const availableLangs = await wordnet.getAvailableLanguages(synsetId);
+const crossLingualSim = await wordnet.getCrossLingualSimilarity(synset1, synset2);
+```
+
+### **Schema Management**
+
+Built-in database schema management and health checking:
+
+```typescript
+// Get schema manager
+const schemaManager = wordnet.schemaManager;
+
+// Check database health
+const health = await schemaManager.checkHealth();
+console.log('Database health:', health);
+
+// Get database statistics
+const stats = await schemaManager.getStatistics();
+console.log('Database stats:', stats);
 ```
 
 ## 📚 API Reference
