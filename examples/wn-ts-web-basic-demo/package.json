@@ -1,0 +1,36 @@
+{
+  "name": "wn-ts-web-basic-demo",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui"
+  },
+  "dependencies": {
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "wn-ts-web": "workspace:*",
+    "@sqlite.org/sqlite-wasm": "catalog:",
+    "sax": "^1.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@types/sax": "^1.2.4",
+    "@vitejs/plugin-react": "^4.6.0",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "3.2.4",
+    "@vitest/ui": "3.2.4",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "jsdom": "^25.0.1",
+    "vite-plugin-comlink": "catalog:"
+  }
+}

@@ -18,10 +18,7 @@ export default defineConfig({
       },
       name: "WnTsNode",
       fileName: (format, entryName) => {
-        if (entryName === "index") {
-          return `src/index.${format === "es" ? "js" : "cjs"}`;
-        }
-        return `src/${entryName}.${format === "es" ? "js" : "cjs"}`;
+        return `${entryName}.${format === "es" ? "js" : "cjs"}`;
       },
       formats: ["es"],
     },
@@ -69,6 +66,7 @@ export default defineConfig({
   plugins: [
     dts({
       insertTypesEntry: true,
+      outDir: "dist",
       exclude: [
         "**/*.test.ts",
         "**/*.test.tsx", 

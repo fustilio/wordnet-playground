@@ -20,40 +20,40 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/src/index.d.ts",
-      "default": "./dist/src/index.js"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./config": {
-      "types": "./dist/src/config.d.ts",
-      "default": "./dist/src/config.js"
+      "types": "./dist/config.d.ts",
+      "default": "./dist/config.js"
     },
     "./database": {
-      "types": "./dist/src/database/index.d.ts",
-      "default": "./dist/src/database/index.js"
+      "types": "./dist/database.d.ts",
+      "default": "./dist/database.js"
     },
     "./lmf": {
-      "types": "./dist/src/lmf.d.ts",
-      "default": "./dist/src/lmf.js"
+      "types": "./dist/lmf.d.ts",
+      "default": "./dist/lmf.js"
     },
     "./taxonomy": {
-      "types": "./dist/src/taxonomy.d.ts",
-      "default": "./dist/src/taxonomy.js"
+      "types": "./dist/taxonomy.d.ts",
+      "default": "./dist/taxonomy.js"
     },
     "./validation": {
-      "types": "./dist/src/validation.d.ts",
-      "default": "./dist/src/validation.js"
+      "types": "./dist/validation.d.ts",
+      "default": "./dist/validation.js"
     },
     "./wordnet": {
-      "types": "./dist/src/wordnet.d.ts",
-      "default": "./dist/src/wordnet.js"
+      "types": "./dist/wordnet.d.ts",
+      "default": "./dist/wordnet.js"
     },
     "./wordnet-core": {
-      "types": "./dist/src/wordnet-core.d.ts",
-      "default": "./dist/src/wordnet-core.js"
+      "types": "./dist/wordnet-core.d.ts",
+      "default": "./dist/wordnet-core.js"
     },
     "./wordnet-kernel": {
-      "types": "./dist/src/wordnet-kernel.d.ts",
-      "default": "./dist/src/wordnet-kernel.js"
+      "types": "./dist/wordnet-kernel.d.ts",
+      "default": "./dist/wordnet-kernel.js"
     }
   },
   "bin": {
@@ -68,7 +68,7 @@
     "prebuild": "pnpm run clean",
     "build": "vite build && pnpm run copy-assets",
     "clean": "rimraf dist",
-    "copy-assets": "copy ..\\wn-ts-core\\src\\index.toml dist\\src\\",
+    "copy-assets": "copy ..\\wn-ts-core\\src\\index.toml dist\\",
     "dev": "pnpm run copy-assets && tsc --watch",
     "format": "prettier --write src/**/*.ts",
     "generate-test-data": "cd ../wn-ts-core && pnpm run generate-test-data",
