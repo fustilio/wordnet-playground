@@ -44,7 +44,7 @@ async function pythonStyleExample() {
     // Display synset information
     console.log('📋 Synset Details:');
     console.log(`  ID: ${ss.id}`);
-    console.log(`  Members: ${ss.members.join(', ')}`);
+    console.log(`  Members: ${ss.members?.join(', ') || 'No members'}`);
     console.log(`  ILI: ${ss.ili || 'None'}`);
     console.log(`  Part of Speech: ${ss.partOfSpeech}`);
     console.log(`  Lexicon: ${ss.lexicon}\n`);

@@ -1,6 +1,6 @@
 {
   "name": "wn-ts-web",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Browser/web distribution and interactive demo for wn-ts. Implements the node-to-browser strategy for WordNet access in the browser, following the approach of wordpos/wordpos-web.",
   "keywords": [
     "wordnet",
@@ -41,6 +41,9 @@
   },
   "main": "./dist/wn-ts-web.mjs",
   "types": "./dist/wn-ts-web.d.ts",
+  "files": [
+    "dist/"
+  ],
   "scripts": {
     "bench": "pnpm with-memory-limit vitest --config=vitest.e2e.config.ts bench --run",
     "prebuild": "cd ../wn-data-loader && pnpm run build:data-sources",
@@ -81,7 +84,6 @@
     "@sqlite.org/sqlite-wasm": "catalog:",
     "@types/lzma": "^2.3.0",
     "@types/node": "catalog:",
-    "xml-introspect": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@typescript-eslint/eslint-plugin": "catalog:",
@@ -103,7 +105,8 @@
     "vite-plugin-dts": "catalog:",
     "vitest": "catalog:",
     "wn-data-loader": "workspace:*",
-    "wn-ts-core": "workspace:*"
+    "wn-ts-core": "workspace:*",
+    "xml-introspect": "catalog:"
   },
   "peerDependencies": {
     "@sqlite.org/sqlite-wasm": "catalog:"

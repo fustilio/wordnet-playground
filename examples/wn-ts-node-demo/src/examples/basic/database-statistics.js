@@ -7,7 +7,7 @@
  * Focus: Short, clear demonstration of database statistics functionality.
  */
 
-import { ilis } from 'wn-ts';
+import { ilis } from 'wn-ts-node';
 import { createWordnet, displaySynset, safeClose, runDemo } from '../shared/helpers.js';
 
 console.log(`

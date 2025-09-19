@@ -6,9 +6,13 @@
 import { config } from './config.js';
 import { parse } from 'smol-toml';
 import { readFileSync, existsSync, copyFileSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import type { Project, ProjectIndex } from 'wn-ts-core';
 import { ProjectError } from 'wn-ts-core';
+
+// ESM-compatible __dirname
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 let cachedProjectIndex: ProjectIndex | null = null;
 

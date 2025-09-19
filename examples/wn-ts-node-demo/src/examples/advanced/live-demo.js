@@ -9,7 +9,7 @@
  * Real-world application: System setup, data management, workflow demonstration
  */
 
-import { config, download, add, Wordnet, words, synsets, projects } from 'wn-ts';
+import { config, download, add, Wordnet, words, synsets, projects } from 'wn-ts-node';
 import { join } from 'path';
 import { homedir } from 'os';
 import { safeClose, runDemo } from '../shared/helpers.js';

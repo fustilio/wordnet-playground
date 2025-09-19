@@ -1,6 +1,6 @@
 {
   "name": "wn-ts-node",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "Wordnet interface library - TypeScript port",
   "keywords": [
     "wordnet",
@@ -20,31 +20,48 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
     },
-    "./similarity": {
-      "types": "./dist/similarity.d.ts",
-      "default": "./dist/similarity.js"
+    "./config": {
+      "types": "./dist/src/config.d.ts",
+      "default": "./dist/src/config.js"
+    },
+    "./database": {
+      "types": "./dist/src/database/index.d.ts",
+      "default": "./dist/src/database/index.js"
+    },
+    "./lmf": {
+      "types": "./dist/src/lmf.d.ts",
+      "default": "./dist/src/lmf.js"
     },
     "./taxonomy": {
-      "types": "./dist/taxonomy.d.ts",
-      "default": "./dist/taxonomy.js"
+      "types": "./dist/src/taxonomy.d.ts",
+      "default": "./dist/src/taxonomy.js"
     },
-    "./morphy": {
-      "types": "./dist/morphy.d.ts",
-      "default": "./dist/morphy.js"
+    "./validation": {
+      "types": "./dist/src/validation.d.ts",
+      "default": "./dist/src/validation.js"
     },
-    "./ic": {
-      "types": "./dist/ic.d.ts",
-      "default": "./dist/ic.js"
+    "./wordnet": {
+      "types": "./dist/src/wordnet.d.ts",
+      "default": "./dist/src/wordnet.js"
+    },
+    "./wordnet-core": {
+      "types": "./dist/src/wordnet-core.d.ts",
+      "default": "./dist/src/wordnet-core.js"
+    },
+    "./wordnet-kernel": {
+      "types": "./dist/src/wordnet-kernel.d.ts",
+      "default": "./dist/src/wordnet-kernel.js"
     }
   },
   "bin": {
     "wn-ts": "./bin/cli-stub.js"
   },
   "files": [
-    "tools/"
+    "dist/",
+    "bin/"
   ],
   "scripts": {
     "bench:bilingual": "node scripts/run-bilingual-benchmarks.js",

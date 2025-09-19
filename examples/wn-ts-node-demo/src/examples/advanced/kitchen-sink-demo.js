@@ -13,7 +13,7 @@ import {
   word,
   synset,
   ili
-} from 'wn-ts';
+} from 'wn-ts-node';
 import { createWordnet, displaySynset, safeClose, runDemo } from '../shared/helpers.js';
 
 console.log(`

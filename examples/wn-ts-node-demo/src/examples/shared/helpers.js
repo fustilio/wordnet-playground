@@ -6,7 +6,7 @@
 
 import { join } from 'path';
 import { homedir } from 'os';
-import { Wordnet, download, add, config, ili } from 'wn-ts';
+import { Wordnet, download, add, config, ili } from 'wn-ts-node';
 
 /**
  * Initialize Wordnet with common configuration
@@ -56,8 +56,8 @@ export async function createWordnet(demoName, { multilingual = false } = {}) {
  * Display synset information with definitions and examples
  */
 export async function displaySynset(synset, index = 1) {
-  console.log(`\n  ${index}. ${synset.id} (${synset.members.length} members)`);
-  console.log(`     Members: ${synset.members.join(", ")}`);
+  console.log(`\n  ${index}. ${synset.id} (${synset.members?.length || 0} members)`);
+  console.log(`     Members: ${synset.members?.join(", ") || 'No members'}`);
   console.log(`     ILI: ${synset.ili || 'None'}`);
   
   // Prefer localized definition if available

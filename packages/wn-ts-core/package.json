@@ -1,6 +1,6 @@
 {
   "name": "wn-ts-core",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Wordnet interface library - TypeScript port",
   "keywords": [
     "wordnet",
@@ -21,32 +21,33 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/src/index.js"
     },
     "./shared": {
-      "types": "./src/shared/index.ts",
-      "default": "./src/shared/index.ts"
+      "types": "./dist/src/shared/index.d.ts",
+      "default": "./dist/src/shared/index.js"
     },
     "./utils": {
-      "types": "./src/utils/index.ts",
-      "default": "./src/utils/index.ts"
+      "types": "./dist/src/utils/index.d.ts",
+      "default": "./dist/src/utils/index.js"
     },
     "./test": {
       "types": "./src/test/index.ts",
       "default": "./src/test/index.ts"
     },
     "./plugins": {
-      "types": "./src/plugins/index.ts",
-      "default": "./src/plugins/index.ts"
+      "types": "./dist/src/plugins/index.d.ts",
+      "default": "./dist/src/plugins/index.js"
     },
     "./plugins/microkernel": {
-      "types": "./src/plugins/microkernel/index.ts",
-      "default": "./src/plugins/microkernel/index.ts"
+      "types": "./dist/src/plugins/microkernel/index.d.ts",
+      "default": "./dist/src/plugins/microkernel/index.js"
     },
     "./index.json": "./src/index.json",
     "./lmf": {
-      "default": "./src/lmf/index.ts"
+      "types": "./dist/src/lmf/index.d.ts",
+      "default": "./dist/src/lmf/index.js"
     }
   },
   "files": [

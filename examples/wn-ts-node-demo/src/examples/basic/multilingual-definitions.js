@@ -7,7 +7,7 @@
  * Focus: Short, clear demonstration of multilingual definition functionality.
  */
 
-import { ili, download, add } from 'wn-ts';
+import { ili, download, add } from 'wn-ts-node';
 import { createWordnet, displaySynset, safeClose, runDemo } from '../shared/helpers.js';
 
 console.log(`
