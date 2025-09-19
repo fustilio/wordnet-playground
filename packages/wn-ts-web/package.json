@@ -1,6 +1,6 @@
 {
   "name": "wn-ts-web",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Browser/web distribution and interactive demo for wn-ts. Implements the node-to-browser strategy for WordNet access in the browser, following the approach of wordpos/wordpos-web.",
   "keywords": [
     "wordnet",
@@ -74,13 +74,6 @@
     "comlink": "catalog:",
     "fast-xml-parser": "^5.2.5",
     "kysely": "catalog:",
-    "kysely-sqlite-builder": "^1.0.0",
-    "kysely-wasm": "^1.2.1",
-    "sqlite-wasm-kysely": "^0.3.0",
-    "utils": "workspace:*",
-    "wn-data-loader": "workspace:*",
-    "wn-ts-core": "workspace:*",
-    "xml-introspect": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {
@@ -88,6 +81,7 @@
     "@sqlite.org/sqlite-wasm": "catalog:",
     "@types/lzma": "^2.3.0",
     "@types/node": "catalog:",
+    "xml-introspect": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@typescript-eslint/eslint-plugin": "catalog:",
@@ -103,10 +97,13 @@
     "react-dom": "catalog:",
     "rimraf": "catalog:",
     "typescript": "catalog:",
+    "utils": "workspace:*",
     "vite": "catalog:",
     "vite-plugin-comlink": "catalog:",
     "vite-plugin-dts": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "wn-data-loader": "workspace:*",
+    "wn-ts-core": "workspace:*"
   },
   "peerDependencies": {
     "@sqlite.org/sqlite-wasm": "catalog:"

@@ -1,6 +1,6 @@
 {
   "name": "wn-ts-core",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Wordnet interface library - TypeScript port",
   "keywords": [
     "wordnet",
@@ -71,8 +71,6 @@
     "analyze-wordnet-urls": "tsx scripts/analyze-wordnet-urls.ts"
   },
   "dependencies": {
-    "commander": "^14.0.0",
-    "fast-xml-parser": "^5.2.5",
     "kysely": "catalog:",
     "sax": "^1.4.1",
     "smol-toml": "catalog:",
@@ -81,6 +79,7 @@
   "devDependencies": {
     "@changesets/cli": "^2.27.7",
     "@types/node": "catalog:",
+    "@types/sax": "^1.2.7",
     "@typescript-eslint/eslint-plugin": "catalog:",
     "@typescript-eslint/parser": "catalog:",
     "@vitest/coverage-v8": "catalog:",

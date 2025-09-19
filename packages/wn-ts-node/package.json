@@ -1,6 +1,6 @@
 {
   "name": "wn-ts-node",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Wordnet interface library - TypeScript port",
   "keywords": [
     "wordnet",
@@ -47,24 +47,23 @@
     "tools/"
   ],
   "scripts": {
+    "bench:bilingual": "node scripts/run-bilingual-benchmarks.js",
     "prebuild": "pnpm run clean",
     "build": "tsc --project tsconfig.build.json && pnpm run copy-assets",
     "clean": "rimraf dist",
     "copy-assets": "copy ..\\wn-ts-core\\src\\index.toml dist\\",
     "dev": "pnpm run copy-assets && tsc --watch",
     "format": "prettier --write src/**/*.ts",
+    "generate-test-data": "cd ../wn-ts-core && pnpm run generate-test-data",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "publish-package": "pnpm run build && changeset version && changeset publish",
     "test": "pnpm run test:func && pnpm run test:e2e",
-    "generate-test-data": "cd ../wn-ts-core && pnpm run generate-test-data",
-    "validate-urls": "cd ../wn-ts-core && pnpm run validate-urls",
     "test:bench": "vitest bench --run",
-    "test:bench:bilingual": "vitest bench --run bench/bilingual-demo.bench.ts",
-    "test:bench:realistic-bilingual": "vitest bench --run bench/realistic-bilingual.bench.ts",
-    "test:bench:comprehensive": "vitest bench tests/e2e/query/comprehensive-queries.bench.ts --run",
     "test:bench:basic": "vitest bench tests/e2e/query/basic-queries.bench.ts --run",
-    "bench:bilingual": "node scripts/run-bilingual-benchmarks.js",
+    "test:bench:bilingual": "vitest bench --run bench/bilingual-demo.bench.ts",
+    "test:bench:comprehensive": "vitest bench tests/e2e/query/comprehensive-queries.bench.ts --run",
+    "test:bench:realistic-bilingual": "vitest bench --run bench/realistic-bilingual.bench.ts",
     "test:coverage": "vitest run --coverage --reporter=verbose --exclude \"**/*e2e.test.ts\"",
     "test:e2e": "pnpm with-debug-logs vitest run --no-file-parallelism tests/e2e",
     "test:func": "vitest run --reporter=verbose --exclude \"**/*e2e.test.ts\"",
@@ -73,25 +72,22 @@
     "test:validation": "pnpm vitest validation",
     "test:verbose": "node scripts/test-verbose.js",
     "typecheck": "tsc --noEmit",
+    "validate-urls": "cd ../wn-ts-core && pnpm run validate-urls",
     "vitest": "pnpm with-debug-logs vitest run",
     "with-debug-logs": "cross-env WN_TS_LOG_LEVEL=5"
   },
   "dependencies": {
-    "@types/sax": "^1.2.7",
     "better-sqlite3": "^12.2.0",
-    "commander": "^14.0.0",
-    "fast-xml-parser": "^5.2.5",
     "kysely": "catalog:",
     "lzma-native": "^8.0.6",
-    "pythonia": "catalog:",
     "sax": "^1.4.1",
     "smol-toml": "catalog:",
-    "tar-stream": "^3.1.7",
-    "wn-ts-core": "workspace:*"
+    "tar-stream": "^3.1.7"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "catalog:",
+    "@types/sax": "^1.2.7",
     "@types/tar-stream": "^3.1.4",
     "@typescript-eslint/eslint-plugin": "catalog:",
     "@typescript-eslint/parser": "catalog:",
@@ -102,7 +98,8 @@
     "prettier": "catalog:",
     "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "wn-ts-core": "workspace:*"
   },
   "engines": {
     "node": ">=18.0.0"
