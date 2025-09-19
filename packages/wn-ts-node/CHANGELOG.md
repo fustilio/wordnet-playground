@@ -1,5 +1,11 @@
 # wn-ts-node
 
+## 0.6.3
+
+### Patch Changes
+
+- update build configs
+
 ## 0.6.2
 
 ### Patch Changes

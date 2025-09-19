@@ -20,7 +20,6 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       external: [
-        "wn-ts-core", 
         "@sqlite.org/sqlite-wasm", 
         "lzma",
         "react",
@@ -30,7 +29,6 @@ export default defineConfig({
       ],
       output: {
         globals: {
-          "wn-ts-core": "WnTsCore",
           "@sqlite.org/sqlite-wasm": "SqliteWasm",
           "react": "React",
           "react-dom": "ReactDOM",
@@ -66,6 +64,18 @@ export default defineConfig({
     comlink(),
     dts({
       insertTypesEntry: true,
+      exclude: [
+        "**/*.test.ts",
+        "**/*.test.tsx", 
+        "**/*.e2e.test.ts",
+        "**/*.e2e.test.tsx",
+        "**/*.bench.ts",
+        "**/*.bench.tsx",
+        "**/test/**",
+        "**/tests/**",
+        "**/e2e/**",
+        "**/bench/**"
+      ],
     }),
   ],
   worker: {

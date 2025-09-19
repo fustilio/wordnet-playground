@@ -1,6 +1,6 @@
 {
   "name": "wn-ts-node",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "Wordnet interface library - TypeScript port",
   "keywords": [
     "wordnet",
@@ -66,9 +66,9 @@
   "scripts": {
     "bench:bilingual": "node scripts/run-bilingual-benchmarks.js",
     "prebuild": "pnpm run clean",
-    "build": "tsc --project tsconfig.build.json && pnpm run copy-assets",
+    "build": "vite build && pnpm run copy-assets",
     "clean": "rimraf dist",
-    "copy-assets": "copy ..\\wn-ts-core\\src\\index.toml dist\\",
+    "copy-assets": "copy ..\\wn-ts-core\\src\\index.toml dist\\src\\",
     "dev": "pnpm run copy-assets && tsc --watch",
     "format": "prettier --write src/**/*.ts",
     "generate-test-data": "cd ../wn-ts-core && pnpm run generate-test-data",
@@ -115,6 +115,8 @@
     "prettier": "catalog:",
     "rimraf": "catalog:",
     "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-dts": "catalog:",
     "vitest": "catalog:",
     "wn-ts-core": "workspace:*"
   },

@@ -1,6 +1,6 @@
 {
   "name": "wordnet-workspace",
-  "version": "0.5.0",
+  "version": "0.6.3",
   "private": true,
   "description": "WordNet Client in TypeScript with demo and benchmarks",
   "repository": {

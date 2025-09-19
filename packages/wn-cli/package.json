@@ -1,6 +1,6 @@
 {
   "name": "wn-cli",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "private": true,
   "description": "A powerful command-line interface for WordNet data exploration with interactive TUI",
   "keywords": [
