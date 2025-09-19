@@ -21,33 +21,33 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/src/index.d.ts",
-      "default": "./dist/src/index.js"
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
     },
     "./shared": {
-      "types": "./dist/src/shared/index.d.ts",
-      "default": "./dist/src/shared/index.js"
+      "types": "./src/shared/index.ts",
+      "default": "./src/shared/index.ts"
     },
     "./utils": {
-      "types": "./dist/src/utils/index.d.ts",
-      "default": "./dist/src/utils/index.js"
+      "types": "./src/utils/index.ts",
+      "default": "./src/utils/index.ts"
     },
     "./test": {
       "types": "./src/test/index.ts",
       "default": "./src/test/index.ts"
     },
     "./plugins": {
-      "types": "./dist/src/plugins/index.d.ts",
-      "default": "./dist/src/plugins/index.js"
+      "types": "./src/plugins/index.ts",
+      "default": "./src/plugins/index.ts"
     },
     "./plugins/microkernel": {
-      "types": "./dist/src/plugins/microkernel/index.d.ts",
-      "default": "./dist/src/plugins/microkernel/index.js"
+      "types": "./src/plugins/microkernel/index.ts",
+      "default": "./src/plugins/microkernel/index.ts"
     },
     "./index.json": "./src/index.json",
     "./lmf": {
-      "types": "./dist/src/lmf/index.d.ts",
-      "default": "./dist/src/lmf/index.js"
+      "types": "./src/lmf/index.ts",
+      "default": "./src/lmf/index.ts"
     }
   },
   "files": [
