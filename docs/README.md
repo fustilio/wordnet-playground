@@ -4,13 +4,30 @@
 
 This directory contains the documentation for the WordNet TypeScript ecosystem. All documentation follows established standards and conventions to ensure consistency, maintainability, and ease of use across all `wn-ts` modules.
 
-## 🏗️ **Microkernel Architecture**
+## 🏗️ **Project Structure**
 
-The ecosystem uses a **microkernel architecture** with plugin system:
-- **wn-ts-core**: Microkernel foundation with plugin system
-- **wn-ts-node**: Node.js kernel implementation
-- **wn-ts-web**: Browser kernel implementation with React integration
-- **wn-ts-web-demo**: Interactive demo showcasing capabilities
+The project is organized into three main directories:
+
+### **📦 Packages** (`packages/`)
+Core libraries and utilities:
+- **`wn-ts-core`** - Foundation library with microkernel and plugin system
+- **`wn-ts-node`** - Node.js implementation with SQLite integration
+- **`wn-ts-web`** - Browser implementation with built-in React components (future: may split to `wn-ts-web-react`)
+- **`wn-cli`** - Command-line interface and TUI
+- **`wn-data-loader`** - Data loading and processing utilities
+- **`wn-test-data`** - Test data and sample files
+- **`utils`** - Shared utilities and logging
+
+### **🎭 Examples** (`examples/`)
+Demo applications and usage examples:
+- **`wn-ts-web-demo`** - Interactive web demo with React
+- **`wn-ts-node-demo`** - Node.js examples and use cases
+
+### **🔬 Development** (`development/`)
+Development tools, benchmarks, and experimental features:
+- **`benchmark`** - Performance testing and library comparisons
+- **`sqlite-opfs-demo`** - SQLite OPFS browser demo
+- **`wn-pybridge`** - Python bridge for cross-language testing
 
 ## 📚 **Documentation Structure**
 

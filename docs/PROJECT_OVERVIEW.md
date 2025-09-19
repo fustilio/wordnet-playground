@@ -8,7 +8,7 @@ The ecosystem uses a microkernel design that separates core functionality from e
 
 - **wn-ts-core**: Foundation library with microkernel and plugin system
 - **wn-ts-node**: Node.js implementation with SQLite integration
-- **wn-ts-web**: Browser implementation with React integration
+- **wn-ts-web**: Browser implementation with built-in React components (future: may split to `wn-ts-web-react`)
 - **wn-ts-web-demo**: Interactive demo showcasing capabilities
 
 ## 🚀 **Quick Start**
@@ -24,7 +24,10 @@ pnpm test
 pnpm test:browser
 
 # Run all demo examples
-cd demo && pnpm all-use-cases
+pnpm demo:all-use-cases
+
+# Run benchmarks
+pnpm benchmark
 ```
 
 ## 🏗️ **Microkernel Architecture**
@@ -55,7 +58,41 @@ WordNetCore (interface)
     └── schema management   ← Core
 ```
 
-## 📦 **Package Structure**
+## 📦 **Project Structure**
+
+The project is organized into three main directories:
+
+### **📦 Packages** (`packages/`)
+Core libraries and utilities:
+```
+packages/
+├── wn-ts-core/           # Foundation library with microkernel and plugin system
+├── wn-ts-node/           # Node.js implementation with SQLite integration
+├── wn-ts-web/            # Browser implementation with built-in React components (future: may split to wn-ts-web-react)
+├── wn-cli/               # Command-line interface and TUI
+├── wn-data-loader/       # Data loading and processing utilities
+├── wn-test-data/         # Test data and sample files
+└── utils/                # Shared utilities and logging
+```
+
+### **🎭 Examples** (`examples/`)
+Demo applications and usage examples:
+```
+examples/
+├── wn-ts-web-demo/       # Interactive web demo with React
+└── wn-ts-node-demo/      # Node.js examples and use cases
+```
+
+### **🔬 Development** (`development/`)
+Development tools, benchmarks, and experimental features:
+```
+development/
+├── benchmark/            # Performance testing and library comparisons
+├── sqlite-opfs-demo/     # SQLite OPFS browser demo
+└── wn-pybridge/          # Python bridge for cross-language testing
+```
+
+## 🏗️ **Architecture Layers**
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐

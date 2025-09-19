@@ -25,7 +25,32 @@ WordNetCore (interface)
     └── schema management   ← Core
 ```
 
-## 📦 **Package Structure**
+## 📦 **Project Structure**
+
+The project is organized into three main directories:
+
+### **📦 Packages** (`packages/`)
+Core libraries and utilities:
+- **`wn-ts-core`** - Foundation library with microkernel and plugin system
+- **`wn-ts-node`** - Node.js implementation with SQLite integration
+- **`wn-ts-web`** - Browser implementation with built-in React hooks and providers (future: may split to `wn-ts-web-react`)
+- **`wn-cli`** - Command-line interface and TUI
+- **`wn-data-loader`** - Data loading and processing utilities
+- **`wn-test-data`** - Test data and sample files
+- **`utils`** - Shared utilities and logging
+
+### **🎭 Examples** (`examples/`)
+Demo applications and usage examples:
+- **`wn-ts-web-demo`** - Interactive web demo with React
+- **`wn-ts-node-demo`** - Node.js examples and use cases
+
+### **🔬 Development** (`development/`)
+Development tools, benchmarks, and experimental features:
+- **`benchmark`** - Performance testing and library comparisons
+- **`sqlite-opfs-demo`** - SQLite OPFS browser demo
+- **`wn-pybridge`** - Python bridge for cross-language testing
+
+## 🏗️ **Architecture Layers**
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
