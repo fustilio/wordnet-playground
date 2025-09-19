@@ -1,15 +1,7 @@
 packages:
-  - wn-ts-core
-  - wn-ts-node
-  - wn-ts-web
-  - demo
-  - benchmark
-  - wn-pybridge
-  - wn-cli
-  - wn-ts-web-demo
-  - sqlite-opfs-demo
-  - utils
-  - packages/wn-data-loader
+  - packages/*
+  - examples/*
+  - development/*
 
 catalog:
   '@fustilio/data-loader': ^0.6.0
