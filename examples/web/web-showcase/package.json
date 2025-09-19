@@ -1,0 +1,38 @@
+{
+  "name": "wn-ts-web-showcase",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui"
+  },
+  "dependencies": {
+    "@codesandbox/sandpack-react": "^2.20.0",
+    "@sqlite.org/sqlite-wasm": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-router-dom": "^6.26.0",
+    "sax": "^1.2.4",
+    "wn-ts-web": "workspace:*"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@types/sax": "^1.2.4",
+    "@vitejs/plugin-react": "^4.6.0",
+    "@vitest/ui": "3.2.4",
+    "jsdom": "^25.0.1",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-comlink": "catalog:",
+    "vitest": "3.2.4"
+  }
+}

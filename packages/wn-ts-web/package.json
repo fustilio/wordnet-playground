@@ -109,7 +109,9 @@
     "xml-introspect": "catalog:"
   },
   "peerDependencies": {
-    "@sqlite.org/sqlite-wasm": "catalog:"
+    "@sqlite.org/sqlite-wasm": "catalog:",
+    "fast-xml-parser": "^5.2.5",
+    "sax": "^1.2.4"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -25,7 +25,9 @@ export default defineConfig({
         "react",
         "react-dom",
         "react/jsx-runtime",
-        "react/jsx-dev-runtime"
+        "react/jsx-dev-runtime",
+        "fast-xml-parser",
+        "sax"
       ],
       output: {
         globals: {
@@ -33,7 +35,9 @@ export default defineConfig({
           "react": "React",
           "react-dom": "ReactDOM",
           "react/jsx-runtime": "React",
-          "react/jsx-dev-runtime": "React"
+          "react/jsx-dev-runtime": "React",
+          "fast-xml-parser": "FastXmlParser",
+          "sax": "sax"
         },
       },
       onwarn(warning, warn) {

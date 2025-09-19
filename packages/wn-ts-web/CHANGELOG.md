@@ -1,5 +1,18 @@
 # wn-ts-web
 
+## 0.6.4
+
+### Breaking Changes
+
+- **Externalized Dependencies**: `fast-xml-parser` and `sax` are now externalized dependencies that must be installed separately in consuming projects
+- **Updated Installation**: Installation now requires `npm install wn-ts-web @sqlite.org/sqlite-wasm fast-xml-parser sax`
+
+### Patch Changes
+
+- Fixed dependency resolution issues by externalizing XML parsing dependencies
+- Updated build configuration to properly handle peer dependencies
+- Improved bundle size by not bundling external dependencies
+
 ## 0.6.3
 
 ### Patch Changes

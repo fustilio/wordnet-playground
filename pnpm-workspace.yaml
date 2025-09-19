@@ -1,6 +1,7 @@
 packages:
   - packages/*
-  - examples/*
+  - examples/web/*
+  - examples/node/*
   - development/*
 
 catalog:

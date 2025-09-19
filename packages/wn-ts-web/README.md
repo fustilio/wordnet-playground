@@ -133,8 +133,18 @@ const MyComponent: React.FC = () => {
 ## Installation
 
 ```bash
-npm install wn-ts-web @sqlite.org/sqlite-wasm
+npm install wn-ts-web @sqlite.org/sqlite-wasm fast-xml-parser sax
 ```
+
+### Required Dependencies
+
+The `wn-ts-web` package requires these peer dependencies to be installed in your project:
+
+- **`@sqlite.org/sqlite-wasm`** - SQLite WASM implementation for browser database operations
+- **`fast-xml-parser`** - XML parsing library used for WordNet data processing
+- **`sax`** - SAX parser (dependency of fast-xml-parser)
+
+These dependencies are externalized in the build to keep the bundle size small and allow for better tree-shaking.
 
 For React applications, the hooks are included but can be imported separately:
 

@@ -6,6 +6,21 @@
 
 ## 🚀 **Quick Start**
 
+### Installation
+
+```bash
+npm install wn-ts-web @sqlite.org/sqlite-wasm fast-xml-parser sax
+```
+
+### Required Dependencies
+
+The `wn-ts-web` package requires these peer dependencies:
+- **`@sqlite.org/sqlite-wasm`** - SQLite WASM implementation
+- **`fast-xml-parser`** - XML parsing library for WordNet data
+- **`sax`** - SAX parser (dependency of fast-xml-parser)
+
+### Basic Usage
+
 ```typescript
 import { useWordNet } from 'wn-ts-web/react';
 
