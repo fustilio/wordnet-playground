@@ -2,7 +2,7 @@ import { WebDatabase } from "../src/client/submodules/web-database.js";
 import type { WebWordnet } from "../src/client/submodules/web-wordnet.js";
 import { DataLoader, type DataLoadOptions } from "../src/data-loader.js";
 import { Project } from "../src/project.js";
-import { createScopedLogger } from '../../packages/utils/logger.js';
+import { createScopedLogger } from 'utils/logger';
 
 const logger = createScopedLogger('MockDataLoader');
 

@@ -18,13 +18,31 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  // Add a small delay to allow file handles to be released
-  await new Promise(resolve => setTimeout(resolve, 10));
+  // Add a longer delay to allow file handles to be released on Windows
+  await new Promise(resolve => setTimeout(resolve, 500));
   
   // Clean up test directory after each test
   if (testDataDir && existsSync(testDataDir)) {
     try {
-      rmSync(testDataDir, { recursive: true, force: true });
+      // On Windows, try multiple times with increasing delays
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      while (attempts < maxAttempts) {
+        try {
+          rmSync(testDataDir, { recursive: true, force: true });
+          break; // Success, exit the loop
+        } catch (error) {
+          attempts++;
+          if (attempts < maxAttempts) {
+            // Wait longer between attempts
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
+          } else {
+            // Final attempt failed, just warn
+            console.warn('Failed to clean up test directory after multiple attempts:', error);
+          }
+        }
+      }
     } catch (error) {
       console.warn('Failed to clean up test directory:', error);
     }

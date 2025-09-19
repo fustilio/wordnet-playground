@@ -9,7 +9,7 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { WebDatabase } from '../src/client/submodules/web-database.js';
-import { createScopedLogger } from '../../packages/utils/logger.js';
+import { createScopedLogger } from 'utils/logger';
 
 const logger = createScopedLogger('OPFS-Persistence-Test');
 

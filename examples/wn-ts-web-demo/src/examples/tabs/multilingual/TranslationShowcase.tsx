@@ -9,7 +9,7 @@ import React, { useState } from 'react';
 import { Card } from '../../../components/shared/Card';
 import { Tabs } from '../../../components/shared/Tabs';
 import { UnifiedTranslationDemo } from './UnifiedTranslationDemo';
-import { createScopedLogger } from '../../../../../packages/utils/logger';
+import { createScopedLogger } from 'utils/logger';
 
 const logger = createScopedLogger('TranslationShowcase');
 

@@ -5,7 +5,7 @@
  * WordNet data from external sources in the browser demo.
  */
 
-import { createScopedLogger } from '../../../packages/utils/logger';
+import { createScopedLogger } from 'utils/logger';
 
 const logger = createScopedLogger('CorsProxy');
 

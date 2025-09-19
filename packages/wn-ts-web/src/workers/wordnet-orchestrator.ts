@@ -30,7 +30,7 @@ import { WordNetEventEmitter, WordNetEvents } from "../event-emitter.js";
 import type { EventCallback } from "../event-emitter.js";
 import type { Sqlite3Static } from "@sqlite.org/sqlite-wasm";
 import type { ProgressCallback } from "../types/progress.js";
-import { createScopedLogger } from "../../../packages/utils/logger.js";
+import { createScopedLogger } from "utils/logger";
 import { createWordNetInstance } from "../factory.js";
 import type { WordQuery, SynsetQuery, SenseQuery } from "wn-ts-core";
 import type { KyselyQueryService } from "../database/kysely-query-service.js";

@@ -1,4 +1,4 @@
-import { createScopedLogger } from "../../../../packages/utils/logger";
+import { createScopedLogger } from "utils/logger";
 
 /**
  * Represents an XML element with its properties

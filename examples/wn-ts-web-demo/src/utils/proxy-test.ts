@@ -6,7 +6,7 @@
  */
 
 import { testProxyConnectivity, getProxyStatus } from './cors-proxy';
-import { createScopedLogger } from '../../../packages/utils/logger';
+import { createScopedLogger } from 'utils/logger';
 
 const logger = createScopedLogger('ProxyTest');
 

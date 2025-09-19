@@ -469,11 +469,11 @@ const wordnet = createWordNet({
 
 ## 📖 **Related Documentation**
 
-- **[Main Project README](../../../README.md)** - Project overview and lexicon format details
-- **[Architecture Guide](../../../docs/architecture/ARCHITECTURE_OVERVIEW.md)** - Complete system architecture
-- **[Development Conventions](../../../docs/standards/DEVELOPMENT_CONVENTIONS.md)** - Coding standards and patterns
-- **[Database Schema Standards](../../../docs/standards/DATABASE_SCHEMA_STANDARDS.md)** - Database design and optimization
-- **[Testing Strategy](../../../docs/packages/wn-ts-core/TESTING_STRATEGY.md)** - Testing approach and coverage requirements
+- **[Main Project README](../README.md)** - Project overview and lexicon format details
+- **[Architecture Guide](../ARCHITECTURE.md)** - Complete system architecture
+- **[Development Conventions](../docs/DEVELOPMENT_CONVENTIONS.md)** - Coding standards and patterns
+- **[Database Schema Standards](../docs/DATABASE_SCHEMA_STANDARDS.md)** - Database design and optimization
+- **[Testing Strategy](../docs/TESTING_STRATEGY.md)** - Testing approach and coverage requirements
 
 ---
 

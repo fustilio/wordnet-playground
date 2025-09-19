@@ -4,7 +4,7 @@ import WordRelationshipGraph from '../../../components/visualizations/WordRelati
 import SynsetHierarchyTree from '../../../components/visualizations/SynsetHierarchyTree';
 import { useWordNetContext } from "wn-ts-web/react";
 import { LexiconRequirements } from '../../../components/shared/LexiconRequirements';
-import { createScopedLogger } from '../../../../../packages/utils/logger';
+import { createScopedLogger } from 'utils/logger';
 import { SearchForm } from '../../../components/shared/SearchForm';
 
 const logger = createScopedLogger('VisualizationDemo');

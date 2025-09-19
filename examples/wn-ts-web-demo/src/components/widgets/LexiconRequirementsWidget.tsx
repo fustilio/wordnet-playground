@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useWordNetContext } from 'wn-ts-web/react';
-import { createScopedLogger } from '../../../../packages/utils/logger';
+import { createScopedLogger } from 'utils/logger';
 import { isRequirementSatisfied, isRequirementAvailable, findBestPackageForRequirement } from '../../utils/package-utils';
 
 const logger = createScopedLogger('LexiconRequirementsWidget');

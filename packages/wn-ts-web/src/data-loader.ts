@@ -7,7 +7,7 @@ import { Project } from "./project.js";
 import type { ProgressCallback } from "./types/progress.js";
 import { WebDatabase } from "./client/submodules/web-database.js";
 import { WebWordnet } from "./client/submodules/web-wordnet.js";
-import { createScopedLogger } from "../../packages/utils/logger.js";
+import { createScopedLogger } from "utils/logger";
 import type { KyselyQueryService } from "./database/kysely-query-service.js";
 import type { Database } from "./types/database.js";
 import type { LMFDocument, Synset, Word, Sense, Lexicon } from "wn-ts-core";

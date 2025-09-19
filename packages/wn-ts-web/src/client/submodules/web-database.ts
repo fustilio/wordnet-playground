@@ -11,7 +11,7 @@
  */
 
 import type { Sqlite3Static, Database } from "@sqlite.org/sqlite-wasm";
-import { createScopedLogger } from "../../../../packages/utils/logger";
+import { createScopedLogger } from "utils/logger";
 
 const logger = createScopedLogger('WebDatabase');
 

@@ -3,7 +3,7 @@
 // https://sqlite.org/wasm/doc/trunk/persistence.md
 
 import { default as init } from '@sqlite.org/sqlite-wasm'
-import { createScopedLogger } from '../../../packages/utils/logger'
+import { createScopedLogger } from 'utils/logger'
 
 import type { Sqlite3Static as SqliteWasm, Database as SqliteDb } from '@sqlite.org/sqlite-wasm'
 

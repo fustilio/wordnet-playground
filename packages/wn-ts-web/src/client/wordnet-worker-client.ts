@@ -20,7 +20,7 @@
  * - WebWordnet: Low-level, individual lexicon instance operations
  */
 
-import { createScopedLogger } from '../../../packages/utils/logger';
+import { createScopedLogger } from 'utils/logger';
 import { createWordNetWorker, type RemoteWordNetWorker } from './utils/worker-factory';
 import { proxy } from 'comlink';
 import type { PartOfSpeech } from 'wn-ts-core';

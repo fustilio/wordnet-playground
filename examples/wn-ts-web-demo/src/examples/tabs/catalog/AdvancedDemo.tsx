@@ -2,7 +2,7 @@ import React, { useMemo, useState, useRef, useCallback } from 'react';
 import { Card } from '../../../components/shared/Card';
 import { useWordNetContext, getAvailableProjects, type ProjectInfo, type ProgressCallback } from "wn-ts-web/react";
 import { LexiconRequirements } from '../../../components/shared/LexiconRequirements';
-import { createScopedLogger } from '../../../../../packages/utils/logger';
+import { createScopedLogger } from 'utils/logger';
 import { ProjectList } from '../../ProjectList';
 import { Tabs } from '../../../components/shared/Tabs';
 

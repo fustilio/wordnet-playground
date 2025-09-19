@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { WebWordNetKernel } from '../../wordnet-kernel.js';
-import { createScopedLogger } from "../../../../packages/utils/logger.js";
+import { createScopedLogger } from "utils/logger";
 
 // Import all types from the dedicated types file
 import type {

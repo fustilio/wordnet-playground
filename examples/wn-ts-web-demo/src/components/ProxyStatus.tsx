@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getProxyStatus, testProxyConnectivity } from '../utils/cors-proxy';
-import { createScopedLogger } from '../../../packages/utils/logger';
+import { createScopedLogger } from 'utils/logger';
 
 const logger = createScopedLogger('ProxyStatus');
 

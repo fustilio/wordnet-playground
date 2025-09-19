@@ -9,35 +9,76 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync, readFileSync, mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
-// Helper functions for test data (replacing missing xsd-sample-test-helper.js)
+// import { TestDataManager, getTestContext, cleanupTestContext } from 'wn-ts-core/test/test-data-manager.js';
+import { isLMF } from '../src/lmf.js';
+
+// Helper functions for test data using TestDataManager
 const createComprehensiveTestDataset = async () => {
-  // Return mock test data paths
+  // Return actual test data paths from wn-test-data package
+  const testDataDir = join(__dirname, '..', '..', '..', 'packages', 'wn-test-data', 'data');
   return {
-    oewnSample: 'test-data/oewn-sample.xml',
-    ciliSample: 'test-data/cili-sample.xml', 
-    omwFrSample: 'test-data/omw-fr-sample.xml',
-    omwThSample: 'test-data/omw-th-sample.xml'
+    oewnSample: join(testDataDir, 'mini-lmf-1.3.xml'),
+    ciliSample: join(testDataDir, 'mini-lmf-1.0.xml'), 
+    omwFrSample: join(testDataDir, 'mini-lmf-1.1.xml'),
+    omwThSample: join(testDataDir, 'mini-lmf-1.4.xml')
   };
 };
 
-const validateTestSample = (samplePath: string) => {
-  // Simple validation - just check if path exists
-  return {
-    isValid: existsSync(samplePath),
-    errors: existsSync(samplePath) ? [] : ['File not found'],
-    issues: existsSync(samplePath) ? [] : ['File not found'],
-    stats: {
-      synsetCount: existsSync(samplePath) ? 10 : 0,
-      wordCount: existsSync(samplePath) ? 20 : 0,
-      senseCount: existsSync(samplePath) ? 30 : 0
+const validateTestSample = async (samplePath: string) => {
+  if (!existsSync(samplePath)) {
+    return {
+      isValid: false,
+      errors: ['File not found'],
+      issues: ['File not found'],
+      stats: { synsetCount: 0, wordCount: 0, senseCount: 0 }
+    };
+  }
+
+  try {
+    // Use the actual LMF validation function
+    const isLmfFile = await isLMF(samplePath);
+    
+    if (!isLmfFile) {
+      return {
+        isValid: false,
+        errors: ['Invalid LMF format'],
+        issues: ['Invalid LMF format'],
+        stats: { synsetCount: 0, wordCount: 0, senseCount: 0 }
+      };
     }
-  };
+
+    // Read and count elements
+    const content = readFileSync(samplePath, 'utf-8');
+    const synsetCount = (content.match(/<Synset/g) || []).length;
+    // Count both Word and LexicalEntry elements (LMF uses LexicalEntry)
+    const wordCount = (content.match(/<Word/g) || []).length + (content.match(/<LexicalEntry/g) || []).length;
+    const senseCount = (content.match(/<Sense/g) || []).length;
+
+    return {
+      isValid: true,
+      errors: [],
+      issues: [],
+      stats: { synsetCount, wordCount, senseCount }
+    };
+  } catch (error) {
+    return {
+      isValid: false,
+      errors: ['File read error'],
+      issues: ['File read error'],
+      stats: { synsetCount: 0, wordCount: 0, senseCount: 0 }
+    };
+  }
 };
 
 const getTestSamplePath = (sampleType: string, version?: string, isMini?: boolean) => {
   const prefix = isMini ? 'mini-' : '';
   const suffix = version ? `-${version}` : '';
-  return `test-data/${prefix}${sampleType}${suffix}-sample.xml`;
+  const testDataDir = join(__dirname, '..', '..', '..', 'packages', 'wn-test-data', 'data');
+  // For mini files, use the actual file names from wn-test-data
+  if (isMini && sampleType === 'lmf') {
+    return join(testDataDir, `mini-lmf-${version || '1.3'}.xml`);
+  }
+  return join(testDataDir, `${prefix}${sampleType}${suffix}.xml`);
 };
 import { add, remove, exportData } from '../src/data-management-new.js';
 import { Wordnet } from '../src/wordnet.js';
@@ -94,8 +135,8 @@ describe('Data Loading and Database Integration Tests', () => {
   });
 
   describe('Test Sample Validation', () => {
-    it('should have valid OEWN sample structure', () => {
-      const validation = validateTestSample(testSamples.oewnSample);
+    it('should have valid OEWN sample structure', async () => {
+      const validation = await validateTestSample(testSamples.oewnSample);
       expect(validation.isValid).toBe(true);
       expect(validation.issues).toHaveLength(0);
       expect(validation.stats.synsetCount).toBeGreaterThan(0);
@@ -103,22 +144,22 @@ describe('Data Loading and Database Integration Tests', () => {
       expect(validation.stats.senseCount).toBeGreaterThan(0);
     });
 
-    it('should have valid CILI sample structure', () => {
-      const validation = validateTestSample(testSamples.ciliSample);
+    it('should have valid CILI sample structure', async () => {
+      const validation = await validateTestSample(testSamples.ciliSample);
       expect(validation.isValid).toBe(true);
       expect(validation.issues).toHaveLength(0);
       expect(validation.stats.synsetCount).toBeGreaterThan(0);
     });
 
-    it('should have valid OMW-FR sample structure', () => {
-      const validation = validateTestSample(testSamples.omwFrSample);
+    it('should have valid OMW-FR sample structure', async () => {
+      const validation = await validateTestSample(testSamples.omwFrSample);
       expect(validation.isValid).toBe(true);
       expect(validation.issues).toHaveLength(0);
       expect(validation.stats.synsetCount).toBeGreaterThan(0);
     });
 
-    it('should have valid OMW-TH sample structure', () => {
-      const validation = validateTestSample(testSamples.omwThSample);
+    it('should have valid OMW-TH sample structure', async () => {
+      const validation = await validateTestSample(testSamples.omwThSample);
       expect(validation.isValid).toBe(true);
       expect(validation.issues).toHaveLength(0);
       expect(validation.stats.synsetCount).toBeGreaterThan(0);
@@ -434,7 +475,7 @@ describe('Data Loading and Database Integration Tests', () => {
   describe('Fallback to wn-test-data', () => {
     it('should work with wn-test-data when XSD samples unavailable', async () => {
       // Test with mini-lmf files from wn-test-data
-      const miniLmf13Path = getTestSamplePath('mini', '1.3', true);
+      const miniLmf13Path = getTestSamplePath('lmf', '1.3', true);
       expect(existsSync(miniLmf13Path)).toBe(true);
       
       // Should be able to load it
@@ -442,9 +483,9 @@ describe('Data Loading and Database Integration Tests', () => {
       expect(result).toBe(true);
     });
 
-    it('should validate wn-test-data structure', () => {
-      const miniLmf13Path = getTestSamplePath('mini', '1.3', true);
-      const validation = validateTestSample(miniLmf13Path);
+    it('should validate wn-test-data structure', async () => {
+      const miniLmf13Path = getTestSamplePath('lmf', '1.3', true);
+      const validation = await validateTestSample(miniLmf13Path);
       
       expect(validation.isValid).toBe(true);
       expect(validation.stats.synsetCount).toBeGreaterThan(0);

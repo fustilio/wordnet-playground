@@ -21,17 +21,12 @@ import type {
   WordNetWorkerAPI,
   LexiconStatistics,
   OverallStatistics,
-  WordQueryResult,
-  SynsetQueryResult,
-  SenseInfo,
-  DefinitionInfo,
-  WordInfo,
   CacheInfo,
   DatabaseStorageInfo,
   MemoryQueryTestResult,
   PartOfSpeech
 } from './type.js';
-import { createScopedLogger } from '../../../packages/utils/logger.js';
+import { createScopedLogger } from 'utils/logger';
 
 const logger = createScopedLogger('WordNetWorker');
 

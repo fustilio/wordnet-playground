@@ -2,7 +2,7 @@ import React, { useMemo, useCallback } from 'react';
 import { Card } from '../../../components/shared/Card';
 import { useWordNetContext } from "wn-ts-web/react";
 import { LexiconRequirements } from '../../../components/shared/LexiconRequirements';
-import { createScopedLogger } from '../../../../../packages/utils/logger';
+import { createScopedLogger } from 'utils/logger';
 import { SearchForm } from '../../../components/shared/SearchForm';
 import { SearchResults } from '../../../components/shared/SearchResults';
 import { useSearch } from '../../../hooks/useSearch';

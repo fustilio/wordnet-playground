@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useWordNetContext } from "wn-ts-web/react";
 import { Card } from '../../../components/shared/Card';
-import { createScopedLogger } from '../../../../../packages/utils/logger';
+import { createScopedLogger } from 'utils/logger';
 import type {
   LexiconIntrospection,
   ResourceTypeInfo,

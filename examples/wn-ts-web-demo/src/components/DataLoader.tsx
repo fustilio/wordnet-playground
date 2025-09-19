@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { createScopedLogger } from '../../../packages/utils/logger';
+import { createScopedLogger } from 'utils/logger';
 
 const logger = createScopedLogger('DataLoader');
 

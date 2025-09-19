@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 
-import { createScopedLogger, setGlobalLogLevel } from "../../../../packages/utils/logger";
+import { createScopedLogger, setGlobalLogLevel } from "utils/logger";
 import { getAvailableProjects } from "../utils/project-list";
 import { WordNetWorkerClient, type LexiconInfo } from "../../";
 import {

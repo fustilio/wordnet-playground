@@ -6,7 +6,7 @@ import type { WordnetOptions } from 'wn-ts-core';
 import { WebWordnet } from './client/submodules/web-wordnet.js';
 import { DataLoader } from './data-loader.js';
 import sqlite3InitModule, { type Sqlite3Static }  from '@sqlite.org/sqlite-wasm';
-import { createScopedLogger } from '../../packages/utils/logger.js';
+import { createScopedLogger } from 'utils/logger';
 
 const logger = createScopedLogger('Factory');
 

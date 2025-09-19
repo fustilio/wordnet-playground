@@ -3,7 +3,7 @@ import { createWordNetInstance } from "../../../src/factory";
 import type { WebWordnet } from "../../../src/client/submodules/web-wordnet";
 import type { DataLoader } from "../../../src/data-loader";
 import type { Word } from "wn-ts-core";
-import { createScopedLogger, setGlobalLogLevel } from "../../../../packages/utils/logger";
+import { createScopedLogger, setGlobalLogLevel } from "utils/logger";
 
 // Configurable stress and logging controls via Vite/Vitest env
 const env: any = (import.meta as any).env || {};

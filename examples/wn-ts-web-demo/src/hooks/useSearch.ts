@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { createScopedLogger } from '../../../packages/utils/logger';
+import { createScopedLogger } from 'utils/logger';
 import { useWordNetContext } from 'wn-ts-web/react';
 
 const logger = createScopedLogger('useSearch');

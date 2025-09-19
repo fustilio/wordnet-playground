@@ -104,7 +104,7 @@ import type { Database } from "../../types/database.js";
 import { Kysely } from "kysely";
 import { createSqliteWasmDialect } from "../../database/sqlite-wasm-dialect.js";
 import type { Sqlite3Static } from "@sqlite.org/sqlite-wasm";
-import { createScopedLogger } from "../../../../packages/utils/logger.js";
+import { createScopedLogger } from "utils/logger";
 import { WordNetEventEmitter, WordNetEvents } from "../../event-emitter.js";
 
 const logger = createScopedLogger("WebWordnet");

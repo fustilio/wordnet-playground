@@ -12,7 +12,7 @@ The project is organized into three main directories:
 Core libraries and utilities:
 - **`wn-ts-core`** - Foundation library with microkernel and plugin system
 - **`wn-ts-node`** - Node.js implementation with SQLite integration
-- **`wn-ts-web`** - Browser implementation with built-in React components (future: may split to `wn-ts-web-react`)
+- **`wn-ts-web`** - Browser implementation with built-in React hooks and providers (future: may split to `wn-ts-web-react`)
 - **`wn-cli`** - Command-line interface and TUI
 - **`wn-data-loader`** - Data loading and processing utilities
 - **`wn-test-data`** - Test data and sample files
@@ -53,183 +53,62 @@ Development tools, benchmarks, and experimental features:
 
 ### **Examples & Use Cases**
 - **[Usage Examples](./examples/EXAMPLE_USAGE.md)** - Comprehensive examples and use cases
-- **[Future Potential](./examples/FUTURE_POTENTIAL.md)** - Advanced applications and future possibilities
 
-### **Key Naming Conventions**
+### **Package-Specific Documentation**
 
-**Rule**: Always use the `Id` suffix for properties that reference IDs of other entities.
+#### **Core Library** (`packages/wn-ts-core/`)
+- **[Core Library Guide](./packages/wn-ts-core/README.md)** - Microkernel architecture and core functionality
+- **[Global WordNet Schemas](./packages/wn-ts-core/GLOBAL_WORDNET_SCHEMAS.md)** - Official schema reference and LMF support
+- **[Testing Strategy](./packages/wn-ts-core/TESTING_STRATEGY.md)** - Testing approach and coverage requirements
+- **[Advanced Use Cases](./packages/wn-ts-core/ROADMAP.md)** - Superpower operations and examples
 
-**✅ Correct Examples:**
-- `wordId: string` - References Word.id
-- `synsetId: string` - References Synset.id
-- `lexiconId: string` - References Lexicon.id
-- `memberIds: string[]` - References Word.id[]
-- `senseIds: string[]` - References Sense.id[]
+#### **Node.js Implementation** (`packages/wn-ts-node/`)
+- **[Node.js Usage](./packages/wn-ts-node/USAGE.md)** - Node.js integration and SQLite setup
+- **[Translation Utilities](./packages/wn-ts-node/TRANSLATION_UTILITIES.md)** - Cross-lingual operations
 
-**❌ Incorrect Examples:**
-- `word: string` - Should be wordId
-- `synset: string` - Should be synsetId
-- `members: string[]` - Should be memberIds
-- `senses: string[]` - Should be senseIds
+#### **Web Implementation** (`packages/wn-ts-web/`)
+- **[Web Library Guide](./packages/wn-ts-web/README.md)** - Browser integration and React components
 
-## 🏗️ **Implementation Guidelines**
+#### **CLI Tool** (`packages/wn-cli/`)
+- **[CLI Guide](./packages/wn-cli/README.md)** - Command-line interface overview
+- **[Browser Commands](./packages/wn-cli/cli/BROWSER_COMMAND_SUMMARY.md)** - Browser-specific commands
+- **[CLI Cheatsheet](./packages/wn-cli/cli/cheatsheet.md)** - Quick reference for commands
+- **[TUI Architecture](./packages/wn-cli/tui/README.md)** - Terminal UI system overview
+- **[Component Architecture](./packages/wn-cli/tui/COMPONENT_ARCHITECTURE.md)** - TUI component design
+- **[Layout System](./packages/wn-cli/tui/LAYOUT_SYSTEM.md)** - TUI layout management
+- **[Debugging Guide](./packages/wn-cli/tui/DEBUGGING.md)** - TUI debugging techniques
 
-### **Architecture Patterns**
-- **Layered Architecture**: Clear separation of concerns across React, Worker, Orchestrator, and Database layers
-- **Worker-First Design**: Offload heavy operations to Web Workers for UI responsiveness
-- **Explicit Client Passing**: Use dependency injection rather than global state
-- **Type Safety**: Full TypeScript coverage with strict interfaces
+## 🚀 **Quick Start**
 
-### **Data Flow Consistency**
-- **LMF XML Processing**: Standardized parsing and validation pipeline
-- **Database Operations**: Consistent schema and query patterns
-- **Cross-Lingual Linking**: ILI-based concept mapping across languages
-- **Error Handling**: Specific error types with descriptive messages
-
-## 🚀 **Quick Start for Developers**
-
-### **1. Understanding the Ecosystem**
-- Start with the **[Main Project README](../README.md)** for project overview
-- Review **[Development Conventions](./DEVELOPMENT_CONVENTIONS.md)** for coding standards
-- Check **[Database Schema Standards](./DATABASE_SCHEMA_STANDARDS.md)** for data structure
-
-### **2. Implementation Choices**
-- **Browser Applications**: Use `wn-ts-web` with React integration
-- **Node.js Applications**: Use `wn-ts-node` for server-side processing
-- **Core Library**: Use `wn-ts-core` for foundational types and utilities
-
-### **3. Development Workflow**
 ```bash
-# Setup development environment
+# Install dependencies
 pnpm install
-pnpm build
 
-# Run tests
+# Run all tests
 pnpm test
+
+# Run browser tests
 pnpm test:browser
 
-# Build packages
-pnpm build:packages
+# Run all demo examples
+pnpm demo:all-use-cases
+
+# Run benchmarks
+pnpm benchmark
 ```
 
-## 📖 **Module-Specific Documentation**
+## 📖 **Contributing to Documentation**
 
-### **Core Library**
-- **[wn-ts-core Documentation](../wn-ts-core/docs/)** - Foundation library, types, and utilities
-- **Core Types**: Word, Synset, Sense, Lexicon with consistent ID naming
-- **LMF Parser**: XML parsing, validation, and data transformation
-- **Schema Builder**: Database schema creation and management
+When contributing to documentation:
 
-### **Web Implementation**
-- **[wn-ts-web Documentation](../wn-ts-web/docs/)** - Browser-optimized implementation
-- **React Integration**: Custom hooks and components
-- **Web Worker Architecture**: Background processing for performance
-- **SQLite with OPFS**: Persistent storage capabilities
+1. **Follow the established structure** - Use the existing organization patterns
+2. **Update cross-references** - Ensure links between documents remain valid
+3. **Use consistent formatting** - Follow the markdown conventions used throughout
+4. **Include examples** - Provide practical code examples where applicable
+5. **Test links** - Verify all internal and external links work correctly
 
-### **Node.js Implementation**
-- **[wn-ts-node Documentation](../wn-ts-node/docs/)** - Server-side implementation
-- **File System Operations**: Local file processing and management
-- **CLI Tools**: Command-line interface and utilities
-- **Database Management**: Advanced database operations
+## 🔗 **External Resources**
 
-## ✅ **Compliance Requirements**
-
-### **Mandatory Standards**
-- **Naming Conventions**: Follow established ID property naming (wordId, synsetId, etc.)
-- **Type Safety**: Maintain full TypeScript coverage
-- **Error Handling**: Use specific error types with proper fallbacks
-- **Testing Coverage**: Meet minimum coverage requirements (90% unit, 80% integration)
-
-### **Quality Assurance**
-- **Code Review**: All changes must follow established conventions
-- **Documentation**: Update documentation for API changes
-- **Testing**: Ensure all tests pass before merging
-- **Performance**: Meet benchmark requirements for critical paths
-
-## 🔍 **Common Issues & Solutions**
-
-### **Type Mismatches**
-- **Problem**: Using `word` instead of `wordId` in Sense interface
-- **Solution**: Always use `Id` suffix for ID references
-- **Example**: `sense.wordId` not `sense.word`
-
-### **Database Schema Issues**
-- **Problem**: Inconsistent column naming between TypeScript and SQL
-- **Solution**: Use camelCase for TypeScript, snake_case for SQL
-- **Example**: `wordId` in TypeScript maps to `word_id` in database
-
-### **Test Failures**
-- **Problem**: Tests expecting old property names
-- **Solution**: Update test assertions to use new naming conventions
-- **Example**: `expect(sense.wordId).toBe(...)` not `expect(sense.word).toBe(...)`
-
-## 📊 **Performance Benchmarks**
-
-### **Current Performance Standards**
-- **XML Parsing**: < 100ms for 1MB LMF files
-- **Database Operations**: < 50ms for single queries
-- **Cross-Lingual Queries**: < 200ms for complex ILI lookups
-- **Memory Usage**: < 2x input size for processing
-
-### **Optimization Strategies**
-- **Lazy Loading**: Load lexicons on-demand
-- **Intelligent Caching**: Multi-level caching strategy
-- **Parallel Processing**: Use Web Workers for heavy operations
-- **Database Indexing**: Strategic indexes for common queries
-
-## 🔄 **Version Compatibility**
-
-### **Breaking Changes**
-- **v2.0.0**: Updated property naming from `word`/`synset` to `wordId`/`synsetId`
-- **Migration**: Update all code to use new property names
-- **Testing**: Ensure all tests pass with updated naming
-
-### **Backward Compatibility**
-- **API Stability**: Maintain API compatibility within major versions
-- **Data Migration**: Provide utilities for schema updates
-- **Deprecation**: Proper deprecation notices for removed features
-
-## 🧪 **Testing & Validation**
-
-### **Test Coverage Requirements**
-- **Unit Tests**: 90%+ coverage for core functionality
-- **Integration Tests**: 80%+ coverage for module interaction
-- **E2E Tests**: 70%+ coverage for complete workflows
-- **Browser Tests**: Cross-browser compatibility verification
-
-### **Validation Pipeline**
-1. **XML Structure**: Schema compliance and well-formedness
-2. **Data Consistency**: Referential integrity validation
-3. **Business Rules**: WordNet-specific validation logic
-4. **Cross-Reference**: ILI mapping validation
-
-## 📚 **Additional Resources**
-
-### **External References**
-- **[WordNet Project](https://wordnet.princeton.edu/)** - Original WordNet database
-- **[LMF Specification](https://www.lexicalmarkupframework.org/)** - Lexical Markup Framework standard
-- **[Interlingual Index](https://en.wikipedia.org/wiki/Interlingual_Index)** - Cross-lingual concept mapping
-- **[TypeScript Handbook](https://www.typescriptlang.org/docs/)** - TypeScript language reference
-
-### **Community & Support**
-- **Issue Reporting**: Use GitHub issues for bugs and feature requests
-- **Contributing**: Follow contributing guidelines and development standards
-- **Documentation**: Help improve and maintain documentation quality
-
-## 📋 **Documentation Maintenance**
-
-### **Update Requirements**
-- **API Changes**: Update all relevant documentation
-- **New Features**: Add comprehensive usage examples
-- **Bug Fixes**: Document workarounds and solutions
-- **Performance**: Update benchmark results and optimization tips
-
-### **Quality Standards**
-- **Accuracy**: Ensure all examples and references are current
-- **Completeness**: Cover all public APIs and common use cases
-- **Clarity**: Use clear, concise language with practical examples
-- **Consistency**: Follow established formatting and structure
-
----
-
-**Remember**: This documentation serves as the authoritative source for all `wn-ts` development standards and conventions. Following these guidelines ensures consistency, maintainability, and interoperability across the entire ecosystem.
+- **[Global WordNet Association](https://globalwordnet.org/)** - Official WordNet organization
+- **[Open Multilingual WordNet](https://github.com/globalwordnet/)** - Multi-language WordNet resources
+- **[Python wn Library](https://github.com/goodmami/wn)** - Reference Python implementation

@@ -1,4 +1,4 @@
-import { createScopedLogger, setGlobalLogLevel } from "../../../../packages/utils/logger";
+import { createScopedLogger } from "utils/logger";
 import { MultiXMLParser } from "../xml/multi-xml-parser";
 import type { ParserOptions, XMLElement, XMLTextNode } from "../xml/multi-xml-parser";
 
@@ -11,14 +11,13 @@ type ParsedXMLStructure = {
   text?: string;
 };
 import type {
-  LMFParser,
+  LMFXMLParser,
   LMFDocument,
   LMFLoadOptions,
   Synset,
   Word,
   Sense,
   Lexicon,
-  PartOfSpeech,
   Form,
   Definition,
   Relation,
@@ -72,7 +71,7 @@ export interface LmfParseOptions {
  * LMF Parser for parsing Lexical Markup Framework XML files
  * This parser implements the common LMFParser interface
  */
-export class LmfParser implements LMFParser {
+export class LmfParser implements LMFXMLParser {
   readonly name = "Browser LMF Parser";
   readonly description =
     "Browser-compatible LMF parser with multiple XML parsing strategies";

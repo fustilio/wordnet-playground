@@ -16,7 +16,7 @@ import type {
   SynsetQuery,
   SenseQuery
 } from 'wn-ts-core';
-import { createScopedLogger } from '../../packages/utils/logger';
+import { createScopedLogger } from 'utils/logger';
 
 const logger = createScopedLogger('WebWordNetCore');
 

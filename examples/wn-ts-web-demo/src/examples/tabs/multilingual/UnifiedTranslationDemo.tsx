@@ -15,7 +15,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card } from '../../../components/shared/Card';
 import { useWordNetContext } from "wn-ts-web/react";
 import { LexiconRequirements } from '../../../components/shared/LexiconRequirements';
-import { createScopedLogger } from '../../../../../packages/utils/logger';
+import { createScopedLogger } from 'utils/logger';
 import type { WordInfo } from '../../../types';
 
 // Define TranslationResult locally to avoid import issues

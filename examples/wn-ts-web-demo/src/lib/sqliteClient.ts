@@ -1,6 +1,6 @@
 // Lightweight client wrapper around the sqlite worker RPC
 // Provides a simple API for init/open/close/exec/seed/flush/list/delete and writeFile
-import { createScopedLogger } from '../../../packages/utils/logger'
+import { createScopedLogger } from 'utils/logger'
 
 export type QueryResult = { columns: string[]; rows: Array<Record<string, unknown>> }
 

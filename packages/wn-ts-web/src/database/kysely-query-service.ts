@@ -8,9 +8,6 @@ import { Kysely, sql } from 'kysely';
 import { BaseKyselyQueryService, SchemaBuilder, DatabaseUtils } from 'wn-ts-core';
 import type { Database } from '../types/database.js';
 import type { PartOfSpeech, Word } from 'wn-ts-core';
-import { createScopedLogger } from '../../../packages/utils/logger.js';
-
-const logger = createScopedLogger('KyselyQueryService');
 
 export class KyselyQueryService extends BaseKyselyQueryService {
   constructor(db: Kysely<Database>) {

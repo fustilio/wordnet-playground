@@ -2,7 +2,7 @@ import React from 'react';
 import { Card } from '../../../components/shared/Card';
 import { useWordNetContext } from "wn-ts-web/react";
 import { LexiconRequirements } from '../../../components/shared/LexiconRequirements';
-import { createScopedLogger } from '../../../../../packages/utils/logger';
+import { createScopedLogger } from 'utils/logger';
 import { SequentialRunner } from '../../SequentialRunner';
 import { ProxyStatus } from '../../../components/ProxyStatus';
 import { PerformanceMonitor } from '../../../components/developer-tools/PerformanceMonitor';
