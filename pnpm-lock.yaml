@@ -90,7 +90,11 @@ catalogs:
 
 importers:
 
-  .: {}
+  .:
+    devDependencies:
+      '@changesets/cli':
+        specifier: ^2.27.7
+        version: 2.29.5
 
   development/benchmark:
     dependencies:
@@ -525,9 +529,6 @@ importers:
         specifier: workspace:*
         version: link:../wn-ts-core
     devDependencies:
-      '@changesets/cli':
-        specifier: ^2.27.7
-        version: 2.29.5
       '@types/better-sqlite3':
         specifier: ^7.6.13
         version: 7.6.13

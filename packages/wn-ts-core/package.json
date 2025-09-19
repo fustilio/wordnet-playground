@@ -15,6 +15,7 @@
     "url": "https://github.com/fustilio/wordnet-playground.git",
     "directory": "wn-ts"
   },
+  "private": true,
   "license": "MIT",
   "author": "fustilio",
   "type": "module",

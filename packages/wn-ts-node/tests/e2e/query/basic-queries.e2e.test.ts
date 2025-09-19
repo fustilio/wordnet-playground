@@ -63,7 +63,7 @@ describe('Basic Query Operations', () => {
       if (allWords.length > 0) {
         const firstWord = allWords[0];
         if (firstWord) {
-          const word = await wordnetClient.getWord(firstWord.id);
+          const [word] = await wordnetClient.getWord(firstWord.id);
           expect(word).toBeDefined();
           expect(word?.id).toBe(firstWord.id);
           

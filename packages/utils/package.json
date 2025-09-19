@@ -4,6 +4,7 @@
   "license": "MIT",
   "author": "fustilio",
   "type": "module",
+  "private": true,
   "scripts": {
     "test": "vitest run --reporter=verbose",
     "test:watch": "vitest --reporter=verbose",

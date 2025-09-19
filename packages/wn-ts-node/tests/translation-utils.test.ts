@@ -36,8 +36,8 @@ describe('Translation Utilities', () => {
       expect(result.sourceLanguage).toBe('en');
       expect(result.translations).toBeDefined();
       expect(result.translations.fr).toBeDefined();
-      expect(result.translations.fr.words).toBeDefined();
-      expect(Array.isArray(result.translations.fr.words)).toBe(true);
+      expect(result.translations.fr?.words).toBeDefined();
+      expect(Array.isArray(result.translations.fr?.words)).toBe(true);
     });
 
     it('should get available languages', async () => {
@@ -64,8 +64,8 @@ describe('Translation Utilities', () => {
       
       expect(result.en).toBeDefined();
       expect(result.fr).toBeDefined();
-      expect(result.en.sourceWord).toBe('house');
-      expect(result.fr.sourceWord).toBe('house');
+      expect(result.en?.sourceWord).toBe('house');
+      expect(result.fr?.sourceWord).toBe('house');
     });
   });
 

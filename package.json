@@ -26,13 +26,15 @@
     "ci:demo": "echo '🎭 Running all demo use cases...' && pnpm demo:all-use-cases",
     "ci:full": "pnpm run ci:build && pnpm run ci:test && pnpm run ci:demo && pnpm run ci:benchmark",
     "ci:test": "echo '🧪 Running wn-ts tests...' && pnpm test && echo '🧪 Running wn-ts e2e tests...' && pnpm test:e2e",
+    "changeset": "changeset",
+    "changeset:version": "changeset version",
+    "changeset:publish": "changeset publish",
     "clean": "pnpm --filter wn-ts-core clean",
     "demo": "pnpm --filter wn-ts-node-demo test",
     "demo:all-use-cases": "pnpm --filter wn-ts-node-demo all-use-cases",
     "demo:kitchen-sink": "pnpm --filter wn-ts-node-demo kitchen-sink",
     "typecheck": "pnpm --filter wn-ts-core typecheck && pnpm --filter wn-ts-node typecheck && pnpm --filter wn-ts-web typecheck",
     "test": "pnpm test:core && pnpm test:node && pnpm test:web",
-    "test:core-and-node": "pnpm test:core && pnpm test:node",
     "test:web:browser": "pnpm test:web && pnpm test:browser",
     "test:lmf": "pnpm -r test:lmf",
     "test:core": "pnpm --filter wn-ts-core test",
@@ -45,7 +47,9 @@
     "dev": "pnpm --filter wn-cli... dev",
     "suite": "pnpm build && pnpm test"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "@changesets/cli": "^2.27.7"
+  },
   "engines": {
     "node": ">=18.0.0"
   },

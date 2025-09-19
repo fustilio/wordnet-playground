@@ -37,8 +37,8 @@ describe('Definition Queries', () => {
       
       // Verify that definitions are strings
       definitions.forEach(definition => {
-        expect(typeof definition).toBe('string');
-        expect(definition.length).toBeGreaterThan(0);
+        expect(typeof definition.text).toBe('string');
+        expect(definition.text.length).toBeGreaterThan(0);
       });
       
       logger.success(`Found ${definitions.length} definitions for synset ${synset!.id}`);

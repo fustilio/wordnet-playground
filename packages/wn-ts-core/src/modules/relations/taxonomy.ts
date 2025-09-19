@@ -134,8 +134,8 @@ export async function hypernymPaths(
       relations: [],
       language: synset.language,
       lexicon: synset.lexicon,
-      members: [],
-      sensesIds: [],
+      memberIds: [],
+      senseIds: [],
     };
     if (paths.length === 0) {
       return [[synset, fakeRoot]];

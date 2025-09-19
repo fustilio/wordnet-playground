@@ -201,11 +201,11 @@ export const builtInHooks = {
   createSimilarityCacheHook: (pluginName: string) => ({
     name: pluginName,
     hooks: {
-      'lexicon:loaded': async (event, data, kernel) => {
+      'lexicon:loaded': async (_event: any, data: any, _kernel: any) => {
         console.log(`🔄 Rebuilding similarity cache for ${pluginName} after lexicon load: ${data.lexicon.id}`);
         // Similarity plugins can rebuild their caches here
       },
-      'data:loaded': async (event, data, kernel) => {
+      'data:loaded': async (_event: any, data: any, _kernel: any) => {
         console.log(`🔄 Rebuilding similarity cache for ${pluginName} after data load: ${data.recordCount} records`);
         // Similarity plugins can rebuild their caches here
       }
@@ -219,11 +219,11 @@ export const builtInHooks = {
   createTranslationMappingHook: (pluginName: string) => ({
     name: pluginName,
     hooks: {
-      'lexicon:loaded': async (event, data, kernel) => {
+      'lexicon:loaded': async (_event: any, data: any, _kernel: any) => {
         console.log(`🌐 Rebuilding translation mappings for ${pluginName} after lexicon load: ${data.lexicon.id}`);
         // Translation plugins can rebuild their ILI mappings here
       },
-      'data:loaded': async (event, data, kernel) => {
+      'data:loaded': async (_event: any, data: any, _kernel: any) => {
         console.log(`🌐 Rebuilding translation mappings for ${pluginName} after data load: ${data.recordCount} records`);
         // Translation plugins can rebuild their ILI mappings here
       }
@@ -237,11 +237,11 @@ export const builtInHooks = {
   createAnalyticsHook: (pluginName: string) => ({
     name: pluginName,
     hooks: {
-      'lexicon:loaded': async (event, data, kernel) => {
+      'lexicon:loaded': async (_event: any, data: any, _kernel: any) => {
         console.log(`📊 Rebuilding analytics for ${pluginName} after lexicon load: ${data.lexicon.id}`);
         // Analytics plugins can rebuild their statistics here
       },
-      'data:loaded': async (event, data, kernel) => {
+      'data:loaded': async (_event: any, data: any, _kernel: any) => {
         console.log(`📊 Rebuilding analytics for ${pluginName} after data load: ${data.recordCount} records`);
         // Analytics plugins can rebuild their statistics here
       }
@@ -259,7 +259,7 @@ export function createLifecyclePlugin(
   return {
     name,
     hooks,
-    dependencies: options.dependencies,
-    priority: options.priority
+    dependencies: options.dependencies || [],
+    priority: options.priority || 0
   };
 }

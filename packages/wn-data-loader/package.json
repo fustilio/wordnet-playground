@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "WordNet-specific extension of @fustilio/data-loader with comprehensive testing and optimized lexical data processing",
   "type": "module",
+  "private": true,
   "main": "./src/index.ts",
   "exports": {
     ".": {

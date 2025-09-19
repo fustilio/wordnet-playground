@@ -13,12 +13,12 @@ import { extractLMFVersion, extractDTDVersion } from '../lmf/version-utils.js';
 // Function to initialize xml-introspect in Node.js environment
 async function initializeXmlIntrospect() {
   // Only try to import in Node.js environment and avoid browser bundlers
-  if (typeof window === 'undefined' && 
+  if (typeof (globalThis as any).window === 'undefined' && 
       typeof process !== 'undefined' && 
       process.versions?.node &&
-      !globalThis.__vitest_browser_runner__) {
+      !(globalThis as any).__vitest_browser_runner__) {
     try {
-      const xmlIntrospect = await import('xml-introspect/browser');
+      const xmlIntrospect = await import('xml-introspect/browser') as any;
       XMLIntrospector = xmlIntrospect.XMLIntrospector;
       StreamingXMLIntrospector = xmlIntrospect.StreamingXMLIntrospector;
       XMLAnalyzer = xmlIntrospect.XMLAnalyzer;

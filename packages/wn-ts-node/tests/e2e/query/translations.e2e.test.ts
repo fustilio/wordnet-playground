@@ -2,7 +2,6 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { setupTestEnvironment } from '../shared/test-setup.js';
 import { logger } from 'wn-ts-core/utils';
 import type { Wordnet } from '../../../src/wordnet.js';
-import { Wordnet as WordnetClass } from '../../../src/wordnet.js';
 import type { Word } from 'wn-ts-core';
 import type { PartOfSpeech } from 'wn-ts-core';
 

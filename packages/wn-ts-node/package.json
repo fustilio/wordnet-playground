@@ -1,6 +1,6 @@
 {
   "name": "wn-ts-node",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Wordnet interface library - TypeScript port",
   "keywords": [
     "wordnet",
@@ -48,7 +48,7 @@
   ],
   "scripts": {
     "prebuild": "pnpm run clean",
-    "build": "tsc && pnpm run copy-assets",
+    "build": "tsc --project tsconfig.build.json && pnpm run copy-assets",
     "clean": "rimraf dist",
     "copy-assets": "copy ..\\wn-ts-core\\src\\index.toml dist\\",
     "dev": "pnpm run copy-assets && tsc --watch",
@@ -90,7 +90,6 @@
     "wn-ts-core": "workspace:*"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.27.7",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "catalog:",
     "@types/tar-stream": "^3.1.4",

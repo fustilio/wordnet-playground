@@ -4,7 +4,7 @@
  * Uses XSD samples alongside wn-test-data for comprehensive coverage
  */
 
-import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { existsSync, readFileSync, mkdtempSync, rmSync } from 'fs';
@@ -83,7 +83,6 @@ const getTestSamplePath = (sampleType: string, version?: string, isMini?: boolea
 import { add, remove, exportData } from '../src/data-management-new.js';
 import { Wordnet } from '../src/wordnet.js';
 import { config } from '../src/config.js';
-import { testUtils } from './setup.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -259,7 +258,12 @@ describe('Data Loading and Database Integration Tests', () => {
       const words = await wordnet.words('', 'n');
       if (words.length > 0) {
         const word = words[0];
-        
+
+        if (!word) {
+          expect(word).toBeDefined();
+          return;
+        }
+
         // Get senses for this word
         const senses = await wordnet.senses(word.lemma, 'n');
         expect(senses.length).toBeGreaterThan(0);
@@ -377,15 +381,27 @@ describe('Data Loading and Database Integration Tests', () => {
 
     it('should filter by specific lexicon', async () => {
       const lexicons = await wordnet.lexicons();
-      const firstLexicon = lexicons[0].id;
-      const secondLexicon = lexicons[1].id;
+  
+
+      if (lexicons.length < 2) {
+        expect(lexicons.length).toBeGreaterThan(1);
+      }
+
+      const [firstLexicon, secondLexicon] = lexicons;
+
+      if (!firstLexicon || !secondLexicon) {
+        expect(firstLexicon).toBeDefined();
+        expect(secondLexicon).toBeDefined();
+
+        return;
+      }
       
       console.log('Testing lexicon filtering:');
       console.log('First lexicon:', firstLexicon);
       console.log('Second lexicon:', secondLexicon);
       
-      const firstSynsets = await wordnet.synsets('', 'n', { lexicon: firstLexicon });
-      const secondSynsets = await wordnet.synsets('', 'n', { lexicon: secondLexicon });
+      const firstSynsets = await wordnet.synsets('', 'n', { lexicon: firstLexicon.id });
+      const secondSynsets = await wordnet.synsets('', 'n', { lexicon: secondLexicon.id });
       
       console.log('First synsets count:', firstSynsets.length);
       console.log('Second synsets count:', secondSynsets.length);
@@ -402,9 +418,9 @@ describe('Data Loading and Database Integration Tests', () => {
       console.log('Second synset lexicon IDs:', secondLexiconIds);
       
       // All synsets from first filter should be from the first lexicon
-      expect(firstLexiconIds.every(id => id === firstLexicon)).toBe(true);
+      expect(firstLexiconIds.every(id => id === firstLexicon.id)).toBe(true);
       // All synsets from second filter should be from the second lexicon
-      expect(secondLexiconIds.every(id => id === secondLexicon)).toBe(true);
+      expect(secondLexiconIds.every(id => id === secondLexicon.id)).toBe(true);
       
       // The two result sets should be different (different lexicons)
       expect(firstLexicon).not.toBe(secondLexicon);

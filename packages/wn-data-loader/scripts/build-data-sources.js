@@ -13,9 +13,9 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const INDEX_TOML_PATH = path.join(__dirname, '../../../wn-ts-core/src/index.toml');
+const INDEX_TOML_PATH = path.join(__dirname, '../../wn-ts-core/src/index.toml');
 const DATA_SOURCES_JSON_PATH = path.join(__dirname, '../src/data-sources.json');
-const INDEX_JSON_PATH = path.join(__dirname, '../../../wn-ts-web/src/index.json');
+const INDEX_JSON_PATH = path.join(__dirname, '../../wn-ts-web/src/index.json');
 
 function buildDataSources() {
   try {

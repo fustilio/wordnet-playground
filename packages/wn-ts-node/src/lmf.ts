@@ -149,7 +149,7 @@ export async function loadLMF(
   if (debug) console.log(`[DEBUG] loadLMF() starting for: ${filePathOrURL}`);
   
   try {
-    let content: string;
+    let content: string | undefined;
     let filePath: string;
     
     // Check if input is URL or file path

@@ -1,9 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { join } from 'path';
-import { existsSync, writeFileSync, unlinkSync, mkdtempSync, rmSync } from 'fs';
+import { existsSync, writeFileSync, mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { isLMF, loadLMF } from '../../src/lmf.js';
-import { StreamingSaxParser } from '../../src/parsers/streaming-sax.js';
 
 /**
  * Core LMF functionality tests
@@ -59,7 +58,7 @@ describe('LMF Core Functionality', () => {
         `This is not XML`
       ];
 
-      for (const [index, content] of invalidCases.entries()) {
+      for (const content of invalidCases) {
         writeFileSync(testLmfFile, content);
         expect(await isLMF(testLmfFile)).toBe(false);
       }
