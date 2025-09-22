@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import comlink from "vite-plugin-comlink";
+import { getWordNetServerConfig, getWordNetOptimizeDeps, getWordNetWorkerConfig } from "../shared-proxy-config.js";
 
 // Worker + OPFS setup: COOP/COEP headers enable SharedArrayBuffer/OPFS in workers,
 // and vite-plugin-comlink provides ComlinkWorker for ergonomic RPC.
@@ -23,166 +24,22 @@ const toCachePath = (urlPath) => {
   return path.join(cacheDir, `${hash}.bin`);
 };
 
+// Get the base server config and enhance it with caching
+const baseServerConfig = getWordNetServerConfig();
 const serverConfig = {
-  // Ensure consistent port and enable COOP/COEP for SharedArrayBuffer/OPFS worker support
-  headers: {
-    "Cross-Origin-Opener-Policy": "same-origin",
-    "Cross-Origin-Embedder-Policy": "require-corp",
-  },
+  ...baseServerConfig,
   proxy: {
-    // Proxy WordNet data sources to bypass CORS
-    "/api/wordnet": {
-      target: "https://en-word.net",
-      changeOrigin: true,
-      rewrite: (path) => path.replace(/^\/api\/wordnet/, ""),
-      configure: (proxy) => {
-        // timing
-        proxy.on("proxyReq", (proxyReq, req) => {
-          // @ts-ignore attach timing marker
-          req.__startTs = Date.now();
-        });
-        proxy.on("error", (err) => {
-          if (shouldLog("warn")) console.log("proxy error", err);
-        });
-        proxy.on("proxyRes", (proxyRes, req, res) => {
-          const url = req.url || "";
-          if (shouldLog("info")) console.log("🔁 [forward]", url);
-        });
-      },
-    },
-    "/api/globalwordnet-ewn": {
-      target:
-        "https://github.com/globalwordnet/english-wordnet/releases/download",
-      changeOrigin: true,
-      rewrite: (path) => {
-        return path.replace(/^\/api\/globalwordnet\//, "/")
-      },
-      configure: (proxy) => {
-        proxy.on("error", (err) => {
-          if (shouldLog("warn")) console.log("proxy error", err);
-        });
-        proxy.on("proxyRes", (proxyRes, req, res) => {
-          const url = req.url || "";
-          if (shouldLog("info")) console.log("🔁 [forward]", url);
-        });
-      },
-    },
-    "/api/globalwordnet-cili": {
-      target: "https://github.com/globalwordnet/cili/releases/download",
-      changeOrigin: true,
-      followRedirects: true,
-      rewrite: (path) => {
-        const rewritten = path.replace(/^\/api\/globalwordnet-cili\//, "/")
-
-        return rewritten;
-      },
-      configure: (proxy) => {
-        proxy.on("error", (err) => {
-          if (shouldLog("warn")) console.log("proxy error", err);
-        });
-        proxy.on("proxyRes", (proxyRes, req, res) => {
-          const url = req.url || "";
-          if (shouldLog("info")) console.log("🔁 [forward] CILI:", url);
-        });
-      },
-    },
-    "/api/omwn-releases": {
-      target: "https://github.com/omwn/omw-data/releases/download",
-      changeOrigin: true,
-      followRedirects: true,
-      rewrite: (path) => path.replace(/^\/api\/omwn-releases\//, "/"),
-      configure: (proxy) => {
-        proxy.on("error", (err) => {
-          if (shouldLog("warn")) console.log("proxy error", err);
-        });
-        proxy.on("proxyRes", (proxyRes, req, res) => {
-          const url = req.url || "";
-          if (shouldLog("info")) console.log("🔁 [forward] OMW:", url);
-        });
-      },
-    },
-    "/api/raw-github": {
-      target: "https://raw.githubusercontent.com",
-      changeOrigin: true,
-      rewrite: (path) => path.replace(/^\/api\/raw-github\//, "/"),
-      configure: (proxy) => {
-        proxy.on("error", (err) => {
-          if (shouldLog("warn")) console.log("proxy error", err);
-        });
-        proxy.on("proxyRes", (proxyRes, req, res) => {
-          const url = req.url || "";
-          if (shouldLog("info")) console.log("🔁 [forward]", url);
-        });
-      },
-    },
-    "/api/github": {
-      target: "https://github.com",
-      changeOrigin: true,
-      followRedirects: false,
-      rewrite: (path) => path.replace(/^\/api\/github\//, "/"),
-      configure: (proxy) => {
-        proxy.on("error", (err) => {
-          if (shouldLog("warn")) console.log("proxy error", err);
-        });
-        proxy.on("proxyRes", (proxyRes, req, res) => {
-          const url = req.url || "";
-          if (shouldLog("info")) console.log("🔁 [forward]", url);
-          
-          // Handle GitHub release redirects to CDN
-          if (proxyRes.statusCode === 302 || proxyRes.statusCode === 301) {
-            const location = proxyRes.headers.location;
-            if (location && location.includes("release-assets.githubusercontent.com")) {
-              // Rewrite the redirect to use our release-assets proxy
-              const newLocation = location.replace(
-                "https://release-assets.githubusercontent.com",
-                "/api/release-assets"
-              );
-              proxyRes.headers.location = newLocation;
-              if (shouldLog("info")) console.log("🔄 [redirect] Rewrote to:", newLocation);
-            }
-          }
-        });
-      },
-    },
-    "/api/github-api": {
-      target: "https://api.github.com",
-      changeOrigin: true,
-      rewrite: (path) => path.replace(/^\/api\/github-api\//, "/"),
-      configure: (proxy) => {
-        proxy.on("error", (err) => {
-          if (shouldLog("warn")) console.log("proxy error", err);
-        });
-        proxy.on("proxyRes", (proxyRes, req, res) => {
-          const url = req.url || "";
-          if (shouldLog("info")) console.log("🔁 [forward]", url);
-        });
-      },
-    },
-    "/api/release-assets": {
-      target: "https://release-assets.githubusercontent.com",
-      changeOrigin: true,
-      rewrite: (path) => path.replace(/^\/api\/release-assets\//, "/"),
-      configure: (proxy) => {
-        proxy.on("error", (err) => {
-          if (shouldLog("warn")) console.log("proxy error", err);
-        });
-        proxy.on("proxyRes", (proxyRes, req, res) => {
-          const url = req.url || "";
-          if (shouldLog("info")) console.log("🔁 [forward]", url);
-        });
-      },
-    },
+    ...baseServerConfig.proxy,
+    // Override the external proxy to add caching functionality
     "/api/external": {
-      target: "https://",
-      changeOrigin: true,
-      rewrite: (path) => path.replace(/^\/api\/external\//, "/"),
+      ...baseServerConfig.proxy["/api/external"],
       configure: (proxy) => {
         proxy.on("error", (err) => {
           if (shouldLog("warn")) console.log("proxy error", err);
         });
         proxy.on("proxyRes", (proxyRes, req, res) => {
           const url = req.url || "";
-          if (shouldLog("info")) console.log("🔁 [forward]", url);
+          if (shouldLog("info")) console.log("🔁 [forward] External:", url);
           // Cache successful GETs to disk
           const filePath = toCachePath(url);
           if (req.method === "GET" && proxyRes.statusCode === 200) {
@@ -233,12 +90,10 @@ function makeServerPlugin() {
 export default defineConfig({
   plugins: [comlink(), react(), tailwindcss(), makeServerPlugin()],
   server: serverConfig,
-  optimizeDeps: {
-    exclude: ["@sqlite.org/sqlite-wasm"],
-  },
+  optimizeDeps: getWordNetOptimizeDeps(),
   worker: {
     server: serverConfig,
-    format: "es",
+    ...getWordNetWorkerConfig(),
     plugins: () => [comlink(), makeServerPlugin()],
   },
 });

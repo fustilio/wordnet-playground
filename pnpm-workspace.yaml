@@ -38,6 +38,7 @@ onlyBuiltDependencies:
   - '@tailwindcss/oxide'
   - better-sqlite3
   - cypress
+  - es5-ext
   - esbuild
   - lzma-native
   - sqlite3
