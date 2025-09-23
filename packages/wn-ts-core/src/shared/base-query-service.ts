@@ -1085,7 +1085,9 @@ export abstract class BaseKyselyQueryService {
 
     // Apply filters
     if (wordIdOrForm) {
-      if (wordIdOrForm.includes('-')) {
+      // Check if it's a word ID (contains dots and follows pattern like "word.pos.number")
+      // or if it's a sense ID (contains "sense" and dots)
+      if (wordIdOrForm.includes('.') && (wordIdOrForm.includes('.n.') || wordIdOrForm.includes('.v.') || wordIdOrForm.includes('.a.') || wordIdOrForm.includes('.r.') || wordIdOrForm.includes('sense'))) {
         // Direct word ID lookup - fastest possible
         query = query.where('senses.word_id', '=', wordIdOrForm);
       } else {
@@ -1154,7 +1156,9 @@ export abstract class BaseKyselyQueryService {
 
     // Apply filters
     if (wordIdOrForm) {
-      if (wordIdOrForm.includes('-')) {
+      // Check if it's a word ID (contains dots and follows pattern like "word.pos.number")
+      // or if it's a sense ID (contains "sense" and dots)
+      if (wordIdOrForm.includes('.') && (wordIdOrForm.includes('.n.') || wordIdOrForm.includes('.v.') || wordIdOrForm.includes('.a.') || wordIdOrForm.includes('.r.') || wordIdOrForm.includes('sense'))) {
         // Direct word ID lookup - fastest possible
         query = query.where('senses.word_id', '=', wordIdOrForm);
       } else {

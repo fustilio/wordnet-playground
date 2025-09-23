@@ -27,17 +27,15 @@ export async function batchInsert<T extends keyof Database>(
     return;
   }
 
-  // Use a transaction for the entire batch operation for performance
-  await db.transaction().execute(async (trx) => {
-    for (let i = 0; i < data.length; i += chunkSize) {
-      const chunk = data.slice(i, i + chunkSize);
-      if (chunk.length > 0) {
-        await trx
-          .insertInto(tableName)
-          .values(chunk)
-          .onConflict((oc) => oc.column('id').doNothing()) // Assumes 'id' is the conflict key
-          .execute();
-      }
+  // Insert data in chunks - transaction management is handled by the caller
+  for (let i = 0; i < data.length; i += chunkSize) {
+    const chunk = data.slice(i, i + chunkSize);
+    if (chunk.length > 0) {
+      await db
+        .insertInto(tableName)
+        .values(chunk)
+        .onConflict((oc) => oc.column('id').doNothing()) // Assumes 'id' is the conflict key
+        .execute();
     }
-  });
+  }
 }

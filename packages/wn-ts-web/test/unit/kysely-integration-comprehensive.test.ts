@@ -10,7 +10,7 @@ import { WebWordnet } from '../../src/client/submodules/web-wordnet.js';
 import { WebDatabase } from '../../src/client/submodules/web-database.js';
 import { KyselyQueryService } from '../../src/database/kysely-query-service.js';
 import { createWordNetInstance } from '../../src/factory.js';
-import { MockDataLoader } from '../mock-data-loader.js';
+import { MockDataLoader } from '../mock-data-loader.ts';
 import type { Sqlite3Static } from '@sqlite.org/sqlite-wasm';
 
 // Mock SQLite WASM for testing

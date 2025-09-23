@@ -1370,193 +1370,189 @@ export class DataLoader {
         }
       }
 
-      // Batch insert all data in the correct order to maintain referential integrity
-      // IMPORTANT: Insert lexicons FIRST to satisfy foreign key constraints
-      this.logger.step(
-        `inserting lexicons first (required for foreign key constraints)`
-      );
-      if (lexiconsToInsert.length > 0) {
-        // Use transaction for better performance
-        await this.database.run("BEGIN TRANSACTION");
-        try {
+      // Use Kysely's transaction mechanism for all data insertion
+      this.logger.step(`starting transaction for data insertion`);
+      await queryService.db.transaction().execute(async (trx) => {
+        // Batch insert all data in the correct order to maintain referential integrity
+        // IMPORTANT: Insert lexicons FIRST to satisfy foreign key constraints
+        this.logger.step(
+          `inserting lexicons first (required for foreign key constraints)`
+        );
+        if (lexiconsToInsert.length > 0) {
           await queryService.batchInsert("lexicons", lexiconsToInsert);
           this.logger.debug(
             `inserted ${lexiconsToInsert.length} lexicons with IDs: ${lexiconsToInsert.map((l) => l.id).join(", ")}`
           );
-        } catch (error) {
-          await this.database.run("ROLLBACK");
-          throw error;
-        }
-      } else {
-        this.logger.warn(
-          `no lexicons to insert - this may cause foreign key constraint failures`
-        );
-      }
-
-      // Now insert words (they reference lexicons)
-      this.logger.step(`inserting words (referencing lexicons)`);
-      if (wordsToInsert.length > 0) {
-        // Verify that all words reference existing lexicons
-        const referencedLexiconIds = new Set(
-          wordsToInsert.map((w) => w.lexicon)
-        );
-        const insertedLexiconIds = new Set(lexiconsToInsert.map((l) => l.id));
-        const missingLexiconIds = [...referencedLexiconIds].filter(
-          (id) => !insertedLexiconIds.has(id)
-        );
-
-        if (missingLexiconIds.length > 0) {
-          this.logger.error(`words reference non-existent lexicons`, {
-            missingLexiconIds,
-            availableLexiconIds: [...insertedLexiconIds],
-            wordCount: wordsToInsert.length,
-          });
-          throw new Error(
-            `Cannot insert words: they reference lexicons that don't exist: ${missingLexiconIds.join(", ")}`
+        } else {
+          this.logger.warn(
+            `no lexicons to insert - this may cause foreign key constraint failures`
           );
         }
 
-        await queryService.batchInsert("words", wordsToInsert);
-        this.logger.debug(`inserted ${wordsToInsert.length} words`);
-      }
-
-      // Now insert synsets (they also reference lexicons)
-      this.logger.step(`inserting synsets (referencing lexicons)`);
-      if (synsetsToInsert.length > 0) {
-        // Verify that all synsets reference existing lexicons
-        const referencedLexiconIds = new Set(
-          synsetsToInsert.map((s) => s.lexicon)
-        );
-        const insertedLexiconIds = new Set(lexiconsToInsert.map((l) => l.id));
-        const missingLexiconIds = [...referencedLexiconIds].filter(
-          (id) => !insertedLexiconIds.has(id)
-        );
-
-        if (missingLexiconIds.length > 0) {
-          this.logger.error(`synsets reference non-existent lexicons`, {
-            missingLexiconIds,
-            availableLexiconIds: [...insertedLexiconIds],
-            synsetCount: synsetsToInsert.length,
-          });
-          throw new Error(
-            `Cannot insert synsets: they reference lexicons that don't exist: ${missingLexiconIds.join(", ")}`
+        // Now insert words (they reference lexicons)
+        this.logger.step(`inserting words (referencing lexicons)`);
+        if (wordsToInsert.length > 0) {
+          // Verify that all words reference existing lexicons
+          const referencedLexiconIds = new Set(
+            wordsToInsert.map((w) => w.lexicon)
           );
-        }
-
-        await queryService.batchInsert("synsets", synsetsToInsert);
-        this.logger.debug(`inserted ${synsetsToInsert.length} synsets`);
-      }
-
-      // Now insert senses (they reference words and synsets)
-      this.logger.step(`inserting senses (referencing words and synsets)`);
-      if (sensesToInsert.length > 0) {
-        // Verify that all senses reference existing words and synsets
-        const referencedWordIds = new Set(sensesToInsert.map((s) => s.word_id));
-        const referencedSynsetIds = new Set(
-          sensesToInsert.map((s) => s.synset_id)
-        );
-        const insertedWordIds = new Set(wordsToInsert.map((w) => w.id));
-        const insertedSynsetIds = new Set(synsetsToInsert.map((s) => s.id));
-
-        const missingWordIds = [...referencedWordIds].filter(
-          (id) => !insertedWordIds.has(id)
-        );
-        const missingSynsetIds = [...referencedSynsetIds].filter(
-          (id) => !insertedSynsetIds.has(id)
-        );
-
-        if (missingWordIds.length > 0 || missingSynsetIds.length > 0) {
-          this.logger.error(`senses reference non-existent words or synsets`, {
-            missingWordIds,
-            missingSynsetIds,
-            availableWordIds: [...insertedWordIds],
-            availableSynsetIds: [...insertedSynsetIds],
-            senseCount: sensesToInsert.length,
-          });
-          throw new Error(
-            `Cannot insert senses: they reference non-existent words: ${missingWordIds.join(", ")} or synsets: ${missingSynsetIds.join(", ")}`
+          const insertedLexiconIds = new Set(lexiconsToInsert.map((l) => l.id));
+          const missingLexiconIds = [...referencedLexiconIds].filter(
+            (id) => !insertedLexiconIds.has(id)
           );
+
+          if (missingLexiconIds.length > 0) {
+            this.logger.error(`words reference non-existent lexicons`, {
+              missingLexiconIds,
+              availableLexiconIds: [...insertedLexiconIds],
+              wordCount: wordsToInsert.length,
+            });
+            throw new Error(
+              `Cannot insert words: they reference lexicons that don't exist: ${missingLexiconIds.join(", ")}`
+            );
+          }
+
+          await queryService.batchInsert("words", wordsToInsert);
+          this.logger.debug(`inserted ${wordsToInsert.length} words`);
         }
 
-        await queryService.batchInsert("senses", sensesToInsert);
-        this.logger.debug(`inserted ${sensesToInsert.length} senses`);
-      }
-
-      // Finally insert definitions (they reference synsets)
-      this.logger.step(`inserting definitions (referencing synsets)`);
-      if (definitionsToInsert.length > 0) {
-        // Verify that all definitions reference existing synsets
-        const referencedSynsetIds = new Set(
-          definitionsToInsert.map((d) => d.synset_id)
-        );
-        const insertedSynsetIds = new Set(synsetsToInsert.map((s) => s.id));
-        const missingSynsetIds = [...referencedSynsetIds].filter(
-          (id) => !insertedSynsetIds.has(id)
-        );
-
-        if (missingSynsetIds.length > 0) {
-          this.logger.error(`definitions reference non-existent synsets`, {
-            missingSynsetIds,
-            availableSynsetIds: [...insertedSynsetIds],
-            definitionCount: definitionsToInsert.length,
-          });
-          throw new Error(
-            `Cannot insert definitions: they reference non-existent synsets: ${missingSynsetIds.join(", ")}`
+        // Now insert synsets (they also reference lexicons)
+        this.logger.step(`inserting synsets (referencing lexicons)`);
+        if (synsetsToInsert.length > 0) {
+          // Verify that all synsets reference existing lexicons
+          const referencedLexiconIds = new Set(
+            synsetsToInsert.map((s) => s.lexicon)
           );
+          const insertedLexiconIds = new Set(lexiconsToInsert.map((l) => l.id));
+          const missingLexiconIds = [...referencedLexiconIds].filter(
+            (id) => !insertedLexiconIds.has(id)
+          );
+
+          if (missingLexiconIds.length > 0) {
+            this.logger.error(`synsets reference non-existent lexicons`, {
+              missingLexiconIds,
+              availableLexiconIds: [...insertedLexiconIds],
+              synsetCount: synsetsToInsert.length,
+            });
+            throw new Error(
+              `Cannot insert synsets: they reference lexicons that don't exist: ${missingLexiconIds.join(", ")}`
+            );
+          }
+
+          await queryService.batchInsert("synsets", synsetsToInsert);
+          this.logger.debug(`inserted ${synsetsToInsert.length} synsets`);
         }
 
-        await queryService.batchInsert("definitions", definitionsToInsert);
-        this.logger.debug(`inserted ${definitionsToInsert.length} definitions`);
-      }
+        // Now insert senses (they reference words and synsets)
+        this.logger.step(`inserting senses (referencing words and synsets)`);
+        if (sensesToInsert.length > 0) {
+          // Verify that all senses reference existing words and synsets
+          const referencedWordIds = new Set(sensesToInsert.map((s) => s.word_id));
+          const referencedSynsetIds = new Set(
+            sensesToInsert.map((s) => s.synset_id)
+          );
+          const insertedWordIds = new Set(wordsToInsert.map((w) => w.id));
+          const insertedSynsetIds = new Set(synsetsToInsert.map((s) => s.id));
 
-      // Build relationships between entities for complete data structure
-      this.logger.step(`building relationships between entities`);
+          const missingWordIds = [...referencedWordIds].filter(
+            (id) => !insertedWordIds.has(id)
+          );
+          const missingSynsetIds = [...referencedSynsetIds].filter(
+            (id) => !insertedSynsetIds.has(id)
+          );
 
-      // Build word -> senses relationships
-      const wordSensesMap = new Map<string, string[]>();
-      for (const sense of sensesToInsert) {
-        const wordId = sense.word_id;
-        if (!wordSensesMap.has(wordId)) {
-          wordSensesMap.set(wordId, []);
+          if (missingWordIds.length > 0 || missingSynsetIds.length > 0) {
+            this.logger.error(`senses reference non-existent words or synsets`, {
+              missingWordIds,
+              missingSynsetIds,
+              availableWordIds: [...insertedWordIds],
+              availableSynsetIds: [...insertedSynsetIds],
+              senseCount: sensesToInsert.length,
+            });
+            throw new Error(
+              `Cannot insert senses: they reference non-existent words: ${missingWordIds.join(", ")} or synsets: ${missingSynsetIds.join(", ")}`
+            );
+          }
+
+          await queryService.batchInsert("senses", sensesToInsert);
+          this.logger.debug(`inserted ${sensesToInsert.length} senses`);
         }
-        wordSensesMap.get(wordId)!.push(sense.id);
-      }
 
-      // Build synset -> members and synset -> senses relationships
-      const synsetMembersMap = new Map<string, string[]>();
-      const synsetSensesMap = new Map<string, string[]>();
-      for (const sense of sensesToInsert) {
-        const synsetId = sense.synset_id;
-        if (!synsetMembersMap.has(synsetId)) {
-          synsetMembersMap.set(synsetId, []);
-        }
-        if (!synsetSensesMap.has(synsetId)) {
-          synsetSensesMap.set(synsetId, []);
-        }
-        synsetMembersMap.get(synsetId)!.push(sense.word_id);
-        synsetSensesMap.get(synsetId)!.push(sense.id);
-      }
+        // Finally insert definitions (they reference synsets)
+        this.logger.step(`inserting definitions (referencing synsets)`);
+        if (definitionsToInsert.length > 0) {
+          // Verify that all definitions reference existing synsets
+          const referencedSynsetIds = new Set(
+            definitionsToInsert.map((d) => d.synset_id)
+          );
+          const insertedSynsetIds = new Set(synsetsToInsert.map((s) => s.id));
+          const missingSynsetIds = [...referencedSynsetIds].filter(
+            (id) => !insertedSynsetIds.has(id)
+          );
 
-      // Build synset -> definitions relationships
-      const synsetDefinitionsMap = new Map<string, string[]>();
-      for (const definition of definitionsToInsert) {
-        const synsetId = definition.synset_id;
-        if (!synsetDefinitionsMap.has(synsetId)) {
-          synsetDefinitionsMap.set(synsetId, []);
-        }
-        synsetDefinitionsMap.get(synsetId)!.push(definition.id);
-      }
+          if (missingSynsetIds.length > 0) {
+            this.logger.error(`definitions reference non-existent synsets`, {
+              missingSynsetIds,
+              availableSynsetIds: [...insertedSynsetIds],
+              definitionCount: definitionsToInsert.length,
+            });
+            throw new Error(
+              `Cannot insert definitions: they reference non-existent synsets: ${missingSynsetIds.join(", ")}`
+            );
+          }
 
-      this.logger.debug(`relationship building completed`, {
-        wordSensesCount: wordSensesMap.size,
-        synsetMembersCount: synsetMembersMap.size,
-        synsetSensesCount: synsetSensesMap.size,
-        synsetDefinitionsCount: synsetDefinitionsMap.size,
+          await queryService.batchInsert("definitions", definitionsToInsert);
+          this.logger.debug(`inserted ${definitionsToInsert.length} definitions`);
+        }
+
+        // Build relationships between entities for complete data structure
+        this.logger.step(`building relationships between entities`);
+
+        // Build word -> senses relationships
+        const wordSensesMap = new Map<string, string[]>();
+        for (const sense of sensesToInsert) {
+          const wordId = sense.word_id;
+          if (!wordSensesMap.has(wordId)) {
+            wordSensesMap.set(wordId, []);
+          }
+          wordSensesMap.get(wordId)!.push(sense.id);
+        }
+
+        // Build synset -> members and synset -> senses relationships
+        const synsetMembersMap = new Map<string, string[]>();
+        const synsetSensesMap = new Map<string, string[]>();
+        for (const sense of sensesToInsert) {
+          const synsetId = sense.synset_id;
+          if (!synsetMembersMap.has(synsetId)) {
+            synsetMembersMap.set(synsetId, []);
+          }
+          if (!synsetSensesMap.has(synsetId)) {
+            synsetSensesMap.set(synsetId, []);
+          }
+          synsetMembersMap.get(synsetId)!.push(sense.word_id);
+          synsetSensesMap.get(synsetId)!.push(sense.id);
+        }
+
+        // Build synset -> definitions relationships
+        const synsetDefinitionsMap = new Map<string, string[]>();
+        for (const definition of definitionsToInsert) {
+          const synsetId = definition.synset_id;
+          if (!synsetDefinitionsMap.has(synsetId)) {
+            synsetDefinitionsMap.set(synsetId, []);
+          }
+          synsetDefinitionsMap.get(synsetId)!.push(definition.id);
+        }
+
+        this.logger.debug(`relationship building completed`, {
+          wordSensesCount: wordSensesMap.size,
+          synsetMembersCount: synsetMembersMap.size,
+          synsetSensesCount: synsetSensesMap.size,
+          synsetDefinitionsCount: synsetDefinitionsMap.size,
+        });
+
+        // Transaction will be automatically committed by Kysely
+        this.logger.step(`transaction completed successfully`);
       });
-
-      // Commit the transaction
-      this.logger.step(`committing transaction`);
-      await this.database.run("COMMIT");
       
       this.logger.step(`waiting for transaction commit`);
       // Add a small delay to ensure the transaction is fully committed
@@ -1595,14 +1591,6 @@ export class DataLoader {
 
       this.logger.end(`inserting LMF data for ${projectIdWithVersion}`);
     } catch (error) {
-      // Rollback transaction on error
-      try {
-        await this.database.run("ROLLBACK");
-        this.logger.debug(`transaction rolled back due to error`);
-      } catch (rollbackError) {
-        this.logger.warn(`failed to rollback transaction:`, rollbackError);
-      }
-      
       // Flush warnings even on error
       if (this.warningAggregator) {
         const aggregatedWarnings = this.warningAggregator.flush();

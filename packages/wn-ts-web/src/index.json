@@ -24,13 +24,22 @@
         "url": "https://en-word.net/static/english-wordnet-2021.xml.gz"
       },
       "2022": {
-        "url": "      https://en-word.net/static/english-wordnet-2022.xml.gz\n      https://github.com/globalwordnet/english-wordnet/releases/download/2022-edition/english-wordnet-2022.xml.gz\n    "
+        "url": [
+          "https://en-word.net/static/english-wordnet-2022.xml.gz",
+          "https://github.com/globalwordnet/english-wordnet/releases/download/2022-edition/english-wordnet-2022.xml.gz"
+        ]
       },
       "2023": {
-        "url": "      https://en-word.net/static/english-wordnet-2023.xml.gz\n      https://github.com/globalwordnet/english-wordnet/releases/download/2023-edition/english-wordnet-2023.xml.gz\n    "
+        "url": [
+          "https://en-word.net/static/english-wordnet-2023.xml.gz",
+          "https://github.com/globalwordnet/english-wordnet/releases/download/2023-edition/english-wordnet-2023.xml.gz"
+        ]
       },
       "2024": {
-        "url": "      https://en-word.net/static/english-wordnet-2024.xml.gz\n      https://github.com/globalwordnet/english-wordnet/releases/download/2024-edition/english-wordnet-2024.xml.gz\n    "
+        "url": [
+          "https://en-word.net/static/english-wordnet-2024.xml.gz",
+          "https://github.com/globalwordnet/english-wordnet/releases/download/2024-edition/english-wordnet-2024.xml.gz"
+        ]
       }
     }
   },

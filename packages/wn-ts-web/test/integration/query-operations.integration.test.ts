@@ -11,6 +11,7 @@ import { createWordNetInstance } from "../../src/factory";
 import type { WebWordnet } from "../../src/client/submodules/web-wordnet";
 import type { DataLoader } from "../../src/data-loader";
 import type { SynsetQuery, WordQuery } from 'wn-ts-core';
+import { MockDataLoader } from '../mock-data-loader.js';
 
 const isNode =
   typeof process !== "undefined" &&
@@ -27,10 +28,15 @@ describe.skipIf(isNode)("Query Operations E2E Tests", () => {
     dataLoader = instance.dataLoader;
 
     // Use mock data instead of downloading real data for integration tests
-    const { MockDataLoader } = await import('../mock-data-loader.js');
     const mockDataLoader = new MockDataLoader((wordnet as any).database, wordnet);
     await mockDataLoader.loadMockData("oewn:2024");
   }, 300000); // 5 minute timeout for setup
+
+  beforeEach(async () => {
+    // Ensure mock data is loaded for each test
+    const mockDataLoader = new MockDataLoader((wordnet as any).database, wordnet);
+    await mockDataLoader.loadMockData("oewn:2024");
+  });
 
   afterAll(async () => {
     if (wordnet) {
@@ -193,10 +199,15 @@ describe.skipIf(isNode)("Query Operations E2E Tests", () => {
       
       // First get a word to get its ID
       const words = await wordnet.words({ form: 'computer', maxResults: 1 });
+      console.log(`🔍 Found ${words.length} words for 'computer'`);
+      console.log('🔍 Words:', words.map(w => ({ id: w.id, lemma: w.lemma, pos: w.pos })));
       expect(words.length).toBeGreaterThan(0);
       
       const word = words[0];
+      console.log(`🔍 Using word ID: ${word.id}`);
       const senses = await wordnet.senses({ wordIdOrForm: word.id });
+      console.log(`🔍 Found ${senses.length} senses for word ID '${word.id}'`);
+      console.log('🔍 Senses:', senses.map(s => ({ id: s.id, wordId: s.wordId, synsetId: s.synsetId })));
       
       expect(senses.length).toBeGreaterThan(0);
       expect(senses.every(s => s.wordId === word.id)).toBe(true);
@@ -247,7 +258,7 @@ describe.skipIf(isNode)("Query Operations E2E Tests", () => {
       expect(oewnLexicon).toBeDefined();
       
       const oewnWords = await wordnet.words({ 
-        form: 'test', 
+        form: 'computer', 
         lexicon: 'oewn',
         maxResults: 5 
       });

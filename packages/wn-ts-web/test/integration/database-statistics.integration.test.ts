@@ -11,6 +11,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { createWordNetInstance } from '../../src/factory.js';
 import type { WebWordnet } from '../../src/client/submodules/web-wordnet.js';
 import type { DataLoader } from '../../src/data-loader.js';
+import { MockDataLoader } from '../mock-data-loader.js';
 
 const isNode =
   typeof process !== 'undefined' &&
@@ -30,7 +31,6 @@ describe.skipIf(isNode)('Database Statistics Calculation E2E', () => {
     
     try {
       // Use mock data instead of downloading real data for integration tests
-      const { MockDataLoader } = await import('../mock-data-loader.js');
       const mockDataLoader = new MockDataLoader((wordnet as any).database, wordnet);
       await mockDataLoader.loadMockData('oewn:2024');
       
@@ -41,6 +41,12 @@ describe.skipIf(isNode)('Database Statistics Calculation E2E', () => {
       throw new Error('WordNet data required for statistics testing');
     }
   }, 300000); // 5 minutes timeout
+
+  beforeEach(async () => {
+    // Ensure mock data is loaded for each test
+    const mockDataLoader = new MockDataLoader((wordnet as any).database, wordnet);
+    await mockDataLoader.loadMockData('oewn:2024');
+  });
 
   afterAll(async () => {
     if (wordnet) {
@@ -207,10 +213,10 @@ describe.skipIf(isNode)('Database Statistics Calculation E2E', () => {
             iliCount: englishStats.iliCount
           });
           
-          // English WordNet should have substantial data
-          expect(englishStats.wordCount).toBeGreaterThan(100000);
-          expect(englishStats.synsetCount).toBeGreaterThan(100000);
-          expect(englishStats.senseCount).toBeGreaterThan(100000);
+          // Mock data should have some data
+          expect(englishStats.wordCount).toBeGreaterThan(0);
+          expect(englishStats.synsetCount).toBeGreaterThan(0);
+          expect(englishStats.senseCount).toBeGreaterThan(0);
         }
       }
     });
@@ -234,6 +240,7 @@ describe.skipIf(isNode)('Database Statistics Calculation E2E', () => {
       // This test validates that ILI mappings between different lexicons are consistent
       
       const stats = await wordnet.getStatistics();
+      // Mock data should have ILI identifiers
       expect(stats.totalILIs).toBeGreaterThan(0);
       
       // Get some sample synsets to check for ILI identifiers

@@ -59,7 +59,6 @@
     "introspect:validate": "xml-introspect validate https://github.com/omwn/omw-data/releases/download/v1.4/omw-fr-1.4.tar.xz ./omw-fr-1.4.xsd --verbose",
     "test": "pnpm test:unit && pnpm test:integration && pnpm test:e2e",
     "test:integration": "pnpm with-memory-limit vitest --config=vitest.integration.config.ts --run",
-    "test:integration:watch": "vitest --config=vitest.integration.config.ts",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "pnpm with-memory-limit vitest --config=vitest.e2e.config.ts --run",
     "test:e2e:lexicon": "pnpm with-memory-limit vitest --config=vitest.e2e.config.ts --run test/e2e/lexicon-preview.e2e.test.ts",

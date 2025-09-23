@@ -168,13 +168,23 @@ describe.skipIf(isNode)('SQLite WASM Browser Tests', () => {
       const stmt = dbInstance.prepare('SELECT 1 as test');
       expect(stmt).toBeDefined();
 
-      // The mock should provide these methods. If not, the test should fail.
+      // The prepared statement should provide these methods
       expect(typeof stmt.step).toBe('function');
-      expect(typeof stmt.free).toBe('function');
+      
+      // Check if free method exists (it might be called finalize in some SQLite WASM versions)
+      const hasFree = typeof stmt.free === 'function';
+      const hasFinalize = typeof stmt.finalize === 'function';
+      expect(hasFree || hasFinalize).toBe(true);
       
       const hasRow = stmt.step();
       expect(hasRow).toBe(true);
-      stmt.free();
+      
+      // Use the available cleanup method
+      if (hasFree) {
+        stmt.free();
+      } else if (hasFinalize) {
+        stmt.finalize();
+      }
     });
   });
 

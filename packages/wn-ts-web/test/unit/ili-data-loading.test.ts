@@ -45,7 +45,18 @@ describe('ILI Data Loading', () => {
         totalSenses: 0,
         totalILIs: 0,
         totalLexicons: 0
-      })
+      }),
+      db: {
+        transaction: vi.fn().mockReturnValue({
+          execute: vi.fn().mockImplementation(async (callback) => {
+            // Execute the callback with a mock transaction object
+            return await callback({
+              batchInsert: mockQueryService.batchInsert,
+              insertLexicon: mockQueryService.insertLexicon
+            });
+          })
+        })
+      }
     };
 
     // Mock the getQueryService method

@@ -1,5 +1,5 @@
 import type { DataLoader } from '../../../src/data-loader.js';
-import { MockDataLoader } from '../../mock-data-loader.js';
+import { MockDataLoader } from '../../mock-data-loader.ts';
 import { describe, beforeAll, afterAll, it, expect } from 'vitest';
 import { WebWordnet } from '../../../src/client/submodules/web-wordnet.js';
 import { createWordNetInstance } from '../../../src/factory.js';

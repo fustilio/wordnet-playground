@@ -3,7 +3,7 @@ import { z } from "zod";
 
 const ProjectVersionSchema = z.union([
   z.object({
-    url: z.string(),
+    url: z.union([z.string(), z.array(z.string())]),
   }),
   z.object({
     error: z.string(),
@@ -186,22 +186,31 @@ export class Project {
       throw new Error(this.#projectVersionData.error);
     }
 
-    // Split by whitespace and newlines, then clean up each URL
-    const urls = this.#projectVersionData.url
-      .split(/\s+/)
-      .map((url) => url.trim())
-      .filter((url) => url.length > 0)
-      .filter((url) => {
-        try {
-          new URL(url);
-          return true;
-        } catch {
-          // Invalid URL format
-          return false;
-        }
-      });
+    // Handle both string and array URL formats
+    let urlStrings: string[];
+    if (typeof this.#projectVersionData.url === 'string') {
+      // Legacy format: split by whitespace and newlines, then clean up each URL
+      urlStrings = this.#projectVersionData.url
+        .split(/\s+/)
+        .map((url) => url.trim())
+        .filter((url) => url.length > 0);
+    } else {
+      // New format: already an array of URLs
+      urlStrings = this.#projectVersionData.url;
+    }
 
-    return urls;
+    // Validate URLs and filter out invalid ones
+    const validUrls = urlStrings.filter((url) => {
+      try {
+        new URL(url);
+        return true;
+      } catch {
+        // Invalid URL format
+        return false;
+      }
+    });
+
+    return validUrls;
   }
 
   /**
@@ -233,7 +242,7 @@ export class Project {
   get urlInfo(): {
     urls: string[];
     count: number;
-    raw: string;
+    raw: string | string[];
     hasMultipleUrls: boolean;
     primaryUrl: string;
   } {
