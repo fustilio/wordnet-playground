@@ -53,6 +53,11 @@ export abstract class BaseKyselyQueryService {
     }
   }
 
+  // Public getter for database access
+  get database(): Kysely<Database> {
+    return this.db;
+  }
+
   private updateDefaultOptions(strategy: QueryStrategy): void {
     this.defaultOptions = this.getOptionsForStrategy(strategy);
   }

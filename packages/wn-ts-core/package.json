@@ -48,6 +48,14 @@
     "./lmf": {
       "types": "./src/lmf/index.ts",
       "default": "./src/lmf/index.ts"
+    },
+    "./tests/platform-integration/platform-test-framework": {
+      "types": "./tests/platform-integration/platform-test-framework.ts",
+      "default": "./tests/platform-integration/platform-test-framework.ts"
+    },
+    "./tests/platform-integration/core-behavioral-tests": {
+      "types": "./tests/platform-integration/core-behavioral-tests.ts",
+      "default": "./tests/platform-integration/core-behavioral-tests.ts"
     }
   },
   "files": [
@@ -64,6 +72,7 @@
     "test:func": "vitest run --reporter=verbose --exclude \"**/*e2e.test.ts\"",
     "test:lmf": "pnpm vitest run lmf",
     "test:ui": "vitest --ui --exclude \"**/*e2e.test.ts\"",
+    "test:platform:core": "vitest run tests/platform-integration/",
     "typecheck": "tsc --noEmit",
     "vitest": "pnpm with-debug-logs vitest run",
     "with-debug-logs": "cross-env WN_TS_LOG_LEVEL=5",

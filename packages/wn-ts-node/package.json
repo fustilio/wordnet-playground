@@ -76,6 +76,8 @@
     "lint:fix": "eslint src --ext .ts --fix",
     "publish-package": "pnpm run build && changeset version && changeset publish",
     "test": "pnpm run test:func && pnpm run test:e2e",
+    "test:platform": "vitest run tests/platform-integration/",
+    "test:platform:core": "vitest run tests/platform-integration/ --reporter=verbose",
     "test:bench": "vitest bench --run",
     "test:bench:basic": "vitest bench tests/e2e/query/basic-queries.bench.ts --run",
     "test:bench:bilingual": "vitest bench --run bench/bilingual-demo.bench.ts",

@@ -368,24 +368,33 @@ async function _addLmf(
     // Step 8: Insert relations (if any)
     if (lmfData.synsets) {
       const relationRecords: any[] = [];
+      const existingSynsetIds = new Set(lmfData.synsets.map(s => s.id));
+      
       for (const synset of lmfData.synsets) {
         if (synset.relations && synset.relations.length > 0) {
           for (const rel of synset.relations) {
-            relationRecords.push({
-              id: rel.id,
-              source_id: synset.id,
-              target_id: rel.target,
-              type: rel.type,
-              source: rel.source || null,
-            });
+            // Only insert relations that reference existing synsets
+            if (existingSynsetIds.has(rel.target)) {
+              relationRecords.push({
+                id: rel.id,
+                source_id: synset.id,
+                target_id: rel.target,
+                type: rel.type,
+                source: rel.source || null,
+              });
+            } else {
+              logger.warn(`Skipping relation ${rel.id}: target synset '${rel.target}' does not exist in this dataset`);
+            }
           }
         }
       }
       
       if (relationRecords.length > 0) {
-        logger.info(`Inserting ${relationRecords.length} relations...`);
+        logger.info(`Inserting ${relationRecords.length} relations (skipped ${lmfData.synsets.reduce((acc, s) => acc + (s.relations?.length || 0), 0) - relationRecords.length} relations with non-existent targets)...`);
         await queryService.batchInsert('relations', relationRecords);
         logger.success(`Inserted ${relationRecords.length} relations`);
+      } else {
+        logger.info('No valid relations to insert (all relations reference non-existent synsets)');
       }
     }
     

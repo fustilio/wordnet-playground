@@ -46,6 +46,7 @@
   ],
   "scripts": {
     "bench": "pnpm with-memory-limit vitest --config=vitest.e2e.config.ts bench --run",
+    "bench:load-data": "pnpm with-memory-limit vitest run bench/load-data.bench.ts --config=vitest.e2e.config.ts --reporter=verbose",
     "prebuild": " pnpm run clean && cd ../wn-data-loader && pnpm run build:data-sources",
     "build": "vite build",
     "build:dev": "vite build --config vite.dev.config.ts",
@@ -59,6 +60,8 @@
     "test": "pnpm test:node && pnpm test:browser && pnpm test:e2e",
     "test:browser": "pnpm with-memory-limit vitest --config=vitest.browser.config.ts --run",
     "test:browser:watch": "vitest --config=vitest.browser.config.ts",
+    "test:platform": "vitest run tests/platform-integration/ --config=vitest.browser.config.ts",
+    "test:platform:core": "vitest run tests/platform-integration/ --config=vitest.browser.config.ts --reporter=verbose",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "pnpm with-memory-limit vitest --config=vitest.e2e.config.ts --run",
     "test:e2e:lexicon": "pnpm with-memory-limit vitest --config=vitest.e2e.config.ts --run test/browser/e2e/lexicon-preview.e2e.test.ts",

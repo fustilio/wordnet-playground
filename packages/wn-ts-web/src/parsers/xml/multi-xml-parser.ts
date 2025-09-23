@@ -197,15 +197,26 @@ export class MultiXMLParser {
         ignoreAttributes: false,
         attributeNamePrefix: '@_',
         textNodeName: '#text',
-        parseAttributeValue: true,
-        parseTagValue: true,
-        trimValues: true,
-        allowBooleanAttributes: true,
-        // Add these options to better handle text content
+        parseAttributeValue: false, // Disable for better performance
+        parseTagValue: false, // Disable for better performance
+        trimValues: false, // Disable for better performance
+        allowBooleanAttributes: false, // Disable for better performance
+        // Performance optimizations
         preserveOrder: false,
-        processEntities: true,
+        processEntities: false, // Disable for better performance
+        unpairedTags: [], // Empty array for better performance
+        stopNodes: [], // Empty array for better performance
+        // Note: validate option not available in fast-xml-parser v5
+        // Memory optimizations
+        removeNSPrefix: true,
+        // Custom processors for better performance
         tagValueProcessor: (tagName: string, tagValue: string) => {
-          return tagValue.trim();
+          // Only trim if necessary to avoid unnecessary string operations
+          return tagValue.length > 1000 ? tagValue : tagValue.trim();
+        },
+        attributeValueProcessor: (attrName: string, attrValue: string) => {
+          // Only process if necessary
+          return attrValue;
         }
       });
 

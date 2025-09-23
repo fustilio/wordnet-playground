@@ -76,17 +76,17 @@ const DETACHMENT_RULES: Partial<Record<PartOfSpeech, Rule[]>> = {
  */
 export class Morphy {
   private wordnet: WordNetKernel | undefined;
-  private _initialized: boolean;
-  private _initPromise: Promise<void> | undefined;
-  private _exceptions: ExceptionMap;
-  private _all_lemmas: Partial<Record<PartOfSpeech, Set<string>>>;
-  private _rules: Partial<Record<PartOfSpeech, Rule[]>>;
+  private initialized: boolean;
+  private initPromise: Promise<void> | undefined;
+  private exceptions: ExceptionMap;
+  private allLemmas: Partial<Record<PartOfSpeech, Set<string>>>;
+  private rules: Partial<Record<PartOfSpeech, Rule[]>>;
 
   constructor(wordnet?: WordNetKernel) {
     this.wordnet = wordnet;
     
     // Filter rules to only include WN system rules
-    this._rules = {
+    this.rules = {
       'n': DETACHMENT_RULES['n']?.filter(rule => rule[2] & SYSTEM.WN) || [],
       'v': DETACHMENT_RULES['v']?.filter(rule => rule[2] & SYSTEM.WN) || [],
       'a': DETACHMENT_RULES['a']?.filter(rule => rule[2] & SYSTEM.WN) || [],
@@ -94,14 +94,14 @@ export class Morphy {
     };
 
     // Initialize exception mapping and lemma sets
-    this._exceptions = {
+    this.exceptions = {
       'n': {},
       'v': {},
       'a': {},
       'r': {}
     };
     
-    this._all_lemmas = {
+    this.allLemmas = {
       'n': new Set(),
       'v': new Set(),
       'a': new Set(),
@@ -109,17 +109,17 @@ export class Morphy {
     };
 
     if (wordnet) {
-      this._initPromise = this._initializeFromWordnet();
-      this._initialized = false; // Will be set to true after initialization completes
+      this.initPromise = this.initializeFromWordnet();
+      this.initialized = false; // Will be set to true after initialization completes
     } else {
-      this._initialized = false;
+      this.initialized = false;
     }
   }
 
   /**
    * Initialize the morphological analyzer from a wordnet.
    */
-  private async _initializeFromWordnet(): Promise<void> {
+  private async initializeFromWordnet(): Promise<void> {
     if (!this.wordnet) return;
 
     try {
@@ -129,14 +129,14 @@ export class Morphy {
         const words: Word[] = await this.wordnet.words({ pos });
         for (const word of words) {
           const wordPos = word.pos;
-          if (!wordPos || !this._exceptions[wordPos]) continue;
-          const posExc = this._exceptions[wordPos]!;
+          if (!wordPos || !this.exceptions[wordPos]) continue;
+          const posExc = this.exceptions[wordPos]!;
           // Use word.lemma if available, otherwise fallback to inference for test mocks
           const lemma = word.lemma;
           if (!lemma) continue;
 
-          if (this._all_lemmas[wordPos]) {
-            this._all_lemmas[wordPos]!.add(lemma);
+          if (this.allLemmas[wordPos]) {
+            this.allLemmas[wordPos]!.add(lemma);
           }
 
           // Map other forms to the lemma
@@ -159,7 +159,7 @@ export class Morphy {
     }
     
     // Mark initialization as complete
-    this._initialized = true;
+    this.initialized = true;
   }
 
 
@@ -183,8 +183,8 @@ export class Morphy {
    */
   async analyze(form: string, pos?: PartOfSpeech): Promise<MorphyResult> {
     // Wait for initialization to complete if it's in progress
-    if (this._initPromise) {
-      await this._initPromise;
+    if (this.initPromise) {
+      await this.initPromise;
     }
     
     const result: MorphyResult = {};
@@ -192,9 +192,9 @@ export class Morphy {
     const noPosForms = result['null'] || new Set();
     for (const _pos of posList) {
       if (!(_pos in DETACHMENT_RULES)) continue;
-      const candidates = await this._morphstr(form, _pos);
+      const candidates = await this.morphstr(form, _pos);
       // For uninitialized Morphy, always include the original form
-      if (!this._initialized) {
+      if (!this.initialized) {
         candidates.add(form);
       }
       // Remove forms that are already in the null pos set
@@ -206,7 +206,7 @@ export class Morphy {
       }
       result[_pos] = filtered;
     }
-    if (!this._initialized && !pos) {
+    if (!this.initialized && !pos) {
       result['null'] = new Set([form]);
     }
     return result;
@@ -219,16 +219,16 @@ export class Morphy {
    * @param pos - The part of speech
    * @returns Set of candidate lemmas
    */
-  private async _morphstr(form: string, pos: PartOfSpeech): Promise<Set<string>> {
+  private async morphstr(form: string, pos: PartOfSpeech): Promise<Set<string>> {
     const candidates = new Set<string>();
-    if (this._initialized) {
-      const allLemmas = this._all_lemmas[pos];
+    if (this.initialized) {
+      const allLemmas = this.allLemmas[pos];
       // If the form is already a lemma, include it
       if (allLemmas && allLemmas.has(form)) {
         candidates.add(form);
       }
       // Add exceptions
-      const exceptions = this._exceptions[pos]?.[form] || new Set();
+      const exceptions = this.exceptions[pos]?.[form] || new Set();
       for (const exception of exceptions) {
         if (allLemmas && allLemmas.has(exception)) {
           candidates.add(exception);
@@ -236,11 +236,11 @@ export class Morphy {
       }
     }
     // Apply morphological rules
-    const rules = this._rules[pos] || [];
+    const rules = this.rules[pos] || [];
     for (const [suffix, replacement] of rules) {
       if (form.endsWith(suffix) && suffix.length < form.length) {
         const candidate = form.slice(0, -suffix.length) + replacement;
-        if (!this._initialized || (this._all_lemmas[pos] && this._all_lemmas[pos]!.has(candidate))) {
+        if (!this.initialized || (this.allLemmas[pos] && this.allLemmas[pos]!.has(candidate))) {
           candidates.add(candidate);
         }
       }

@@ -95,6 +95,8 @@ export interface SchemaModification {
   conflicts: string[];
   priority: number;
   estimatedTime: number;
+  description?: string;
+  pluginName?: string;
 }
 
 export interface HealthCheckResult {
@@ -197,6 +199,8 @@ export interface ConflictResolution {
   conflictId: string;
   strategy: ConflictResolutionStrategy;
   resolution: string;
+  description: string;
+  participants: string[];
   timestamp: number;
 }
 
@@ -541,6 +545,14 @@ export class WordNetKernel<TPlugins extends readonly Plugin[] = readonly []> {
         const conflicts: string[] = [];
         const errors: string[] = [];
         
+        // Check for invalid modification IDs first
+        for (const id of modificationIds) {
+          if (!this.modifications.has(id)) {
+            failed.push(id);
+            errors.push(`Modification not found: ${id}`);
+          }
+        }
+        
         // Sort modifications by priority and dependencies
         const sortedModifications = this.sortModificationsByDependencies(modificationIds);
         
@@ -582,6 +594,8 @@ export class WordNetKernel<TPlugins extends readonly Plugin[] = readonly []> {
           conflictId,
           strategy,
           resolution: `Resolved using ${strategy} strategy`,
+          description: `Conflict ${conflictId} resolved using ${strategy} strategy`,
+          participants: ['system'],
           timestamp: Date.now()
         };
         
@@ -632,24 +646,211 @@ export class WordNetKernel<TPlugins extends readonly Plugin[] = readonly []> {
   }
 
   // Private schema management methods (simplified from microkernel)
-  private async checkForConflicts(_newRequirements: PluginSchemaRequirements): Promise<void> {
-    // Implementation simplified for brevity
+  private async checkForConflicts(newRequirements: PluginSchemaRequirements): Promise<void> {
+    // Check for conflicts with existing requirements
+    for (const [pluginName, existingReq] of this.pluginRequirements) {
+      if (pluginName === newRequirements.pluginName) continue;
+      
+      // Check for table conflicts
+      for (const newTableReq of newRequirements.tables || []) {
+        const existingTableReq = existingReq.tables?.find(t => t.name === newTableReq.name);
+        if (existingTableReq) {
+          // Check for conflicting table definitions
+          const newTableSql = this.generateTableSql(newTableReq);
+          const existingTableSql = this.generateTableSql(existingTableReq);
+          if (newTableSql !== existingTableSql) {
+            this.conflictResolutions.set(
+              `table_conflict_${newTableReq.name}_${pluginName}_${newRequirements.pluginName}`,
+              {
+                conflictId: `table_conflict_${newTableReq.name}_${pluginName}_${newRequirements.pluginName}`,
+                strategy: 'manual',
+                description: `Conflicting table definitions for ${newTableReq.name}`,
+                participants: [pluginName, newRequirements.pluginName],
+                resolution: 'manual_required',
+                timestamp: Date.now()
+              }
+            );
+          }
+        }
+      }
+      
+      // Check for index conflicts
+      for (const newIndexReq of newRequirements.indexes || []) {
+        const existingIndexReq = existingReq.indexes?.find(i => i.name === newIndexReq.name);
+        if (existingIndexReq) {
+          const newIndexSql = `CREATE INDEX ${newIndexReq.name} ON ${newIndexReq.table} (${newIndexReq.columns.join(', ')})`;
+          const existingIndexSql = `CREATE INDEX ${existingIndexReq.name} ON ${existingIndexReq.table} (${existingIndexReq.columns.join(', ')})`;
+          if (newIndexSql !== existingIndexSql) {
+            this.conflictResolutions.set(
+              `index_conflict_${newIndexReq.name}_${pluginName}_${newRequirements.pluginName}`,
+              {
+                conflictId: `index_conflict_${newIndexReq.name}_${pluginName}_${newRequirements.pluginName}`,
+                strategy: 'manual',
+                description: `Conflicting index definitions for ${newIndexReq.name}`,
+                participants: [pluginName, newRequirements.pluginName],
+                resolution: 'manual_required',
+                timestamp: Date.now()
+              }
+            );
+          }
+        }
+      }
+    }
   }
 
-  private async generateSchemaModifications(_requirements: PluginSchemaRequirements): Promise<void> {
-    // Implementation simplified for brevity
+  private generateTableSql(tableReq: TableRequirement): string {
+    const columns = tableReq.columns.map(col => {
+      let sql = `${col.name} ${col.type}`;
+      if (!col.nullable) sql += ' NOT NULL';
+      if (col.unique) sql += ' UNIQUE';
+      if (col.defaultValue !== undefined) {
+        sql += ` DEFAULT ${typeof col.defaultValue === 'string' ? `'${col.defaultValue}'` : col.defaultValue}`;
+      }
+      if (col.autoIncrement) sql += ' AUTOINCREMENT';
+      return sql;
+    }).join(', ');
+    
+    let sql = `CREATE TABLE ${tableReq.name} (${columns}`;
+    if (tableReq.primaryKey && tableReq.primaryKey.length > 0) {
+      sql += `, PRIMARY KEY (${tableReq.primaryKey.join(', ')})`;
+    }
+    sql += ')';
+    return sql;
+  }
+
+  private async generateSchemaModifications(requirements: PluginSchemaRequirements): Promise<void> {
+    // Generate schema modifications based on plugin requirements
+    const modifications: SchemaModification[] = [];
+    
+    // Process table requirements
+    for (const tableReq of requirements.tables || []) {
+      // Generate CREATE TABLE SQL from table requirements
+      const columns = tableReq.columns.map(col => {
+        let sql = `${col.name} ${col.type}`;
+        if (!col.nullable) sql += ' NOT NULL';
+        if (col.unique) sql += ' UNIQUE';
+        if (col.defaultValue !== undefined) {
+          sql += ` DEFAULT ${typeof col.defaultValue === 'string' ? `'${col.defaultValue}'` : col.defaultValue}`;
+        }
+        if (col.autoIncrement) sql += ' AUTOINCREMENT';
+        return sql;
+      }).join(', ');
+      
+      let sql = `CREATE TABLE ${tableReq.name} (${columns}`;
+      if (tableReq.primaryKey && tableReq.primaryKey.length > 0) {
+        sql += `, PRIMARY KEY (${tableReq.primaryKey.join(', ')})`;
+      }
+      sql += ')';
+      
+      modifications.push({
+        id: `${requirements.pluginName}_create_table_${tableReq.name}`,
+        type: 'table',
+        operation: 'create',
+        table: tableReq.name,
+        sql,
+        rollbackSql: `DROP TABLE IF EXISTS ${tableReq.name}`,
+        description: `Create table ${tableReq.name} for plugin ${requirements.pluginName}`,
+        pluginName: requirements.pluginName,
+        priority: 1,
+        estimatedTime: 5,
+        dependencies: [],
+        conflicts: []
+      });
+    }
+    
+    // Process index requirements
+    for (const indexReq of requirements.indexes || []) {
+      const sql = `CREATE INDEX ${indexReq.name} ON ${indexReq.table} (${indexReq.columns.join(', ')})`;
+      modifications.push({
+        id: `${requirements.pluginName}_create_index_${indexReq.name}`,
+        type: 'index',
+        operation: 'create',
+        table: indexReq.table,
+        sql,
+        rollbackSql: `DROP INDEX IF EXISTS ${indexReq.name}`,
+        description: `Create index ${indexReq.name} for plugin ${requirements.pluginName}`,
+        pluginName: requirements.pluginName,
+        priority: 2,
+        estimatedTime: 3,
+        dependencies: [],
+        conflicts: []
+      });
+    }
+    
+    // Process constraint requirements
+    for (const constraintReq of requirements.constraints || []) {
+      modifications.push({
+        id: `${requirements.pluginName}_create_constraint_${constraintReq.name}`,
+        type: 'constraint',
+        operation: 'create',
+        sql: constraintReq.definition,
+        rollbackSql: `ALTER TABLE ${constraintReq.name.split('_')[0]} DROP CONSTRAINT IF EXISTS ${constraintReq.name}`,
+        description: `Create constraint ${constraintReq.name} for plugin ${requirements.pluginName}`,
+        pluginName: requirements.pluginName,
+        priority: 2,
+        estimatedTime: 3,
+        dependencies: [],
+        conflicts: []
+      });
+    }
+    
+    // Add modifications to the map
+    for (const modification of modifications) {
+      this.modifications.set(modification.id, modification);
+    }
   }
 
   private async checkSchemaHealth(): Promise<HealthIssue[]> {
-    return [];
+    const issues: HealthIssue[] = [];
+    
+    // Check if required tables exist
+    const currentTables = await this.getCurrentTables();
+    for (const [pluginName, requirements] of this.pluginRequirements) {
+      for (const tableReq of requirements.tables || []) {
+        if (!currentTables.includes(tableReq.name)) {
+          issues.push({
+            id: `missing_table_${tableReq.name}`,
+            type: 'missing_schema',
+            severity: 'critical',
+            title: `Missing table: ${tableReq.name}`,
+            description: `Table ${tableReq.name} is required by plugin ${pluginName} but does not exist`,
+            affectedTables: [tableReq.name],
+            suggestedFix: `Create table ${tableReq.name} using the plugin's schema requirements`,
+            estimatedTime: 5
+          });
+        }
+      }
+    }
+    
+    return issues;
   }
 
   private async checkDataHealth(): Promise<HealthIssue[]> {
-    return [];
+    const issues: HealthIssue[] = [];
+    
+    // Check for data integrity issues
+    // This is a simplified implementation
+    return issues;
   }
 
   private async checkConflicts(): Promise<HealthIssue[]> {
-    return [];
+    const issues: HealthIssue[] = [];
+    
+    // Convert conflict resolutions to health issues
+    for (const [conflictId, conflict] of this.conflictResolutions) {
+      issues.push({
+        id: conflictId,
+        type: 'conflict',
+        severity: 'high',
+        title: `Schema conflict: ${conflict.description}`,
+        description: `Conflict between plugins: ${conflict.participants.join(', ')}`,
+        affectedTables: [],
+        suggestedFix: `Resolve conflict using strategy: ${conflict.resolution}`,
+        estimatedTime: 10
+      });
+    }
+    
+    return issues;
   }
 
   private generateRecommendations(issues: HealthIssue[]): HealthRecommendation[] {

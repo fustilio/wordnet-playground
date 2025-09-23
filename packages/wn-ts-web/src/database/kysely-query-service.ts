@@ -4,10 +4,10 @@
  * This service extends the shared base query service and adds web-specific functionality.
  */
 
-import { Kysely, sql } from 'kysely';
+import { Kysely, sql, CompiledQuery } from 'kysely';
 import { BaseKyselyQueryService, SchemaBuilder, DatabaseUtils } from 'wn-ts-core';
 import type { Database } from '../types/database.js';
-import type { PartOfSpeech, Word } from 'wn-ts-core';
+import type { PartOfSpeech, Word, Relation } from 'wn-ts-core';
 
 export class KyselyQueryService extends BaseKyselyQueryService {
   constructor(db: Kysely<Database>) {
@@ -143,5 +143,30 @@ export class KyselyQueryService extends BaseKyselyQueryService {
       .offset(offset)
       .execute();
     return await Promise.all(results.map(this.transformWordRecord.bind(this)));
+  }
+
+  // Relations methods
+  async getRelations(synsetId: string, type?: string): Promise<Relation[]> {
+    // First check if the synset exists
+    const synset = await this.getSynsetById(synsetId);
+    if (!synset) {
+      throw new Error(`Synset not found: ${synsetId}`);
+    }
+    
+    // Use the base query service method
+    const relations = await this.getRelationsBySynsetId(synsetId);
+    
+    // Filter by type if specified
+    if (type) {
+      return relations.filter(rel => rel.type === type);
+    }
+    
+    return relations;
+  }
+
+  // Raw query method for schema management
+  async query(sql: string, params?: unknown[]): Promise<unknown[]> {
+    const result = await this.db.executeQuery(CompiledQuery.raw(sql, params || []));
+    return result.rows || [];
   }
 } 

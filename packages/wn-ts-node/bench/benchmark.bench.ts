@@ -1,16 +1,18 @@
 import { bench, describe, beforeAll, afterAll } from 'vitest';
 import { join } from 'path';
 import { writeFile } from 'fs/promises';
-import { loadLMF, createMinimalLMF, parseLMFXML, isLMF } from 'wn-ts-core';
+import { createMinimalLMF, parseLMFXML, createWordNet } from 'wn-ts-core';
 import { taxonomyShortestPath } from '../src/taxonomy';
-import { path } from 'wn-ts-core';
+import { similarity } from 'wn-ts-core/plugins';
 import { Morphy } from 'wn-ts-core';
 import { add, remove } from '../src/data-management-new';
 import { Wordnet } from '../src/wordnet';
 import { getTestContext, cleanupTestContext, createMockData } from 'wn-ts-core/test';
-import type { TestContext } from 'wn-ts-core';
+import type { TestContext } from 'wn-ts-core/test';
+import type { Word, Synset, Sense, Definition, WordNetWithPlugins, WordNetKernel } from 'wn-ts-core';
 
 let testContext: TestContext;
+let mockData: { synsets: Synset[]; words: Word[]; senses: Sense[]; definitions: Definition[] };
 const morphy = new Morphy();
 
 // Test data paths
@@ -38,28 +40,34 @@ describe('LMF Loading', () => {
 
   bench('load mini-lmf-1.0.xml', async () => {
     const filePath = join(TEST_DATA_DIR, 'mini-lmf-1.0.xml');
-    await loadLMF(filePath);
+    await parseLMFXML(filePath);
   });
 
   bench('load mini-lmf-1.1.xml', async () => {
     const filePath = join(TEST_DATA_DIR, 'mini-lmf-1.1.xml');
-    await loadLMF(filePath);
+    await parseLMFXML(filePath);
   });
 
   bench('load mini-lmf-1.3.xml', async () => {
     const filePath = join(TEST_DATA_DIR, 'mini-lmf-1.3.xml');
-    await loadLMF(filePath);
+    await parseLMFXML(filePath);
   });
 
   bench('load mini-lmf-1.4.xml', async () => {
     const filePath = join(TEST_DATA_DIR, 'mini-lmf-1.4.xml');
-    await loadLMF(filePath);
+    await parseLMFXML(filePath);
   });
 });
 
 describe('Database Operations', () => {
   beforeAll(async () => {
     testContext = await getTestContext();
+    mockData = {
+      synsets: createMockData('synset', 1000),
+      words: createMockData('word', 1000),
+      senses: createMockData('sense', 1000),
+      definitions: createMockData('definition', 1000)
+    };
   });
 
   afterAll(async () => {
@@ -122,14 +130,21 @@ describe('Wordnet Operations with Real Data', () => {
 
 describe('Similarity Calculations with Real Data', () => {
   let wordnet: Wordnet;
-  let synsetA: any;
-  let synsetB: any;
+  let wordnetKernel: WordNetWithPlugins<[typeof similarity]>;
+  let synsetA: Synset | undefined;
+  let synsetB: Synset | undefined;
 
   beforeAll(async () => {
     // Load real test data
     const filePath = join(TEST_DATA_DIR, 'mini-lmf-1.0.xml');
     await add(filePath, { force: true });
     wordnet = new Wordnet('test-en');
+    
+    // Create WordNetKernel with the Wordnet instance as core
+    wordnetKernel = createWordNet({
+      core: wordnet,
+      plugins: [similarity]
+    });
     
     // Get two synsets for similarity calculation
     const synsets = await wordnet.synsets({ form: 'information' });
@@ -145,7 +160,7 @@ describe('Similarity Calculations with Real Data', () => {
 
   bench('path similarity', async () => {
     if (synsetA && synsetB) {
-      await path(synsetA, synsetB, wordnet);
+      await similarity.methods.path(wordnetKernel.getCore() as WordNetKernel, synsetA, synsetB);
     }
   });
 
@@ -193,21 +208,21 @@ describe('Large Scale Operations', () => {
 
   bench('process all synsets', () => {
     const results: string[] = [];
-    for (const synset of testContext.mockData.synsets.slice(0, 1000)) {
+    for (const synset of mockData.synsets.slice(0, 1000)) {
       results.push(synset.id);
     }
   });
 
   bench('process all words', () => {
     const results: string[] = [];
-    for (const word of testContext.mockData.words.slice(0, 1000)) {
+    for (const word of mockData.words.slice(0, 1000)) {
       results.push(word.lemma);
     }
   });
 
   bench('process all senses', () => {
     const results: string[] = [];
-    for (const sense of testContext.mockData.senses.slice(0, 1000)) {
+    for (const sense of mockData.senses.slice(0, 1000)) {
       results.push(sense.id);
     }
   });

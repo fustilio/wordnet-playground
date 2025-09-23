@@ -632,7 +632,7 @@ export class DataLoader {
     );
 
     this.logger.debug(`🔍 Debug: Project type from metadata: ${projectType}`);
-    this.logger.debug(`🔍 Debug: Project data:`, project.projectData);
+    this.logger.debug(`🔍 Debug: Project data:`, project.data);
 
     // Handle different file types based on detected content
     if (wordnetResult.contentType === "ili" || wordnetResult.contentType === "cili-data") {
@@ -740,37 +740,44 @@ export class DataLoader {
         this.logger.step(`starting LMF parsing`);
         if (progress) progress(0.4, 'Starting LMF parsing...');
 
-        // Import and use the proper LMF parser
+        // Import and use the optimized LMF parser with fast-xml-parser
         const { LmfParser } = await import("./parsers/lmf/lmf-parser.js");
 
-        // Configure parser based on file size and type
+        // Configure parser for maximum performance
         const parserOptions = {
-          debug: true,
+          debug: false, // Disable debug for better performance
           // Always prefer fast-xml-parser for LMF files as it handles text content extraction correctly
           // The previous logic of preferring DOMParser for large files was causing definition text to be lost
           preferFastXMLParser: true,
+          // Additional performance optimizations
+          ignoreAttributes: false,
+          parseAttributeValue: false,
+          parseNodeValue: false,
+          trimValues: false,
+          // Disable validation for faster parsing
+          validate: false,
         };
 
         this.logger.debug(`parser options`, parserOptions);
 
-        if (progress) progress(0.45, 'Initializing XML parser...');
+        if (progress) progress(0.45, 'Initializing optimized XML parser...');
         const lmfParser = new LmfParser(xmlText, parserOptions);
         
-        if (progress) progress(0.5, 'Parsing XML content...');
+        if (progress) progress(0.5, 'Parsing XML with fast-xml-parser...');
         
         // Add a progress update timer during the long-running parse operation
         let parseProgress = 0.5;
         const parseInterval = setInterval(() => {
           if (progress && parseProgress < 0.6) {
             parseProgress += 0.02;
-            progress(parseProgress, 'Parsing XML content...');
+            progress(parseProgress, `Fast XML parsing... (${Math.round(parseProgress * 100)}%)`);
           }
-        }, 1000); // Update every second
+        }, 250); // Update every 250ms for better feedback
         
-        const lmfDocument = await lmfParser.parse(xmlText, { debug: true });
+        const lmfDocument = await lmfParser.parse(xmlText, { debug: false });
         
         clearInterval(parseInterval);
-        if (progress) progress(0.6, 'XML parsing completed...');
+        if (progress) progress(0.6, 'Fast XML parsing completed...');
 
         // Get any aggregated warnings from the parser
         if (lmfParser["warningAggregator"]) {
@@ -783,7 +790,7 @@ export class DataLoader {
           }
         }
 
-        this.logger.step(`LMF parsing completed successfully`, {
+        this.logger.step(`Optimized LMF parsing completed successfully`, {
           lexicons: lmfDocument.lexicons?.length || 0,
           words: lmfDocument.words?.length || 0,
           synsets: lmfDocument.synsets?.length || 0,
@@ -1369,10 +1376,17 @@ export class DataLoader {
         `inserting lexicons first (required for foreign key constraints)`
       );
       if (lexiconsToInsert.length > 0) {
-        await queryService.batchInsert("lexicons", lexiconsToInsert);
-        this.logger.debug(
-          `inserted ${lexiconsToInsert.length} lexicons with IDs: ${lexiconsToInsert.map((l) => l.id).join(", ")}`
-        );
+        // Use transaction for better performance
+        await this.database.run("BEGIN TRANSACTION");
+        try {
+          await queryService.batchInsert("lexicons", lexiconsToInsert);
+          this.logger.debug(
+            `inserted ${lexiconsToInsert.length} lexicons with IDs: ${lexiconsToInsert.map((l) => l.id).join(", ")}`
+          );
+        } catch (error) {
+          await this.database.run("ROLLBACK");
+          throw error;
+        }
       } else {
         this.logger.warn(
           `no lexicons to insert - this may cause foreign key constraint failures`
@@ -1540,10 +1554,14 @@ export class DataLoader {
         synsetDefinitionsCount: synsetDefinitionsMap.size,
       });
 
+      // Commit the transaction
+      this.logger.step(`committing transaction`);
+      await this.database.run("COMMIT");
+      
       this.logger.step(`waiting for transaction commit`);
       // Add a small delay to ensure the transaction is fully committed
       // This prevents statistics queries from returning 0 immediately after insertion
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 500)); // Reduced from 1000ms to 500ms
 
       // Flush database to ensure data is persisted to OPFS storage
       this.logger.step(`flushing database to ensure persistence`);
@@ -1577,6 +1595,14 @@ export class DataLoader {
 
       this.logger.end(`inserting LMF data for ${projectIdWithVersion}`);
     } catch (error) {
+      // Rollback transaction on error
+      try {
+        await this.database.run("ROLLBACK");
+        this.logger.debug(`transaction rolled back due to error`);
+      } catch (rollbackError) {
+        this.logger.warn(`failed to rollback transaction:`, rollbackError);
+      }
+      
       // Flush warnings even on error
       if (this.warningAggregator) {
         const aggregatedWarnings = this.warningAggregator.flush();

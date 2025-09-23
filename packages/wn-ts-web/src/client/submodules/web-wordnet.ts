@@ -18,6 +18,7 @@ import type {
   WordQuery,
   SynsetQuery,
   SenseQuery,
+  Relation,
 } from "wn-ts-core";
 
 // Type aliases for better reusability
@@ -123,14 +124,31 @@ export class WebWordnet implements WordNetCore {
   private database: WebDatabase;
   private kyselyDb: Kysely<Database> | undefined;
   private queryService: KyselyQueryService | undefined;
-  private _lexiconIds: string[]; // Support multiple lexicons
-  private _expand: string[];
-  private _normalizer?: ((form: string) => string) | undefined;
-  private _lemmatizer?:
+
+  // Public getters for test access
+  get kyselyDatabase(): Kysely<Database> | undefined {
+    return this.kyselyDb;
+  }
+
+  get queryServiceInstance(): KyselyQueryService | undefined {
+    return this.queryService;
+  }
+
+  get databaseInstance(): WebDatabase {
+    return this.database;
+  }
+
+  get isInitialized(): boolean {
+    return this.initialized;
+  }
+  private lexiconIds: string[]; // Support multiple lexicons
+  private expand: string[];
+  private normalizer?: ((form: string) => string) | undefined;
+  private lemmatizer?:
     | ((form: string, pos?: PartOfSpeech) => Record<PartOfSpeech, Set<string>>)
     | undefined;
-  private _searchAllForms: boolean;
-  private _lang?: string;
+  private searchAllForms: boolean;
+  private lang?: string;
   private initialized = false;
   
   // Event emitter for backward compatibility with tests
@@ -142,26 +160,26 @@ export class WebWordnet implements WordNetCore {
 
     // Parse lexicon specifier(s) for special presets
     if (Array.isArray(lexicon)) {
-      this._lexiconIds = lexicon;
+      this.lexiconIds = lexicon;
     } else {
       // Handle special presets and single lexicon specs
-      this._lexiconIds = this.parseLexiconSpec(lexicon);
+      this.lexiconIds = this.parseLexiconSpec(lexicon);
     }
 
     this.database = new WebDatabase();
     this.eventEmitter = new WordNetEventEmitter();
     
-    this._expand = Array.isArray(options.expand)
+    this.expand = Array.isArray(options.expand)
       ? options.expand
       : options.expand
         ? [options.expand]
         : [];
-    this._normalizer = options.normalizer;
-    this._lemmatizer = options.lemmatizer;
-    this._searchAllForms = options.searchAllForms ?? true;
+    this.normalizer = options.normalizer;
+    this.lemmatizer = options.lemmatizer;
+    this.searchAllForms = options.searchAllForms ?? true;
 
     if (options.language) {
-      this._lang = options.language;
+      this.lang = options.language;
     }
   }
 
@@ -239,29 +257,29 @@ export class WebWordnet implements WordNetCore {
    * Get the current lexicon IDs
    */
   getLexiconIds(): string[] {
-    return [...this._lexiconIds];
+    return [...this.lexiconIds];
   }
 
   /**
    * Get the primary lexicon ID (first in the array)
    */
   getPrimaryLexiconId(): string {
-    return this._lexiconIds[0];
+    return this.lexiconIds[0];
   }
 
   /**
    * Update the lexicon IDs after initialization
    */
   updateLexiconIds(newLexiconIds: string[]): void {
-    this._lexiconIds = [...newLexiconIds];
+    this.lexiconIds = [...newLexiconIds];
   }
 
   /**
    * Add a lexicon to the current set
    */
   addLexicon(lexiconId: string): void {
-    if (!this._lexiconIds.includes(lexiconId)) {
-      this._lexiconIds.push(lexiconId);
+    if (!this.lexiconIds.includes(lexiconId)) {
+      this.lexiconIds.push(lexiconId);
     }
   }
 
@@ -269,9 +287,9 @@ export class WebWordnet implements WordNetCore {
    * Remove a lexicon from the current set
    */
   removeLexicon(lexiconId: string): void {
-    const index = this._lexiconIds.indexOf(lexiconId);
+    const index = this.lexiconIds.indexOf(lexiconId);
     if (index > -1) {
-      this._lexiconIds.splice(index, 1);
+      this.lexiconIds.splice(index, 1);
     }
   }
 
@@ -365,7 +383,7 @@ export class WebWordnet implements WordNetCore {
 
       // Emit initialization event for backward compatibility with tests
       this.eventEmitter.emit(WordNetEvents.INITIALIZED, {
-        lexicons: this._lexiconIds,
+        lexicons: this.lexiconIds,
       });
     } catch (error) {
       // Note: Events are now emitted by the orchestrator, not here
@@ -412,11 +430,11 @@ export class WebWordnet implements WordNetCore {
     if (!this.initialized || !this.queryService)
       throw new Error("WebWordnet not initialized");
 
-    if (this._expand.length === 0) {
+    if (this.expand.length === 0) {
       return [];
     }
 
-    return this.queryService.getLexicons({ ids: this._expand });
+    return this.queryService.getLexicons({ ids: this.expand });
   }
 
   async words(query?: WordQuery): Promise<Word[]> {
@@ -446,8 +464,8 @@ export class WebWordnet implements WordNetCore {
         form: query?.form,
         pos: query?.pos,
         lexicon: lexiconFilter,
-        language: query?.language || this._lang,
-        searchAllForms: this._searchAllForms,
+        language: query?.language || this.lang,
+        searchAllForms: this.searchAllForms,
       });
       const ms = performance.now() - started;
       logger.info(
@@ -488,8 +506,8 @@ export class WebWordnet implements WordNetCore {
         form: undefined,
         pos,
         lexicon: lexiconFilter,
-        language: language || this._lang,
-        searchAllForms: this._searchAllForms,
+        language: language || this.lang,
+        searchAllForms: this.searchAllForms,
       });
     }
 
@@ -498,8 +516,8 @@ export class WebWordnet implements WordNetCore {
       form: form,
       pos,
       lexicon: lexiconFilter,
-      language: language || this._lang,
-      searchAllForms: this._searchAllForms,
+      language: language || this.lang,
+      searchAllForms: this.searchAllForms,
     });
 
     // Load definitions for each synset
@@ -612,16 +630,25 @@ export class WebWordnet implements WordNetCore {
     });
   }
 
-  async getWord(wordId: string): Promise<Word | undefined> {
+  async getWord(form: string): Promise<Word[]> {
+    if (!this.initialized || !this.queryService)
+      throw new Error("WebWordnet not initialized");
+    
+    // Use searchWords to find words by form
+    return this.searchWords({ form });
+  }
+
+  async getWordById(wordId: string): Promise<Word | undefined> {
     if (!this.initialized || !this.queryService)
       throw new Error("WebWordnet not initialized");
     return this.queryService.getWordById(wordId);
   }
 
-  async getSynset(synsetId: string): Promise<Synset | undefined> {
+  async getSynset(synsetId: string): Promise<Synset | null> {
     if (!this.initialized || !this.queryService)
       throw new Error("WebWordnet not initialized");
-    return this.queryService.getSynsetById(synsetId);
+    const result = await this.queryService.getSynsetById(synsetId);
+    return result || null;
   }
 
   async getSense(senseId: string): Promise<Sense | undefined> {
@@ -980,8 +1007,8 @@ export class WebWordnet implements WordNetCore {
    * Normalize a word form using the configured normalizer
    */
   async normalizeForm(form: string): Promise<string> {
-    if (this._normalizer) {
-      return this._normalizer(form);
+    if (this.normalizer) {
+      return this.normalizer(form);
     }
     return form.toLowerCase();
   }
@@ -1289,10 +1316,7 @@ export class WebWordnet implements WordNetCore {
       }
 
       // Find all synsets with the same ILI in different languages
-      const db = (this.queryService as any).db;
-      if (!db) {
-        return [];
-      }
+      const db = this.queryService.database;
 
       const relatedSynsets = await db
         .selectFrom('synsets')
@@ -1335,10 +1359,7 @@ export class WebWordnet implements WordNetCore {
       throw new Error("WebWordnet not initialized");
     
     try {
-      const db = (this.queryService as any).db;
-      if (!db) {
-        return [];
-      }
+      const db = this.queryService.database;
 
       // Query relations table for related synsets
       let query = db
@@ -1357,7 +1378,7 @@ export class WebWordnet implements WordNetCore {
       }
 
       // Get the related synsets
-      const relatedSynsetIds = relations.map((rel: any) => rel.target_id);
+      const relatedSynsetIds = relations.map((rel: { target_id: string; type: string }) => rel.target_id);
       const relatedSynsets: Synset[] = [];
       
       for (const synsetId of relatedSynsetIds) {
@@ -1382,10 +1403,7 @@ export class WebWordnet implements WordNetCore {
       throw new Error("WebWordnet not initialized");
     
     try {
-      const db = (this.queryService as any).db;
-      if (!db) {
-        return [];
-      }
+      const db = this.queryService.database;
 
       // Query relations table for related senses
       let query = db
@@ -1404,7 +1422,7 @@ export class WebWordnet implements WordNetCore {
       }
 
       // Get the related senses
-      const relatedSenseIds = relations.map((rel: any) => rel.target_id);
+      const relatedSenseIds = relations.map((rel: { target_id: string; type: string }) => rel.target_id);
       const relatedSenses: Sense[] = [];
       
       for (const senseId of relatedSenseIds) {
@@ -1760,12 +1778,17 @@ export class WebWordnet implements WordNetCore {
    * Get definitions for a synset
    * Equivalent to Synset.definition() in Python Wn
    */
-  async getDefinitions(synsetId: string): Promise<string[]> {
+  async getDefinitions(synsetId: string): Promise<{ id: string; language: string; text: string; source?: string | undefined; }[]> {
     if (!this.initialized || !this.queryService)
       throw new Error("WebWordnet not initialized");
     
     const synset = await this.synset(synsetId);
-    return synset.definitions.map(d => d.text);
+    return synset.definitions.map(d => ({
+      id: d.id,
+      language: d.language,
+      text: d.text,
+      source: d.source
+    }));
   }
 
   /**
@@ -2058,7 +2081,7 @@ export class WebWordnet implements WordNetCore {
     }
   }
 
-  async getRelations(synsetId: string, type?: string): Promise<any[]> {
+  async getRelations(synsetId: string, type?: string): Promise<Relation[]> {
     if (!this.initialized || !this.queryService)
       throw new Error("WebWordnet not initialized");
 

@@ -8,20 +8,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DataLoader } from '../src/data-loader.js';
 
-// Mock data for testing
-const mockIliData = [
-  {
-    id: 'i1',
-    definition: '(usually followed by `to\') having the necessary means or skill or know-how or authority to do something',
-    status: 'active'
-  },
-  {
-    id: 'i2',
-    definition: '(usually followed by `to\') not having the necessary means or skill or know-how',
-    status: 'active'
-  }
-];
-
 // Sample TSV content for testing
 const sampleTsvContent = `ILI	Definition	Status
 i1	(usually followed by \`to') having the necessary means or skill or know-how or authority to do something	active

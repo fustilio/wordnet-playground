@@ -10,6 +10,7 @@ import {
   analyzeLMFXMLComprehensive
 } from './xml-analyzer.js';
 import { isCompressedURL } from '../utils/url.js';
+import type { Word, Synset, Sense, Definition } from '../core/types.js';
 
 export interface TestDataConfig {
   outputDir: string;
@@ -585,7 +586,11 @@ export async function cleanupTestContext(context?: TestContext): Promise<void> {
 /**
  * Create mock data for testing
  */
-export function createMockData(type: 'word' | 'synset' | 'sense' | 'definition', count: number = 10): any[] {
+export function createMockData(type: 'word', count?: number): Word[];
+export function createMockData(type: 'synset', count?: number): Synset[];
+export function createMockData(type: 'sense', count?: number): Sense[];
+export function createMockData(type: 'definition', count?: number): Definition[];
+export function createMockData(type: 'word' | 'synset' | 'sense' | 'definition', count: number = 10): Word[] | Synset[] | Sense[] | Definition[] {
   const data = [];
   
   for (let i = 0; i < count; i++) {
@@ -631,7 +636,7 @@ export function createMockData(type: 'word' | 'synset' | 'sense' | 'definition',
     }
   }
   
-  return data;
+  return data as Word[] | Synset[] | Sense[] | Definition[];
 }
 
 /**

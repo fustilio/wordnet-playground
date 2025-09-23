@@ -44,14 +44,14 @@ describe.skipIf(isNode)('WebWordnet with Real Browser DB', () => {
   });
 
   afterEach(async () => {
-    if (wordnet && (wordnet as any).initialized) {
+    if (wordnet && wordnet.isInitialized) {
       await wordnet.close();
     }
   });
 
   describe('Initialization', () => {
     it.skipIf(!sqlModule)('should initialize and prepare the database', () => {
-      expect((wordnet as any).initialized).toBe(true);
+      expect(wordnet.isInitialized).toBe(true);
       expect(queryService).toBeDefined();
     });
 
@@ -78,16 +78,17 @@ describe.skipIf(isNode)('WebWordnet with Real Browser DB', () => {
     });
 
     it.skipIf(!sqlModule)('should retrieve senses for a given word form', async () => {
-      const senses = await wordnet.senses({ form: 'run', pos: 'v' });
+      const senses = await wordnet.senses({ wordIdOrForm: 'run', pos: 'v' });
       expect(senses).toHaveLength(1);
       expect(senses[0].wordId).toBe('w-run');
       expect(senses[0].synsetId).toBe('s-run');
     });
 
     it.skipIf(!sqlModule)('should retrieve a word by its specific ID', async () => {
-      const word = await wordnet.getWord('w-happy');
-      expect(word).toBeDefined();
-      expect(word?.lemma).toBe('happy');
+      const words = await wordnet.getWord('w-happy');
+      expect(words).toBeDefined();
+      expect(words).toHaveLength(1);
+      expect(words[0].lemma).toBe('happy');
     });
   });
 

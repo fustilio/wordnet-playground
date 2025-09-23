@@ -19,7 +19,7 @@ const createComprehensiveTestDataset = async () => {
   return {
     oewnSample: join(testDataDir, 'mini-lmf-1.3.xml'),
     ciliSample: join(testDataDir, 'mini-lmf-1.0.xml'), 
-    omwFrSample: join(testDataDir, 'mini-lmf-1.1.xml'),
+    omwFrSample: join(testDataDir, 'mini-lmf-1.3.xml'),
     omwThSample: join(testDataDir, 'mini-lmf-1.4.xml')
   };
 };

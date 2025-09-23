@@ -322,6 +322,41 @@ export class WordNetOrchestrator {
         await this.wordnet!.hasSpecificLexiconLoaded(lexiconId);
 
       if (!hasSpecificData || options.forceRedownload) {
+        // Enhanced caching: Check if we have any existing data in the database first
+        const hasAnyData = await this.wordnet!.hasData();
+        if (hasAnyData) {
+          logger.info(`🗄️ Database already contains data, checking if ${lexiconId} is available...`);
+          try {
+            // Try to get status to see what's already loaded
+            const status = await this.wordnet!.getStatistics();
+            if (status.lexiconStats && status.lexiconStats.length > 0) {
+              logger.info(`✅ Found existing lexicons in database: ${status.lexiconStats.map(l => l.lexiconId).join(', ')}`);
+              // Check if our target lexicon is already there (check both with and without version)
+              const baseLexiconId = lexiconId.split(':')[0];
+              const targetExists = status.lexiconStats.some(l => 
+                l.lexiconId === baseLexiconId || l.lexiconId === lexiconId
+              );
+              if (targetExists) {
+                logger.info(`✅ Lexicon ${lexiconId} already exists in database, skipping download`);
+                this.updateLexiconState(lexiconId, {
+                  status: "loaded",
+                  lastLoaded: new Date(),
+                  needsRedownload: false,
+                });
+                // Emit package loaded event for consistency
+                this.eventEmitter.emit(
+                  "packageLoaded",
+                  lexiconId,
+                  true,
+                  new Date().toISOString()
+                );
+                return;
+              }
+            }
+          } catch (error) {
+            logger.warn(`⚠️ Failed to check existing data, proceeding with download:`, error);
+          }
+        }
         // Create enhanced progress callback that emits events
         const enhancedProgress = options.onProgress
           ? (progress: number) => {

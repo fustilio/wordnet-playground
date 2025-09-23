@@ -77,11 +77,11 @@ export class WordNetWorkerClient {
     // For now, always use URL-based worker since package worker is not yet implemented
     if (!workerUrl) {
       const resolvedUrl = this.resolveDefaultWorkerUrl();
-      this.initializationPromise = this._initialize(resolvedUrl);
+      this.initializationPromise = this.initialize(resolvedUrl);
       return this.initializationPromise;
     } else {
       // Use provided worker URL
-      this.initializationPromise = this._initialize(workerUrl);
+      this.initializationPromise = this.initialize(workerUrl);
       return this.initializationPromise;
     }
   }
@@ -130,7 +130,7 @@ export class WordNetWorkerClient {
     }
   }
 
-  private async _initialize(workerUrl: string | URL): Promise<boolean> {
+  private async initialize(workerUrl: string | URL): Promise<boolean> {
     try {
       logger.info('Starting worker initialization with URL:', workerUrl);
       

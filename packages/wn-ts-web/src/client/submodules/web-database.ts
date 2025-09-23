@@ -18,7 +18,7 @@ const logger = createScopedLogger('WebDatabase');
 export class WebDatabase {
   private db: Database | null = null;
   private sqlModule: Sqlite3Static | null = null;
-  private _initialized = false;
+  private initialized = false;
   private useOPFS = false;
 
   constructor() {
@@ -31,7 +31,7 @@ export class WebDatabase {
 
     // Don't check OPFS support here - we'll check it when actually creating the database
     // This allows the class to work in both main thread and worker thread contexts
-    this._initialized = true;
+    this.initialized = true;
   }
 
   // Interface-compatible initialize method
@@ -45,7 +45,7 @@ export class WebDatabase {
   }
 
   isInitialized(): boolean {
-    return this._initialized && this.db !== null;
+    return this.initialized && this.db !== null;
   }
 
   async loadDatabase(data: Uint8Array): Promise<void> {
@@ -104,12 +104,23 @@ export class WebDatabase {
       );
     }
 
-    // Disable SQLite tracing to reduce console noise
+    // Optimize SQLite performance
     try {
+      // Disable SQLite tracing to reduce console noise
       this.db.exec("PRAGMA trace = 0");
       this.db.exec("PRAGMA vdbe_trace = 0");
+      
+      // Performance optimizations
+      this.db.exec("PRAGMA journal_mode = WAL"); // Use WAL mode for better concurrency
+      this.db.exec("PRAGMA synchronous = NORMAL"); // Faster than FULL, still safe
+      this.db.exec("PRAGMA cache_size = 10000"); // Increase cache size
+      this.db.exec("PRAGMA temp_store = MEMORY"); // Use memory for temp tables
+      this.db.exec("PRAGMA mmap_size = 268435456"); // 256MB memory mapping
+      this.db.exec("PRAGMA optimize"); // Run query optimizer
+      
+      logger.info("Database performance optimizations applied");
     } catch (error) {
-      // Ignore if tracing is not available
+      logger.warn("Failed to apply some database optimizations:", error);
     }
   }
 

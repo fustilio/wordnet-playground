@@ -3,6 +3,8 @@ import { homedir } from 'os';
 import { existsSync, mkdirSync, readFileSync } from 'fs';
 import toml from 'smol-toml';
 import { ConfigurationError, ProjectError, ConfigManager as BaseConfigManager } from 'wn-ts-core';
+import type { ProjectInfo } from 'wn-ts-core';
+import type { ProjectConfig } from 'wn-ts-core';
 import { fileURLToPath } from 'url';
 import { statSync } from 'fs';
 import { logger } from 'wn-ts-core';
@@ -14,6 +16,7 @@ export interface ProjectVersion {
   resource_urls?: string[];
   error?: string;
   license?: string;
+  url?: string;
 }
 
 export interface Project {
@@ -25,16 +28,6 @@ export interface Project {
   versions: Record<string, ProjectVersion>;
 }
 
-export interface ProjectInfo {
-  id: string;
-  version: string;
-  type: string;
-  label: string;
-  language: string;
-  license: string;
-  resource_urls: string[];
-  cache?: string | undefined;
-}
 
 export interface Config {
   dataDirectory: string;
@@ -49,8 +42,12 @@ export interface Config {
  */
 export class ConfigManager extends BaseConfigManager {
   private _dataDirectory: string;
-  private _projects: Record<string, any>;
+  private _projects: Record<string, ProjectConfig>;
   private _allowMultithreading: boolean;
+
+  get index(): Record<string, ProjectConfig> {
+    return this._projects;
+  }
 
   constructor() {
     super();
@@ -101,9 +98,6 @@ export class ConfigManager extends BaseConfigManager {
     this._allowMultithreading = value;
   }
 
-  get index(): Record<string, any> {
-    return { ...this._projects };
-  }
 
   getCachePath(url: string): string {
     // Generate a consistent cache path based on URL hash
@@ -142,7 +136,7 @@ export class ConfigManager extends BaseConfigManager {
     error?: string,
     license?: string
   ): void {
-    const versionData: any = {};
+    const versionData: ProjectVersion = {};
     
     if (url && !error) {
       versionData.resource_urls = url.split(/\s+/).filter(Boolean);
@@ -163,7 +157,7 @@ export class ConfigManager extends BaseConfigManager {
     project.versions[version] = versionData;
   }
 
-  getProjectInfo(arg: string): any {
+  getProjectInfo(arg: string): ProjectInfo {
     const [id, version] = this.splitLexiconSpecifier(arg);
     if (!(id in this._projects)) {
       throw new ProjectError(`No such project id: ${id}`);
@@ -202,11 +196,14 @@ export class ConfigManager extends BaseConfigManager {
   loadIndex(path: string): void {
     try {
       const content = readFileSync(path, 'utf-8');
-      const index = toml.parse(content) as Record<string, any>;
+      const index = toml.parse(content) as unknown as Record<string, ProjectConfig>;
       this.update({ index });
-    } catch (error: any) {
-      if (error && (error.name === 'TomlError' || error.constructor?.name === 'TomlError')) {
-        throw new ConfigurationError('malformed index file');
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && error !== null && ('name' in error || 'constructor' in error)) {
+        const errorObj = error as { name?: string; constructor?: { name?: string } };
+        if (errorObj.name === 'TomlError' || errorObj.constructor?.name === 'TomlError') {
+          throw new ConfigurationError('malformed index file');
+        }
       }
       throw error;
     }
@@ -241,10 +238,10 @@ export class ConfigManager extends BaseConfigManager {
     return [parts[0]!, parts.slice(1).join(':')];
   }
 
-  update(data: Record<string, any>): void {
+  update(data: Record<string, unknown>): void {
     const index = data.index || {};
     for (const [id, project] of Object.entries(index)) {
-      const projectData = project as any;
+      const projectData = project as ProjectConfig;
       if (id in this._projects) {
         // Validate that they are the same
         const existingProject = this._projects[id]!;
@@ -264,7 +261,7 @@ export class ConfigManager extends BaseConfigManager {
         );
       }
       for (const [version, info] of Object.entries(projectData.versions || {})) {
-        const versionData = info as any;
+        const versionData = info as ProjectVersion;
         if ('url' in versionData && 'error' in projectData) {
           throw new ConfigurationError(`${id}:${version} url specified with default error`);
         }

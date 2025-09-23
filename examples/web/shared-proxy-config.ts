@@ -144,7 +144,12 @@ export function getWordNetServerConfig(): ServerConfig {
  */
 export function getWordNetOptimizeDeps() {
   return {
-    exclude: ['@sqlite.org/sqlite-wasm']
+    exclude: ['@sqlite.org/sqlite-wasm'],
+    include: [
+      'comlink',
+      'utils/logger',
+      'wn-ts-core'
+    ]
   };
 }
 

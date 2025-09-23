@@ -17,22 +17,22 @@ import { config } from './config.js';
 
 export class Wordnet implements WordNetCore {
   private kyselyWordnet: KyselyWordnet;
-  private _expand: string[];
-  private _defaultNormalizer: (form: string) => string;
-  private _defaultLemmatizer: (form: string, pos?: PartOfSpeech) => Record<PartOfSpeech, Set<string>>;
+  private expand: string[];
+  private defaultNormalizer: (form: string) => string;
+  private defaultLemmatizer: (form: string, pos?: PartOfSpeech) => Record<PartOfSpeech, Set<string>>;
 
-  private _initialized = false;
+  private initialized = false;
 
   constructor(
     lexicon: string = '*',
     options: WordnetOptions = {}
   ) {
     // Initialize properties directly since we're implementing WordNetCore interface
-    this._expand = Array.isArray(options.expand) ? options.expand : options.expand ? [options.expand] : [];
+    this.expand = Array.isArray(options.expand) ? options.expand : options.expand ? [options.expand] : [];
     
     // Set default normalizer and lemmatizer
-    this._defaultNormalizer = options.normalizer || this._createDefaultNormalizer();
-    this._defaultLemmatizer = options.lemmatizer || this._createDefaultLemmatizer();
+    this.defaultNormalizer = options.normalizer || this.createDefaultNormalizer();
+    this.defaultLemmatizer = options.lemmatizer || this.createDefaultLemmatizer();
     
 
 
@@ -40,7 +40,7 @@ export class Wordnet implements WordNetCore {
     const { strategy, ...otherOptions } = options;
     this.kyselyWordnet = new KyselyWordnet(lexicon, {
       filename: config.databasePath,
-      normalizer: this._defaultNormalizer,
+      normalizer: this.defaultNormalizer,
       strategy: strategy ?? 'default',
       ...otherOptions
     });
@@ -50,9 +50,9 @@ export class Wordnet implements WordNetCore {
    * Initialize the database if not already initialized
    */
   private async ensureInitialized(): Promise<void> {
-    if (!this._initialized) {
+    if (!this.initialized) {
       await this.kyselyWordnet.initialize();
-      this._initialized = true;
+      this.initialized = true;
     }
   }
 
@@ -60,23 +60,23 @@ export class Wordnet implements WordNetCore {
    * Close the database connection
    */
   async close(): Promise<void> {
-    if (this._initialized) {
+    if (this.initialized) {
       await this.kyselyWordnet.close();
-      this._initialized = false;
+      this.initialized = false;
     }
   }
 
   /**
    * Create a default normalizer function
    */
-  private _createDefaultNormalizer(): (form: string) => string {
+  private createDefaultNormalizer(): (form: string) => string {
     return (form: string) => form.toLowerCase().trim();
   }
 
   /**
    * Create a default lemmatizer function
    */
-  private _createDefaultLemmatizer(): (form: string, pos?: PartOfSpeech) => Record<PartOfSpeech, Set<string>> {
+  private createDefaultLemmatizer(): (form: string, pos?: PartOfSpeech) => Record<PartOfSpeech, Set<string>> {
     return (form: string, pos?: PartOfSpeech) => {
       const result: Record<PartOfSpeech, Set<string>> = {
         'n': new Set(),
@@ -251,7 +251,7 @@ export class Wordnet implements WordNetCore {
     async expandedLexicons(): Promise<Lexicon[]> {
     await this.ensureInitialized();
     
-    if (this._expand.length === 0) {
+    if (this.expand.length === 0) {
       return [];
     }
 
@@ -261,11 +261,11 @@ export class Wordnet implements WordNetCore {
 
   // Add the missing normalizer and lemmatizer methods that tests expect
   async normalizeForm(form: string): Promise<string> {
-    return this._defaultNormalizer(form);
+    return this.defaultNormalizer(form);
   }
 
   async morphy(form: string, pos?: PartOfSpeech): Promise<Record<PartOfSpeech, Set<string>>> {
-    return this._defaultLemmatizer(form, pos);
+    return this.defaultLemmatizer(form, pos);
   }
 
   async ilis(status?: string): Promise<ILI[]> {

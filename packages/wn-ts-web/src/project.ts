@@ -68,10 +68,15 @@ export class Project {
   public readonly version: string | null;
   public readonly projectIdWithVersion: string;
 
-  private readonly _projectData: ProjectData;
+  private readonly projectData: ProjectData;
   private readonly projectVersionData:
     | z.infer<typeof ProjectVersionSchema>
     | undefined;
+
+  // Public getter for projectData
+  get data(): ProjectData {
+    return this.projectData;
+  }
 
   constructor(projectIdWithVersion: string) {
     this.projectIdWithVersion = projectIdWithVersion;
@@ -83,20 +88,20 @@ export class Project {
     if (!(this.id in index)) {
       throw new Error(`Project with ID '${this.id}' not found in index.`);
     }
-    this._projectData = index[this.id as keyof typeof index];
+    this.projectData = index[this.id as keyof typeof index];
 
-    if ("error" in this._projectData) {
-      throw new Error(this._projectData.error);
+    if ("error" in this.projectData) {
+      throw new Error(this.projectData.error);
     }
 
     if (this.version) {
-      if (!(this.version in this._projectData.versions)) {
+      if (!(this.version in this.projectData.versions)) {
         throw new Error(
           `Version '${this.version}' not found for project '${this.id}'.`
         );
       }
 
-      this.projectVersionData = this._projectData.versions[this.version];
+      this.projectVersionData = this.projectData.versions[this.version];
 
       if ("error" in this.projectVersionData) {
         throw new Error(this.projectVersionData.error);
@@ -153,11 +158,11 @@ export class Project {
 
   getUrls(): string[] {
     if (!this.version) {
-      if ("error" in this._projectData)
-        throw new Error(this._projectData.error);
+      if ("error" in this.projectData)
+        throw new Error(this.projectData.error);
       throw new Error(
         `No version specified for project '${this.id}'. Available versions: ${Object.keys(
-          this._projectData.versions
+          this.projectData.versions
         ).join(", ")}`
       );
     }
@@ -221,11 +226,11 @@ export class Project {
     primaryUrl: string;
   } {
     if (!this.version) {
-      if ("error" in this._projectData)
-        throw new Error(this._projectData.error);
+      if ("error" in this.projectData)
+        throw new Error(this.projectData.error);
       throw new Error(
         `No version specified for project '${this.id}'. Available versions: ${Object.keys(
-          this._projectData.versions
+          this.projectData.versions
         ).join(", ")}`
       );
     }
@@ -275,25 +280,25 @@ export class Project {
   }
 
   getLabel(): string {
-    if ("error" in this._projectData) {
-      throw new Error(this._projectData.error);
+    if ("error" in this.projectData) {
+      throw new Error(this.projectData.error);
     }
-    return this._projectData.label || `Project ${this.id.toUpperCase()}`;
+    return this.projectData.label || `Project ${this.id.toUpperCase()}`;
   }
 
   getLanguage(): string {
-    if ("error" in this._projectData) {
-      throw new Error(this._projectData.error);
+    if ("error" in this.projectData) {
+      throw new Error(this.projectData.error);
     }
-    return this._projectData.language || "en";
+    return this.projectData.language || "en";
   }
 
   getLicense(): string {
-    if ("error" in this._projectData) {
-      throw new Error(this._projectData.error);
+    if ("error" in this.projectData) {
+      throw new Error(this.projectData.error);
     }
     return (
-      this._projectData.license ||
+      this.projectData.license ||
       "https://creativecommons.org/licenses/by/4.0/"
     );
   }
@@ -303,13 +308,13 @@ export class Project {
   }
 
   get type(): string | undefined {
-    if ("error" in this._projectData) {
-      throw new Error(this._projectData.error);
+    if ("error" in this.projectData) {
+      throw new Error(this.projectData.error);
     }
-    return this._projectData.type;
+    return this.projectData.type;
   }
 
   get projectData(): ProjectData {
-    return this._projectData;
+    return this.projectData;
   }
 }

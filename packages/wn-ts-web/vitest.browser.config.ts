@@ -13,7 +13,10 @@ export default defineConfig({
     setupFiles: ["./test/browser/setup.ts"],
     globals: true,
     // Only include browser-specific tests
-    include: ["test/browser/**/*.{test,spec}.{js,ts,jsx,tsx}"],
+    include: [
+      "test/browser/**/*.{test,spec}.{js,ts,jsx,tsx}",
+      "tests/platform-integration/**/*.{test,spec}.{js,ts,jsx,tsx}"
+    ],
     // Exclude E2E tests from this browser-functional test suite
     exclude: [
       "test/browser/e2e/**/*",

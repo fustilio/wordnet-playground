@@ -6,10 +6,36 @@ import { getWordNetServerConfig, getWordNetOptimizeDeps, getWordNetWorkerConfig 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [comlink(), react()],
-  server: getWordNetServerConfig(),
-  optimizeDeps: getWordNetOptimizeDeps(),
+  server: {
+    ...getWordNetServerConfig(),
+    // Add development optimizations
+    hmr: {
+      overlay: false // Reduce overlay noise during development
+    }
+  },
+  optimizeDeps: {
+    ...getWordNetOptimizeDeps(),
+    // Force pre-bundling of common dependencies
+    force: true
+  },
   worker: {
     ...getWordNetWorkerConfig(),
-    plugins: () => [comlink()]
+    plugins: () => [comlink()],
+    // Optimize worker bundling
+    format: 'es'
+  },
+  // Add build optimizations
+  build: {
+    target: 'esnext',
+    minify: 'esbuild',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'sqlite-wasm': ['@sqlite.org/sqlite-wasm'],
+          'wordnet-core': ['wn-ts-core'],
+          'comlink': ['comlink']
+        }
+      }
+    }
   }
 })
