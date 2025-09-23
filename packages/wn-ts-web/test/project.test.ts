@@ -11,13 +11,13 @@ describe("Project", () => {
 
   it("should get project metadata", () => {
     const project = new Project("oewn:2024");
-    expect(project.getLabel()).toBe("Open English WordNet");
-    expect(project.getLanguage()).toBe("en");
+    expect(project.label).toBe("Open English WordNet");
+    expect(project.language).toBe("en");
   });
 
   it("should get project URLs", () => {
     const project = new Project("oewn:2024");
-    const urls = project.getUrls();
+    const urls = project.urls;
     expect(urls).toContain(
       "https://en-word.net/static/english-wordnet-2024.xml.gz"
     );
@@ -28,18 +28,18 @@ describe("Project", () => {
 
   it("should get primary URL correctly", () => {
     const project = new Project("oewn:2024");
-    const primaryUrl = project.getPrimaryUrl();
+    const primaryUrl = project.primaryUrl;
     expect(primaryUrl).toBe("https://en-word.net/static/english-wordnet-2024.xml.gz");
   });
 
   it("should detect multiple URLs correctly", () => {
     const project = new Project("oewn:2024");
-    expect(project.hasMultipleUrls()).toBe(true);
+    expect(project.hasMultipleUrls).toBe(true);
   });
 
   it("should provide detailed URL information", () => {
     const project = new Project("oewn:2024");
-    const urlInfo = project.getUrlInfo();
+    const urlInfo = project.urlInfo;
     expect(urlInfo.count).toBe(2);
     expect(urlInfo.hasMultipleUrls).toBe(true);
     expect(urlInfo.primaryUrl).toBe("https://en-word.net/static/english-wordnet-2024.xml.gz");
@@ -49,16 +49,16 @@ describe("Project", () => {
 
   it("should provide fallback URLs for known broken packages", () => {
     const ciliProject = new Project("cili:1.0");
-    const fallbackUrls = ciliProject.getFallbackUrls();
+    const fallbackUrls = ciliProject.fallbackUrls;
     // Currently no fallback URLs are implemented
     expect(fallbackUrls).toHaveLength(0);
   });
 
   it("should get all URLs including fallbacks", () => {
     const ciliProject = new Project("cili:1.0");
-    const allUrls = ciliProject.getAllUrls();
-    const primaryUrls = ciliProject.getUrls();
-    const fallbackUrls = ciliProject.getFallbackUrls();
+    const allUrls = ciliProject.allUrls;
+    const primaryUrls = ciliProject.urls;
+    const fallbackUrls = ciliProject.fallbackUrls;
     
     expect(allUrls.length).toBe(primaryUrls.length + fallbackUrls.length);
     expect(allUrls).toContain(primaryUrls[0]);
@@ -112,9 +112,9 @@ describe("Project", () => {
       });
 
       const project = new Project("th-en-sample:1.0");
-      expect(project.getLabel()).toBe("Thai–English Sample Lexicon");
-      expect(project.getLanguage()).toBe("th");
-      const urls = project.getUrls();
+      expect(project.label).toBe("Thai–English Sample Lexicon");
+      expect(project.language).toBe("th");
+      const urls = project.urls;
       expect(urls).toContain(
         "http://localhost:5173/lexicons/th-en-sample.xml.gz"
       );
@@ -141,15 +141,15 @@ describe("Project", () => {
       });
 
       const extended = new Project("oewn:2025");
-      expect(extended.getLabel()).toBe("Open English WordNet");
-      expect(extended.getLanguage()).toBe("en");
-      expect(extended.getUrls()).toContain(
+      expect(extended.label).toBe("Open English WordNet");
+      expect(extended.language).toBe("en");
+      expect(extended.urls).toContain(
         "https://example.com/english-wordnet-2025.xml.gz"
       );
 
       // Base versions must still work (from built-in index)
       const base = new Project("oewn:2024");
-      const baseUrls = base.getUrls();
+      const baseUrls = base.urls;
       expect(baseUrls.length).toBeGreaterThan(0);
 
       // Cleanup
@@ -170,7 +170,7 @@ describe("Project", () => {
 
       // Works while custom overlay is present
       const custom = new Project("customwn:1.0");
-      expect(custom.getUrls()).toContain("https://example.com/custom.xml.gz");
+      expect(custom.urls).toContain("https://example.com/custom.xml.gz");
 
       // Clear and ensure it disappears
       Project.clearCustomIndex();

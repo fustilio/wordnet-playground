@@ -101,17 +101,22 @@ export interface ProjectInfo {
 export function getAvailableProjects(): ProjectInfo[] {
   const merged = Project.getIndex() as unknown as Record<string, ProjectData>;
   return Object.entries(merged)
-    .filter(([, project]) => project.label) // Only include projects with labels
-    .map(([id, project]) => ({
-      id,
-      label: project.label!,
-      language: project.language,
-      license: project.license,
-      description: project.description,
-      url: project.url,
-      citation: project.citation,
-      versions: Object.keys(project.versions)
-    }));
+    .filter(([, project]) => project && !('error' in project) && project.label) // Only include valid projects with labels
+    .map(([id, project]) => {
+      // Create a temporary Project instance to get computed properties
+      const version = Object.keys(project.versions)[0] || 'latest';
+      const tempProject = new Project(`${id}:${version}`);
+      return {
+        id,
+        label: project.label!,
+        language: project.language || 'en',
+        license: project.license || 'https://creativecommons.org/licenses/by/4.0/',
+        description: project.type || 'WordNet project',
+        url: tempProject.primaryUrl,
+        citation: tempProject.citation,
+        versions: Object.keys(project.versions)
+      };
+    });
 }
 
 /**
@@ -120,16 +125,20 @@ export function getAvailableProjects(): ProjectInfo[] {
 export function getProjectDetails(projectId: string): ProjectInfo | null {
   const merged = Project.getIndex() as unknown as Record<string, ProjectData>;
   const project = merged[projectId];
-  if (!project || !project.label) return null;
+  if (!project || 'error' in project || !project.label) return null;
+  
+  // Create a temporary Project instance to get computed properties
+  const version = Object.keys(project.versions)[0] || 'latest';
+  const tempProject = new Project(`${projectId}:${version}`);
   
   return {
     id: projectId,
     label: project.label,
-    language: project.language,
-    license: project.license,
-    description: project.description,
-    url: project.url,
-    citation: project.citation,
+    language: project.language || 'en',
+    license: project.license || 'https://creativecommons.org/licenses/by/4.0/',
+    description: project.type || 'WordNet project',
+    url: tempProject.primaryUrl,
+    citation: tempProject.citation,
     versions: Object.keys(project.versions)
   };
 }

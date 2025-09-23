@@ -255,7 +255,7 @@ export class DataLoader {
     }
 
     // Check for project version errors
-    const versionError = project.getError();
+    const versionError = project.error;
     if (versionError) {
       throw new Error(`Project version error: ${versionError}`);
     }
@@ -264,7 +264,7 @@ export class DataLoader {
     await this.ensureDependenciesLoaded(projectIdWithVersion);
 
     // Get URLs from the index data
-    const urls = project.getAllUrls();
+    const urls = project.allUrls;
     if (!urls || urls.length === 0) {
       throw new Error(
         `No download URL found for project ${projectIdWithVersion}`
@@ -272,13 +272,13 @@ export class DataLoader {
     }
 
     // Log URL information for debugging
-    const urlInfo = project.getUrlInfo();
+    const urlInfo = project.urlInfo;
     this.logger.info(`🔗 URL information for ${projectIdWithVersion}:`, {
       urlCount: urlInfo.count,
-      hasMultipleUrls: project.hasMultipleUrls(),
-      primaryUrl: project.getPrimaryUrl(),
+      hasMultipleUrls: project.hasMultipleUrls,
+      primaryUrl: project.primaryUrl,
       allUrls: urls,
-      fallbackUrls: project.getFallbackUrls(),
+      fallbackUrls: project.fallbackUrls,
     });
 
     let lastError: Error | null = null;
@@ -286,7 +286,7 @@ export class DataLoader {
     // Try each URL until one works
     for (let i = 0; i < urls.length; i++) {
       const url = urls[i];
-      const isFallback = i >= project.getUrls().length;
+      const isFallback = i >= project.urls.length;
       const urlType = isFallback ? "fallback" : "primary";
 
       try {
@@ -342,8 +342,8 @@ export class DataLoader {
     // If we get here, all URLs failed
     this.logger.error(`❌ All URLs failed for ${projectIdWithVersion}:`, {
       totalAttempts: urls.length,
-      primaryUrls: project.getUrls(),
-      fallbackUrls: project.getFallbackUrls(),
+      primaryUrls: project.urls,
+      fallbackUrls: project.fallbackUrls,
       lastError: lastError?.message,
     });
     throw new Error(
@@ -1107,11 +1107,11 @@ export class DataLoader {
       this.logger.debug(`🔍 Debug insertLexicon: projectId = ${project.id}`);
       this.logger.debug(`🔍 Debug insertLexicon: project =`, project);
 
-      const label = project.getLabel();
-      const language = project.getLanguage();
-      const license = project.getLicense();
-      const url = `https://github.com/globalwordnet/${project.id}`;
-      const citation = project.getCitation();
+      const label = project.label;
+      const language = project.language;
+      const license = project.license;
+      const url = project.primaryUrl;
+      const citation = project.citation;
 
       this.logger.debug(
         `🔍 Debug insertLexicon: Final values - label: "${label}", language: "${language}", license: "${license}"`

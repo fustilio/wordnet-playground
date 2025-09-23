@@ -92,9 +92,9 @@ export class MockDataLoader extends DataLoader {
       try {
         const queryService = this.getQueryService();
         const label =
-          project.getLabel() || `Sample ${project.id.toUpperCase()}`;
-        const language = project.getLanguage();
-        const license = project.getLicense();
+          project.label || `Sample ${project.id.toUpperCase()}`;
+        const language = project.language;
+        const license = project.license;
 
         logger.info(
           `🔍 Debug: Final values - label: "${label}", language: "${language}", license: "${license}"`
@@ -263,9 +263,9 @@ export class MockDataLoader extends DataLoader {
       try {
         const queryService = this.getQueryService();
         const label =
-          project.getLabel() || `Mock Large ${project.id.toUpperCase()}`;
-        const language = project.getLanguage();
-        const license = project.getLicense();
+          project.label || `Mock Large ${project.id.toUpperCase()}`;
+        const language = project.language;
+        const license = project.license;
 
         logger.info(
           `🔍 Debug Mock: Final values - label: "${label}", language: "${language}", license: "${license}"`

@@ -64,47 +64,59 @@ function getMergedIndex(): Record<string, z.infer<typeof ProjectDataSchema>> {
 export type ProjectData = z.infer<typeof ProjectDataSchema>;
 
 export class Project {
-  public readonly id: string;
-  public readonly version: string | null;
-  public readonly projectIdWithVersion: string;
+  #id: string;
+  #version: string | null;
+  #projectIdWithVersion: string;
 
-  private readonly projectData: ProjectData;
-  private readonly projectVersionData:
+  #projectData: ProjectData;
+  #projectVersionData:
     | z.infer<typeof ProjectVersionSchema>
     | undefined;
 
+  get id(): string {
+    return this.#id;
+  }
+
+  get version(): string | null {
+    return this.#version;
+  }
+
+  get projectIdWithVersion(): string {
+    return this.#projectIdWithVersion;
+  }
+
   // Public getter for projectData
   get data(): ProjectData {
-    return this.projectData;
+    return this.#projectData;
   }
 
   constructor(projectIdWithVersion: string) {
-    this.projectIdWithVersion = projectIdWithVersion;
+    this.#projectIdWithVersion = projectIdWithVersion;
     const [id, version] = projectIdWithVersion.split(":");
-    this.id = id;
-    this.version = version?.trim() || null;
+    this.#id = id;
+    this.#version = version?.trim() || null;
 
     const index = getMergedIndex();
-    if (!(this.id in index)) {
-      throw new Error(`Project with ID '${this.id}' not found in index.`);
+    if (!(this.#id in index)) {
+      throw new Error(`Project with ID '${this.#id}' not found in index.`);
     }
-    this.projectData = index[this.id as keyof typeof index];
+    this.#projectData = index[this.#id as keyof typeof index];
 
-    if ("error" in this.projectData) {
-      throw new Error(this.projectData.error);
+    if ("error" in this.#projectData) {
+      throw new Error(this.#projectData.error);
     }
 
-    if (this.version) {
-      if (!(this.version in this.projectData.versions)) {
+    if (this.#version) {
+      if (!(this.#version in this.#projectData.versions)) {
         throw new Error(
-          `Version '${this.version}' not found for project '${this.id}'.`
+          `Version '${this.#version}' not found for project '${this.#id}'.`
         );
       }
 
-      this.projectVersionData = this.projectData.versions[this.version];
+      this.#projectVersionData = this.#projectData.versions[this.#version];
 
-      if ("error" in this.projectVersionData) {
-        throw new Error(this.projectVersionData.error);
+      if ("error" in this.#projectVersionData) {
+        throw new Error(this.#projectVersionData.error);
       }
     }
   }
@@ -156,26 +168,26 @@ export class Project {
     return getMergedIndex();
   }
 
-  getUrls(): string[] {
-    if (!this.version) {
-      if ("error" in this.projectData)
-        throw new Error(this.projectData.error);
+  get urls(): string[] {
+    if (!this.#version) {
+      if ("error" in this.#projectData)
+        throw new Error(this.#projectData.error);
       throw new Error(
-        `No version specified for project '${this.id}'. Available versions: ${Object.keys(
-          this.projectData.versions
+        `No version specified for project '${this.#id}'. Available versions: ${Object.keys(
+          this.#projectData.versions
         ).join(", ")}`
       );
     }
-    if (!this.projectVersionData) {
+    if (!this.#projectVersionData) {
       // Should not be reached due to constructor checks, but for type safety
       throw new Error("Project version data not available.");
     }
-    if ("error" in this.projectVersionData) {
-      throw new Error(this.projectVersionData.error);
+    if ("error" in this.#projectVersionData) {
+      throw new Error(this.#projectVersionData.error);
     }
 
     // Split by whitespace and newlines, then clean up each URL
-    const urls = this.projectVersionData.url
+    const urls = this.#projectVersionData.url
       .split(/\s+/)
       .map((url) => url.trim())
       .filter((url) => url.length > 0)
@@ -196,11 +208,11 @@ export class Project {
    * Get the primary (first) URL for this project version.
    * Useful when you need a single URL to start with.
    */
-  getPrimaryUrl(): string {
-    const urls = this.getUrls();
+  get primaryUrl(): string {
+    const urls = this.urls;
     if (urls.length === 0) {
       throw new Error(
-        `No valid URLs found for project '${this.id}' version '${this.version}'`
+        `No valid URLs found for project '${this.#id}' version '${this.#version}'`
       );
     }
     return urls[0];
@@ -210,15 +222,15 @@ export class Project {
    * Check if this project version has multiple URLs available.
    * Useful for implementing fallback logic in the data loader.
    */
-  hasMultipleUrls(): boolean {
-    return this.getUrls().length > 1;
+  get hasMultipleUrls(): boolean {
+    return this.urls.length > 1;
   }
 
   /**
    * Get detailed information about the URLs for this project version.
    * Useful for debugging and understanding URL parsing.
    */
-  getUrlInfo(): {
+  get urlInfo(): {
     urls: string[];
     count: number;
     raw: string;
@@ -226,26 +238,26 @@ export class Project {
     primaryUrl: string;
   } {
     if (!this.version) {
-      if ("error" in this.projectData)
-        throw new Error(this.projectData.error);
+      if ("error" in this.#projectData)
+        throw new Error(this.#projectData.error);
       throw new Error(
-        `No version specified for project '${this.id}'. Available versions: ${Object.keys(
-          this.projectData.versions
+        `No version specified for project '${this.#id}'. Available versions: ${Object.keys(
+          this.#projectData.versions
         ).join(", ")}`
       );
     }
-    if (!this.projectVersionData) {
+    if (!this.#projectVersionData) {
       throw new Error("Project version data not available.");
     }
-    if ("error" in this.projectVersionData) {
-      throw new Error(this.projectVersionData.error);
+    if ("error" in this.#projectVersionData) {
+      throw new Error(this.#projectVersionData.error);
     }
 
-    const urls = this.getUrls();
+    const urls = this.urls;
     return {
       urls,
       count: urls.length,
-      raw: this.projectVersionData.url,
+      raw: this.#projectVersionData.url,
       hasMultipleUrls: urls.length > 1,
       primaryUrl: urls.length > 0 ? urls[0] : "",
     };
@@ -255,10 +267,10 @@ export class Project {
    * Get fallback URLs for known broken packages.
    * This provides working alternatives when the main URLs fail.
    */
-  getFallbackUrls(): string[] {
+  get fallbackUrls(): string[] {
     const fallbacks: Record<string, string[]> = {};
 
-    const key = `${this.id}:${this.version}`;
+    const key = `${this.#id}:${this.#version}`;
     return fallbacks[key] || [];
   }
 
@@ -266,55 +278,51 @@ export class Project {
    * Get all available URLs including fallbacks.
    * Useful for the data loader to try multiple sources.
    */
-  getAllUrls(): string[] {
-    const primaryUrls = this.getUrls();
-    const fallbackUrls = this.getFallbackUrls();
+  get allUrls(): string[] {
+    const primaryUrls = this.urls;
+    const fallbackUrls = this.fallbackUrls;
     return [...primaryUrls, ...fallbackUrls];
   }
 
-  getError(): string | undefined {
-    if (this.projectVersionData && "error" in this.projectVersionData) {
-      return this.projectVersionData.error;
+  get error(): string | undefined {
+    if (this.#projectVersionData && "error" in this.#projectVersionData) {
+      return this.#projectVersionData.error;
     }
     return undefined;
   }
 
-  getLabel(): string {
-    if ("error" in this.projectData) {
-      throw new Error(this.projectData.error);
+  get label(): string {
+    if ("error" in this.#projectData) {
+      throw new Error(this.#projectData.error);
     }
-    return this.projectData.label || `Project ${this.id.toUpperCase()}`;
+    return this.#projectData.label || `Project ${this.#id.toUpperCase()}`;
   }
 
-  getLanguage(): string {
-    if ("error" in this.projectData) {
-      throw new Error(this.projectData.error);
+  get language(): string {
+    if ("error" in this.#projectData) {
+      throw new Error(this.#projectData.error);
     }
-    return this.projectData.language || "en";
+    return this.#projectData.language || "en";
   }
 
-  getLicense(): string {
-    if ("error" in this.projectData) {
-      throw new Error(this.projectData.error);
+  get license(): string {
+    if ("error" in this.#projectData) {
+      throw new Error(this.#projectData.error);
     }
     return (
-      this.projectData.license ||
+      this.#projectData.license ||
       "https://creativecommons.org/licenses/by/4.0/"
     );
   }
 
-  getCitation(): string {
-    return `${this.getLabel()} ${this.version}.`;
+  get citation(): string {
+    return `${this.label} ${this.#version}.`;
   }
 
   get type(): string | undefined {
-    if ("error" in this.projectData) {
-      throw new Error(this.projectData.error);
+    if ("error" in this.#projectData) {
+      throw new Error(this.#projectData.error);
     }
-    return this.projectData.type;
-  }
-
-  get projectData(): ProjectData {
-    return this.projectData;
+    return this.#projectData.type;
   }
 }
