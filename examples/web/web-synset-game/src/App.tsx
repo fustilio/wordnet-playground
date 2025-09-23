@@ -3,11 +3,17 @@ import { useWordnet } from './hooks/useWordnet';
 import './index.css';
 
 function App() {
-  const { getDefinitions, loading, error, ready } = useWordnet({ lang: 'en-US' });
+  const { getDefinitions, getSynsetWords, loading, error, ready } = useWordnet({ lang: 'en-US' });
   const [searchTerm, setSearchTerm] = useState('water');
   const [results, setResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+
+  // New state for synset word lookup
+  const [synsetId, setSynsetId] = useState('');
+  const [synsetWords, setSynsetWords] = useState<any[]>([]);
+  const [isLoadingSynsetWords, setIsLoadingSynsetWords] = useState(false);
+  const [synsetError, setSynsetError] = useState<string | null>(null);
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) return;
@@ -23,6 +29,23 @@ function App() {
       setSearchError(err instanceof Error ? err.message : 'Search failed');
     } finally {
       setIsSearching(false);
+    }
+  };
+
+  const handleSynsetLookup = async () => {
+    if (!synsetId.trim()) return;
+
+    setIsLoadingSynsetWords(true);
+    setSynsetError(null);
+    setSynsetWords([]);
+
+    try {
+      const words = await getSynsetWords(synsetId);
+      setSynsetWords(words);
+    } catch (err) {
+      setSynsetError(err instanceof Error ? err.message : 'Synset lookup failed');
+    } finally {
+      setIsLoadingSynsetWords(false);
     }
   };
 
@@ -120,6 +143,57 @@ function App() {
           ) : !isSearching && searchTerm && ready ? (
             <div className="no-results">
               No definitions found for "{searchTerm}"
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      {/* New Synset Lookup Section */}
+      <div className="card">
+        <h2>Synset Word Lookup</h2>
+        <p>Enter a synset ID to see all words in that synset</p>
+
+        <div className="search-form">
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Enter synset ID (e.g., oewn-02084071-n)"
+            value={synsetId}
+            onChange={(e) => setSynsetId(e.target.value)}
+            disabled={!ready || isLoadingSynsetWords}
+          />
+          <button
+            className="search-button"
+            onClick={handleSynsetLookup}
+            disabled={!ready || isLoadingSynsetWords || !synsetId.trim()}
+          >
+            {isLoadingSynsetWords ? 'Loading...' : 'Get Words'}
+          </button>
+        </div>
+
+        {synsetError && (
+          <div className="error">
+            {synsetError}
+          </div>
+        )}
+
+        <div className="results">
+          {synsetWords.length > 0 ? (
+            <div>
+              <h3>Words in synset {synsetId}:</h3>
+              <div className="synset-words-list">
+                {synsetWords.map((word, index) => (
+                  <div key={index} className="word-item">
+                    <strong>{word.lemma} </strong>
+                    {word.pos && <span className="pos-tag">{word.pos} </span>}
+                    {word.language && <span className="language-tag">{word.language}  </span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : !isLoadingSynsetWords && synsetId && ready ? (
+            <div className="no-results">
+              No words found for synset "{synsetId}"
             </div>
           ) : null}
         </div>
