@@ -14,7 +14,6 @@ export default defineConfig({
     fileParallelism: false,
     globals: true,
     include: [
-      "test/browser/e2e/**/*.{test,spec}.{js,ts,jsx,tsx}",
       "test/e2e/**/*.{test,spec}.{js,ts,jsx,tsx}"
     ],
     pool: "forks",
@@ -27,7 +26,7 @@ export default defineConfig({
     hookTimeout: 300000, // 5 minutes for E2E hooks
     silent: false, // Enable logging for debugging
     environment: "jsdom", // Use jsdom for browser-like environment
-    setupFiles: ["test/browser/e2e/setup.ts"], // Setup file for e2e tests
+    setupFiles: ["test/e2e/setup.ts"], // Setup file for e2e tests
   },
   server: {
     proxy: {

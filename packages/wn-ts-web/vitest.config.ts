@@ -11,7 +11,7 @@ export default defineConfig({
       "src/**/*.{test,spec}.{js,ts,jsx,tsx}",
     ],
     includeSource: ["src/**/*.{ts,tsx}"],
-    exclude: ["test/browser/**/*", "test/e2e/**/*"],
+    exclude: ["test/integration/**/*", "test/e2e/**/*"],
     testTimeout: 10000, // 10 second timeout
     hookTimeout: 10000, // 10 second timeout for hooks
     coverage: {
