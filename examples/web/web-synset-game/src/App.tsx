@@ -3,7 +3,7 @@ import { useWordnet } from './hooks/useWordnet';
 import './index.css';
 
 function App() {
-  const { getDefinitions, getSynsetWords, loading, error, ready } = useWordnet({ lang: 'en-US' });
+  const { getDefinitions, getSynsetWords, getIliWords, loading, error, ready } = useWordnet({ lang: 'en-US' });
   const [searchTerm, setSearchTerm] = useState('water');
   const [results, setResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -14,6 +14,12 @@ function App() {
   const [synsetWords, setSynsetWords] = useState<any[]>([]);
   const [isLoadingSynsetWords, setIsLoadingSynsetWords] = useState(false);
   const [synsetError, setSynsetError] = useState<string | null>(null);
+
+  // New state for ILI word lookup
+  const [iliId, setIliId] = useState('');
+  const [iliWords, setIliWords] = useState<any[]>([]);
+  const [isLoadingIliWords, setIsLoadingIliWords] = useState(false);
+  const [iliError, setIliError] = useState<string | null>(null);
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) return;
@@ -46,6 +52,23 @@ function App() {
       setSynsetError(err instanceof Error ? err.message : 'Synset lookup failed');
     } finally {
       setIsLoadingSynsetWords(false);
+    }
+  };
+
+  const handleIliLookup = async () => {
+    if (!iliId.trim()) return;
+
+    setIsLoadingIliWords(true);
+    setIliError(null);
+    setIliWords([]);
+
+    try {
+      const words = await getIliWords(iliId);
+      setIliWords(words);
+    } catch (err) {
+      setIliError(err instanceof Error ? err.message : 'ILI lookup failed');
+    } finally {
+      setIsLoadingIliWords(false);
     }
   };
 
@@ -194,6 +217,58 @@ function App() {
           ) : !isLoadingSynsetWords && synsetId && ready ? (
             <div className="no-results">
               No words found for synset "{synsetId}"
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      {/* New ILI Lookup Section */}
+      <div className="card">
+        <h2>ILI Word Lookup</h2>
+        <p>Enter an ILI ID to see all words linked to that Inter-Lingual Index</p>
+
+        <div className="search-form">
+          <input
+            type="text"
+            className="search-input"
+            placeholder="Enter ILI ID (e.g., i67447)"
+            value={iliId}
+            onChange={(e) => setIliId(e.target.value)}
+            disabled={!ready || isLoadingIliWords}
+          />
+          <button
+            className="search-button"
+            onClick={handleIliLookup}
+            disabled={!ready || isLoadingIliWords || !iliId.trim()}
+          >
+            {isLoadingIliWords ? 'Loading...' : 'Get Words'}
+          </button>
+        </div>
+
+        {iliError && (
+          <div className="error">
+            {iliError}
+          </div>
+        )}
+
+        <div className="results">
+          {iliWords.length > 0 ? (
+            <div>
+              <h3>Words linked to ILI {iliId}:</h3>
+              <div className="synset-words-list">
+                {iliWords.map((word, index) => (
+                  <div key={index} className="word-item">
+                    <strong>{word.lemma} </strong>
+                    {word.pos && <span className="pos-tag">{word.pos} </span>}
+                    {word.language && <span className="language-tag">{word.language}  </span>}
+                    {word.lexicon && <span className="lexicon-tag">{word.lexicon}  </span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : !isLoadingIliWords && iliId && ready ? (
+            <div className="no-results">
+              No words found for ILI "{iliId}"
             </div>
           ) : null}
         </div>

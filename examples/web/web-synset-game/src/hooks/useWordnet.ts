@@ -26,9 +26,10 @@ export interface UseWordnetReturn {
 	ready: boolean;
 
 	// Basic operations
-	getDefinitions: (word: string) => Promise<WordDefinition[]>;
+	getDefinitions: (word: string) => Promise<any[]>;
 	searchWords: (term: string) => Promise<WordResult[]>;
 	getSynsetWords: (synsetId: string) => Promise<any[]>;
+	getIliWords: (iliId: string) => Promise<any[]>;
 
 	// Utility
 	isReady: () => boolean;
@@ -56,6 +57,7 @@ export function useWordnet(config: WordnetConfig = {}): UseWordnetReturn {
 		loadPackageData,
 		querySynsets,
 		getWordsBySynsetAndLanguage,
+		getWordsByIliAndLanguage,
 	} = useWordNetContext();
 
 	const [ready, setReady] = useState(false);
@@ -139,12 +141,46 @@ export function useWordnet(config: WordnetConfig = {}): UseWordnetReturn {
 		[isReady, getWordsBySynsetAndLanguage, lang]
 	);
 
+	const getIliWords = useCallback(
+		async (iliId: string): Promise<any[]> => {
+			if (!isReady()) {
+				throw new Error(
+					"WordNet is not ready. Please wait for initialization to complete."
+				);
+			}
+
+			try {
+				// Use the language from config  
+				const words = await getWordsByIliAndLanguage(
+					iliId,
+					lang.split("-")[0]
+				);
+				return words || [];
+			} catch (err) {
+				throw new Error(
+					`Failed to get words for ILI "${iliId}": ${err instanceof Error ? err.message : "Unknown error"}`
+				);
+			}
+		},
+		[isReady, getWordsByIliAndLanguage, lang]
+	);
+
+	const searchWords = useCallback(
+		async (term: string): Promise<WordResult[]> => {
+			// This is a placeholder - implement if needed
+			return [];
+		},
+		[]
+	);
+
 	return {
 		loading: loading || isInitializing,
 		error: error || initializationError,
 		ready: isReady(),
 		getDefinitions,
+		searchWords,
 		getSynsetWords,
+		getIliWords,
 		isReady,
 	};
 }
