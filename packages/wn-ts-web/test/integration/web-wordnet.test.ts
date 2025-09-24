@@ -6,7 +6,7 @@ import type { KyselyQueryService } from '../../src/database/kysely-query-service
 
 const isNode = typeof process !== 'undefined';
 
-describe.skipIf(isNode)('WebWordnet with Real Browser DB', () => {
+describe('WebWordnet with Real Browser DB', () => {
   let wordnet: WebWordnet;
   let sqlModule: Sqlite3Static;
   let queryService: KyselyQueryService;
@@ -21,7 +21,9 @@ describe.skipIf(isNode)('WebWordnet with Real Browser DB', () => {
   });
 
   beforeEach(async () => {
-    if (!sqlModule) return;
+    if (!sqlModule) {
+      throw new Error("SQLite WASM module not loaded");
+    }
 
     wordnet = new WebWordnet('oewn');
     await wordnet.initialize(sqlModule);
@@ -50,26 +52,26 @@ describe.skipIf(isNode)('WebWordnet with Real Browser DB', () => {
   });
 
   describe('Initialization', () => {
-    it.skipIf(!sqlModule)('should initialize and prepare the database', () => {
+    it('should initialize and prepare the database', () => {
       expect(wordnet.isInitialized).toBe(true);
       expect(queryService).toBeDefined();
     });
 
-    it.skipIf(!sqlModule)('should throw if query methods are called before initialization', async () => {
+    it('should throw if query methods are called before initialization', async () => {
       const uninitialized = new WebWordnet('oewn');
       await expect(uninitialized.words({ form: 'test' })).rejects.toThrow('WebWordnet not initialized');
     });
   });
 
   describe('Query Methods', () => {
-    it.skipIf(!sqlModule)('should retrieve a word from the database', async () => {
+    it('should retrieve a word from the database', async () => {
       const words = await wordnet.words({ form: 'happy', pos: 'a' });
       expect(words).toHaveLength(1);
       expect(words[0].lemma).toBe('happy');
       expect(words[0].pos).toBe('a');
     });
 
-    it.skipIf(!sqlModule)('should retrieve a synset with its definitions', async () => {
+    it('should retrieve a synset with its definitions', async () => {
       const synsets = await wordnet.synsets({ form: 'joy', pos: 'n' });
       expect(synsets).toHaveLength(1);
       const synset = synsets[0];
@@ -77,42 +79,41 @@ describe.skipIf(isNode)('WebWordnet with Real Browser DB', () => {
       expect(synset.definitions[0].text).toBe('a feeling of great pleasure');
     });
 
-    it.skipIf(!sqlModule)('should retrieve senses for a given word form', async () => {
+    it('should retrieve senses for a given word form', async () => {
       const senses = await wordnet.senses({ wordIdOrForm: 'run', pos: 'v' });
       expect(senses).toHaveLength(1);
       expect(senses[0].wordId).toBe('w-run');
       expect(senses[0].synsetId).toBe('s-run');
     });
 
-    it.skipIf(!sqlModule)('should retrieve a word by its specific ID', async () => {
-      const words = await wordnet.getWord('w-happy');
-      expect(words).toBeDefined();
-      expect(words).toHaveLength(1);
-      expect(words[0].lemma).toBe('happy');
+    it('should retrieve a word by its specific ID', async () => {
+      const word = await wordnet.getWordById('w-happy');
+      expect(word).toBeDefined();
+      expect(word!.lemma).toBe('happy');
     });
   });
 
   describe('Statistics Methods', () => {
-    it.skipIf(!sqlModule)('should return correct overall statistics from the database', async () => {
+    it('should return correct overall statistics from the database', async () => {
       const stats = await wordnet.getStatistics();
       expect(stats.totalWords).toBe(3);
       expect(stats.totalSynsets).toBe(3);
       expect(stats.totalSenses).toBe(3);
     });
     
-    it.skipIf(!sqlModule)('should correctly report if any lexicons are loaded', async () => {
+    it('should correctly report if any lexicons are loaded', async () => {
       const hasLexicons = await wordnet.hasLoadedLexicons();
       expect(hasLexicons).toBe(true);
     });
   });
 
   describe('Event System', () => {
-    it.skipIf(!sqlModule)('should emit an INITIALIZED event', async () => {
+    it('should emit an INITIALIZED event', async () => {
       const initSpy = vi.fn();
       const eventedWordnet = new WebWordnet('oewn:2024');
       eventedWordnet.on(WordNetEvents.INITIALIZED, initSpy);
       await eventedWordnet.initialize(sqlModule);
-      expect(initSpy).toHaveBeenCalledWith({ lexicon: 'oewn:2024' });
+      expect(initSpy).toHaveBeenCalledWith({ lexicons: ['oewn:2024'] });
     });
   });
 });

@@ -78,18 +78,18 @@ describe("SQLite OPFS Demo", () => {
       "Database seeded successfully."
     );
 
-    cy.log("Verifying 'notes' table exists in sqlite_master");
+    cy.log("Verifying 'notes' table exists");
     cy.get("textarea")
       .clear()
       .type(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='notes';"
+        "SELECT COUNT(*) as count FROM notes;"
       );
     cy.get("button")
       .contains("Run")
       .should("be.visible")
       .and("not.be.disabled")
       .click();
-    cy.get('[data-testid="sql-results"]', { timeout: 15000 }).contains("notes");
+    cy.get('[data-testid="sql-results"]', { timeout: 15000 }).contains("count");
     cy.log("Verified notes table creation");
   });
 

@@ -4,7 +4,7 @@ import type { ParserOptions, XMLElement, XMLTextNode } from "../xml/multi-xml-pa
 
 // Type for the parsed XML structure that has direct properties
 type ParsedXMLStructure = {
-  [key: string]: any; // Allow dynamic property access for XML elements
+  [key: string]: unknown; // Allow dynamic property access for XML elements
   name?: string;
   attributes?: Record<string, string>;
   children?: (XMLElement | XMLTextNode)[];
@@ -43,7 +43,7 @@ export interface LMFProgressCallback {
     stage: string,
     current: number,
     total?: number,
-    details?: Record<string, any>
+    details?: Record<string, unknown>
   ): void;
 }
 
@@ -159,7 +159,7 @@ export class LmfParser implements LMFXMLParser {
     if (options?.progress) {
       // Convert LMFLoadOptions.progress (number) to LMFProgressCallback (stage, current, total, details)
       const progressFn = options.progress;
-      progressCallback = (stage: string, current: number, total?: number, details?: Record<string, any>) => {
+      progressCallback = (stage: string, current: number, total?: number, details?: Record<string, unknown>) => {
         // Convert stage-based progress to number-based progress (0-1)
         const progress = total ? current / total : 0;
         progressFn(progress);
@@ -501,7 +501,7 @@ export class LmfParser implements LMFXMLParser {
         keys: Object.keys(element),
         hasChildren: !!element.children,
         childrenType: element.children ? typeof element.children : "none",
-        childrenLength: element.children && Array.isArray(element.children) ? (element.children as any[]).length : 0,
+        childrenLength: element.children && Array.isArray(element.children) ? (element.children as unknown[]).length : 0,
       });
     
     // Log potential issues with element structure
@@ -528,7 +528,7 @@ export class LmfParser implements LMFXMLParser {
       this.logger.warn("processLexicalResource: unexpected element structure", {
         hasChildren: !!element.children,
         childrenType: element.children ? typeof element.children : "none",
-        childrenLength: element.children && Array.isArray(element.children) ? (element.children as any[]).length : 0,
+        childrenLength: element.children && Array.isArray(element.children) ? (element.children as unknown[]).length : 0,
       });
     }
 
@@ -696,7 +696,7 @@ export class LmfParser implements LMFXMLParser {
         {
           hasChildren: !!element.children,
           childrenType: element.children ? typeof element.children : "none",
-          childrenLength: element.children && Array.isArray(element.children) ? (element.children as any[]).length : 0,
+          childrenLength: element.children && Array.isArray(element.children) ? (element.children as unknown[]).length : 0,
         }
       );
     }
@@ -781,7 +781,7 @@ export class LmfParser implements LMFXMLParser {
           const word = this.processLexicalEntry(child, lexiconElement.attributes?.id || "unknown");
           if (word) {
             if (lexiconLanguage) {
-              word.language = lexiconLanguage as any;
+              word.language = lexiconLanguage as string;
             }
             pendingWords.push(word);
             
@@ -820,7 +820,7 @@ export class LmfParser implements LMFXMLParser {
           const synset = this.processSynset(child, lexiconElement.attributes?.id || "unknown");
           if (synset) {
             if (lexiconLanguage) {
-              synset.language = lexiconLanguage as any;
+              synset.language = lexiconLanguage as string;
             }
             pendingSynsets.push(synset);
           } else {
@@ -1163,7 +1163,7 @@ export class LmfParser implements LMFXMLParser {
     } else {
       // Old structure
       id = element.id;
-      indexAttr = (element as any).index;
+      indexAttr = (element as { index?: string }).index;
     }
 
     if (!id) {
@@ -1233,7 +1233,7 @@ export class LmfParser implements LMFXMLParser {
     return {
       id,
       lemma,
-      pos: partOfSpeech as any,
+      pos: partOfSpeech as string,
       forms,
       pronunciations: [],
       tags: [],
@@ -1422,7 +1422,7 @@ export class LmfParser implements LMFXMLParser {
     return {
       id,
       ili: ili || undefined,
-      pos: (partOfSpeech || "n") as any,
+      pos: (partOfSpeech || "n") as string,
       definitions: definitions.length > 0 ? definitions : [],
       examples: [],
       relations: relations.length > 0 ? relations : [],
@@ -1604,7 +1604,7 @@ export class LmfParser implements LMFXMLParser {
         result.words.push({
           id: ea.id || "unknown",
           lemma: la.writtenForm || ea.id || "unknown",
-          pos: (la.partOfSpeech || "n") as any,
+          pos: (la.partOfSpeech || "n") as string,
           forms: [],
           pronunciations: [],
           tags: [],
@@ -1653,7 +1653,7 @@ export class LmfParser implements LMFXMLParser {
         result.synsets.push({
           id: sa.id || "unknown",
           ili: sa.ili || undefined,
-          pos: (sa.partOfSpeech || "n") as any,
+          pos: (sa.partOfSpeech || "n") as string,
           definitions: defText
             ? [
                 {

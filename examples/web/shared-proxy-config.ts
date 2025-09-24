@@ -11,4 +11,4 @@ export {
   getWordNetServerConfig,
   getWordNetOptimizeDeps,
   getWordNetWorkerConfig
-} from '../../../packages/wn-ts-web/src/config/proxy-config';
+} from '../../packages/wn-ts-web/config/proxy-config';

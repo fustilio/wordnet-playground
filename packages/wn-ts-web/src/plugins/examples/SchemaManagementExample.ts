@@ -14,7 +14,7 @@ import type {
   ConflictResolutionStrategy,
   KyselyDatabase
 } from 'wn-ts-core/plugins';
-import type { Database } from 'wn-ts-core/shared/database-types';
+import type { Database } from 'wn-ts-core/types/database';
 
 // Mock core implementation
 const mockCore: WordNetCore = {

@@ -8,6 +8,20 @@
 import { createWordNet, type WordNetWithPlugins } from 'wn-ts-core';
 import { relations, similarity, translation } from 'wn-ts-core/plugins';
 import { WebWordNetCore } from './wordnet-core.js';
+import type { 
+  WordQuery, 
+  SynsetQuery, 
+  SenseQuery,
+  Word,
+  Synset,
+  Sense,
+  Lexicon,
+  ILI
+} from 'wn-ts-core';
+import type { 
+  WordNetKernelOptions,
+  WordNetEventData
+} from './types/index.js';
 
 /**
  * Kernel-based WordNet for Web/Browser
@@ -17,7 +31,7 @@ export class WebWordNetKernel {
   private wordnet: WordNetWithPlugins<readonly [typeof relations, typeof similarity, typeof translation]>;
   private core: WebWordNetCore;
 
-  constructor(lexicon: string | string[] = '*', options: any = {}) {
+  constructor(lexicon: string | string[] = '*', options: WordNetKernelOptions = {}) {
     this.core = new WebWordNetCore(lexicon, options);
     this.wordnet = createWordNet({
       core: this.core,
@@ -36,39 +50,43 @@ export class WebWordNetKernel {
   }
 
   // Core WordNet methods (delegate to wordnet)
-  async words(query?: any): Promise<any[]> {
+  async words(query?: WordQuery): Promise<Word[]> {
     return this.wordnet.words(query);
   }
 
-  async word(wordId: string): Promise<any> {
+  async word(wordId: string): Promise<Word> {
     return this.wordnet.word(wordId);
   }
 
-  async synsets(query?: any): Promise<any[]> {
+  async synsets(query?: SynsetQuery): Promise<Synset[]> {
     return this.wordnet.synsets(query);
   }
 
-  async synset(synsetId: string): Promise<any> {
+  async synset(synsetId: string): Promise<Synset> {
     return this.wordnet.synset(synsetId);
   }
 
-  async senses(query?: any): Promise<any[]> {
+  async senses(query?: SenseQuery): Promise<Sense[]> {
     return this.wordnet.senses(query);
   }
 
-  async sense(senseId: string): Promise<any> {
+  async sense(senseId: string): Promise<Sense> {
     return this.wordnet.sense(senseId);
   }
 
-  async ili(iliId: string): Promise<any> {
+  async lexicons(): Promise<Lexicon[]> {
+    return this.wordnet.lexicons();
+  }
+
+  async ili(iliId: string): Promise<ILI> {
     return this.wordnet.ili(iliId);
   }
 
-  async ilis(status?: string): Promise<any[]> {
+  async ilis(status?: string): Promise<ILI[]> {
     return this.wordnet.ilis(status);
   }
 
-  async synsetsByILI(iliId: string): Promise<any[]> {
+  async synsetsByILI(iliId: string): Promise<Synset[]> {
     return this.wordnet.synsetsByILI(iliId);
   }
 

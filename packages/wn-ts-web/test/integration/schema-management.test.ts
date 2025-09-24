@@ -5,24 +5,15 @@
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { createWordNet } from 'wn-ts-core';
-import { similarity, translation } from 'wn-ts-core/plugins';
 import { WebWordnet } from '../../src/client/submodules/web-wordnet.js';
-import { Kysely, CompiledQuery } from 'kysely';
-import type { Database } from '../../src/types/database.js';
+import { CompiledQuery } from 'kysely';
 import type { Sqlite3Static } from '@sqlite.org/sqlite-wasm';
 import type { 
-  WordNetCore, 
   WordNetWithPlugins, 
   KyselyDatabase,
   PluginSchemaRequirements,
   HealthCheckResult,
-  ConflictResolutionStrategy,
-  Word,
-  Synset,
-  Sense,
-  Definition,
-  Relation
-} from 'wn-ts-core';
+  ConflictResolutionStrategy} from 'wn-ts-core';
 
 const isNode = typeof process !== 'undefined' && process.versions != null && process.versions.node != null;
 

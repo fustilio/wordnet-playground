@@ -6,7 +6,13 @@
  */
 
 import type { Kysely } from 'kysely';
-import type { Database } from './database-types.js';
+import type { Database } from '../types/database.js';
+import {
+  deleteLexicon as deleteLexiconMutation,
+  deleteWordsByLexicon as deleteWordsByLexiconMutation,
+  deleteSynsetsByLexicon as deleteSynsetsByLexiconMutation,
+  deleteAllData as deleteAllDataMutation
+} from '../modules/database-operations/mutations/delete-mutations.js';
 
 /**
  * Common database utility functions
@@ -16,95 +22,28 @@ export class DatabaseUtils {
    * Delete all data from a lexicon in the correct order to respect foreign key constraints
    */
   static async deleteLexicon(db: Kysely<Database>, lexiconId: string): Promise<void> {
-    // Delete in order to respect foreign key constraints
-    await db.deleteFrom('forms').where('word_id', 'in', 
-      db.selectFrom('words').select('id').where('lexicon', '=', lexiconId)
-    ).execute();
-    
-    await db.deleteFrom('definitions').where('synset_id', 'in',
-      db.selectFrom('synsets').select('id').where('lexicon', '=', lexiconId)
-    ).execute();
-    
-    await db.deleteFrom('relations').where((eb) => 
-      eb.or([
-        eb('source_id', 'in', db.selectFrom('synsets').select('id').where('lexicon', '=', lexiconId)),
-        eb('target_id', 'in', db.selectFrom('synsets').select('id').where('lexicon', '=', lexiconId))
-      ])
-    ).execute();
-    
-    await db.deleteFrom('examples').where('synset_id', 'in',
-      db.selectFrom('synsets').select('id').where('lexicon', '=', lexiconId)
-    ).execute();
-    
-    await db.deleteFrom('senses').where('word_id', 'in',
-      db.selectFrom('words').select('id').where('lexicon', '=', lexiconId)
-    ).execute();
-    
-    await db.deleteFrom('words').where('lexicon', '=', lexiconId).execute();
-    await db.deleteFrom('synsets').where('lexicon', '=', lexiconId).execute();
-    await db.deleteFrom('lexicons').where('id', '=', lexiconId).execute();
+    return deleteLexiconMutation(db, lexiconId);
   }
 
   /**
    * Delete all words from a lexicon
    */
   static async deleteWordsByLexicon(db: Kysely<Database>, lexiconId: string): Promise<void> {
-    const wordIds = await db.selectFrom('words').select('id').where('lexicon', '=', lexiconId).execute();
-    const wordIdList = wordIds.map(w => w.id);
-    
-    if (wordIdList.length > 0) {
-      await db.deleteFrom('forms').where('word_id', 'in', wordIdList).execute();
-      await db.deleteFrom('senses').where('word_id', 'in', wordIdList).execute();
-      await db.deleteFrom('words').where('id', 'in', wordIdList).execute();
-    }
+    return deleteWordsByLexiconMutation(db, lexiconId);
   }
 
   /**
    * Delete all synsets from a lexicon
    */
   static async deleteSynsetsByLexicon(db: Kysely<Database>, lexiconId: string): Promise<void> {
-    const synsetIds = await db.selectFrom('synsets').select('id').where('lexicon', '=', lexiconId).execute();
-    const synsetIdList = synsetIds.map(w => w.id);
-    
-    if (synsetIdList.length > 0) {
-      await db.deleteFrom('definitions').where('synset_id', 'in', synsetIdList).execute();
-      await db.deleteFrom('relations').where((eb) => 
-        eb.or([
-          eb('source_id', 'in', synsetIdList),
-          eb('target_id', 'in', synsetIdList)
-        ])
-      ).execute();
-      await db.deleteFrom('examples').where('synset_id', 'in', synsetIdList).execute();
-      await db.deleteFrom('senses').where('synset_id', 'in', synsetIdList).execute();
-      await db.deleteFrom('synsets').where('id', 'in', synsetIdList).execute();
-    }
+    return deleteSynsetsByLexiconMutation(db, lexiconId);
   }
 
   /**
    * Clear all data from the database in the correct order
    */
   static async clearAllData(db: Kysely<Database>): Promise<void> {
-    // We must delete in an order that respects foreign key constraints,
-    // as relying on `ON DELETE CASCADE` can be fragile in some environments.
-    const tables: (keyof Database)[] = [
-      "forms",
-      "definitions",
-      "relations",
-      "examples",
-      "senses",
-      "words",
-      "synsets",
-      "lexicons",
-      "ilis",
-    ];
-
-    for (const table of tables) {
-      try {
-        await db.deleteFrom(table).execute();
-      } catch (error) {
-        // Table might not exist, ignore
-      }
-    }
+    return deleteAllDataMutation(db);
   }
 
   /**
@@ -157,8 +96,8 @@ export class DatabaseUtils {
 
     return results.map((row) => ({
       lexiconId: row.id,
-      label: row.label,
-      language: row.language,
+      label: row.label || '',
+      language: row.language || '',
       version: row.version ?? '',
       wordCount: Number(row.word_count ?? 0),
       synsetCount: Number(row.synset_count ?? 0),

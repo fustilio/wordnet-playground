@@ -93,7 +93,7 @@ export class MultiXMLParser {
    */
   private detectEnvironment(): 'main-thread' | 'web-worker' | 'node' {
     // Check if we're in a Web Worker (has self and importScripts but no window)
-    if (typeof self !== 'undefined' && typeof (self as any).importScripts === 'function' && typeof window === 'undefined') {
+    if (typeof self !== 'undefined' && typeof (self as { importScripts?: () => void }).importScripts === 'function' && typeof window === 'undefined') {
       return 'web-worker';
     }
     
@@ -485,8 +485,8 @@ export class MultiXMLParser {
     }
 
     // Fallback: use element.textContent if still empty (helps with mocks that don't expose TEXT_NODEs)
-    if (!text && typeof (element as any).textContent === 'string') {
-      const tc = (element as any).textContent.trim();
+    if (!text && typeof (element as { textContent?: string }).textContent === 'string') {
+      const tc = (element as { textContent: string }).textContent.trim();
       if (tc) {
         text = tc;
         if (this.options.debug) {

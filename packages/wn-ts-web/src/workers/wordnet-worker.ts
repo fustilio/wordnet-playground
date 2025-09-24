@@ -472,7 +472,12 @@ export async function getDefinitionsBySynsetId(synsetId: string) {
     if (!qs) return { success: false, error: 'Query service unavailable' };
     const defs = await qs.getDefinitionsBySynsetId(synsetId);
     logger.end('Getting definitions by synset id', { success: true });
-    return { success: true, data: defs };
+    return { success: true, data: defs.map(d => ({
+      id: d.id,
+      language: d.language,
+      text: d.text,
+      source: d.source || undefined,
+    })) };
   } catch (error) {
     logger.error('Error getting definitions by synset id', error);
     logger.end('Getting definitions by synset id failed', { error: (error as Error)?.message || String(error) });

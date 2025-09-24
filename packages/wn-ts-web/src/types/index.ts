@@ -27,9 +27,57 @@ export interface WordNetStatistics {
   totalWords: number;
   totalSynsets: number;
   totalSenses: number;
-  totalILIs?: number;
+  totalILIs: number;
   totalLexicons: number;
+  totalRelations: number;
+  totalDefinitions: number;
+  languages: string[];
+  partsOfSpeech: string[];
+  dataSize: number;
   source: "Database" | "Worker" | "MainThread";
+  posDistribution: Record<string, number>;
+  lexiconStats: LexiconStatistics[];
+}
+
+// LexiconStatistics type matching the core library
+export interface LexiconStatistics {
+  lexiconId: string;
+  label: string;
+  language: string;
+  version: string;
+  wordCount: number;
+  synsetCount: number;
+  senseCount: number;
+  iliCount: number;
+}
+
+// WordNet Kernel specific types
+export interface WordNetKernelOptions extends Record<string, unknown> {
+  expand?: string | string[];
+  normalizer?: (form: string) => string;
+  lemmatizer?: (form: string, pos?: string) => Record<string, Set<string>>;
+  searchAllForms?: boolean;
+  language?: string;
+  maxResults?: number;
+  fuzzy?: boolean;
+}
+
+export interface WordNetEventData {
+  lexicon?: string;
+  lexicons?: string[];
+  statistics?: WordNetStatistics;
+  error?: Error;
+  status?: string;
+  details?: unknown;
+}
+
+// Plugin method interfaces
+export interface PluginMethod<TArgs extends any[] = any[], TReturn = any> {
+  (...args: TArgs): TReturn;
+}
+
+export interface PluginMethods {
+  [key: string]: PluginMethod;
 }
 
 export interface CacheInfo {
@@ -127,7 +175,7 @@ export interface WordNetEventMap {
   'packageLoadProgress': { packageId: string; progress: number; message: string };
   'dataCleared': { success: boolean; error?: string };
   'error': { error: string; context: string };
-  'statusUpdated': { status: any };
+  'statusUpdated': { status: unknown };
   'lexiconsChanged': { lexicons: LexiconInfo[]; added?: LexiconInfo[]; removed?: string[] };
 }
 
@@ -289,7 +337,7 @@ export interface IntegrityReport {
   issues: Array<{
     type: 'warning' | 'error' | 'info';
     message: string;
-    details?: any;
+    details?: unknown;
   }>;
   recommendations: string[];
 }

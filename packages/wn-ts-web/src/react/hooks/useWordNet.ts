@@ -28,7 +28,10 @@ import type {
   CompatibilityReport,
   PackageInfo,
   WordNetStatistics,
-} from "../../types/index.ts";
+  LexiconStatistics,
+  WordNetEventMap,
+  WordNetEventListener,
+} from "../../types/index.js";
 
 setGlobalLogLevel("trace");
 
@@ -643,34 +646,17 @@ export function useWordNet(config?: {
     };
 
     // Handle status updates
-    const handleStatusUpdated = (event: {
-      status?: {
-        lexiconStats?: Array<{
-          lexiconId: string;
-          label: string;
-          language: string;
-          version: string;
-          wordCount: number;
-          synsetCount: number;
-        }>;
-        statistics?: Record<string, unknown>;
-      };
-    }) => {
+    const handleStatusUpdated: WordNetEventListener<"statusUpdated"> = (event) => {
       logger.debug("Status updated event received", event);
 
-      const payload = event.status || (event as unknown as {
-        lexiconStats?: Array<{
-          lexiconId: string;
-          label: string;
-          language: string;
-          version: string;
-          wordCount: number;
-          synsetCount: number;
-          senseCount: number;
-          iliCount: number;
-        }>;
-        statistics?: WordNetStatistics;
-      });
+      // Use type inference to safely access the status
+      const status = event.status as Record<string, unknown> | undefined;
+      if (!status) return;
+
+      const payload = {
+        lexiconStats: Array.isArray(status.lexiconStats) ? status.lexiconStats as LexiconStatistics[] : undefined,
+        statistics: status.statistics as WordNetStatistics | undefined,
+      };
       if (payload.lexiconStats) {
         const loadedPackages = payload.lexiconStats.map(
           (ls: {
@@ -747,29 +733,27 @@ export function useWordNet(config?: {
 
         // Update statistics if provided
         if (payload.statistics) {
+          // Use type inference to safely extract statistics
+          const stats = payload.statistics as unknown as Record<string, unknown>;
           setState((prev) => ({
             ...prev,
             statistics: {
-              totalWords: (payload.statistics as any).totalWords ?? 0,
-              totalSynsets: (payload.statistics as any).totalSynsets ?? 0,
-              totalSenses: (payload.statistics as any).totalSenses ?? 0,
-              totalILIs: (payload.statistics as any).totalILIs ?? 0,
-              totalRelations: (payload.statistics as any).totalRelations ?? 0,
-              totalDefinitions:
-                (payload.statistics as any).totalDefinitions ?? 0,
-              totalLexicons: (payload.statistics as any).totalLexicons ?? 1,
-              languages: (payload.statistics as any).languages ?? ["en"],
-              partsOfSpeech: (payload.statistics as any).partsOfSpeech ?? [
-                "n",
-                "v",
-                "a",
-                "r",
-              ],
-              dataSize: (payload.statistics as any).dataSize ?? 0,
+              totalWords: typeof stats.totalWords === 'number' ? stats.totalWords : 0,
+              totalSynsets: typeof stats.totalSynsets === 'number' ? stats.totalSynsets : 0,
+              totalSenses: typeof stats.totalSenses === 'number' ? stats.totalSenses : 0,
+              totalILIs: typeof stats.totalILIs === 'number' ? stats.totalILIs : 0,
+              totalRelations: typeof stats.totalRelations === 'number' ? stats.totalRelations : 0,
+              totalDefinitions: typeof stats.totalDefinitions === 'number' ? stats.totalDefinitions : 0,
+              totalLexicons: typeof stats.totalLexicons === 'number' ? stats.totalLexicons : 1,
+              languages: Array.isArray(stats.languages) ? stats.languages as string[] : ["en"],
+              partsOfSpeech: Array.isArray(stats.partsOfSpeech) ? stats.partsOfSpeech as string[] : ["n", "v", "a", "r"],
+              dataSize: typeof stats.dataSize === 'number' ? stats.dataSize : 0,
               lastUpdated: new Date().toISOString(),
-              source: (payload.statistics as any).source ?? ("Worker" as const),
-              posDistribution:
-                (payload.statistics as any).posDistribution ?? {},
+              source: (stats.source as "Database" | "Worker" | "MainThread") ?? "Worker",
+              posDistribution: typeof stats.posDistribution === 'object' && stats.posDistribution !== null 
+                ? stats.posDistribution as Record<string, number> 
+                : {},
+              lexiconStats: Array.isArray(stats.lexiconStats) ? stats.lexiconStats as LexiconStatistics[] : [],
             },
             progressStage:
               loadedPackages.length > 0
@@ -857,7 +841,7 @@ export function useWordNet(config?: {
       // Use worker client for initialization
       try {
         logger.step("using worker client for initialization");
-        const data: any = await wc.getStatus();
+        const data: Record<string, unknown> = await wc.getStatus();
         logger.success("Worker initialization successful");
         logger.debug("Worker result data", data);
 
@@ -866,7 +850,7 @@ export function useWordNet(config?: {
           const lexStats = data.lexiconStats || [];
           const loaded = Array.isArray(lexStats)
             ? lexStats.map(
-                (ls: any) =>
+                (ls: Record<string, unknown>) =>
                   `${ls.lexiconId}${ls.version ? `:${ls.version}` : ""}`
               )
             : [];
@@ -879,25 +863,29 @@ export function useWordNet(config?: {
           });
 
           if (loaded.length > 0 || data.statistics) {
+            // Use type inference to safely access statistics
+            const stats = data.statistics as Record<string, unknown> | undefined;
             setState((prev) => ({
               ...prev,
               loadedPackages: loaded,
-              statistics: data.statistics
+              statistics: stats
                 ? {
-                    totalWords: data.statistics.totalWords ?? 0,
-                    totalSynsets: data.statistics.totalSynsets ?? 0,
-                    totalSenses: data.statistics.totalSenses ?? 0,
+                    totalWords: typeof stats.totalWords === 'number' ? stats.totalWords : 0,
+                    totalSynsets: typeof stats.totalSynsets === 'number' ? stats.totalSynsets : 0,
+                    totalSenses: typeof stats.totalSenses === 'number' ? stats.totalSenses : 0,
+                    totalILIs: typeof stats.totalILIs === 'number' ? stats.totalILIs : 0,
                     totalRelations: 0,
                     totalDefinitions: 0,
                     totalLexicons: 1,
                     languages: ["en"],
                     partsOfSpeech: ["n", "v", "a", "r"],
                     dataSize:
-                      (data.statistics.totalWords ?? 0) * 100 +
-                      (data.statistics.totalSynsets ?? 0) * 200,
+                      (typeof stats.totalWords === 'number' ? stats.totalWords : 0) * 100 +
+                      (typeof stats.totalSynsets === 'number' ? stats.totalSynsets : 0) * 200,
                     lastUpdated: new Date().toISOString(),
                     source: "Worker" as const,
                     posDistribution: {},
+                    lexiconStats: [],
                   }
                 : prev.statistics,
             }));
@@ -980,7 +968,7 @@ export function useWordNet(config?: {
   // Load package data with caching
   const loadPackageData = useCallback(
     async (packageId: string, progress?: ProgressCallback) => {
-      console.log("useWordNet, loadpackagedata", packageId, progress);
+      // Progress callback for package loading
       // Check if we have a worker client
       if (!workerClientRef.current?.initialized) {
         logger.warn(
@@ -1051,7 +1039,7 @@ export function useWordNet(config?: {
         // Create progress callback that updates the UI state
         const progressCallback = createProgressCallback(setState, progress);
 
-        console.log("useWordNet, loadpackagedata", progressCallback);
+        // Progress callback for package loading
 
         const result = await workerClientRef.current.loadPackage(
           packageId,
@@ -1107,6 +1095,7 @@ export function useWordNet(config?: {
               lastUpdated: new Date().toISOString(),
               source: "Worker" as const,
               posDistribution,
+              lexiconStats: [],
             };
 
             setState((prev) => ({
@@ -1312,7 +1301,7 @@ export function useWordNet(config?: {
         const status = await wc.getStatus();
         const lexiconStats = status?.lexiconStats || [];
         const detailedStats = lexiconStats.find(
-          (stat: any) =>
+          (stat: Record<string, unknown>) =>
             stat.lexiconId === lexicon.id || stat.lexiconId === lexiconId
         );
 
@@ -1555,7 +1544,7 @@ export function useWordNet(config?: {
           const issues: Array<{
             type: "warning" | "error" | "info";
             message: string;
-            details?: any;
+            details?: Record<string, unknown>;
           }> = [];
           const recommendations: string[] = [];
 

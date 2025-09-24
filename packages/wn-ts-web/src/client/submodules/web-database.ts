@@ -145,6 +145,23 @@ export class WebDatabase {
     }
   }
 
+  /**
+   * Prepare a SQL statement for execution
+   * Returns a prepared statement that can be executed multiple times
+   */
+  prepare(sql: string): unknown {
+    if (!this.db) {
+      throw new Error("Database not initialized");
+    }
+
+    try {
+      return this.db.prepare(sql);
+    } catch (e) {
+      logger.error(`SQL preparation failed: ${sql}`, { error: e });
+      throw e;
+    }
+  }
+
   async clearAllData(): Promise<void> {
     if (!this.db) return;
     const tables = [
@@ -189,7 +206,14 @@ export class WebDatabase {
       throw new Error("Database not initialized");
     }
    
-    throw new Error("Not implemented");
+    try {
+      // Use type inference to get the correct method
+      const db = this.db as unknown as { export: () => Uint8Array };
+      return db.export();
+    } catch (e) {
+      logger.error("Failed to export database bytes", { error: e });
+      throw e;
+    }
   }
 
   close(): void {

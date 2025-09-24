@@ -22,7 +22,7 @@ import type {
 } from "wn-ts-core";
 
 // Type aliases for better reusability
-type LexiconStatistics = Awaited<ReturnType<WebWordnet['getLexiconStatistics']>>[0];
+import type { LexiconStatistics } from '../../types/index.js';
 type Statistics = Awaited<ReturnType<WebWordnet['getStatistics']>>;
 type PartOfSpeechDistribution = Awaited<ReturnType<WebWordnet['getPartOfSpeechDistribution']>>;
 
@@ -293,35 +293,6 @@ export class WebWordnet implements WordNetCore {
     }
   }
 
-  /**
-   * Check if a specific lexicon is loaded in the database
-   */
-  async hasSpecificLexiconLoaded(lexiconId: string): Promise<boolean> {
-    if (!this.initialized || !this.queryService) {
-      return false;
-    }
-    
-    try {
-      // Check if the lexicon exists in the database
-      const lexicons = await this.lexicons();
-      
-      // Try exact match first
-      if (lexicons.some(lexicon => lexicon.id === lexiconId)) {
-        return true;
-      }
-      
-      // If exact match fails, try to find by base lexicon ID (e.g., "oewn" from "oewn:2024")
-      const baseLexiconId = lexiconId.split(':')[0];
-      if (lexicons.some(lexicon => lexicon.id === baseLexiconId)) {
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      logger.warn(`Error checking if lexicon ${lexiconId} is loaded:`, error);
-      return false;
-    }
-  }
 
   // Event handling methods removed - events are now handled by the orchestrator
   // The orchestrator will call these methods and emit events as needed
@@ -529,7 +500,12 @@ export class WebWordnet implements WordNetCore {
       );
       synsetsWithDefinitions.push({
         ...synset,
-        definitions,
+        definitions: definitions.map(d => ({
+          id: d.id,
+          language: d.language,
+          text: d.text,
+          source: d.source || undefined,
+        })),
       });
     }
     const totalMs = performance.now() - started;
@@ -1328,13 +1304,13 @@ export class WebWordnet implements WordNetCore {
       // Get words for each related synset
       const translations: TranslationInfo[] = [];
       for (const relatedSynset of relatedSynsets) {
-        const words = await this.queryService.getWordsBySynsetAndLanguage(relatedSynset.id, relatedSynset.language);
+        const words = await this.queryService.getWordsBySynsetAndLanguage(relatedSynset.id, relatedSynset.language || undefined);
         if (words.length > 0) {
           translations.push({
             id: `${synsetId}-${relatedSynset.id}`,
             sourceSynsetId: synsetId,
             targetSynsetId: relatedSynset.id,
-            language: relatedSynset.language,
+            language: relatedSynset.language || '',
             confidence: 1.0
           });
         }
@@ -2090,6 +2066,43 @@ export class WebWordnet implements WordNetCore {
     } catch (error) {
       logger.error("Error getting relations:", error);
       throw error;
+    }
+  }
+
+  /**
+   * Check if the database has any data loaded
+   */
+  async hasData(): Promise<boolean> {
+    if (!this.queryService) {
+      return false;
+    }
+
+    try {
+      const stats = await this.queryService.getStatistics();
+      return stats.totalWords > 0 || stats.totalSynsets > 0 || stats.totalSenses > 0;
+    } catch (error) {
+      logger.warn("Failed to check if database has data:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Check if a specific lexicon is loaded
+   */
+  async hasSpecificLexiconLoaded(lexiconId: string): Promise<boolean> {
+    if (!this.queryService) {
+      return false;
+    }
+
+    try {
+      const lexicons = await this.queryService.getLexicons();
+      return lexicons.some(lexicon => 
+        lexicon.id === lexiconId || 
+        lexicon.id === lexiconId.split(':')[0] // Check base ID without version
+      );
+    } catch (error) {
+      logger.warn(`Failed to check if lexicon ${lexiconId} is loaded:`, error);
+      return false;
     }
   }
 }

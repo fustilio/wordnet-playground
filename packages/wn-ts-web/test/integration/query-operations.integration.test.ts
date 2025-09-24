@@ -6,11 +6,10 @@
  * but adapted for the browser environment with real data loading.
  */
 
-import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from "vitest";
 import { createWordNetInstance } from "../../src/factory";
 import type { WebWordnet } from "../../src/client/submodules/web-wordnet";
 import type { DataLoader } from "../../src/data-loader";
-import type { SynsetQuery, WordQuery } from 'wn-ts-core';
 import { MockDataLoader } from '../mock-data-loader.js';
 
 const isNode =

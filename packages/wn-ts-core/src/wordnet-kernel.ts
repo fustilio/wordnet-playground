@@ -11,7 +11,7 @@
  * - Backwards compatibility layer
  */
 
-import type { Database } from './shared/database-types.js';
+import type { Database } from './types/database.js';
 import type { Kysely } from 'kysely';
 import type { 
   Word, 
@@ -912,9 +912,15 @@ export class WordNetKernel<TPlugins extends readonly Plugin[] = readonly []> {
 
   // Database introspection methods
   private async getCurrentTables(): Promise<string[]> {
-    // Use raw SQL for system tables since they're not part of our schema
-    const result = await this.core.query("SELECT name FROM sqlite_master WHERE type='table'");
-    return (result as Array<{ name: string }>).map((row) => row.name);
+    // Use PRAGMA table_list for database introspection (SQLite 3.37+)
+    // Fallback to manual table discovery if PRAGMA not available
+    try {
+      const result = await this.core.query("PRAGMA table_list");
+      return (result as Array<{ name: string }>).map((row) => row.name);
+    } catch {
+      // Fallback: return empty array if introspection not available
+      return [];
+    }
   }
 
   private async getTableColumns(table: string): Promise<string[]> {

@@ -56,6 +56,14 @@
     "./tests/platform-integration/core-behavioral-tests": {
       "types": "./tests/platform-integration/core-behavioral-tests.ts",
       "default": "./tests/platform-integration/core-behavioral-tests.ts"
+    }, 
+    "./queries": {  
+      "types": "./src/modules/database-operations/queries/index.ts",
+      "default": "./src/modules/database-operations/queries/index.ts"
+    },
+    "./mutations": {
+      "types": "./src/modules/database-operations/mutations/index.ts",
+      "default": "./src/modules/database-operations/mutations/index.ts"
     }
   },
   "files": [

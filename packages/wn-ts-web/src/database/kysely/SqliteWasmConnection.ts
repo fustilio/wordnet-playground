@@ -40,7 +40,7 @@ export class SqliteWasmConnection implements DatabaseConnection {
     // execute the statement
     const rows = this.#db.exec({
       sql: sql,
-      bind: parameters as any,
+      bind: parameters as unknown[],
       returnValue: "resultRows",
       rowMode: "object",
       columnNames: statementData.columns,

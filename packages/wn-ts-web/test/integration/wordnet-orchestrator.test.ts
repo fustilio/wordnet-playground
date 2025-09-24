@@ -24,17 +24,30 @@ vi.mock('../../src/data-loader.js', async (importOriginal) => {
       }
 
       async insertTestData(queryService: KyselyQueryService, lexiconId: string) {
-        await queryService.insertLexicon({ id: lexiconId, label: 'Test Lexicon', language: 'en', version: '1.0' });
-        await queryService.insertWord({ id: `w-${lexiconId}-test`, lemma: 'test', pos: 'n', lexicon: lexiconId, language: 'en' });
-        await queryService.insertSynset({ id: `s-${lexiconId}-test`, pos: 'n', lexicon: lexiconId, language: 'en' });
-        await queryService.insertSense({ id: `se-${lexiconId}-test`, word_id: `w-${lexiconId}-test`, synset_id: `s-${lexiconId}-test` });
+        // Check if lexicon already exists before inserting
+        const existingLexicons = await queryService.getLexicons();
+        const lexiconExists = existingLexicons.some(l => l.id === lexiconId);
+        
+        if (!lexiconExists) {
+          await queryService.insertLexicon({ id: lexiconId, label: 'Test Lexicon', language: 'en', version: '1.0' });
+        }
+        
+        // Check if word already exists before inserting
+        const existingWords = await queryService.getWords({ lexicon: lexiconId });
+        const wordExists = existingWords.some(w => w.id === `w-${lexiconId}-test`);
+        
+        if (!wordExists) {
+          await queryService.insertWord({ id: `w-${lexiconId}-test`, lemma: 'test', pos: 'n', lexicon: lexiconId, language: 'en' });
+          await queryService.insertSynset({ id: `s-${lexiconId}-test`, pos: 'n', lexicon: lexiconId, language: 'en' });
+          await queryService.insertSense({ id: `se-${lexiconId}-test`, word_id: `w-${lexiconId}-test`, synset_id: `s-${lexiconId}-test` });
+        }
       }
     }
   };
 });
 
 
-describe.skipIf(isNode)('WordNetOrchestrator with Real Browser DB', () => {
+describe('WordNetOrchestrator with Real Browser DB', () => {
   let orchestrator: WordNetOrchestrator;
   let sqlModule: Sqlite3Static;
 
@@ -48,7 +61,9 @@ describe.skipIf(isNode)('WordNetOrchestrator with Real Browser DB', () => {
   });
 
   beforeEach(async () => {
-    if (!sqlModule) return;
+    if (!sqlModule) {
+      throw new Error("SQLite WASM module not loaded");
+    }
     orchestrator = new WordNetOrchestrator();
     await orchestrator.initialize(sqlModule);
     await orchestrator.clearAllData(); // Clear data before each test
@@ -61,13 +76,13 @@ describe.skipIf(isNode)('WordNetOrchestrator with Real Browser DB', () => {
   });
 
   describe('Initialization', () => {
-    it.skipIf(!sqlModule)('should initialize and create a WordNet instance', () => {
+    it('should initialize and create a WordNet instance', () => {
       expect(orchestrator.getWordNetInstance()).toBeDefined();
     });
   });
 
   describe('Lexicon Loading', () => {
-    it.skipIf(!sqlModule)('should load a lexicon, update its state, and insert data', async () => {
+    it('should load a lexicon, update its state, and insert data', async () => {
       await orchestrator.loadLexicon('oewn:2024');
       const state = orchestrator.getLexiconState('oewn:2024');
       
@@ -78,7 +93,7 @@ describe.skipIf(isNode)('WordNetOrchestrator with Real Browser DB', () => {
       expect(stats.totalLexicons).toBe(1);
     });
     
-    it.skipIf(!sqlModule)('should not re-load an already loaded lexicon unless forced', async () => {
+    it('should not re-load an already loaded lexicon unless forced', async () => {
       await orchestrator.loadLexicon('oewn:2024');
       let stats = await orchestrator.getLexiconStatistics('oewn:2024');
       expect(stats[0].wordCount).toBe(1);
@@ -98,7 +113,7 @@ describe.skipIf(isNode)('WordNetOrchestrator with Real Browser DB', () => {
   });
 
   describe('Querying', () => {
-    it.skipIf(!sqlModule)('should only return query results for lexicons that have been loaded', async () => {
+    it('should only return query results for lexicons that have been loaded', async () => {
       let words = await orchestrator.queryWords('test', 'n');
       expect(words).toEqual([]); // No lexicons loaded yet
 
@@ -111,7 +126,7 @@ describe.skipIf(isNode)('WordNetOrchestrator with Real Browser DB', () => {
   });
   
   describe('Data Management', () => {
-    it.skipIf(!sqlModule)('should clear all loaded data and reset internal state', async () => {
+    it('should clear all loaded data and reset internal state', async () => {
       await orchestrator.loadLexicon('oewn:2024');
       expect(orchestrator.getLexiconStates().size).toBe(1);
       

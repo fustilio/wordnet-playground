@@ -21,7 +21,7 @@ function App() {
     storage,
   } = useSqliteOpfs()
 
-  const [sql, setSql] = useState<string>('SELECT name FROM sqlite_master ORDER BY 1;')
+  const [sql, setSql] = useState<string>('SELECT 1 as test;')
   const [result, setResult] = useState<{ columns: string[]; rows: Array<Record<string, unknown>> } | null>(null)
   const [runError, setRunError] = useState<string | null>(null)
   const [ksOut, setKsOut] = useState<string>('')

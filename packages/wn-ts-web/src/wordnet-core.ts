@@ -12,6 +12,9 @@ import type {
   Sense,
   Synset,
   ILI,
+  Lexicon,
+  Definition,
+  Relation,
   WordQuery,
   SynsetQuery,
   SenseQuery
@@ -26,10 +29,10 @@ const logger = createScopedLogger('WebWordNetCore');
  */
 export class WebWordNetCore implements WordNetCore {
   private lexicon: string | string[];
-  private options: any;
+  private options: Record<string, unknown>;
   private initialized = false;
 
-  constructor(lexicon: string | string[] = '*', options: any = {}) {
+  constructor(lexicon: string | string[] = '*', options: Record<string, unknown> = {}) {
     this.lexicon = lexicon;
     this.options = options;
   }
@@ -108,7 +111,7 @@ export class WebWordNetCore implements WordNetCore {
     return [];
   }
 
-  async lexicons(): Promise<any[]> {
+  async lexicons(): Promise<Lexicon[]> {
     if (!this.initialized) {
       throw new Error('WebWordNetCore not initialized');
     }
@@ -149,7 +152,7 @@ export class WebWordNetCore implements WordNetCore {
     return [];
   }
 
-  async getDefinitions(synsetId: string): Promise<any[]> {
+  async getDefinitions(synsetId: string): Promise<Definition[]> {
     if (!this.initialized) {
       throw new Error('WebWordNetCore not initialized');
     }
@@ -157,7 +160,7 @@ export class WebWordNetCore implements WordNetCore {
     return [];
   }
 
-  async getRelations(synsetId: string, type?: string): Promise<any[]> {
+  async getRelations(synsetId: string, type?: string): Promise<Relation[]> {
     if (!this.initialized) {
       throw new Error('WebWordNetCore not initialized');
     }
@@ -210,7 +213,7 @@ export class WebWordNetCore implements WordNetCore {
   }
 
   // Emit lifecycle events (placeholder for now)
-  private async emitLifecycleEvent(event: string, data: any): Promise<void> {
+  private async emitLifecycleEvent(event: string, data: Record<string, unknown>): Promise<void> {
     // TODO: Implement proper lifecycle event emission
     // This would integrate with the WordNetKernel's lifecycle manager
     logger.debug(`Lifecycle event: ${event}`, data);

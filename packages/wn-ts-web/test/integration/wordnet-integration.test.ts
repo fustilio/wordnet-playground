@@ -123,7 +123,10 @@ describe.skipIf(isNode)('WordNet Integration', () => {
         version: '1.0',
         license: 'test',
         url: 'test',
-        citation: 'test'
+        citation: 'test',
+        email: null,
+        logo: null,
+        metadata: null
       });
       
       console.log('Lexicon inserted');
@@ -185,22 +188,46 @@ describe.skipIf(isNode)('WordNet Integration', () => {
       await queryService.insertSense({
         id: 'sense1',
         word_id: 'word1',
-        synset_id: 'synset1'
+        synset_id: 'synset1',
+        source: null,
+        sensekey: null,
+        adjposition: null,
+        subcategory: null,
+        domain: null,
+        register: null
       });
       await queryService.insertSense({
         id: 'sense2',
         word_id: 'word2',
-        synset_id: 'synset2'
+        synset_id: 'synset2',
+        source: null,
+        sensekey: null,
+        adjposition: null,
+        subcategory: null,
+        domain: null,
+        register: null
       });
       await queryService.insertSense({
         id: 'sense3',
         word_id: 'word3',
-        synset_id: 'synset2'
+        synset_id: 'synset2',
+        source: null,
+        sensekey: null,
+        adjposition: null,
+        subcategory: null,
+        domain: null,
+        register: null
       });
       await queryService.insertSense({
         id: 'sense4',
         word_id: 'word4',
-        synset_id: 'synset3'
+        synset_id: 'synset3',
+        source: null,
+        sensekey: null,
+        adjposition: null,
+        subcategory: null,
+        domain: null,
+        register: null
       });
 
       // Insert test relations
@@ -216,19 +243,22 @@ describe.skipIf(isNode)('WordNet Integration', () => {
         id: 'def1',
         synset_id: 'synset1',
         language: 'en',
-        text: 'A computer is an electronic device'
+        text: 'A computer is an electronic device',
+        source: null
       });
       await queryService.insertDefinition({
         id: 'def2',
         synset_id: 'synset2',
         language: 'en',
-        text: 'A machine is a mechanical device'
+        text: 'A machine is a mechanical device',
+        source: null
       });
       await queryService.insertDefinition({
         id: 'def3',
         synset_id: 'synset3',
         language: 'fr',
-        text: 'Un ordinateur est un dispositif électronique'
+        text: 'Un ordinateur est un dispositif électronique',
+        source: null
       });
       
       console.log('Test data insertion completed');

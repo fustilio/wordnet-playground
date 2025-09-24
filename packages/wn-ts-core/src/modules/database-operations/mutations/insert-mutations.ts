@@ -1,12 +1,5 @@
-/**
- * Shared batch insert function for wn-ts ecosystem
- *
- * This provides a common batch insert implementation that both Node.js and Web
- * implementations can use, eliminating duplication across packages.
- */
-
+import type { Database } from '../../../types/database.js';
 import type { Kysely } from 'kysely';
-import type { Database } from '../types/database.js';
 
 /**
  * Generic batch insert function using Kysely.
@@ -17,9 +10,7 @@ import type { Database } from '../types/database.js';
  * @param data An array of objects to insert.
  * @param chunkSize The size of each chunk for batch insertion.
  */
-export async function batchInsert<
-  T extends 'definitions' | 'examples' | 'relations' | 'senses' | 'synsets' | 'words' | keyof Database,
->(
+export async function batchInsert<T extends keyof Database>(
   db: Kysely<Database>,
   tableName: T,
   data: any[],
@@ -36,8 +27,38 @@ export async function batchInsert<
       await db
         .insertInto(tableName)
         .values(chunk)
-        .onConflict(oc => oc.column('id').doNothing()) // Assumes 'id' is the conflict key
+        .onConflict((oc) => oc.column('id').doNothing()) // Assumes 'id' is the conflict key
         .execute();
     }
   }
+}
+
+/**
+ * Insert a single record into a table
+ */
+export function insertRecord<T extends keyof Database>(
+  db: Kysely<Database>,
+  tableName: T,
+  data: Database[T]
+) {
+  return db
+    .insertInto(tableName)
+    .values(data as any)
+    .onConflict((oc) => oc.column('id').doNothing())
+    .execute();
+}
+
+/**
+ * Insert multiple records into a table
+ */
+export function insertRecords<T extends keyof Database>(
+  db: Kysely<Database>,
+  tableName: T,
+  data: Database[T][]
+) {
+  return db
+    .insertInto(tableName)
+    .values(data as any[])
+    .onConflict((oc) => oc.column('id').doNothing())
+    .execute();
 }

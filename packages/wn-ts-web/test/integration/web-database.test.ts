@@ -4,36 +4,47 @@ import type { Sqlite3Static } from "@sqlite.org/sqlite-wasm";
 
 const isNode = typeof process !== "undefined";
 
-describe.skipIf(isNode)("WebDatabase with Real Browser DB", () => {
+console.log("Environment check:", { 
+  isNode, 
+  hasProcess: typeof process !== "undefined",
+  hasWindow: typeof window !== "undefined",
+  hasSelf: typeof self !== "undefined",
+  userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "undefined"
+});
+
+describe("WebDatabase with Real Browser DB", () => {
   let database: WebDatabase;
   let sqlModule: Sqlite3Static | undefined;
 
   beforeAll(async () => {
     try {
+      console.log("Attempting to load SQLite WASM module...");
       const sqlite3 = (await import("@sqlite.org/sqlite-wasm")).default;
+      console.log("SQLite WASM module imported successfully");
       sqlModule = await sqlite3();
+      console.log("SQLite WASM module initialized successfully");
     } catch (e) {
+      console.error("Could not load sqlite-wasm:", e);
       console.warn("Could not load sqlite-wasm, skipping tests");
     }
   });
 
   beforeEach(() => {
-    if (!sqlModule) return;
+    if (!sqlModule) {
+      throw new Error("SQLite WASM module not loaded");
+    }
     database = new WebDatabase();
   });
 
-  it.skipIf(!sqlModule)(
-    "should initialize with SQLite WASM module",
-    async () => {
-      if (!sqlModule) {
-        throw new Error("SQLite WASM module not loaded");
-      }
-      await database.initializeWithModule(sqlModule);
-      expect((database as any).sqlModule).toBe(sqlModule);
+  it("should initialize with SQLite WASM module", async () => {
+    if (!sqlModule) {
+      throw new Error("SQLite WASM module not loaded");
     }
-  );
+    await database.initializeWithModule(sqlModule);
+    expect((database as any).sqlModule).toBe(sqlModule);
+  });
 
-  it.skipIf(!sqlModule)("should create a database connection", async () => {
+  it("should create a database connection", async () => {
     if (!sqlModule) {
       throw new Error("SQLite WASM module not loaded");
     }
@@ -48,7 +59,7 @@ describe.skipIf(isNode)("WebDatabase with Real Browser DB", () => {
     expect(result).toBeDefined();
   });
 
-  it.skipIf(!sqlModule)("should close the database", async () => {
+  it("should close the database", async () => {
     if (!sqlModule) {
       throw new Error("SQLite WASM module not loaded");
     }
@@ -64,7 +75,7 @@ describe.skipIf(isNode)("WebDatabase with Real Browser DB", () => {
     expect(() => database.getDatabase()).toThrow("Database not initialized");
   });
 
-  it.skipIf(!sqlModule)("getDatabase should throw if not initialized", () => {
+  it("getDatabase should throw if not initialized", () => {
     expect(() => database.getDatabase()).toThrow("Database not initialized");
   });
 });

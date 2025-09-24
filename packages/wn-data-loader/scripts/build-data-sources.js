@@ -27,15 +27,18 @@ function buildDataSources() {
     // Parse TOML to object
     const parsed = parse(tomlContent);
     
-    // Generate index.json for wn-ts-web (raw TOML data)
+    // Clean up URLs in the parsed data before generating index.json
+    const cleanedParsed = cleanUrlsInParsedData(parsed);
+    
+    // Generate index.json for wn-ts-web (cleaned TOML data)
     console.log('🔄 Generating index.json for wn-ts-web...');
-    const indexJsonContent = JSON.stringify(parsed, null, 2);
+    const indexJsonContent = JSON.stringify(cleanedParsed, null, 2);
     fs.writeFileSync(INDEX_JSON_PATH, indexJsonContent, 'utf8');
     console.log('✅ Successfully generated index.json');
     console.log(`📁 Output: ${INDEX_JSON_PATH}`);
     
     // Convert to WordNetDataSource format
-    const dataSources = convertToDataSources(parsed);
+    const dataSources = convertToDataSources(cleanedParsed);
     
     // Generate data-sources.json for wn-data-loader
     const dataSourcesJsonContent = JSON.stringify(dataSources, null, 2);
@@ -57,6 +60,53 @@ function buildDataSources() {
     console.error('❌ Failed to convert index.toml:', error);
     process.exit(1);
   }
+}
+
+function cleanUrlsInParsedData(parsedData) {
+  const cleaned = JSON.parse(JSON.stringify(parsedData)); // Deep clone
+  
+  for (const [projectId, projectData] of Object.entries(cleaned)) {
+    if (typeof projectData !== 'object' || projectData === null) continue;
+    
+    const project = projectData;
+    
+    // Process versions
+    if (project.versions && typeof project.versions === 'object') {
+      for (const [version, versionData] of Object.entries(project.versions)) {
+        if (typeof versionData !== 'object' || versionData === null) continue;
+        
+        const versionInfo = versionData;
+        
+        // Clean up URL field
+        if (versionInfo.url && typeof versionInfo.url === 'string') {
+          const urlString = versionInfo.url.trim();
+          if (urlString.includes('\n')) {
+            // Split by newlines and clean up each URL
+            const urls = urlString.split('\n')
+              .map(url => url.trim())
+              .filter(url => url.length > 0 && url.startsWith('http'));
+            
+            // Always store as array when we have multiple URLs from multi-line strings
+            if (urls.length > 1) {
+              versionInfo.url = urls;
+            } else if (urls.length === 1) {
+              versionInfo.url = urls[0];
+            } else {
+              // No valid URLs found, remove the field
+              delete versionInfo.url;
+            }
+          } else if (urlString.length > 0 && urlString.startsWith('http')) {
+            versionInfo.url = urlString;
+          } else {
+            // Invalid URL, remove the field
+            delete versionInfo.url;
+          }
+        }
+      }
+    }
+  }
+  
+  return cleaned;
 }
 
 function convertToDataSources(indexData) {
@@ -82,19 +132,10 @@ function convertToDataSources(indexData) {
         
         const fullProjectId = `${projectId}:${version}`;
         
-        // Handle single URL or multiple URLs
+        // Handle single URL or multiple URLs (now already cleaned)
         let urls = [];
         if (typeof versionInfo.url === 'string') {
-          // Handle malformed URLs with newlines and whitespace
-          const urlString = versionInfo.url.trim();
-          if (urlString.includes('\n')) {
-            // Split by newlines and clean up each URL
-            urls = urlString.split('\n')
-              .map(url => url.trim())
-              .filter(url => url.length > 0 && url.startsWith('http'));
-          } else {
-            urls = [urlString];
-          }
+          urls = [versionInfo.url];
         } else if (Array.isArray(versionInfo.url)) {
           urls = versionInfo.url;
         }

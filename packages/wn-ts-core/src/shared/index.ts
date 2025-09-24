@@ -7,8 +7,7 @@ export { batchInsert } from './batch-insert.js';
 export { SchemaBuilder } from './schema-builder.js';
 export { DatabaseUtils } from './database-utils.js';
 export type { 
-  Database, 
-  DatabaseSchema, 
+  Database,
   LexiconTable, 
   WordTable, 
   SynsetTable, 
@@ -17,8 +16,17 @@ export type {
   RelationTable, 
   ExampleTable, 
   IliTable, 
-  FormTable 
-} from './database-types.js';
+  FormTable,
+  NewLexicon,
+  NewWord,
+  NewSynset,
+  NewSense,
+  NewDefinition,
+  NewExample,
+  NewRelation,
+  NewILI,
+  NewForm
+} from '../types/database.js';
 export type { 
   BaseDatabaseConfig,
   NodeDatabaseConfig,

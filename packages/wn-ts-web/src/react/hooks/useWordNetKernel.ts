@@ -1,6 +1,19 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { WebWordNetKernel } from '../../wordnet-kernel.js';
 import { createScopedLogger } from "utils/logger";
+import type { 
+  WordQuery,
+  SynsetQuery,
+  SenseQuery,
+  Word,
+  Synset,
+  Sense,
+  Lexicon,
+  ILI
+} from 'wn-ts-core';
+import type { 
+  WordNetKernelOptions
+} from '../../types/index.js';
 
 // Import all types from the dedicated types file
 import type {
@@ -64,7 +77,7 @@ const logger = createScopedLogger("useWordNetKernel");
  */
 export function useWordNetKernel(config?: {
   lexicon?: string | string[];
-  options?: any;
+  options?: WordNetKernelOptions;
 }): {
   // Core state
   wordnet: WebWordNetKernel | null;
@@ -73,19 +86,20 @@ export function useWordNetKernel(config?: {
   initialized: boolean;
   
   // Core operations
-  initialize: (lexicon?: string | string[], options?: any) => Promise<void>;
+  initialize: (lexicon?: string | string[], options?: WordNetKernelOptions) => Promise<void>;
   close: () => Promise<void>;
   
   // Basic WordNet operations
-  words: (query?: any) => Promise<any[]>;
-  word: (wordId: string) => Promise<any>;
-  synsets: (query?: any) => Promise<any[]>;
-  synset: (synsetId: string) => Promise<any>;
-  senses: (query?: any) => Promise<any[]>;
-  sense: (senseId: string) => Promise<any>;
-  ili: (iliId: string) => Promise<any>;
-  ilis: (status?: string) => Promise<any[]>;
-  synsetsByILI: (iliId: string) => Promise<any[]>;
+  words: (query?: WordQuery) => Promise<Word[]>;
+  word: (wordId: string) => Promise<Word>;
+  synsets: (query?: SynsetQuery) => Promise<Synset[]>;
+  synset: (synsetId: string) => Promise<Synset>;
+  senses: (query?: SenseQuery) => Promise<Sense[]>;
+  sense: (senseId: string) => Promise<Sense>;
+  lexicons: () => Promise<Lexicon[]>;
+  ili: (iliId: string) => Promise<ILI>;
+  ilis: (status?: string) => Promise<ILI[]>;
+  synsetsByILI: (iliId: string) => Promise<Synset[]>;
   
   // Plugin methods - Relations
   getHypernyms: (synsetId: string, lexicon?: string) => Promise<Array<{
@@ -208,7 +222,7 @@ export function useWordNetKernel(config?: {
   has: (pluginName: string) => boolean;
   
   // Schema management
-  schemaManager: any;
+  schemaManager: Record<string, unknown> | null;
 } {
   const [wordnet, setWordnet] = useState<WebWordNetKernel | null>(null);
   const [loading, setLoading] = useState(false);
@@ -216,7 +230,7 @@ export function useWordNetKernel(config?: {
   const [initialized, setInitialized] = useState(false);
 
   // Initialize the WordNet kernel
-  const initialize = useCallback(async (lexicon?: string | string[], options?: any) => {
+  const initialize = useCallback(async (lexicon?: string | string[], options?: WordNetKernelOptions) => {
     try {
       setLoading(true);
       setError(null);
@@ -271,7 +285,7 @@ export function useWordNetKernel(config?: {
   }, [wordnet, initialized]);
 
   // Basic WordNet operations
-  const words = useCallback(async (query?: any) => {
+  const words = useCallback(async (query?: WordQuery) => {
     const kernel = ensureInitialized();
     return kernel.words(query);
   }, [ensureInitialized]);
@@ -281,7 +295,7 @@ export function useWordNetKernel(config?: {
     return kernel.word(wordId);
   }, [ensureInitialized]);
 
-  const synsets = useCallback(async (query?: any) => {
+  const synsets = useCallback(async (query?: SynsetQuery) => {
     const kernel = ensureInitialized();
     return kernel.synsets(query);
   }, [ensureInitialized]);
@@ -291,7 +305,7 @@ export function useWordNetKernel(config?: {
     return kernel.synset(synsetId);
   }, [ensureInitialized]);
 
-  const senses = useCallback(async (query?: any) => {
+  const senses = useCallback(async (query?: SenseQuery) => {
     const kernel = ensureInitialized();
     return kernel.senses(query);
   }, [ensureInitialized]);
@@ -299,6 +313,11 @@ export function useWordNetKernel(config?: {
   const sense = useCallback(async (senseId: string) => {
     const kernel = ensureInitialized();
     return kernel.sense(senseId);
+  }, [ensureInitialized]);
+
+  const lexicons = useCallback(async () => {
+    const kernel = ensureInitialized();
+    return kernel.lexicons();
   }, [ensureInitialized]);
 
   const ili = useCallback(async (iliId: string) => {
@@ -461,6 +480,7 @@ export function useWordNetKernel(config?: {
     synset,
     senses,
     sense,
+    lexicons,
     ili,
     ilis,
     synsetsByILI,
