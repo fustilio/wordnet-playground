@@ -137,6 +137,7 @@ function App() {
                   <tr>
                     <th>POS</th>
                     <th>Definition</th>
+                    <th>Examples</th>
                     <th>Synset ID</th>
                     <th>ILI ID</th>
                   </tr>
@@ -151,6 +152,24 @@ function App() {
                       </td>
                       <td className="definition-cell">
                         {result.definitions?.[0]?.text || 'No definition'}
+                      </td>
+                      <td className="examples-cell">
+                        {result.examples && result.examples.length > 0 ? (
+                          <div className="examples-list">
+                            {result.examples.slice(0, 2).map((example: any, exIndex: number) => (
+                              <div key={exIndex} className="example">
+                                "{example.text}"
+                              </div>
+                            ))}
+                            {result.examples.length > 2 && (
+                              <div className="example-count">
+                                +{result.examples.length - 2} more
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="no-examples">No examples</span>
+                        )}
                       </td>
                       <td className="id-cell">
                         <code>{result.id}</code>

@@ -10,7 +10,7 @@ export interface WordnetConfig {
 
 export interface WordDefinition {
 	text: string;
-	example?: string;
+	examples?: string[];
 }
 
 export interface WordResult {
@@ -26,7 +26,7 @@ export interface UseWordnetReturn {
 	ready: boolean;
 
 	// Basic operations
-	getDefinitions: (word: string) => Promise<any[]>;
+	getDefinitions: (word: string) => Promise<WordResult[]>;
 	searchWords: (term: string) => Promise<WordResult[]>;
 	getSynsetWords: (synsetId: string) => Promise<any[]>;
 	getIliWords: (iliId: string) => Promise<any[]>;
@@ -150,11 +150,8 @@ export function useWordnet(config: WordnetConfig = {}): UseWordnetReturn {
 			}
 
 			try {
-				// Use the language from config  
-				const words = await getWordsByIliAndLanguage(
-					iliId,
-					lang.split("-")[0]
-				);
+				// Use the language from config
+				const words = await getWordsByIliAndLanguage(iliId, lang.split("-")[0]);
 				return words || [];
 			} catch (err) {
 				throw new Error(
