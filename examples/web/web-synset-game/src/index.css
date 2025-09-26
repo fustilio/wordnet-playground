@@ -332,3 +332,31 @@ body {
 	display: flex;
 	justify-content: center;
 }
+
+.synonym-word.clickable {
+	background: none;
+	border: none;
+	color: #0066cc;
+	cursor: pointer;
+	text-decoration: underline;
+	padding: 0;
+	font-size: inherit;
+	font-family: inherit;
+	display: inline;
+}
+
+.synonym-word.clickable:hover {
+	color: #004499;
+	text-decoration: none;
+}
+
+.synonym-word.clickable:disabled {
+	color: #666;
+	cursor: not-allowed;
+	text-decoration: none;
+}
+
+.synonym-word.clickable:focus {
+	outline: 2px solid #0066cc;
+	outline-offset: 1px;
+}

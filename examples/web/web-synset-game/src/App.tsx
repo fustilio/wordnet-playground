@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useWordnet } from './hooks/useWordnet';
 import './index.css';
 
@@ -10,8 +10,10 @@ function App() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [synonymsData, setSynonymsData] = useState<Record<string, any[]>>({});
 
-  const handleSearch = async () => {
-    if (!searchTerm.trim()) return;
+  const handleSearch = async (termToSearch?: string) => {
+    const searchWord = termToSearch || searchTerm;
+
+    if (!searchWord.trim()) return;
 
     setIsSearching(true);
     setSearchError(null);
@@ -19,7 +21,7 @@ function App() {
     setSynonymsData({});
 
     try {
-      const synsets = await getDefinitions(searchTerm);
+      const synsets = await getDefinitions(searchWord);
       setResults(synsets);
 
       // Automatically fetch synonyms for each synset
@@ -65,10 +67,16 @@ function App() {
     return 'loading';
   };
 
+  // Add this new function to handle clicking on synonym words
+  const handleSynonymClick = (word: string) => {
+    setSearchTerm(word);
+    handleSearch(word);
+  };
+
   return (
     <div className="container">
       <header className="header">
-        <h1>WordNet Basic Demo</h1>
+        <h1>Dictionary Basic Demo</h1>
         <p>Simple word definitions using WordNet</p>
       </header>
 
@@ -89,7 +97,7 @@ function App() {
           />
           <button
             className="search-button"
-            onClick={handleSearch}
+            onClick={() => handleSearch()}
             disabled={!ready || isSearching || !searchTerm.trim()}
           >
             {isSearching ? 'Searching...' : 'Search'}
@@ -131,7 +139,11 @@ function App() {
                           <div className="synonyms-list">
                             {synonymsData[result.id].slice(0, 3).map((word, wordIndex) => (
                               <span key={wordIndex} className="synonym-word">
-                                {word.lemma}
+                                <button className="synonym-word clickable"
+                                  onClick={() => handleSynonymClick(word.lemma)}
+                                >
+                                  {word.lemma}
+                                </button>
                                 {wordIndex < Math.min(2, synonymsData[result.id].length - 1) && ', '}
                               </span>
                             ))}
