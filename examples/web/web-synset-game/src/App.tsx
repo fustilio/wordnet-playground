@@ -10,10 +10,12 @@ function App() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [synonymsData, setSynonymsData] = useState<Record<string, any[]>>({});
 
-
   // Add state to track which words are valid and being validated
   const [validWords, setValidWords] = useState<Record<string, boolean>>({});
   const [validatingWords, setValidatingWords] = useState<Set<string>>(new Set());
+
+  // Add state to track search history
+  const [searchHistory, setSearchHistory] = useState<string[]>(['water']);
 
   // Add state to track expanded synonym lists
   const [expandedSynonyms, setExpandedSynonyms] = useState<Set<string>>(new Set());
@@ -103,6 +105,11 @@ function App() {
 
     if (!searchWord.trim()) return;
 
+    // Add to search history if it's a new search
+    if (searchWord.toLowerCase() !== searchHistory[searchHistory.length - 1]?.toLowerCase()) {
+      setSearchHistory(prev => [...prev, searchWord.toLowerCase()]);
+    }
+
     setIsSearching(true);
     setSearchError(null);
     setResults([]);
@@ -133,6 +140,22 @@ function App() {
     } finally {
       setIsSearching(false);
     }
+  };
+
+  // Function to handle clicking on history items
+  const handleHistoryClick = (word: string, index: number) => {
+    // Remove everything after the clicked item
+    setSearchHistory(prev => prev.slice(0, index + 1));
+    setSearchTerm(word);
+    handleSearch(word);
+  };
+
+  // Function to clear history
+  const clearHistory = () => {
+    setSearchHistory([]);
+    setSearchTerm('');
+    setResults([]);
+    setSynonymsData({});
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -182,6 +205,38 @@ function App() {
         <div className={`status ${getStatusClass()}`}>
           {getStatusMessage()}
         </div>
+
+        {/* Search History Chain */}
+        {searchHistory.length > 0 && (
+          <div className="search-history">
+            <div className="history-label">Search path:</div>
+            <div className="history-chain">
+              {searchHistory.map((word, index) => (
+                <span key={index} className="history-item">
+                  <button
+                    className="history-word"
+                    onClick={() => handleHistoryClick(word, index)}
+                    disabled={isSearching}
+                    title={`Go back to "${word}"`}
+                  >
+                    {word}
+                  </button>
+                  {index < searchHistory.length - 1 && (
+                    <span className="history-arrow">→</span>
+                  )}
+                </span>
+              ))}
+              <button
+                className="clear-history"
+                onClick={clearHistory}
+                disabled={isSearching}
+                title="Clear search history"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="search-form">
           <input

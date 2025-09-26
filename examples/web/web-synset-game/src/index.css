@@ -419,3 +419,88 @@ body {
 	outline-offset: 1px;
 	border-radius: 2px;
 }
+
+/* Add styles for search history */
+
+.search-history {
+	margin-bottom: 1rem;
+	padding: 0.75rem;
+	background-color: #f8f9fa;
+	border-radius: 0.5rem;
+	border: 1px solid #e9ecef;
+}
+
+.history-label {
+	font-size: 0.875rem;
+	color: #666;
+	margin-bottom: 0.5rem;
+	font-weight: 500;
+}
+
+.history-chain {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.25rem;
+}
+
+.history-item {
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+}
+
+.history-word {
+	background: #fff;
+	border: 1px solid #ddd;
+	border-radius: 0.25rem;
+	padding: 0.25rem 0.5rem;
+	font-size: 0.875rem;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	color: #0066cc;
+	text-decoration: none;
+}
+
+.history-word:hover {
+	background-color: #f0f8ff;
+	border-color: #0066cc;
+	color: #004499;
+}
+
+.history-word:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.history-word:focus {
+	outline: 2px solid #0066cc;
+	outline-offset: 1px;
+}
+
+.history-arrow {
+	color: #666;
+	font-size: 0.875rem;
+	margin: 0 0.25rem;
+}
+
+.clear-history {
+	background: #dc3545;
+	border: none;
+	border-radius: 0.25rem;
+	color: white;
+	padding: 0.25rem 0.5rem;
+	font-size: 0.75rem;
+	cursor: pointer;
+	margin-left: 0.5rem;
+	transition: background-color 0.2s ease;
+}
+
+.clear-history:hover {
+	background-color: #c82333;
+}
+
+.clear-history:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
