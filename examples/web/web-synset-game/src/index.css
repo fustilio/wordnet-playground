@@ -360,3 +360,62 @@ body {
 	outline: 2px solid #0066cc;
 	outline-offset: 1px;
 }
+
+/* Styles for hoverable and validated words */
+
+.definition-word.hoverable {
+	transition: color 0.2s ease;
+}
+
+.definition-word.hoverable:hover {
+	color: #0066cc;
+	text-decoration: underline;
+}
+
+.definition-word.validating {
+	color: #999;
+	font-style: italic;
+}
+
+.definition-word.clickable.valid {
+	color: #0066cc;
+	cursor: pointer;
+	text-decoration: none;
+	border-bottom: 1px dotted #0066cc;
+	transition: all 0.2s ease;
+}
+
+.definition-word.clickable.valid:hover {
+	color: #004499;
+	border-bottom-color: #004499;
+	background-color: #f0f8ff;
+}
+
+.definition-word.clickable.valid:focus {
+	outline: 2px solid #0066cc;
+	outline-offset: 1px;
+	border-radius: 2px;
+}
+
+/* Add styles for the synonym toggle button */
+
+.synonym-toggle {
+	background: none;
+	border: none;
+	color: #666;
+	cursor: pointer;
+	font-size: inherit;
+	font-family: inherit;
+	padding: 0;
+	margin-left: 4px;
+}
+
+.synonym-toggle:hover {
+	color: #0066cc;
+}
+
+.synonym-toggle:focus {
+	outline: 2px solid #0066cc;
+	outline-offset: 1px;
+	border-radius: 2px;
+}

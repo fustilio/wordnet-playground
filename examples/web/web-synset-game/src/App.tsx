@@ -10,6 +10,94 @@ function App() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [synonymsData, setSynonymsData] = useState<Record<string, any[]>>({});
 
+
+  // Add state to track which words are valid and being validated
+  const [validWords, setValidWords] = useState<Record<string, boolean>>({});
+  const [validatingWords, setValidatingWords] = useState<Set<string>>(new Set());
+
+  // Add state to track expanded synonym lists
+  const [expandedSynonyms, setExpandedSynonyms] = useState<Set<string>>(new Set());
+
+  // Function to toggle synonym expansion
+  const toggleSynonymExpansion = (synsetId: string) => {
+    setExpandedSynonyms(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(synsetId)) {
+        newSet.delete(synsetId);
+      } else {
+        newSet.add(synsetId);
+      }
+      return newSet;
+    });
+  };
+
+  // Function to validate a word on hover
+  const handleWordHover = async (word: string) => {
+    const lowerWord = word.toLowerCase();
+
+    // Don't validate if already validated or currently validating
+    if (validWords[lowerWord] !== undefined || validatingWords.has(lowerWord)) {
+      return;
+    }
+
+    // Mark as validating
+    setValidatingWords(prev => new Set(prev).add(lowerWord));
+
+    try {
+      const isValid = await isValidWord(lowerWord);
+      setValidWords(prev => ({
+        ...prev,
+        [lowerWord]: isValid
+      }));
+    } catch {
+      setValidWords(prev => ({
+        ...prev,
+        [lowerWord]: false
+      }));
+    } finally {
+      // Remove from validating set
+      setValidatingWords(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(lowerWord);
+        return newSet;
+      });
+    }
+  };
+
+  // Updated function to render potentially clickable words in definitions
+  const renderClickableDefinition = (definition: string) => {
+    // Split the definition into words, preserving punctuation
+    const words = definition.split(/(\s+|[.,;:!?()[\]{}"])/);
+
+    return words.map((segment, index) => {
+      // Check if the segment is a word (not whitespace or punctuation)
+      const isWord = /^[a-zA-Z]+$/.test(segment);
+
+      if (isWord && segment.length > 2) {
+        const lowerSegment = segment.toLowerCase();
+        const isValid = validWords[lowerSegment];
+
+        return (
+          <span
+            key={index}
+            onMouseEnter={() => handleWordHover(segment)}
+            className={`definition-word ${isValid && 'hoverable'}`}
+            onClick={isValid ? () => handleSynonymClick(segment) : undefined}
+            style={{
+              cursor: isValid ? 'pointer' : 'default'
+            }}
+          >
+            {segment}
+          </span>
+        );
+      }
+
+      // Return non-word segments (spaces, punctuation) as plain text
+      return <span key={index}>{segment}</span>;
+    });
+  };
+
+
   const handleSearch = async (termToSearch?: string) => {
     const searchWord = termToSearch || searchTerm;
 
@@ -65,6 +153,16 @@ function App() {
     if (error) return 'error';
     if (ready) return 'ready';
     return 'loading';
+  };
+
+  // Check if a word exists in WordNet
+  const isValidWord = async (word: string): Promise<boolean> => {
+    try {
+      const synsets = await getDefinitions(word);
+      return synsets.length > 0;
+    } catch {
+      return false;
+    }
   };
 
   // Add this new function to handle clicking on synonym words
@@ -132,25 +230,37 @@ function App() {
                         </span>
                       </td>
                       <td className="definition-cell">
-                        {result.definitions?.[0]?.text || 'No definition'}
+                        {renderClickableDefinition(result.definitions[0].text)}
                       </td>
+
                       <td className="synonym-cell">
                         {synonymsData[result.id] ? (
                           <div className="synonyms-list">
-                            {synonymsData[result.id].slice(0, 3).map((word, wordIndex) => (
-                              <span key={wordIndex} className="synonym-word">
-                                <button className="synonym-word clickable"
-                                  onClick={() => handleSynonymClick(word.lemma)}
-                                >
-                                  {word.lemma}
-                                </button>
-                                {wordIndex < Math.min(2, synonymsData[result.id].length - 1) && ', '}
-                              </span>
-                            ))}
+                            {synonymsData[result.id]
+                              .slice(0, expandedSynonyms.has(result.id) ? undefined : 3)
+                              .map((word, wordIndex) => (
+                                <span key={wordIndex} className="synonym-word">
+                                  <button className="synonym-word clickable"
+                                    onClick={() => handleSynonymClick(word.lemma)}
+                                  >
+                                    {word.lemma}
+                                  </button>
+                                  {wordIndex < (expandedSynonyms.has(result.id)
+                                    ? synonymsData[result.id].length - 1
+                                    : Math.min(2, synonymsData[result.id].length - 1)
+                                  ) && ', '}
+                                </span>
+                              ))}
                             {synonymsData[result.id].length > 3 && (
-                              <span className="synonym-count">
-                                +{synonymsData[result.id].length - 3} more
-                              </span>
+                              <button
+                                className="synonym-toggle"
+                                onClick={() => toggleSynonymExpansion(result.id)}
+                              >
+                                {expandedSynonyms.has(result.id)
+                                  ? ' show less'
+                                  : ` +${synonymsData[result.id].length - 3} more`
+                                }
+                              </button>
                             )}
                           </div>
                         ) : isSearching ? (
