@@ -6,7 +6,6 @@
 
 export type { 
   Database,
-  DatabaseSchema,
   LexiconTable,
   WordTable,
   SynsetTable,

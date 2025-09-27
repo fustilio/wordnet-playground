@@ -8,7 +8,7 @@ import { SharedDataManager } from 'wn-ts-core';
 import type { Database } from 'wn-ts-core';
 import type { Kysely } from 'kysely';
 import type { LMFDocument } from 'wn-ts-core';
-import type { DataManagerOptions, ProjectInfo, DataManagerLogger } from 'wn-ts-core';
+import type { DataManagerOptions, DataManagerLogger, DataManagerProjectInfo, Lexicon } from 'wn-ts-core';
 import { logger } from 'wn-ts-core';
 import { ProjectError } from 'wn-ts-core';
 
@@ -71,7 +71,7 @@ export interface NodeWordnet {
 
 export interface QueryService {
   database: Kysely<Database>;
-  getLexicons(): Promise<LexiconInfo[]>;
+  getLexicons(): Promise<Lexicon[]>;
 }
 
 export interface LexiconInfo {
@@ -87,7 +87,7 @@ export interface LexiconInfo {
 }
 
 export interface ProjectIndex {
-  [key: string]: ProjectInfo;
+  [key: string]: DataManagerProjectInfo;
 }
 
 /**
@@ -222,7 +222,7 @@ export class NodeDataManager extends SharedDataManager {
   /**
    * Get project information from the centralized configuration
    */
-  protected async getProjectInfo(projectId: string): Promise<ProjectInfo> {
+  protected async getProjectInfo(projectId: string): Promise<DataManagerProjectInfo> {
     this.logger.debug(`🔍 Getting project info for: ${projectId}`);
 
     try {
@@ -246,29 +246,32 @@ export class NodeDataManager extends SharedDataManager {
       
       // Get all URLs (primary + fallback)
       const allUrls = getAllProjectUrls(projectId);
-      const primaryUrl = allUrls[0] || '';
       
-      const [baseId, version] = projectId.split(':');
+      const [, version] = projectId.split(':');
       
       return {
         id: projectId,
         label: projectConfig.label,
         language: projectConfig.language,
         version: version || '1.0',
+        license: projectConfig.license || 'MIT',
+        url: allUrls[0] || '',
         allUrls: allUrls,
-        primaryUrl: primaryUrl,
+        primaryUrl: allUrls[0] || '',
         fallbackUrls: allUrls.slice(1),
       };
     } catch (error) {
       this.logger.warn(`⚠️ Failed to get project info for ${projectId}, using fallback:`, error);
       
       // Fallback to basic project info if configuration fails
-      const [baseId, version] = projectId.split(':');
+      const [, version] = projectId.split(':');
       return {
         id: projectId,
-        label: `${baseId} ${version}`,
+        label: projectId ? `${projectId.replace(':', ' ')}` : 'Unknown Project',
         language: 'en',
         version: version || '1.0',
+        license: 'MIT',
+        url: '',
         allUrls: [],
         primaryUrl: '',
         fallbackUrls: [],
@@ -542,7 +545,7 @@ export class NodeDataManager extends SharedDataManager {
    */
   async download(
     projectId: string,
-    options: any = {}
+    _options: any = {}
   ): Promise<string> {
     // For now, this is a placeholder that throws an error
     // The actual download functionality should be implemented based on the old system

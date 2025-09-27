@@ -31,9 +31,9 @@ export function getSensesQuery(
 
   // Apply filters
   if (wordIdOrForm) {
-    // Check if it's a word ID (contains dots and follows pattern like "word.pos.number")
-    // or if it's a sense ID (contains "sense" and dots)
-    if (wordIdOrForm.includes('.') && (wordIdOrForm.includes('.n.') || wordIdOrForm.includes('.v.') || wordIdOrForm.includes('.a.') || wordIdOrForm.includes('.r.') || wordIdOrForm.includes('sense'))) {
+    // Check if it's a word ID (contains lexicon prefix and part of speech)
+    // Pattern examples: "oewn-fire-n", "omw-fr-ordinateur-n", "cili-1234"
+    if (wordIdOrForm.includes('-') && (wordIdOrForm.endsWith('-n') || wordIdOrForm.endsWith('-v') || wordIdOrForm.endsWith('-a') || wordIdOrForm.endsWith('-r') || wordIdOrForm.endsWith('-s') || wordIdOrForm.endsWith('-c') || wordIdOrForm.endsWith('-p') || wordIdOrForm.endsWith('-i') || wordIdOrForm.endsWith('-x') || wordIdOrForm.endsWith('-u'))) {
       // Direct word ID lookup - fastest possible
       query = query.where('senses.word_id', '=', wordIdOrForm);
     } else {

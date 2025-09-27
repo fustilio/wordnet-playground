@@ -400,7 +400,7 @@ export class KyselyWordnet extends LocalBaseWordnet {
       id: d.id,
       language: d.language || 'en',
       text: d.text || '',
-      source: d.source
+      source: d.source || undefined
     }));
   }
 

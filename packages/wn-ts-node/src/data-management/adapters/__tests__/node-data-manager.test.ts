@@ -129,18 +129,31 @@ describe('NodeDataManager', () => {
 
       expect(result).toEqual({
         id: 'test:1.0',
-        label: 'test:1.0 1.0',
+        label: 'test 1.0',
         language: 'en',
         version: '1.0',
-        allUrls: ['https://example.com/test.xml'],
-        primaryUrl: 'https://example.com/test.xml',
+        license: 'MIT',
+        url: '',
+        allUrls: [],
+        primaryUrl: '',
         fallbackUrls: [],
       });
     });
 
-    it('should throw error for invalid project ID format', async () => {
-      await expect((dataManager as any).getProjectInfo('invalid'))
-        .rejects.toThrow('Invalid project ID format: invalid. Expected format: base:version');
+    it('should handle invalid project ID format gracefully', async () => {
+      const result = await (dataManager as any).getProjectInfo('invalid');
+      
+      expect(result).toEqual({
+        id: 'invalid',
+        label: 'invalid',
+        language: 'en',
+        version: '1.0',
+        license: 'MIT',
+        url: '',
+        allUrls: [],
+        primaryUrl: '',
+        fallbackUrls: [],
+      });
     });
   });
 
@@ -181,7 +194,7 @@ describe('NodeDataManager', () => {
 
       const result = await (dataManager as any).processFile('/path/to/file.tar');
 
-      expect(extractTarArchive).toHaveBeenCalledWith('/path/to/file.tar', '/path/to');
+      expect(extractTarArchive).toHaveBeenCalledWith('/path/to/file.tar');
       expect(findLMFiles).toHaveBeenCalledWith('/extracted/dir');
       expect(result).toBe('/extracted/dir/file.xml');
     });

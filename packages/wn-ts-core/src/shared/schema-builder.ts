@@ -31,6 +31,7 @@ export class SchemaBuilder {
   }
 
   // Legacy method - kept for reference but not used
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private static async createIndexesLegacy(db: Kysely<Database>): Promise<void> {
     const schema = db.schema;
 
@@ -161,6 +162,7 @@ export class SchemaBuilder {
       .execute();
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private static async createLexiconsTable(schema: any): Promise<void> {
     await schema.createTable('lexicons').ifNotExists()
       .addColumn('id', 'text', (c: any) => c.primaryKey())
@@ -176,6 +178,7 @@ export class SchemaBuilder {
       .execute();
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private static async createWordsTable(schema: any): Promise<void> {
     await schema.createTable('words').ifNotExists()
       .addColumn('id', 'text', (c: any) => c.primaryKey())
@@ -186,6 +189,7 @@ export class SchemaBuilder {
       .execute();
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private static async createFormsTable(schema: any): Promise<void> {
     await schema.createTable('forms').ifNotExists()
       .addColumn('id', 'text', (c: any) => c.primaryKey())
@@ -196,6 +200,7 @@ export class SchemaBuilder {
       .execute();
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private static async createSynsetsTable(schema: any): Promise<void> {
     await schema.createTable('synsets').ifNotExists()
       .addColumn('id', 'text', (c: any) => c.primaryKey())
@@ -206,6 +211,7 @@ export class SchemaBuilder {
       .execute();
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private static async createSensesTable(schema: any): Promise<void> {
     await schema.createTable('senses').ifNotExists()
       .addColumn('id', 'text', (c: any) => c.primaryKey())
@@ -220,6 +226,7 @@ export class SchemaBuilder {
       .execute();
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private static async createDefinitionsTable(schema: any): Promise<void> {
     await schema.createTable('definitions').ifNotExists()
       .addColumn('id', 'text', (c: any) => c.primaryKey())
@@ -230,6 +237,7 @@ export class SchemaBuilder {
       .execute();
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private static async createRelationsTable(schema: any): Promise<void> {
     await schema.createTable('relations').ifNotExists()
       .addColumn('id', 'text', (c: any) => c.primaryKey())
@@ -240,6 +248,7 @@ export class SchemaBuilder {
       .execute();
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private static async createExamplesTable(schema: any): Promise<void> {
     await schema.createTable('examples').ifNotExists()
       .addColumn('id', 'text', (c: any) => c.primaryKey())
@@ -251,6 +260,7 @@ export class SchemaBuilder {
       .execute();
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private static async createIlisTable(schema: any): Promise<void> {
     await schema.createTable('ilis').ifNotExists()
       .addColumn('id', 'text', (c: any) => c.primaryKey())

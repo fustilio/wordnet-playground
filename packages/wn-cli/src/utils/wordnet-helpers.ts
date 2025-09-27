@@ -1,5 +1,5 @@
-import { Wordnet, ili, synset as wnSynset } from "wn-ts";
-import type { PartOfSpeech } from "wn-ts";
+import { Wordnet, ili, synset as wnSynset } from "wn-ts-node";
+import type { PartOfSpeech } from "wn-ts-core";
 import { colors } from "../commands/utils/colors.js";
 
 export interface WordResult {

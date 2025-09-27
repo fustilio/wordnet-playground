@@ -10,9 +10,9 @@ export function updateRecordById<T extends keyof Database>(
   id: string,
   updates: Partial<Database[T]>
 ) {
-  return db
+  return (db as any)
     .updateTable(tableName)
-    .set(updates as any)
+    .set(updates)
     .where('id', '=', id)
     .execute();
 }
@@ -26,9 +26,9 @@ export function updateRecordsByCondition<T extends keyof Database>(
   condition: (eb: any) => any,
   updates: Partial<Database[T]>
 ) {
-  return db
+  return (db as any)
     .updateTable(tableName)
-    .set(updates as any)
+    .set(updates)
     .where(condition)
     .execute();
 }
@@ -59,6 +59,6 @@ export function upsertRecords<T extends keyof Database>(
   return db
     .insertInto(tableName)
     .values(data as any[])
-    .onConflict((oc) => oc.column('id').doUpdateSet((eb) => eb))
+    .onConflict((oc) => oc.column('id').doUpdateSet({}))
     .execute();
 }

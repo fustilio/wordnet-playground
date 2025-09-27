@@ -45,8 +45,8 @@ async function getDataManager(): Promise<NodeDataManager> {
   if (!_dataManager) {
     const db = await getDataManagementDb();
     _dataManager = new NodeDataManager({
-      database: { getQueryService: () => db.getQueryService() },
-      wordnet: { getQueryService: () => db.getQueryService() },
+      database: { getQueryService: () => db.getQueryService() as any },
+      wordnet: { getQueryService: () => db.getQueryService() as any },
       downloadDirectory: config.downloadDirectory,
     });
   }

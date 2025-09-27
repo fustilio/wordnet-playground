@@ -4,7 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { SharedDataManager } from '../shared-data-manager.js';
-import type { DataManagerAdapter, DataManagerLogger } from '../shared-data-manager.js';
+import type { DataManagerAdapter, DataManagerLogger, DataManagerProjectInfo } from '../shared-data-manager.js';
 
 // Mock adapter
 const createMockAdapter = (): DataManagerAdapter => ({
@@ -45,7 +45,7 @@ const createMockAdapter = (): DataManagerAdapter => ({
 
 // Test implementation of SharedDataManager
 class TestDataManager extends SharedDataManager {
-  protected async getProjectInfo(_projectId: string) {
+  protected async getProjectInfo(_projectId: string): Promise<DataManagerProjectInfo> {
     return {
       id: 'test',
       label: 'Test Project',

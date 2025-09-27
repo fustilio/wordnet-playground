@@ -24,6 +24,7 @@
   "dependencies": {
     "@fustilio/data-loader": "catalog:",
     "fast-xml-parser": "^5.2.5",
+    "pako": "^2.1.0",
     "smol-toml": "catalog:",
     "zod": "catalog:"
   },

@@ -60,7 +60,7 @@ export interface DataManagerAdapter {
   getLogger(): DataManagerLogger;
 }
 
-export interface ProjectInfo {
+export interface DataManagerProjectInfo {
   id: string;
   label: string;
   language: string;
@@ -598,7 +598,7 @@ export class SharedDataManager {
 
   // Abstract methods that need to be implemented by environment-specific adapters
 
-  protected async getProjectInfo(_projectId: string): Promise<ProjectInfo> {
+  protected async getProjectInfo(_projectId: string): Promise<DataManagerProjectInfo> {
     throw new Error("getProjectInfo must be implemented by environment-specific adapter");
   }
 

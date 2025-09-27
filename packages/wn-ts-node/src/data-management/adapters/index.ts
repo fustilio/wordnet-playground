@@ -13,7 +13,6 @@ export type {
   QueryService,
   LexiconInfo,
   ProjectIndex,
-  ProjectInfo,
   LMFParseOptions,
   ILIRecord,
   WordNetProcessingResult

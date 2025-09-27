@@ -191,7 +191,7 @@ export function deleteRecordById<T extends keyof Database>(
   tableName: T,
   id: string
 ) {
-  return db
+  return (db as any)
     .deleteFrom(tableName)
     .where('id', '=', id)
     .execute();
@@ -205,7 +205,7 @@ export function deleteRecordsByCondition<T extends keyof Database>(
   tableName: T,
   condition: (eb: any) => any
 ) {
-  return db
+  return (db as any)
     .deleteFrom(tableName)
     .where(condition)
     .execute();

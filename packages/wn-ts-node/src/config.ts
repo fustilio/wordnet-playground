@@ -10,9 +10,9 @@ import { logger } from 'wn-ts-core';
 import { 
   getProjectConfig, 
   getAllProjectUrls,
-  validateProjectId,
+  // validateProjectId,
   type ProjectConfig,
-  type ProjectVersionConfig 
+  // type ProjectVersionConfig 
 } from 'wn-ts-core/config/project-config';
 
 // ESM-compatible __dirname
@@ -124,6 +124,7 @@ export class ConfigManager extends BaseConfigManager {
       throw new Error(`Project already added: ${id}`);
     }
     this._projects[id] = {
+      id,
       type,
       label: label || '',
       language: language || 'en',
@@ -142,18 +143,19 @@ export class ConfigManager extends BaseConfigManager {
     error?: string,
     license?: string
   ): void {
-    const versionData: ProjectVersion = {};
+    const versionData: any = {};
     
     if (url && !error) {
+      versionData.url = url;
       versionData.resource_urls = url.split(/\s+/).filter(Boolean);
     } else if (error && !url) {
-      (versionData as any).error = error;
+      versionData.error = error;
     } else if (url && error) {
       throw new ConfigurationError(`${id}:${version} specifies both url and error`);
     }
     
     if (license) {
-      (versionData as any).license = license;
+      versionData.license = license;
     }
     
     const project = this._projects[id];
@@ -174,14 +176,13 @@ export class ConfigManager extends BaseConfigManager {
         const allUrls = getAllProjectUrls(projectId);
         
         return {
-          id: projectId,
+          id: id,
           version: version || '1.0',
+          type: projectConfig.type || 'lexicalresource',
           label: projectConfig.label,
           language: projectConfig.language,
           license: projectConfig.license,
-          allUrls: allUrls,
-          primaryUrl: allUrls[0] || '',
-          fallbackUrls: allUrls.slice(1),
+          resource_urls: allUrls,
         };
       }
     } catch (error) {
@@ -193,8 +194,8 @@ export class ConfigManager extends BaseConfigManager {
       throw new ProjectError(`No such project id: ${id}`);
     }
     const project = this._projects[id]!;
-    if (project.error) {
-      throw new ProjectError(project.error);
+    if ((project as any).error) {
+      throw new ProjectError((project as any).error);
     }
     const versions = project.versions;
     let targetVersion = version;
@@ -210,15 +211,15 @@ export class ConfigManager extends BaseConfigManager {
     if (info.error) {
       throw new ProjectError(info.error);
     }
+    const localUrls = (info as any).resource_urls || [];
     return {
-      id: projectId,
+      id: id,
       version: targetVersion,
+      type: project.type || 'lexicalresource',
       label: project.label || '',
       language: project.language || '',
-      license: info.license || project.license || '',
-      allUrls: [],
-      primaryUrl: '',
-      fallbackUrls: [],
+      license: (info as any).license || project.license || '',
+      resource_urls: localUrls,
     };
   }
 
