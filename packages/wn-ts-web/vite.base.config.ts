@@ -10,6 +10,7 @@ export default defineConfig({
         "wn-ts-web": path.resolve(process.cwd(), "src/index.ts"),
         "wn-ts-web-react": path.resolve(process.cwd(), "src/react/index.ts"),
         "wordnet-worker": path.resolve(process.cwd(), "src/workers/wordnet-worker.ts"),
+        "proxy-config": path.resolve(process.cwd(), "config/proxy-config.ts"),
       },
       name: "WnTsWeb",
       fileName: (format, entryName) =>
@@ -62,7 +63,8 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    exclude: ["@sqlite.org/sqlite-wasm", "pako"],
+    exclude: ["@sqlite.org/sqlite-wasm"],
+    include: ["wn-data-loader", "pako"],
   },
   plugins: [
     comlink(),
@@ -85,5 +87,13 @@ export default defineConfig({
   worker: {
     format: "es",
     plugins: () => [comlink()],
+    rollupOptions: {
+      external: ["@sqlite.org/sqlite-wasm"],
+      output: {
+        globals: {
+          "@sqlite.org/sqlite-wasm": "SqliteWasm"
+        }
+      }
+    }
   },
 });

@@ -1,147 +1,82 @@
-# WordNet TypeScript Node.js Implementation
+# wn-ts-node
 
-A modern TypeScript implementation for accessing WordNet data, inspired by the [wn library](https://github.com/goodmami/wn). This implementation provides comprehensive WordNet functionality while leveraging TypeScript's type safety and a modern microkernel architecture with plugin system.
+Node.js implementation of the WordNet TypeScript ecosystem with SQLite integration and microkernel architecture.
 
-## Status: Production Ready
+## Features
 
-This TypeScript implementation provides comprehensive WordNet functionality including examples support, project management, information content calculations, and export functionality, built on a modern microkernel architecture.
+- **Microkernel Architecture** - Plugin-based design with relations, similarity, and translation plugins
+- **Native SQLite** - High-performance database operations with native SQLite3
+- **Performance** - Optimized for server-side processing and large datasets
+- **Type Safety** - Full TypeScript support with comprehensive type definitions
+- **Cross-Lingual** - Multi-language support with ILI-based translation
+- **CLI Tools** - Built-in command-line interface for data management
+- **Data Export** - Export WordNet data in multiple formats (JSON, XML, CSV)
 
-## Architecture
-
-The library uses a microkernel architecture with a plugin system:
-
-```
-NodeWordNetKernel
-├── NodeWordNetCore (implements WordNetCore)
-│   ├── KyselyWordnet (database operations)
-│   └── NodeKyselyDatabase (SQLite integration)
-├── Plugin System
-│   ├── Relations Plugin (hypernyms, hyponyms, etc.)
-│   ├── Similarity Plugin (path, Wu-Palmer, etc.)
-│   └── Translation Plugin (cross-lingual operations)
-└── Schema Management (built-in)
-```
-
-## Quick Start
-
-### Installation
+## Installation
 
 ```bash
 npm install wn-ts-node
-# or
-pnpm add wn-ts-node
 ```
 
-### Command-Line Interface
-
-```bash
-# Install globally for CLI access
-npm install -g wn-ts-node
-
-# Download a WordNet project
-wn-ts-node download oewn:2024
-
-# Add a lexical resource
-wn-ts-node add oewn-2024-english-wordnet-2024.xml.gz
-
-# Query the database
-wn-ts-node query run v
-
-# Show database status
-wn-ts-node db status
-```
+## Usage
 
 ### Basic Usage
-
-#### Kernel API (Recommended)
-
 ```typescript
-import { NodeWordNetKernel, download, add } from 'wn-ts-node';
+import { NodeWordNetKernel } from 'wn-ts-node';
 
-// Download and add a WordNet project
-await download('oewn:2024');
-await add('oewn-2024-english-wordnet-2024.xml.gz');
-
-// Create a kernel-based WordNet instance
-const wordnet = new NodeWordNetKernel('oewn:2024', {
-  filename: 'wordnet.db'
-});
-
+const wordnet = new NodeWordNetKernel('oewn:2024');
 await wordnet.initialize();
-
-// Basic queries
-const words = await wordnet.words({ form: 'run' });
-const synsets = await wordnet.synsets({ wordId: words[0].id });
-
-// Plugin methods
-const hypernyms = await wordnet.getHypernyms(synsets[0].id);
-const similarity = await wordnet.getPathSimilarity(synsets[0].id, synsets[1].id);
-const translations = await wordnet.getTranslations(synsets[0].id, 'fr');
-
+const words = await wordnet.words({ form: 'computer' });
 await wordnet.close();
 ```
 
-#### Legacy API (Python wn compatibility)
+### Module Functions
+```typescript
+import { words, synsets, download, add } from 'wn-ts-node';
+
+// Query functions
+const wordList = await words('computer');
+const synsetList = await synsets('computer');
+
+// Data management
+await download('oewn:2024');
+await add('oewn:2024');
+```
+
+### Plugin Usage
+```typescript
+const hypernyms = await wordnet.getHypernyms(synsetId);
+const similarity = await wordnet.getPathSimilarity(synset1, synset2);
+const translations = await wordnet.getTranslations(synsetId, 'fr');
+```
+
+## Configuration
 
 ```typescript
-import { Wordnet, download, add } from 'wn-ts-node';
-
-// Download and add a WordNet project
-await download('oewn:2024');
-await add('oewn-2024-english-wordnet-2024.xml.gz');
-
-// Create a WordNet instance
-const wn = new Wordnet('oewn:2024');
-
-// Use convenience methods
-const words = await wn.words('run', 'v');
-const synsets = await wn.synsets('run', 'v');
-
-for (const synset of synsets) {
-  console.log(`Synset: ${synset.id}`);
-  console.log(`Definition: ${synset.definitions[0]?.text}`);
-  console.log(`Examples: ${synset.examples.map(e => e.text).join(', ')}`);
-  console.log(`Members: ${synset.members.join(', ')}`);
-}
+const options = {
+  filename: 'wordnet.db',
+  enableWAL: true,
+  enableForeignKeys: true,
+  maxConnections: 10
+};
 ```
 
-## Available Projects
-
-The library supports downloading and using various WordNet projects:
-
-- **oewn**: Open English WordNet (2024, 2023, 2022)
-- **omw**: Open Multilingual Wordnet (1.4)
-- **odenet**: Open German WordNet (1.4, 1.3)
-- **cili**: Collaborative Interlingual Index (1.0)
-
-And many more language-specific WordNets through the OMW project.
-
-## Testing
+## CLI Usage
 
 ```bash
-# Run all tests
-pnpm test
+# Search
+wn-cli search "computer" --lexicon oewn:2024
 
-# Run tests with coverage
-pnpm test:coverage
+# Relationships
+wn-cli relations "computer" --type hypernym
 
-# Run e2e tests
-pnpm test:e2e
+# Data management
+wn-cli data download oewn:2024
+wn-cli data export --format json
 ```
 
-## Documentation
+## Further Reading
 
-- **Usage Guide**: [USAGE.md](../../docs/packages/wn-ts-node/USAGE.md) - Comprehensive usage examples
-- **API Reference**: [API_REFERENCE.md](../../docs/packages/wn-ts-node/API_REFERENCE.md) - Complete API documentation
-- **Features & Roadmap**: [FEATURES_AND_ROADMAP.md](../../docs/packages/wn-ts-node/FEATURES_AND_ROADMAP.md) - Detailed features and development roadmap
-
-## License
-
-MIT License - see [LICENSE](./LICENSE) file for details.
-
-## Acknowledgments
-
-- [Python `wn` library](https://github.com/goodmami/wn) - The original implementation
-- [WordNet](https://wordnet.princeton.edu/) - The lexical database
-- [Open English WordNet](https://en-word.net/) - Modern English WordNet
-- [Open Multilingual Wordnet](https://omwn.org/) - Multilingual WordNet resources
+- [API Reference](../../docs/api/UNIFIED_API.md)
+- [Examples](../../docs/examples/README.md)
+- [Getting Started](../../docs/getting-started/README.md)

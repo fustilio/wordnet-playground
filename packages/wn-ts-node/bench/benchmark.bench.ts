@@ -5,7 +5,7 @@ import { createMinimalLMF, parseLMFXML, createWordNet } from 'wn-ts-core';
 import { taxonomyShortestPath } from '../src/taxonomy';
 import { similarity } from 'wn-ts-core/plugins';
 import { Morphy } from 'wn-ts-core';
-import { add, remove } from '../src/data-management-new';
+import { add, remove } from '../src/data-management/index.js';
 import { Wordnet } from '../src/wordnet';
 import { getTestContext, cleanupTestContext, createMockData } from 'wn-ts-core/test';
 import type { TestContext } from 'wn-ts-core/test';

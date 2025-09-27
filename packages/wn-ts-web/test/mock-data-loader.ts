@@ -1,6 +1,6 @@
 import { WebDatabase } from "../src/client/submodules/web-database.js";
 import type { WebWordnet } from "../src/client/submodules/web-wordnet.js";
-import { DataLoader, type DataLoadOptions } from "../src/data-loader.js";
+import { DataLoader } from "../src/data-management/index.js";
 import { Project } from "../src/project.js";
 import { createScopedLogger } from 'utils/logger';
 
@@ -18,12 +18,20 @@ export class MockDataLoader extends DataLoader {
     super(database, wordnet);
   }
 
+  getQueryService() {
+    return (this as any).config.wordnet.getQueryService();
+  }
+
+  get database() {
+    return (this as any).config.wordnet.getQueryService().database;
+  }
+
   /**
    * Override downloadAndLoad to provide mock data on failure.
    */
   async downloadAndLoad(
     projectIdWithVersion: string,
-    options: DataLoadOptions = {}
+    options: any = {}
   ): Promise<void> {
     try {
       // First, attempt to use the real DataLoader's logic
@@ -113,7 +121,7 @@ export class MockDataLoader extends DataLoader {
             version: project.version ?? "",
           });
         } else {
-          this.database.run(
+          await (this as any).config.wordnet.getQueryService().query(
             "INSERT OR REPLACE INTO lexicons (id, label, language, license) VALUES (?, ?, ?, ?)",
             [project.id, label, language, license]
           );
@@ -143,31 +151,47 @@ export class MockDataLoader extends DataLoader {
         try {
           // Insert word
           const wordId = `${lemma}.${pos}.01`;
-          this.database.run(
+          await (this as any).config.wordnet.getQueryService().query(
             "INSERT OR REPLACE INTO words (id, lemma, pos, language, lexicon) VALUES (?, ?, ?, ?, ?)",
             [wordId, lemma, pos, "en", project.id] // Use base lexicon ID
           );
 
           // Insert synset with ILI identifier
-          this.database.run(
+          await (this as any).config.wordnet.getQueryService().query(
             "INSERT OR REPLACE INTO synsets (id, pos, language, lexicon, ili) VALUES (?, ?, ?, ?, ?)",
             [synsetId, pos, "en", project.id, `i-${synsetId}`] // Use base lexicon ID and add ILI
           );
 
           // Insert sense
-          this.database.run(
-            "INSERT OR REPLACE INTO senses (id, word_id, synset_id) VALUES (?, ?, ?)",
-            [`${wordId}.01`, wordId, synsetId]
+          await (this as any).config.wordnet.getQueryService().query(
+            "INSERT OR REPLACE INTO senses (id, word_id, synset_id, source, sensekey, adjposition, subcategory, domain, register) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [`${wordId}.01`, wordId, synsetId, null, null, null, null, null, null]
           );
 
           // Insert definition
-          this.database.run(
+          await (this as any).config.wordnet.getQueryService().query(
             "INSERT OR REPLACE INTO definitions (id, synset_id, language, text) VALUES (?, ?, ?, ?)",
             [`${synsetId}.def.en`, synsetId, "en", `Definition of ${lemma}`]
           );
         } catch (error) {
           logger.error(`❌ Failed to insert sample word ${lemma}:`, error);
         }
+      }
+
+      // Check if synsets table exists and has correct schema
+      try {
+        const tableInfo = await (this as any).config.wordnet.getQueryService().query("PRAGMA table_info(synsets)");
+        console.log(`🔍 Synsets table info:`, tableInfo);
+        
+        // Also check if the table exists at all
+        const tableExists = await (this as any).config.wordnet.getQueryService().query("SELECT name FROM sqlite_master WHERE type='table' AND name='synsets'");
+        console.log(`🔍 Synsets table exists:`, tableExists);
+        
+        // Check all tables
+        const allTables = await (this as any).config.wordnet.getQueryService().query("SELECT name FROM sqlite_master WHERE type='table'");
+        console.log(`🔍 All tables:`, allTables);
+      } catch (error) {
+        console.error(`❌ Failed to get table info:`, error);
       }
 
       // Insert sample synsets
@@ -182,10 +206,17 @@ export class MockDataLoader extends DataLoader {
       ];
 
       for (const [synsetId, pos] of sampleSynsets) {
-        this.database.run(
-          "INSERT OR REPLACE INTO synsets (id, pos, language, lexicon, ili) VALUES (?, ?, ?, ?, ?)",
-          [synsetId, pos, "en", project.id, `i-${synsetId}`] // Use base lexicon ID and add ILI
-        );
+        try {
+          console.log(`🔍 Inserting synset: ${synsetId}, pos: ${pos}, lexicon: ${project.id}`);
+          await (this as any).config.wordnet.getQueryService().query(
+            "INSERT OR REPLACE INTO synsets (id, pos, language, lexicon, ili) VALUES (?, ?, ?, ?, ?)",
+            [synsetId, pos, "en", project.id, `i-${synsetId}`] // Use base lexicon ID and add ILI
+          );
+          console.log(`✅ Successfully inserted synset: ${synsetId}`);
+        } catch (error) {
+          console.error(`❌ Failed to insert synset ${synsetId}:`, error);
+          throw error;
+        }
       }
 
       // Insert sample senses
@@ -200,9 +231,9 @@ export class MockDataLoader extends DataLoader {
       ];
 
       for (const [senseId, wordId, synsetId] of sampleSenses) {
-        this.database.run(
-          "INSERT OR REPLACE INTO senses (id, word_id, synset_id) VALUES (?, ?, ?)",
-          [senseId, wordId, synsetId]
+        await (this as any).config.wordnet.getQueryService().query(
+          "INSERT OR REPLACE INTO senses (id, word_id, synset_id, source, sensekey, adjposition, subcategory, domain, register) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [senseId, wordId, synsetId, null, null, null, null, null, null]
         );
       }
 
@@ -248,7 +279,7 @@ export class MockDataLoader extends DataLoader {
       ];
 
       for (const [defId, synsetId, lang, text] of sampleDefinitions) {
-        this.database.run(
+        await (this as any).config.wordnet.getQueryService().query(
           "INSERT OR REPLACE INTO definitions (id, synset_id, language, text) VALUES (?, ?, ?, ?)",
           [defId, synsetId, lang, text]
         );
@@ -307,7 +338,7 @@ export class MockDataLoader extends DataLoader {
             version: project.version ?? "",
           });
         } else {
-          this.database.run(
+          await (this as any).config.wordnet.getQueryService().query(
             "INSERT OR REPLACE INTO lexicons (id, label, language, license) VALUES (?, ?, ?, ?)",
             [project.id, label, language, license]
           );
@@ -477,7 +508,7 @@ export class MockDataLoader extends DataLoader {
         const wordId = `${word}.${pos}.${Math.floor(i / commonWords.length) + 1}`;
 
         try {
-          this.database.run(
+          await (this as any).config.wordnet.getQueryService().query(
             "INSERT OR REPLACE INTO words (id, lemma, pos, language, lexicon) VALUES (?, ?, ?, ?, ?)",
             [wordId, word, pos, "en", project.id]
           );
@@ -492,7 +523,7 @@ export class MockDataLoader extends DataLoader {
         const pos = partsOfSpeech[i % partsOfSpeech.length];
         const synsetId = `synset.${pos}.${i + 1}`;
 
-        this.database.run(
+        await (this as any).config.wordnet.getQueryService().query(
           "INSERT OR REPLACE INTO synsets (id, pos, language, lexicon, ili) VALUES (?, ?, ?, ?, ?)",
           [synsetId, pos, "en", project.id, `i-${synsetId}`]
         );
@@ -509,9 +540,9 @@ export class MockDataLoader extends DataLoader {
         const senseId = `${wordId}.sense.${i + 1}`;
 
         try {
-          this.database.run(
-            "INSERT OR REPLACE INTO senses (id, word_id, synset_id) VALUES (?, ?, ?)",
-            [senseId, wordId, synsetId]
+          await (this as any).config.wordnet.getQueryService().query(
+            "INSERT OR REPLACE INTO senses (id, word_id, synset_id, source, sensekey, adjposition, subcategory, domain, register) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [senseId, wordId, synsetId, null, null, null, null, null, null]
           );
           if (i < 5) { // Log first 5 sense insertions for debugging
             console.log(`🔗 [MockDataLoader] Inserted sense ${i + 1}: ${senseId} -> ${wordId} -> ${synsetId}`);
@@ -549,9 +580,9 @@ export class MockDataLoader extends DataLoader {
           const senseId = `${wordId}.sense.1`;
           
           try {
-            this.database.run(
-              "INSERT OR REPLACE INTO senses (id, word_id, synset_id) VALUES (?, ?, ?)",
-              [senseId, wordId, synsetId]
+            await (this as any).config.wordnet.getQueryService().query(
+              "INSERT OR REPLACE INTO senses (id, word_id, synset_id, source, sensekey, adjposition, subcategory, domain, register) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+              [senseId, wordId, synsetId, null, null, null, null, null, null]
             );
             console.log(`🔗 [MockDataLoader] Added computer sense: ${senseId} -> ${wordId} -> ${synsetId}`);
           } catch (error) {
@@ -572,7 +603,7 @@ export class MockDataLoader extends DataLoader {
         const definitionId = `def.${synsetId}`;
         const definition = `Mock definition for synset ${i + 1} (${pos})`;
 
-        this.database.run(
+        await (this as any).config.wordnet.getQueryService().query(
           "INSERT OR REPLACE INTO definitions (id, synset_id, language, text) VALUES (?, ?, ?, ?)",
           [definitionId, synsetId, "en", definition]
         );
@@ -584,7 +615,7 @@ export class MockDataLoader extends DataLoader {
         const synsetId = `synset.${pos}.${i + 1}`;
         const iliId = `i-${synsetId}`;
 
-        this.database.run(
+        await (this as any).config.wordnet.getQueryService().query(
           "INSERT OR REPLACE INTO ilis (id, definition, status) VALUES (?, ?, ?)",
           [iliId, `Mock ILI definition for ${synsetId}`, "standard"]
         );

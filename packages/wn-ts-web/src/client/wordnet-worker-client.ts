@@ -950,7 +950,7 @@ export class WordNetWorkerClient {
   /**
    * Dispose of the client and terminate the worker
    */
-  dispose(): void {
+  async dispose(): Promise<void> {
     console.log('Disposing WordNetWorkerClient');
     
     // Remove event listeners
@@ -960,8 +960,13 @@ export class WordNetWorkerClient {
     }
     
     if (this.remote) {
-      //  to be implemented
-      // this.remote.terminate();
+      try {
+        // Call the worker's dispose function to clean up database resources
+        await this.remote.disposeWordNet();
+        logger.info('Worker disposed successfully');
+      } catch (error) {
+        logger.warn('Error disposing worker:', error);
+      }
     }
     
     this.remote = null;

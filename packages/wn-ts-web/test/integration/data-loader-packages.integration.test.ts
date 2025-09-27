@@ -10,7 +10,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { createWordNetInstance } from '../../src/factory.js';
 import type { WebWordnet } from '../../src/client/submodules/web-wordnet.js';
-import type { DataLoader } from '../../src/data-loader.js';
+import type { DataLoader } from '../../src/data-management/index.js';
 import { MockDataLoader } from '../mock-data-loader.js';
 
 const isNode =
@@ -36,7 +36,7 @@ describe.skipIf(isNode)('Data Loader Package Loading E2E', () => {
     try {
       // Use mock data instead of downloading real data for integration tests
       console.log('🔧 [Integration Test] Creating MockDataLoader...');
-      const mockDataLoader = new MockDataLoader((wordnet as any).database, wordnet);
+      const mockDataLoader = new MockDataLoader(wordnet.databaseInstance, wordnet);
       console.log('🔧 [Integration Test] Calling loadMockData...');
       await mockDataLoader.loadMockData('oewn:2024');
       
@@ -185,7 +185,7 @@ describe.skipIf(isNode)('Data Loader Package Loading E2E', () => {
       try {
         // Use mock data instead of downloading real data for integration tests
         console.log('⚠️ Using mock data instead of downloading OEWN package due to test environment');
-        const mockDataLoader = new MockDataLoader((wordnet as any).database, wordnet);
+        const mockDataLoader = new MockDataLoader(wordnet.databaseInstance, wordnet);
         await mockDataLoader.loadMockData('oewn:2024');
         console.log('✅ Mock OEWN data loaded successfully');
         

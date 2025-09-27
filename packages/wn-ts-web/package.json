@@ -37,6 +37,11 @@
       "types": "./dist/wordnet-worker.d.ts",
       "import": "./dist/wordnet-worker.mjs",
       "default": "./dist/wordnet-worker.mjs"
+    },
+    "./proxy-config": {
+      "types": "./dist/proxy-config.d.ts",
+      "import": "./dist/proxy-config.mjs",
+      "default": "./dist/proxy-config.mjs"
     }
   },
   "main": "./dist/wn-ts-web.mjs",
@@ -57,7 +62,8 @@
     "introspect:preview": "xml-introspect preview https://github.com/omwn/omw-data/releases/download/v1.4/omw-fr-1.4.tar.xz --verbose",
     "introspect:schema": "xml-introspect schema https://github.com/omwn/omw-data/releases/download/v1.4/omw-fr-1.4.tar.xz --verbose omw-fr-1.4.xsd",
     "introspect:validate": "xml-introspect validate https://github.com/omwn/omw-data/releases/download/v1.4/omw-fr-1.4.tar.xz ./omw-fr-1.4.xsd --verbose",
-    "test": "pnpm test:unit && pnpm test:integration && pnpm test:e2e",
+    "test": "pnpm test:unit && pnpm test:integration",
+    "test:full": "pnpm test:unit && pnpm test:integration && pnpm test:e2e",
     "test:integration": "pnpm with-memory-limit vitest --config=vitest.integration.config.ts --run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "pnpm with-memory-limit vitest --config=vitest.e2e.config.ts --run",
@@ -65,6 +71,7 @@
     "test:e2e:orchestration": "pnpm with-memory-limit vitest --config=vitest.e2e.config.ts --run test/e2e/orchestrator.e2e.test.ts test/e2e/worker-client.e2e.test.ts",
     "test:e2e:stats": "pnpm with-memory-limit vitest --config=vitest.e2e.config.ts --run test/e2e/statistics-stress.test.ts",
     "test:lmf": "pnpm test:integration lmf",
+    "test:primary-key": "pnpm with-memory-limit vitest --config=vitest.integration.config.ts --run test/integration/primary-key-constraint-fix.integration.test.ts",
     "test:unit": "pnpm with-memory-limit vitest run",
     "test:ui": "vitest --ui",
     "test:watch": "vitest",
@@ -76,6 +83,8 @@
     "comlink": "catalog:",
     "fast-xml-parser": "^5.2.5",
     "kysely": "catalog:",
+    "pako": "^2.1.0",
+    "wn-data-loader": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

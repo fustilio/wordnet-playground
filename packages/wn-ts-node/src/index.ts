@@ -29,7 +29,7 @@ export {
   addLexicalResource,
   remove,
   exportData as export,
-} from './data-management-new.js';
+} from './data-management/index.js';
 
 // Module functions - matching Python wn API exactly
 export {

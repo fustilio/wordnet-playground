@@ -8,7 +8,8 @@
 
 import { createWordNetInstance } from "../../../src/factory";
 import type { WebWordnet } from "../../../src/client/submodules/web-wordnet";
-import type { DataLoader } from "../../../src/data-loader";
+import type { DataLoader } from "../../../src/data-management/index.js";
+import { expect } from "vitest";
 
 export interface BrowserTestContext {
   wordnet: WebWordnet;

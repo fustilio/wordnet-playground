@@ -1,114 +1,101 @@
-# WordNet TypeScript Documentation
+# WordNet TypeScript Ecosystem Documentation
 
-## 🎯 **Overview**
+Welcome to the comprehensive documentation for the WordNet TypeScript ecosystem. This documentation covers everything from quick start guides to advanced API references.
 
-This directory contains the documentation for the WordNet TypeScript ecosystem. All documentation follows established standards and conventions to ensure consistency, maintainability, and ease of use across all `wn-ts` modules.
+## Quick Start
 
-## 🏗️ **Project Structure**
+- **[Getting Started Guide](./getting-started/README.md)** - Set up and run your first WordNet application
+- **[Installation Guide](./getting-started/installation.md)** - Install dependencies and configure your environment
+- **[Basic Usage](./getting-started/basic-usage.md)** - Learn the fundamentals
 
-The project is organized into three main directories:
+## Documentation Sections
 
-### **📦 Packages** (`packages/`)
-Core libraries and utilities:
-- **`wn-ts-core`** - Foundation library with microkernel and plugin system
-- **`wn-ts-node`** - Node.js implementation with SQLite integration
-- **`wn-ts-web`** - Browser implementation with built-in React hooks and providers (future: may split to `wn-ts-web-react`)
-- **`wn-cli`** - Command-line interface and TUI
-- **`wn-data-loader`** - Data loading and processing utilities
-- **`wn-test-data`** - Test data and sample files
-- **`utils`** - Shared utilities and logging
+### Architecture & Design
+- **[System Architecture](./architecture/SYSTEM_ARCHITECTURE.md)** - High-level system design
+- **[Web Architecture](./architecture/WEB_ARCHITECTURE.md)** - Browser-specific implementation details
+- **[Microkernel Design](./architecture/MICROKERNEL_ARCHITECTURE.md)** - Plugin system and extensibility
 
-### **🎭 Examples** (`examples/`)
-Demo applications and usage examples:
-- **`wn-ts-web-demo`** - Interactive web demo with React
-- **`wn-ts-node-demo`** - Node.js examples and use cases
+### Package Documentation
+- **[wn-ts-core](./packages/wn-ts-core/README.md)** - Foundation library with microkernel architecture
+- **[wn-ts-web](./packages/wn-ts-web/README.md)** - Browser implementation with React integration
+- **[wn-ts-node](./packages/wn-ts-node/README.md)** - Node.js implementation with SQLite
+- **[wn-cli](./packages/wn-cli/README.md)** - Command-line interface and TUI
+- **[wn-data-loader](./packages/wn-data-loader/README.md)** - Data loading and processing utilities
 
-### **🔬 Development** (`development/`)
-Development tools, benchmarks, and experimental features:
-- **`benchmark`** - Performance testing and library comparisons
-- **`sqlite-opfs-demo`** - SQLite OPFS browser demo
-- **`wn-pybridge`** - Python bridge for cross-language testing
+### Examples & Tutorials
+- **[Web Examples](./examples/web-demos/README.md)** - Interactive browser demos
+- **[Node.js Examples](./examples/node-demos/README.md)** - Server-side usage examples
+- **[Integration Examples](./examples/integration-examples/README.md)** - Cross-platform scenarios
 
-## 📚 **Documentation Structure**
+### API Reference
+- **[Core API](./api/CORE_API.md)** - Core interfaces and types
+- **[Web API](./api/WEB_API.md)** - Browser-specific APIs
+- **[Plugin API](./api/PLUGIN_API.md)** - Plugin development guide
 
-### **Project Overview**
-- **[Project Overview](./PROJECT_OVERVIEW.md)** - Complete project overview and ecosystem details
-- **[Architecture Overview](./architecture/ARCHITECTURE_OVERVIEW.md)** - Microkernel architecture and design patterns
+### Development
+- **[Development Guide](./development/README.md)** - Contributing and development setup
+- **[Testing Strategy](./development/TESTING_STRATEGY.md)** - Testing approach and coverage
+- **[Performance Guidelines](./development/PERFORMANCE.md)** - Optimization and benchmarking
 
-### **Architecture**
-- **[System Architecture](./architecture/SYSTEM_ARCHITECTURE.md)** - Microkernel architecture and design patterns
-- **[Web Architecture](./architecture/WEB_ARCHITECTURE.md)** - Browser-specific architecture and worker patterns
+### Standards & Conventions
+- **[Development Conventions](./standards/DEVELOPMENT_CONVENTIONS.md)** - Coding standards and patterns
+- **[Database Schema Standards](./standards/DATABASE_SCHEMA_STANDARDS.md)** - Database design guidelines
+- **[Cross-Lingual Dependencies](./standards/CROSS_LINGUAL_DEPENDENCIES.md)** - Multi-language support
 
-### **API Reference**
-- **[Web API](./api/WEB_API.md)** - Complete web API reference and React integration
+## Common Use Cases
 
-### **Usage Guides**
-- **[Web Usage](./guides/WEB_USAGE.md)** - Web usage patterns, React integration, and examples
+### Web Applications
+```typescript
+import { useWordNet } from 'wn-ts-web';
 
-### **Standards & Conventions**
-- **[Development Conventions](./standards/DEVELOPMENT_CONVENTIONS.md)** - Coding standards, architectural patterns, and best practices
-- **[Database Schema Standards](./standards/DATABASE_SCHEMA_STANDARDS.md)** - Database design, naming conventions, and optimization strategies
-- **[Testing Strategy](./standards/TESTING_STRATEGY.md)** - Testing approach, coverage requirements, and quality assurance
-- **[Cross-Lingual Dependencies](./standards/CROSS_LINGUAL_DEPENDENCIES.md)** - Understanding lexicon dependencies
-
-### **Examples & Use Cases**
-- **[Usage Examples](./examples/EXAMPLE_USAGE.md)** - Comprehensive examples and use cases
-
-### **Package-Specific Documentation**
-
-#### **Core Library** (`packages/wn-ts-core/`)
-- **[Core Library Guide](./packages/wn-ts-core/README.md)** - Microkernel architecture and core functionality
-- **[Global WordNet Schemas](./packages/wn-ts-core/GLOBAL_WORDNET_SCHEMAS.md)** - Official schema reference and LMF support
-- **[Testing Strategy](./packages/wn-ts-core/TESTING_STRATEGY.md)** - Testing approach and coverage requirements
-- **[Advanced Use Cases](./packages/wn-ts-core/ROADMAP.md)** - Superpower operations and examples
-
-#### **Node.js Implementation** (`packages/wn-ts-node/`)
-- **[Node.js Usage](./packages/wn-ts-node/USAGE.md)** - Node.js integration and SQLite setup
-- **[Translation Utilities](./packages/wn-ts-node/TRANSLATION_UTILITIES.md)** - Cross-lingual operations
-
-#### **Web Implementation** (`packages/wn-ts-web/`)
-- **[Web Library Guide](./packages/wn-ts-web/README.md)** - Browser integration and React components
-
-#### **CLI Tool** (`packages/wn-cli/`)
-- **[CLI Guide](./packages/wn-cli/README.md)** - Command-line interface overview
-- **[Browser Commands](./packages/wn-cli/cli/BROWSER_COMMAND_SUMMARY.md)** - Browser-specific commands
-- **[CLI Cheatsheet](./packages/wn-cli/cli/cheatsheet.md)** - Quick reference for commands
-- **[TUI Architecture](./packages/wn-cli/tui/README.md)** - Terminal UI system overview
-- **[Component Architecture](./packages/wn-cli/tui/COMPONENT_ARCHITECTURE.md)** - TUI component design
-- **[Layout System](./packages/wn-cli/tui/LAYOUT_SYSTEM.md)** - TUI layout management
-- **[Debugging Guide](./packages/wn-cli/tui/DEBUGGING.md)** - TUI debugging techniques
-
-## 🚀 **Quick Start**
-
-```bash
-# Install dependencies
-pnpm install
-
-# Run all tests
-pnpm test
-
-# Run browser tests
-pnpm test:browser
-
-# Run all demo examples
-pnpm demo:all-use-cases
-
-# Run benchmarks
-pnpm benchmark
+const MyComponent = () => {
+  const { wordnet, loading } = useWordNet();
+  // Your WordNet-powered React component
+};
 ```
 
-## 📖 **Contributing to Documentation**
+### Node.js Applications
+```typescript
+import { NodeWordNetKernel } from 'wn-ts-node';
 
-When contributing to documentation:
+const wordnet = new NodeWordNetKernel('oewn:2024');
+await wordnet.initialize();
+```
 
-1. **Follow the established structure** - Use the existing organization patterns
-2. **Update cross-references** - Ensure links between documents remain valid
-3. **Use consistent formatting** - Follow the markdown conventions used throughout
-4. **Include examples** - Provide practical code examples where applicable
-5. **Test links** - Verify all internal and external links work correctly
+### Command Line Tools
+```bash
+wn-cli search "computer" --lexicon oewn:2024
+wn-cli translate "computer" --from en --to fr
+```
 
-## 🔗 **External Resources**
+## Finding What You Need
 
-- **[Global WordNet Association](https://globalwordnet.org/)** - Official WordNet organization
-- **[Open Multilingual WordNet](https://github.com/globalwordnet/)** - Multi-language WordNet resources
-- **[Python wn Library](https://github.com/goodmami/wn)** - Reference Python implementation
+### By Experience Level
+- **Beginner**: Start with [Getting Started](./getting-started/README.md)
+- **Intermediate**: Check out [Examples](./examples/README.md) and [API Reference](./api/README.md)
+- **Advanced**: Explore [Architecture](./architecture/README.md) and [Development](./development/README.md)
+
+### By Platform
+- **Web/Browser**: [Web Documentation](./packages/wn-ts-web/README.md) + [Web Examples](./examples/web-demos/README.md)
+- **Node.js**: [Node Documentation](./packages/wn-ts-node/README.md) + [Node Examples](./examples/node-demos/README.md)
+- **CLI**: [CLI Documentation](./packages/wn-cli/README.md)
+
+### By Task
+- **Search Words**: [Basic Usage Guide](./getting-started/basic-usage.md)
+- **Cross-Lingual Translation**: [Translation Examples](./examples/integration-examples/translation.md)
+- **Plugin Development**: [Plugin API Guide](./api/PLUGIN_API.md)
+- **Performance Optimization**: [Performance Guidelines](./development/PERFORMANCE.md)
+
+## Contributing to Documentation
+
+We welcome contributions to improve this documentation! See our [Development Guide](./development/README.md) for details on how to contribute.
+
+## Getting Help
+
+- **Issues**: [GitHub Issues](https://github.com/fustilio/wordnet-playground-2/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/fustilio/wordnet-playground-2/discussions)
+- **Examples**: Check the [Examples section](./examples/README.md) for working code
+
+---
+
+**Happy WordNet Exploring! 🎉**

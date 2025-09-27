@@ -20,3 +20,6 @@ export {
 } from './project.js';
 export { isILI, loadILI } from './ili.js';
 export type { IliRecord } from './ili.js';
+
+// Re-export shared data management functionality
+export * from './shared-data-manager.js';

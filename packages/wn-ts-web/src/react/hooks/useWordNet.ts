@@ -218,7 +218,10 @@ export function useWordNet(config?: {
       });
       if (workerClientRef.current) {
         logger.debug("Disposing WordNetWorkerClient");
-        workerClientRef.current.dispose();
+        // Use async dispose but don't await in cleanup function
+        workerClientRef.current.dispose().catch(error => {
+          logger.warn("Error during worker client disposal:", error);
+        });
         workerClientRef.current = null;
         logger.debug("WordNetWorkerClient disposed");
       }
@@ -344,32 +347,55 @@ export function useWordNet(config?: {
           // status is already the data payload from the worker client
           {
             const loaded =
-              status.lexiconStats?.map((ls: {
-                lexiconId: string;
-                label: string;
-                language: string;
-                version: string;
-                wordCount: number;
-                synsetCount: number;
-                senseCount: number;
-                iliCount: number;
-              }) => {
-                try {
-                  return sanitizeLexiconId(ls.lexiconId, ls.version);
-                } catch (error) {
-                  logger.error(
-                    "Failed to sanitize lexicon ID in detectExistingPackages",
-                    {
-                      originalLexiconId: ls.lexiconId,
-                      version: ls.version,
-                      error:
-                        error instanceof Error ? error.message : String(error),
+              status.lexiconStats
+                ?.filter((ls) => {
+                  // Filter out lexicon stats with undefined or null lexiconId
+                  if (!ls.lexiconId) {
+                    logger.warn("Filtering out lexicon stat with undefined/null lexiconId in detectExistingPackages", { ls });
+                    return false;
+                  }
+                  return true;
+                })
+                ?.map((ls: {
+                  lexiconId: string;
+                  label: string;
+                  language: string;
+                  version: string;
+                  wordCount: number;
+                  synsetCount: number;
+                  senseCount: number;
+                  iliCount: number;
+                }) => {
+                  try {
+                    const result = sanitizeLexiconId(ls.lexiconId, ls.version);
+                    
+                    // Additional validation to catch malformed IDs
+                    if (result.split(':').length > 2) {
+                      logger.error("🚨 MALFORMED PACKAGE ID DETECTED in detectExistingPackages!", {
+                        originalLexiconId: ls.lexiconId,
+                        version: ls.version,
+                        result,
+                        parts: result.split(':')
+                      });
+                      // Return the original lexiconId as a fallback to prevent corruption
+                      return ls.lexiconId;
                     }
-                  );
-                  // Return the original lexicon ID as a fallback
-                  return ls.lexiconId;
-                }
-              }) || [];
+                    
+                    return result;
+                  } catch (error) {
+                    logger.error(
+                      "Failed to sanitize lexicon ID in detectExistingPackages",
+                      {
+                        originalLexiconId: ls.lexiconId,
+                        version: ls.version,
+                        error:
+                          error instanceof Error ? error.message : String(error),
+                      }
+                    );
+                    // Return the original lexiconId as a fallback
+                    return ls.lexiconId;
+                  }
+                }) || [];
             const hasData = status.hasData;
 
             logger.debug("Detected loaded packages", { loaded, hasData });
@@ -426,22 +452,36 @@ export function useWordNet(config?: {
       await detectExistingPackages();
       // Also refresh the catalog-based available list for UI discovery
       const catalog = getAvailableProjects();
-      const mapped = catalog.map((p: PackageInfo) => {
-        // Get the first available version, ensuring we don't create malformed IDs
-        const firstVersion =
-          p.versions && p.versions.length > 0 ? p.versions[0] : null;
-        const packageId = firstVersion ? `${p.id}:${firstVersion}` : p.id;
-
-        return {
-          id: packageId,
-          label: p.label || p.id,
-          language: p.language || "mul",
-          versions: p.versions || [],
-          description: p.description,
-          url: p.url,
-          citation: p.citation,
-        };
-      });
+      const mapped: PackageInfo[] = [];
+      
+      for (const p of catalog) {
+        if (p.versions && p.versions.length > 0) {
+          // Create separate entries for each version
+          for (const version of p.versions) {
+            const packageId = `${p.id}:${version}`;
+            mapped.push({
+              id: packageId,
+              label: `${p.label || p.id} ${version}`,
+              language: p.language || "mul",
+              versions: [version], // Single version for this entry
+              description: p.description,
+              url: p.url,
+              citation: p.citation,
+            });
+          }
+        } else {
+          // No versions, use the base ID as-is
+          mapped.push({
+            id: p.id,
+            label: p.label || p.id,
+            language: p.language || "mul",
+            versions: [],
+            description: p.description,
+            url: p.url,
+            citation: p.citation,
+          });
+        }
+      }
       setState((prev) => ({ ...prev, availablePackages: mapped }));
       logger.success("Packages refreshed successfully");
       logger.end("refreshing packages");
@@ -588,25 +628,34 @@ export function useWordNet(config?: {
       logger.debug("Lexicons changed event received", event);
 
       // Sanitize all lexicon IDs to prevent malformed IDs from propagating
-      const sanitizedLexicons = event.lexicons.map((lexicon) => {
-        try {
-          return {
-            ...lexicon,
-            id: sanitizeLexiconId(lexicon.id, lexicon.version),
-          };
-        } catch (error) {
-          logger.error(
-            "Failed to sanitize lexicon ID in lexicons changed event",
-            {
-              originalId: lexicon.id,
-              version: lexicon.version,
-              error: error instanceof Error ? error.message : String(error),
-            }
-          );
-          // Return the original lexicon with a warning, but don't break the app
-          return lexicon;
-        }
-      });
+      const sanitizedLexicons = event.lexicons
+        .filter((lexicon) => {
+          // Filter out lexicons with undefined or null IDs
+          if (!lexicon.id) {
+            logger.warn("Filtering out lexicon with undefined/null ID", { lexicon });
+            return false;
+          }
+          return true;
+        })
+        .map((lexicon) => {
+          try {
+            return {
+              ...lexicon,
+              id: sanitizeLexiconId(lexicon.id, lexicon.version),
+            };
+          } catch (error) {
+            logger.error(
+              "Failed to sanitize lexicon ID in lexicons changed event",
+              {
+                originalId: lexicon.id,
+                version: lexicon.version,
+                error: error instanceof Error ? error.message : String(error),
+              }
+            );
+            // Return the original lexicon with a warning, but don't break the app
+            return lexicon;
+          }
+        });
 
       setState((prev) => ({
         ...prev,
@@ -658,57 +707,79 @@ export function useWordNet(config?: {
         statistics: status.statistics as WordNetStatistics | undefined,
       };
       if (payload.lexiconStats) {
-        const loadedPackages = payload.lexiconStats.map(
-          (ls: {
-            lexiconId: string;
-            label: string;
-            language: string;
-            version: string;
-            wordCount: number;
-            synsetCount: number;
-          }) => {
+        const loadedPackages = payload.lexiconStats
+          .filter((ls) => {
+            // Filter out lexicon stats with undefined or null lexiconId
+            if (!ls.lexiconId) {
+              logger.warn("Filtering out lexicon stat with undefined/null lexiconId", { ls });
+              return false;
+            }
+            return true;
+          })
+          .map(
+            (ls: {
+              lexiconId: string;
+              label: string;
+              language: string;
+              version: string;
+              wordCount: number;
+              synsetCount: number;
+            }) => {
             try {
-              // Sanitize the lexicon ID to prevent malformed IDs from propagating
-              const sanitizedId = sanitizeLexiconId(ls.lexiconId, ls.version);
+              // If lexiconId already contains version (has colon), use it as-is
+              // Otherwise, construct it from base and version
+              let finalId: string;
+              
+              if (ls.lexiconId.includes(":")) {
+                // lexiconId already has version, use it directly
+                finalId = ls.lexiconId;
+                logger.debug("Using lexiconId with existing version", { finalId });
+              } else if (ls.version) {
+                // lexiconId is base only, append version
+                finalId = `${ls.lexiconId}:${ls.version}`;
+                logger.debug("Constructing package ID from base and version", {
+                  base: ls.lexiconId,
+                  version: ls.version,
+                  result: finalId
+                });
+              } else {
+                // No version available, use base as-is
+                finalId = ls.lexiconId;
+                logger.debug("Using base lexiconId without version", { finalId });
+              }
 
-              // Debug logging to trace the issue
+              // Sanitize the final ID to ensure it's properly formatted
+              // Don't pass version parameter since finalId is already complete
+              const sanitizedId = sanitizeLexiconId(finalId);
+
               logger.debug("Package ID construction", {
                 originalLexiconId: ls.lexiconId,
                 version: ls.version,
+                finalId: finalId,
                 sanitizedId: sanitizedId,
-                hasColon: sanitizedId.includes(":"),
-                hasVersion: !!ls.version,
               });
 
-              // Check if sanitized ID already contains version information
-              if (sanitizedId.includes(":") && ls.version) {
-                // If sanitized ID already has colons, don't append version
-                // This prevents creating malformed IDs like 'cili:1.0:1.0:1.0'
-                logger.debug(
-                  "Returning sanitized ID without appending version",
-                  { sanitizedId }
-                );
-                return sanitizedId;
-              } else if (ls.version) {
-                // Only append version if sanitized ID doesn't already have it
-                const result = `${sanitizedId}:${ls.version}`;
-                logger.debug("Appending version to sanitized ID", {
-                  sanitizedId,
+              // Additional validation to catch malformed IDs
+              if (sanitizedId.split(':').length > 2) {
+                logger.error("🚨 MALFORMED PACKAGE ID DETECTED!", {
+                  originalLexiconId: ls.lexiconId,
                   version: ls.version,
-                  result,
+                  finalId,
+                  sanitizedId,
+                  parts: sanitizedId.split(':')
                 });
-                return result;
-              } else {
-                logger.debug("Returning sanitized ID as-is", { sanitizedId });
-                return sanitizedId;
+                // Return the original lexiconId as a fallback to prevent corruption
+                return ls.lexiconId;
               }
+
+              return sanitizedId;
             } catch (error) {
               logger.error("Failed to sanitize lexicon ID in status update", {
                 originalLexiconId: ls.lexiconId,
                 version: ls.version,
                 error: error instanceof Error ? error.message : String(error),
               });
-              // Return the original lexicon ID as a fallback, but this will likely cause issues
+              // Return the original lexiconId as a fallback, but this will likely cause issues
               return ls.lexiconId;
             }
           }
@@ -722,10 +793,35 @@ export function useWordNet(config?: {
             (pkg: string) => !existingPackages.has(pkg)
           );
 
+          // Deduplicate packages by preferring full package IDs (with version) over base IDs
+          const deduplicatedPackages = [...(prev.loadedPackages || []), ...newPackages]
+            .filter((pkg) => {
+              // First filter out any packages with undefined or malformed IDs
+              if (!pkg || pkg === 'undefined' || pkg.startsWith('undefined:')) {
+                logger.warn("Filtering out malformed package ID in deduplication", { pkg });
+                return false;
+              }
+              return true;
+            })
+            .filter((pkg, index, arr) => {
+              const baseId = pkg.split(':')[0];
+              const hasFullVersion = pkg.includes(':');
+              
+              // If this is a base ID (no version), check if there's a full version elsewhere
+              if (!hasFullVersion) {
+                const hasFullVersionElsewhere = arr.some((otherPkg, otherIndex) => 
+                  otherIndex !== index && otherPkg.startsWith(baseId + ':')
+                );
+                return !hasFullVersionElsewhere; // Keep base ID only if no full version exists
+              }
+              
+              return true; // Keep full version IDs
+            });
+
           if (newPackages.length > 0) {
             return {
               ...prev,
-              loadedPackages: [...(prev.loadedPackages || []), ...newPackages],
+              loadedPackages: deduplicatedPackages,
             };
           }
           return prev;
@@ -851,7 +947,7 @@ export function useWordNet(config?: {
           const loaded = Array.isArray(lexStats)
             ? lexStats.map(
                 (ls: Record<string, unknown>) =>
-                  `${ls.lexiconId}${ls.version ? `:${ls.version}` : ""}`
+                  `${ls.id}${ls.version ? `:${ls.version}` : ""}`
               )
             : [];
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { createWordNetInstance } from "../../src/factory";
 import type { WebWordnet } from "../../src/client/submodules/web-wordnet";
-import type { DataLoader } from "../../src/data-loader";
+import type { DataLoader } from "../../src/data-management/index.js";
 import type { Word } from "wn-ts-core";
 import { createScopedLogger, setGlobalLogLevel } from "utils/logger";
 

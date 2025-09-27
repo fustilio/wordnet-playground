@@ -1,7 +1,7 @@
 import { Wordnet } from './wordnet.js';
 import { KyselyWordnet } from './kysely-wordnet.js';
 
-import { getDataManagementDb } from './data-management-new.js';
+import { getDataManagementDb } from './data-management/index.js';
 import type {
   Word,
   Sense,

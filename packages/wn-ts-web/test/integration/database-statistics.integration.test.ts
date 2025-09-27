@@ -10,7 +10,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { createWordNetInstance } from '../../src/factory.js';
 import type { WebWordnet } from '../../src/client/submodules/web-wordnet.js';
-import type { DataLoader } from '../../src/data-loader.js';
+import type { DataLoader } from '../../src/data-management/index.js';
 import { MockDataLoader } from '../mock-data-loader.js';
 
 const isNode =
@@ -31,7 +31,7 @@ describe.skipIf(isNode)('Database Statistics Calculation E2E', () => {
     
     try {
       // Use mock data instead of downloading real data for integration tests
-      const mockDataLoader = new MockDataLoader((wordnet as any).database, wordnet);
+      const mockDataLoader = new MockDataLoader(wordnet.databaseInstance, wordnet);
       await mockDataLoader.loadMockData('oewn:2024');
       
       console.log('✅ Mock data loaded successfully for statistics testing');

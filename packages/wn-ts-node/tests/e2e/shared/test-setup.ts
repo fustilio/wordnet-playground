@@ -1,8 +1,8 @@
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { existsSync, rmSync, mkdtempSync } from 'fs';
-import { config, download, add, Wordnet } from '../../../src/index.js';
-import { decompressXz } from '../../../src/utils/archive.js';
+import { config, download, add, Wordnet } from '../../src/index.js';
+import { decompressXz } from '../../src/utils/archive.js';
 import { logger } from 'wn-ts-core/utils';
 import { ProgressLogger } from '../../utils/progress-logger.js';
 

@@ -39,10 +39,10 @@ function createProxyConfig(
     followRedirects,
     rewrite,
     configure: (proxy) => {
-      proxy.on("error", (err) => {
+      proxy.on("error", (err: any) => {
         console.warn("proxy error", err);
       });
-      proxy.on("proxyRes", (proxyRes, req, res) => {
+      proxy.on("proxyRes", (proxyRes: any, req: any, res: any) => {
         const url = req.url || "";
         console.log(`🔁 [forward]${logPrefix ? ` ${logPrefix}:` : ""}`, url);
         
@@ -118,11 +118,8 @@ export function getWordNetProxyConfig(): Record<string, ProxyConfig> {
       { logPrefix: "Release Assets" }
     ),
 
-    "/api/external": createProxyConfig(
-      "https://",
-      (path) => path.replace(/^\/api\/external\//, "/"),
-      { logPrefix: "External" }
-    ),
+    // Note: /api/external proxy is handled by a custom middleware in the Vite configs
+    // This is because Vite's proxy doesn't support dynamic targets
   };
 }
 

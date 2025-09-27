@@ -1,45 +1,70 @@
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
 import { WordNetOrchestrator } from '../../src/workers/wordnet-orchestrator.js';
-import { DataLoader } from '../../src/data-loader.js';
+import { DataLoader } from '../../src/data-management/index.js';
 import type { Sqlite3Static } from '@sqlite.org/sqlite-wasm';
 import type { KyselyQueryService } from '../../src/database/kysely-query-service.js';
 
 const isNode = typeof process !== 'undefined';
 
 // Mock DataLoader to avoid network requests but use the real database
-vi.mock('../../src/data-loader.js', async (importOriginal) => {
-  const original = await importOriginal<typeof import ('../../src/data-loader.js')>();
+vi.mock('../../src/data-management/index.js', async (importOriginal) => {
+  const original = await importOriginal<typeof import ('../../src/data-management/index.js')>();
   
   return {
     ...original,
     DataLoader: class MockDataLoader extends original.DataLoader {
       downloadCount = 0;
       
+      getQueryService() {
+        return (this as any).config.wordnet.getQueryService();
+      }
+      
       async downloadAndLoad(lexiconId: string) {
         this.downloadCount++;
         const queryService = this.getQueryService();
         if (queryService) {
-          await this.insertTestData(queryService, lexiconId);
+          await this.insertTestData(queryService as any, lexiconId);
         }
       }
 
-      async insertTestData(queryService: KyselyQueryService, lexiconId: string) {
+      async insertTestData(queryService: any, lexiconId: string) {
         // Check if lexicon already exists before inserting
         const existingLexicons = await queryService.getLexicons();
-        const lexiconExists = existingLexicons.some(l => l.id === lexiconId);
+        const lexiconExists = existingLexicons.some((l: any) => l.id === lexiconId);
         
         if (!lexiconExists) {
-          await queryService.insertLexicon({ id: lexiconId, label: 'Test Lexicon', language: 'en', version: '1.0' });
+          await queryService.insertLexicon({ 
+            id: lexiconId, 
+            label: 'Test Lexicon', 
+            language: 'en', 
+            version: '1.0',
+            email: null,
+            license: null,
+            url: null,
+            citation: null,
+            logo: null,
+            metadata: null
+          });
         }
         
         // Check if word already exists before inserting
         const existingWords = await queryService.getWords({ lexicon: lexiconId });
-        const wordExists = existingWords.some(w => w.id === `w-${lexiconId}-test`);
+        const wordExists = existingWords.some((w: any) => w.id === `w-${lexiconId}-test`);
         
         if (!wordExists) {
           await queryService.insertWord({ id: `w-${lexiconId}-test`, lemma: 'test', pos: 'n', lexicon: lexiconId, language: 'en' });
-          await queryService.insertSynset({ id: `s-${lexiconId}-test`, pos: 'n', lexicon: lexiconId, language: 'en' });
-          await queryService.insertSense({ id: `se-${lexiconId}-test`, word_id: `w-${lexiconId}-test`, synset_id: `s-${lexiconId}-test` });
+          await queryService.insertSynset({ id: `s-${lexiconId}-test`, pos: 'n', lexicon: lexiconId, language: 'en', ili: null });
+          await queryService.insertSense({ 
+            id: `se-${lexiconId}-test`, 
+            word_id: `w-${lexiconId}-test`, 
+            synset_id: `s-${lexiconId}-test`,
+            source: null,
+            sensekey: null,
+            adjposition: null,
+            subcategory: null,
+            domain: null,
+            register: null
+          });
         }
       }
     }

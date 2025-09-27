@@ -328,23 +328,32 @@ export class WebWordnet implements WordNetCore {
   // Core initialization and lifecycle
   async initialize(sqlJsModule: Sqlite3Static): Promise<void> {
     try {
+      console.log("🔍 WebWordnet.initialize() called");
       logger.info("🔍 WebWordnet.initialize() called");
       await this.database.initializeWithModule(sqlJsModule);
+      console.log("✅ Database module initialized");
       await this.database.createDatabase();
+      console.log("✅ Database created");
 
       // Log database storage information
       const storageInfo = this.database.getStorageInfo();
+      console.log(`🗄️ Database storage: ${storageInfo.type} (persistent: ${storageInfo.persistent})${storageInfo.path ? ` at ${storageInfo.path}` : ''}`);
       logger.info(`🗄️ Database storage: ${storageInfo.type} (persistent: ${storageInfo.persistent})${storageInfo.path ? ` at ${storageInfo.path}` : ''}`);
 
       const dialect = createSqliteWasmDialect({
         database: this.database.getDatabase(),
         sqlModule: sqlJsModule,
       });
+      console.log("✅ Kysely dialect created");
       this.kyselyDb = new Kysely<Database>({ dialect });
+      console.log("✅ Kysely database created");
       this.queryService = new KyselyQueryService(this.kyselyDb);
+      console.log("✅ Query service created");
 
       // Create tables using Kysely
+      console.log("🔍 About to call createTables()");
       await this.queryService.createTables();
+      console.log("✅ Tables created successfully");
 
       logger.info(
         "🔍 WebWordnet.initialize() completed, queryService:",
@@ -2095,11 +2104,25 @@ export class WebWordnet implements WordNetCore {
     }
 
     try {
-      const lexicons = await this.queryService.getLexicons();
-      return lexicons.some(lexicon => 
-        lexicon.id === lexiconId || 
-        lexicon.id === lexiconId.split(':')[0] // Check base ID without version
-      );
+      // Get lexicon statistics to check if the lexicon actually has data
+      const lexiconStats = await this.queryService.getLexiconStatistics(lexiconId);
+      const baseLexiconId = lexiconId.split(':')[0];
+      
+      logger.info(`🔍 hasSpecificLexiconLoaded check for ${lexiconId}:`, {
+        lexiconStats: lexiconStats.map(s => ({ id: s.lexiconId, wordCount: s.wordCount, synsetCount: s.synsetCount })),
+        baseLexiconId
+      });
+      
+      const result = lexiconStats.some(stat => {
+        const idMatch = stat.lexiconId === lexiconId || stat.lexiconId === baseLexiconId;
+        // Also check if the lexicon actually has data (not just an empty entry)
+        const hasData = (stat.wordCount || 0) > 0 || (stat.synsetCount || 0) > 0;
+        logger.info(`🔍 Checking stat: ${stat.lexiconId}, idMatch=${idMatch}, hasData=${hasData}, wordCount=${stat.wordCount}, synsetCount=${stat.synsetCount}`);
+        return idMatch && hasData;
+      });
+      
+      logger.info(`🔍 hasSpecificLexiconLoaded result for ${lexiconId}: ${result}`);
+      return result;
     } catch (error) {
       logger.warn(`Failed to check if lexicon ${lexiconId} is loaded:`, error);
       return false;

@@ -1774,6 +1774,7 @@ export function diagnoseDownloadIssue(content: string): string {
     return "Content is empty";
   }
 
+
   if (
     content.toLowerCase().includes("<!doctype html>") ||
     content.toLowerCase().includes("<html")

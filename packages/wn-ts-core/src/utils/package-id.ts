@@ -78,19 +78,25 @@ export function getPackageVersion(packageId: string): string | undefined {
  * and prevents creation of malformed package IDs with multiple colons
  */
 export function sanitizeLexiconId(lexiconId: string, version?: string): string {
+  console.debug('🔧 sanitizeLexiconId called', { lexiconId, version });
+  
   // First, validate the existing lexiconId format
   if (lexiconId.includes(':')) {
     // Use parsePackageId to validate and throw error if malformed
     parsePackageId(lexiconId); // This will throw if malformed
     // If it parsed successfully, return the original (it's already in correct format)
+    console.debug('🔧 sanitizeLexiconId: lexiconId already has version, returning as-is', { result: lexiconId });
     return lexiconId;
   }
   
   // If no colons and we have a version, format a proper package ID
   if (version) {
-    return formatPackageId({ base: lexiconId, version });
+    const result = formatPackageId({ base: lexiconId, version });
+    console.debug('🔧 sanitizeLexiconId: formatting with version', { base: lexiconId, version, result });
+    return result;
   }
   
   // No version, return as-is
+  console.debug('🔧 sanitizeLexiconId: no version, returning as-is', { result: lexiconId });
   return lexiconId;
 }

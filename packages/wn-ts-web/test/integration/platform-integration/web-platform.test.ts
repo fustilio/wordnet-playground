@@ -6,7 +6,7 @@
  */
 
 import { describe, expect } from 'vitest';
-import { test as coreTest, type PlatformTestContext } from 'wn-ts-core/tests/platform-integration/platform-test-framework';
+import { test as coreTest, type PlatformTestContext } from 'wn-ts-core/tests/integration/platform-integration/platform-test-framework';
 import { createWordNet } from 'wn-ts-core';
 import { similarity, translation, relations } from 'wn-ts-core/plugins';
 import { WebWordnet } from '../../../src/client/submodules/web-wordnet.js';
@@ -91,7 +91,7 @@ export const test = coreTest.extend<{
 });
 
 // Import and run the core behavioral tests
-import { defineCoreBehavioralTests } from 'wn-ts-core/tests/platform-integration/core-behavioral-tests';
+import { defineCoreBehavioralTests } from 'wn-ts-core/tests/integration/platform-integration/core-behavioral-tests';
 
 // Define the core behavioral tests using our extended test
 defineCoreBehavioralTests(test);

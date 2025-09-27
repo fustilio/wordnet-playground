@@ -10,7 +10,7 @@ import { Project } from './project.js';
 export { createWebWordnet, createDataLoader, createWordNetInstance } from './factory.js';
 export { WebWordnet } from './client/submodules/web-wordnet.js';
 export { WebDatabase } from './client/submodules/web-database.js';
-export { DataLoader } from './data-loader.js';
+export { WebDataManager as DataLoader } from './data-management/index.js';
 
 // New kernel-based architecture (recommended)
 export { WebWordNetKernel } from './wordnet-kernel.js';
@@ -103,8 +103,18 @@ export function getAvailableProjects(): ProjectInfo[] {
   return Object.entries(merged)
     .filter(([, project]) => project && !('error' in project) && project.label) // Only include valid projects with labels
     .map(([id, project]) => {
-      // Create a temporary Project instance to get computed properties
-      const version = Object.keys(project.versions)[0] || 'latest';
+      // Filter out versions that have errors
+      const validVersions = Object.entries(project.versions)
+        .filter(([, versionData]) => !('error' in versionData))
+        .map(([version]) => version);
+      
+      if (validVersions.length === 0) {
+        // Skip projects with no valid versions
+        return null;
+      }
+      
+      // Create a temporary Project instance to get computed properties using the first valid version
+      const version = validVersions[0];
       const tempProject = new Project(`${id}:${version}`);
       return {
         id,
@@ -114,9 +124,10 @@ export function getAvailableProjects(): ProjectInfo[] {
         description: project.type || 'WordNet project',
         url: tempProject.primaryUrl,
         citation: tempProject.citation,
-        versions: Object.keys(project.versions)
+        versions: validVersions
       };
-    });
+    })
+    .filter((project): project is ProjectInfo => project !== null); // Remove null entries
 }
 
 /**

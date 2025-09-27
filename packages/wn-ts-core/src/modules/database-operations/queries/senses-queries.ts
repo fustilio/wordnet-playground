@@ -19,7 +19,11 @@ export function getSensesQuery(
     .selectAll('senses');
 
   // Determine if we need to join with words table
-  let needsWordsJoin = !!(wordIdOrForm && !wordIdOrForm.includes('-')) || pos || (lexicon && lexicon !== '*');
+  // We need to join if:
+  // 1. wordIdOrForm is provided and doesn't contain a dot (indicating it's a form, not a word ID)
+  // 2. pos filter is provided
+  // 3. lexicon filter is provided (and not '*')
+  let needsWordsJoin = !!(wordIdOrForm && !wordIdOrForm.includes('.')) || pos || (lexicon && lexicon !== '*');
   
   if (needsWordsJoin) {
     query = query.innerJoin('words', 'senses.word_id', 'words.id');

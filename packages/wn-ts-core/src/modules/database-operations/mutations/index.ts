@@ -1,6 +1,5 @@
 // Insert mutations
 export {
-  batchInsert,
   insertRecord,
   insertRecords
 } from './insert-mutations.js';
@@ -22,6 +21,22 @@ export {
   deleteRecordById,
   deleteRecordsByCondition
 } from './delete-mutations.js';
+
+// LMF data mutations
+export {
+  clearConflictingLexiconData,
+  insertLMFDataInTransaction
+} from '../lmf/lmf-data-mutations.js';
+
+// LMF data helpers
+export {
+  prepareLexiconData,
+  prepareWordData,
+  prepareSynsetData,
+  prepareSenseData,
+  prepareDefinitionData,
+  validateForeignKeyReferences
+} from '../lmf/helpers.js';
 
 // Schema mutations
 export {

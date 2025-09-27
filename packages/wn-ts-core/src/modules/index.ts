@@ -9,4 +9,5 @@
 export * from './morphology/index.js';
 export * from './relations/index.js';
 export * from './data-management/index.js';
-export * from './environment/index.js';
+// export * from './environment/index.js'; // Commented out to avoid duplicate ProjectInfo export
+export * from './database-operations/index.js';

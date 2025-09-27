@@ -8,6 +8,29 @@
 
 // Core abstract classes removed - use WordNetCore interface instead
 
+// Configuration system
+export {
+  DEFAULT_PROJECTS,
+  DEFAULT_PROXY_CONFIG,
+  FALLBACK_URLS,
+  getProjectConfig,
+  getProjectVersionConfig,
+  getProjectUrls,
+  getFallbackUrls,
+  getAllProjectUrls,
+  projectExists,
+  getAllProjectIds,
+  validateProjectId,
+  getProxyUrl,
+  needsProxy
+} from './config/project-config.js';
+export type {
+  ProjectConfig,
+  ProjectVersionConfig,
+  ProxyConfig,
+  DataSourceConfig
+} from './config/project-config.js';
+
 // New kernel-based architecture (recommended)
 export { 
   WordNetKernel, 
@@ -80,4 +103,5 @@ export const __version__ = '0.1.1';
 export type { ProjectIndex } from './modules/data-management/project.js';
 export { WnError } from './core/errors.js';
 
- 
+// Environment module
+export * from './modules/environment/index.js';

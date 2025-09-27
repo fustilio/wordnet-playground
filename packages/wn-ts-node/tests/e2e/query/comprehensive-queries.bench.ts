@@ -53,7 +53,7 @@
  */
 
 import { bench, describe } from 'vitest';
-import { Wordnet } from '../../../src/wordnet';
+import { Wordnet } from '../../src/wordnet';
 import { setupTestEnvironment } from '../shared/test-setup';
 
 let wordnetClient: Wordnet;

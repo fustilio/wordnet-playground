@@ -49,13 +49,13 @@
       "types": "./src/lmf/index.ts",
       "default": "./src/lmf/index.ts"
     },
-    "./tests/platform-integration/platform-test-framework": {
-      "types": "./tests/platform-integration/platform-test-framework.ts",
-      "default": "./tests/platform-integration/platform-test-framework.ts"
+    "./tests/integration/platform-integration/platform-test-framework": {
+      "types": "./tests/integration/platform-integration/platform-test-framework.ts",
+      "default": "./tests/integration/platform-integration/platform-test-framework.ts"
     },
-    "./tests/platform-integration/core-behavioral-tests": {
-      "types": "./tests/platform-integration/core-behavioral-tests.ts",
-      "default": "./tests/platform-integration/core-behavioral-tests.ts"
+    "./tests/integration/platform-integration/core-behavioral-tests": {
+      "types": "./tests/integration/platform-integration/core-behavioral-tests.ts",
+      "default": "./tests/integration/platform-integration/core-behavioral-tests.ts"
     }, 
     "./queries": {  
       "types": "./src/modules/database-operations/queries/index.ts",
@@ -64,6 +64,14 @@
     "./mutations": {
       "types": "./src/modules/database-operations/mutations/index.ts",
       "default": "./src/modules/database-operations/mutations/index.ts"
+    },
+    "./operations/lmf": {
+      "types": "./src/modules/database-operations/lmf/index.ts",
+      "default": "./src/modules/database-operations/lmf/index.ts"
+    },
+    "./config/project-config": {
+      "types": "./src/config/project-config.ts",
+      "default": "./src/config/project-config.ts"
     }
   },
   "files": [
@@ -74,10 +82,12 @@
     "format": "prettier --write src/**/*.ts",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
-    "test": "pnpm run test:func",
+    "test": "pnpm run test:unit && pnpm run test:integration",
     "test:bench": "vitest bench --run",
     "test:coverage": "vitest run --coverage --reporter=verbose --exclude \"**/*e2e.test.ts\"",
     "test:func": "vitest run --reporter=verbose --exclude \"**/*e2e.test.ts\"",
+    "test:integration": "vitest run --reporter=verbose --exclude \"**/*e2e.test.ts\" integration",
+    "test:unit": "vitest run --reporter=verbose --exclude \"**/*e2e.test.ts\" unit",
     "test:lmf": "pnpm vitest run lmf",
     "test:ui": "vitest --ui --exclude \"**/*e2e.test.ts\"",
     "test:platform:core": "vitest run tests/platform-integration/",

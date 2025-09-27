@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useWordNetContext } from 'wn-ts-web/react';
 import { createScopedLogger } from 'utils/logger';
-import { isRequirementSatisfied, isRequirementAvailable, findBestPackageForRequirement } from '../../utils/package-utils';
+import { isRequirementSatisfied, isRequirementAvailable, findBestPackageForRequirement, getPackageIdToLoad } from '../../utils/package-utils';
 
 const logger = createScopedLogger('LexiconRequirementsWidget');
 
@@ -118,7 +118,8 @@ export const LexiconRequirementsWidget: React.FC = () => {
       
       for (const req of missingRequirements) {
         if (req.bestPackage) {
-          const packageId = `${req.bestPackage.id}:${req.bestPackage.versions?.[0] || 'latest'}`;
+          // Use getPackageIdToLoad to properly construct the package ID
+          const packageId = getPackageIdToLoad(req.id, req.bestPackage);
           logger.step(`loading ${packageId}`);
           await loadPackageData(packageId);
         }
@@ -149,7 +150,8 @@ export const LexiconRequirementsWidget: React.FC = () => {
       
       for (const req of missingRequirements) {
         if (req.bestPackage) {
-          const packageId = `${req.bestPackage.id}:${req.bestPackage.versions?.[0] || 'latest'}`;
+          // Use getPackageIdToLoad to properly construct the package ID
+          const packageId = getPackageIdToLoad(req.id, req.bestPackage);
           logger.step(`loading ${packageId}`);
           await loadPackageData(packageId);
         }
@@ -183,7 +185,7 @@ export const LexiconRequirementsWidget: React.FC = () => {
       const requirements = checkRequirements();
       const requirement = requirements.find(req => req.id === requirementId);
       if (requirement && requirement.bestPackage) {
-        const packageId = `${requirement.bestPackage.id}:${requirement.bestPackage.versions?.[0] || 'latest'}`;
+        const packageId = getPackageIdToLoad(requirement.id, requirement.bestPackage);
         logger.step(`reloading ${packageId} fresh`);
         await loadPackageData(packageId);
       }
@@ -386,7 +388,7 @@ export const LexiconRequirementsWidget: React.FC = () => {
                     <button
                       onClick={() => {
                         if (req.bestPackage) {
-                          const packageId = `${req.bestPackage.id}:${req.bestPackage.versions?.[0] || 'latest'}`;
+                          const packageId = getPackageIdToLoad(req.id, req.bestPackage);
                           loadPackageData(packageId);
                         }
                       }}

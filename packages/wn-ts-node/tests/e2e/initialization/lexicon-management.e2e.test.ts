@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { setupTestEnvironment } from '../shared/test-setup.js';
-import { config, download, add, remove, lexicons } from '../../../src/index.js';
+import { config, download, add, remove, lexicons } from '../../src/index.js';
 import { logger } from 'wn-ts-core/utils';
 
 describe('Lexicon Management', () => {

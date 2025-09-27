@@ -17,6 +17,11 @@
 import { expose } from 'comlink';
 import { WordNetOrchestrator } from './wordnet-orchestrator.js';
 import sqlite3InitModule, { type Sqlite3Static } from '@sqlite.org/sqlite-wasm';
+// Import wn-data-loader to ensure it's bundled in the worker
+import { WordNetProcessor } from 'wn-data-loader';
+
+// Force usage to prevent tree-shaking
+const _unused = WordNetProcessor;
 import type { 
   WordNetWorkerAPI,
   LexiconStatistics,
@@ -312,20 +317,26 @@ export async function hasLoadedData(packageId?: string) {
         // Check if specific package is loaded
         // Handle both full package ID (e.g., "oewn:2024") and base lexicon ID (e.g., "oewn")
         const baseLexiconId = packageId.split(':')[0];
-        const hasPackage = lexiconStats.some((ls: LexiconStatistics) => 
-          ls.lexiconId === packageId || ls.lexiconId === baseLexiconId
-        );
+        const hasPackage = lexiconStats.some((ls: LexiconStatistics) => {
+          const idMatch = ls.lexiconId === packageId || ls.lexiconId === baseLexiconId;
+          // Also check if the lexicon actually has data (not just an empty entry)
+          const hasData = (ls.wordCount || 0) > 0 || (ls.synsetCount || 0) > 0;
+          return idMatch && hasData;
+        });
         return {
           success: true,
           data: { hasPackage, loadedCount: lexiconStats.length },
         };
       } else {
-        // Return general loaded status
+        // Return general loaded status - only count lexicons that actually have data
+        const lexiconsWithData = lexiconStats.filter(ls => 
+          (ls.wordCount || 0) > 0 || (ls.synsetCount || 0) > 0
+        );
         return {
           success: true,
           data: {
-            hasData: lexiconStats.length > 0,
-            loadedCount: lexiconStats.length,
+            hasData: lexiconsWithData.length > 0,
+            loadedCount: lexiconsWithData.length,
           },
         };
       }
@@ -553,12 +564,9 @@ export async function getIliForSynset(synsetId: string) {
  * e.g., "oewn:2024" -> "oewn", "omw-fr:1.4" -> "omw-fr"
  */
 function mapPackageIdToLexiconId(packageId: string): string {
-  // Extract the base lexicon ID before the colon
-  const colonIndex = packageId.indexOf(':');
-  if (colonIndex === -1) {
-    return packageId; // No colon, return as-is
-  }
-  return packageId.substring(0, colonIndex);
+  // The database stores the full package ID (with version) in the lexicon field
+  // So we should use the package ID as-is, not strip the version
+  return packageId;
 }
 
 export async function searchWordsInLexicon(term: string, lexicon: string, language?: string) {
@@ -701,6 +709,15 @@ async function disposeWordNet() {
         logger.warn('Error closing orchestrator', { error: e });
       }
       orchestrator = null;
+    }
+    
+    // Close the OPFS database singleton to prevent access handle conflicts
+    try {
+      const { WebDatabase } = await import('../client/submodules/web-database');
+      WebDatabase.closeOpfsDatabase();
+      logger.debug('OPFS database singleton closed');
+    } catch (e) {
+      logger.warn('Error closing OPFS database singleton', { error: e });
     }
     
     isInitialized = false;

@@ -16,8 +16,16 @@ export class KyselyQueryService extends BaseKyselyQueryService {
 
   // Implement the abstract createTables method using shared SchemaBuilder
   async createTables(): Promise<void> {
-    await SchemaBuilder.createTables(this.db);
-    await SchemaBuilder.createIndexes(this.db);
+    console.log('🔍 KyselyQueryService.createTables() called');
+    try {
+      await SchemaBuilder.createTables(this.db);
+      console.log('✅ SchemaBuilder.createTables() completed');
+      await SchemaBuilder.createIndexes(this.db);
+      console.log('✅ SchemaBuilder.createIndexes() completed');
+    } catch (error) {
+      console.error('❌ Failed to create tables:', error);
+      throw error;
+    }
   }
 
   // Web-specific methods can be added here
@@ -63,7 +71,7 @@ export class KyselyQueryService extends BaseKyselyQueryService {
 
   // Insert operations
   async insertLexicon(lexicon: Database['lexicons']): Promise<void> {
-    await this.db.insertInto('lexicons').values(lexicon).execute();
+    await this.db.insertInto('lexicons').values(lexicon as any).execute();
   }
 
   async insertWord(word: Database['words']): Promise<void> {
@@ -156,12 +164,21 @@ export class KyselyQueryService extends BaseKyselyQueryService {
     // Use the base query service method
     const relations = await this.getRelationsBySynsetId(synsetId);
     
+    // Transform the database records to Relation type
+    const transformedRelations = relations.map(rel => ({
+      id: rel.id,
+      type: rel.type,
+      target: rel.target_id,
+      source: rel.source || undefined,
+      dcType: rel.dc_type || undefined
+    }));
+    
     // Filter by type if specified
     if (type) {
-      return relations.filter(rel => rel.type === type);
+      return transformedRelations.filter(rel => rel.type === type);
     }
     
-    return relations;
+    return transformedRelations;
   }
 
   // Raw query method for schema management

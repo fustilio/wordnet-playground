@@ -48,7 +48,7 @@ type RawWord = {
   lexicon: string;
 };
 import { WebWordnet } from "../client/submodules/web-wordnet.js";
-import { DataLoader } from "../data-loader.js";
+import { DataLoader } from "../data-management/index.js";
 import { WordNetEventEmitter, WordNetEvents } from "../event-emitter.js";
 import type { EventCallback } from "../event-emitter.js";
 import type { Sqlite3Static } from "@sqlite.org/sqlite-wasm";
@@ -333,6 +333,8 @@ export class WordNetOrchestrator {
   ): Promise<void> {
     this.activeLoads++;
     try {
+      logger.info(`🚀 Starting loadLexiconInternal for ${lexiconId}`);
+      
       // Update state to loading
       this.updateLexiconState(lexiconId, { status: "loading" });
 
@@ -348,18 +350,50 @@ export class WordNetOrchestrator {
       const hasSpecificData =
         await this.wordnet!.hasSpecificLexiconLoaded(lexiconId);
 
+      logger.info(`🔍 Load check for ${lexiconId}: hasSpecificData=${hasSpecificData}, forceRedownload=${options.forceRedownload}`);
+
       if (!hasSpecificData || options.forceRedownload) {
+        logger.info(`🔍 Proceeding with download: hasSpecificData=${hasSpecificData}, forceRedownload=${options.forceRedownload}`);
+        
         // Enhanced caching: Check if we have any existing data in the database first
         const hasAnyData = await this.wordnet!.hasData();
+        logger.info(`🔍 Database check: hasAnyData=${hasAnyData}`);
+        
+        // Always clear existing data before fresh load to avoid conflicts
         if (hasAnyData) {
+          logger.info(`🔄 Clearing existing data before fresh load to avoid conflicts...`);
+          await this.clearAllData();
+          logger.info(`✅ Existing data cleared, proceeding with fresh download`);
+        }
+        
+        if (false) { // Disabled the old conflict detection logic
           logger.info(`🗄️ Database already contains data, checking if ${lexiconId} is available...`);
           try {
             // Try to get status to see what's already loaded
             const status = await this.wordnet!.getStatistics();
             if (status.totalLexicons > 0) {
               logger.info(`✅ Found ${status.totalLexicons} existing lexicons in database`);
-              // For now, we'll proceed with the download since we can't easily check specific lexicons
-              // TODO: Implement proper lexicon existence checking
+              
+              // Check if we have conflicting lexicon IDs (both base and full package ID)
+              const lexiconStats = await this.wordnet!.getLexiconStatistics();
+              logger.info(`🔍 Checking for conflicts with lexiconId=${lexiconId}, found stats:`, lexiconStats);
+              
+              const hasConflictingIds = lexiconStats.some(stat => {
+                const baseId = lexiconId.split(':')[0];
+                const isConflict = stat.lexiconId === baseId || stat.lexiconId === lexiconId;
+                logger.debug(`🔍 Checking conflict: stat.lexiconId=${stat.lexiconId}, baseId=${baseId}, lexiconId=${lexiconId}, isConflict=${isConflict}`);
+                return isConflict;
+              });
+              
+              logger.info(`🔍 Conflict check result: hasConflictingIds=${hasConflictingIds}`);
+              
+              if (hasConflictingIds) {
+                logger.info(`🔄 Found conflicting lexicon IDs, clearing existing data before fresh load...`);
+                await this.clearAllData();
+                logger.info(`✅ Existing data cleared, proceeding with fresh download`);
+              } else {
+                logger.info(`✅ No conflicting lexicon IDs found, proceeding with download`);
+              }
             }
           } catch (error) {
             logger.warn(`⚠️ Failed to check existing data, proceeding with download:`, error);
@@ -470,6 +504,21 @@ export class WordNetOrchestrator {
     } finally {
       // Always decrement and process queue to avoid deadlocks/timeouts
       this.activeLoads--;
+      
+      // Flush database after data loading completes to ensure persistence
+      if (this.wordnet && this.isInitialized) {
+        try {
+          const database = this.wordnet.getDatabase();
+          if (database && typeof database.flush === "function") {
+            await database.flush();
+            logger.debug("Database flushed after data loading completion");
+          }
+        } catch (flushError) {
+          logger.warn("Failed to flush database after data loading:", flushError);
+          // Don't throw - flushing is best effort
+        }
+      }
+      
       this.processLoadQueue();
     }
   }
@@ -1154,6 +1203,12 @@ export class WordNetOrchestrator {
 
     setInterval(async () => {
       try {
+        // Skip flush if we have active data loading operations to avoid conflicts
+        if (this.activeLoads > 0) {
+          logger.debug("Skipping periodic flush due to active data loading operations");
+          return;
+        }
+
         if (this.wordnet && this.isInitialized) {
           const database = this.wordnet.getDatabase();
           if (database && typeof database.flush === "function") {

@@ -4,10 +4,16 @@ import { existsSync, mkdirSync, readFileSync } from 'fs';
 import toml from 'smol-toml';
 import { ConfigurationError, ProjectError, ConfigManager as BaseConfigManager } from 'wn-ts-core';
 import type { ProjectInfo } from 'wn-ts-core';
-import type { ProjectConfig } from 'wn-ts-core';
 import { fileURLToPath } from 'url';
 import { statSync } from 'fs';
 import { logger } from 'wn-ts-core';
+import { 
+  getProjectConfig, 
+  getAllProjectUrls,
+  validateProjectId,
+  type ProjectConfig,
+  type ProjectVersionConfig 
+} from 'wn-ts-core/config/project-config';
 
 // ESM-compatible __dirname
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -119,13 +125,13 @@ export class ConfigManager extends BaseConfigManager {
     }
     this._projects[id] = {
       type,
-      label,
-      language,
+      label: label || '',
+      language: language || 'en',
       versions: {},
-      license,
+      license: license || 'MIT',
     };
     if (error) {
-      this._projects[id].error = error;
+      (this._projects[id] as any).error = error;
     }
   }
 
@@ -141,13 +147,13 @@ export class ConfigManager extends BaseConfigManager {
     if (url && !error) {
       versionData.resource_urls = url.split(/\s+/).filter(Boolean);
     } else if (error && !url) {
-      versionData.error = error;
+      (versionData as any).error = error;
     } else if (url && error) {
       throw new ConfigurationError(`${id}:${version} specifies both url and error`);
     }
     
     if (license) {
-      versionData.license = license;
+      (versionData as any).license = license;
     }
     
     const project = this._projects[id];
@@ -159,6 +165,30 @@ export class ConfigManager extends BaseConfigManager {
 
   getProjectInfo(arg: string): ProjectInfo {
     const [id, version] = this.splitLexiconSpecifier(arg);
+    const projectId = `${id}:${version}`;
+    
+    // Use centralized configuration first
+    try {
+      const projectConfig = getProjectConfig(projectId);
+      if (projectConfig) {
+        const allUrls = getAllProjectUrls(projectId);
+        
+        return {
+          id: projectId,
+          version: version || '1.0',
+          label: projectConfig.label,
+          language: projectConfig.language,
+          license: projectConfig.license,
+          allUrls: allUrls,
+          primaryUrl: allUrls[0] || '',
+          fallbackUrls: allUrls.slice(1),
+        };
+      }
+    } catch (error) {
+      // Fall back to local configuration
+    }
+
+    // Fallback to local project configuration
     if (!(id in this._projects)) {
       throw new ProjectError(`No such project id: ${id}`);
     }
@@ -180,23 +210,22 @@ export class ConfigManager extends BaseConfigManager {
     if (info.error) {
       throw new ProjectError(info.error);
     }
-    const urls = info.resource_urls || [];
     return {
-      id,
+      id: projectId,
       version: targetVersion,
-      type: project.type || 'wordnet',
       label: project.label || '',
       language: project.language || '',
       license: info.license || project.license || '',
-      resource_urls: urls,
-      cache: undefined,
+      allUrls: [],
+      primaryUrl: '',
+      fallbackUrls: [],
     };
   }
 
   loadIndex(path: string): void {
     try {
       const content = readFileSync(path, 'utf-8');
-      const index = toml.parse(content) as unknown as Record<string, ProjectConfig>;
+      const index = toml.parse(content) as unknown as Record<string, any>;
       this.update({ index });
     } catch (error: unknown) {
       if (error && typeof error === 'object' && error !== null && ('name' in error || 'constructor' in error)) {
@@ -241,7 +270,7 @@ export class ConfigManager extends BaseConfigManager {
   update(data: Record<string, unknown>): void {
     const index = data.index || {};
     for (const [id, project] of Object.entries(index)) {
-      const projectData = project as ProjectConfig;
+      const projectData = project as any;
       if (id in this._projects) {
         // Validate that they are the same
         const existingProject = this._projects[id]!;

@@ -1,4 +1,4 @@
-import type { DataLoader } from '../../../src/data-loader.js';
+import type { DataLoader } from '../../../src/data-management/index.js';
 import { MockDataLoader } from '../../mock-data-loader.ts';
 import { describe, beforeAll, afterAll, it, expect } from 'vitest';
 import { WebWordnet } from '../../../src/client/submodules/web-wordnet.js';

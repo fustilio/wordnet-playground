@@ -4,7 +4,7 @@
 
 import type { WordnetOptions } from 'wn-ts-core';
 import { WebWordnet } from './client/submodules/web-wordnet.js';
-import { DataLoader } from './data-loader.js';
+import { DataLoader } from './data-management/index.js';
 import sqlite3InitModule, { type Sqlite3Static }  from '@sqlite.org/sqlite-wasm';
 import { createScopedLogger } from 'utils/logger';
 

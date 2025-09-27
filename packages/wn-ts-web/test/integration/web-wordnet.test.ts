@@ -31,18 +31,59 @@ describe('WebWordnet with Real Browser DB', () => {
 
     // Insert test data
     await queryService.clearAllData();
-    await queryService.insertLexicon({ id: 'oewn', label: 'Open English WordNet', language: 'en', version: '2024' });
+    await queryService.insertLexicon({ 
+      id: 'oewn', 
+      label: 'Open English WordNet', 
+      language: 'en', 
+      version: '2024',
+      email: null,
+      license: null,
+      url: null,
+      citation: null,
+      logo: null,
+      metadata: null
+    });
     await queryService.insertWord({ id: 'w-happy', lemma: 'happy', pos: 'a', lexicon: 'oewn', language: 'en' });
     await queryService.insertWord({ id: 'w-joy', lemma: 'joy', pos: 'n', lexicon: 'oewn', language: 'en' });
     await queryService.insertWord({ id: 'w-run', lemma: 'run', pos: 'v', lexicon: 'oewn', language: 'en' });
-    await queryService.insertSynset({ id: 's-happy', pos: 'a', lexicon: 'oewn', language: 'en' });
-    await queryService.insertSynset({ id: 's-joy', pos: 'n', lexicon: 'oewn', language: 'en' });
-    await queryService.insertSynset({ id: 's-run', pos: 'v', lexicon: 'oewn', language: 'en' });
-    await queryService.insertSense({ id: 'se-happy', word_id: 'w-happy', synset_id: 's-happy' });
-    await queryService.insertSense({ id: 'se-joy', word_id: 'w-joy', synset_id: 's-joy' });
-    await queryService.insertSense({ id: 'se-run', word_id: 'w-run', synset_id: 's-run' });
-    await queryService.insertDefinition({ id: 'd-happy', synset_id: 's-happy', text: 'feeling of happiness', language: 'en' });
-    await queryService.insertDefinition({ id: 'd-joy', synset_id: 's-joy', text: 'a feeling of great pleasure', language: 'en' });
+    await queryService.insertSynset({ id: 's-happy', pos: 'a', lexicon: 'oewn', language: 'en', ili: null });
+    await queryService.insertSynset({ id: 's-joy', pos: 'n', lexicon: 'oewn', language: 'en', ili: null });
+    await queryService.insertSynset({ id: 's-run', pos: 'v', lexicon: 'oewn', language: 'en', ili: null });
+    await queryService.insertSense({ 
+      id: 'se-happy', 
+      word_id: 'w-happy', 
+      synset_id: 's-happy',
+      source: null,
+      sensekey: null,
+      adjposition: null,
+      subcategory: null,
+      domain: null,
+      register: null
+    });
+    await queryService.insertSense({ 
+      id: 'se-joy', 
+      word_id: 'w-joy', 
+      synset_id: 's-joy',
+      source: null,
+      sensekey: null,
+      adjposition: null,
+      subcategory: null,
+      domain: null,
+      register: null
+    });
+    await queryService.insertSense({ 
+      id: 'se-run', 
+      word_id: 'w-run', 
+      synset_id: 's-run',
+      source: null,
+      sensekey: null,
+      adjposition: null,
+      subcategory: null,
+      domain: null,
+      register: null
+    });
+    await queryService.insertDefinition({ id: 'd-happy', synset_id: 's-happy', text: 'feeling of happiness', language: 'en', source: null });
+    await queryService.insertDefinition({ id: 'd-joy', synset_id: 's-joy', text: 'a feeling of great pleasure', language: 'en', source: null });
   });
 
   afterEach(async () => {

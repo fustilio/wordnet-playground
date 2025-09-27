@@ -63,7 +63,7 @@ export class DatabaseUtils {
     const query = db
       .selectFrom('lexicons')
       .select((eb) => [
-        'lexicons.id',
+        'lexicons.id as lexiconId',
         'lexicons.label',
         'lexicons.language',
         'lexicons.version',
@@ -95,7 +95,7 @@ export class DatabaseUtils {
     const results = await query.execute();
 
     return results.map((row) => ({
-      lexiconId: row.id,
+      lexiconId: row.lexiconId,
       label: row.label || '',
       language: row.language || '',
       version: row.version ?? '',

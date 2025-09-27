@@ -1,10 +1,10 @@
 import { bench, describe, beforeAll, afterAll } from 'vitest';
 import { join } from 'path';
 import { writeFile } from 'fs/promises';
-import { add, remove } from '../src/data-management-new';
+import { add, remove } from '../src/data-management/index.js';
 import { Wordnet } from '../src/wordnet';
-import { getTestContext, cleanupTestContext } from 'wn-ts-core';
-import type { TestContext } from 'wn-ts-core';
+import { getTestContext, cleanupTestContext } from 'wn-ts-core/test';
+import type { TestContext } from 'wn-ts-core/test';
 
 let testContext: TestContext;
 let englishWordnet: Wordnet;
@@ -70,21 +70,21 @@ describe('Realistic Bilingual Demo Performance', () => {
     bench('getSensesByWordIdOrForm - English', async () => {
       const words = await englishWordnet.words({ form: 'sample' });
       if (words.length > 0) {
-        return await englishWordnet.senses({ word: words[0].id });
+        await englishWordnet.senses({ wordIdOrForm: words[0].id });
       }
     });
 
     bench('getSynsetById - English', async () => {
       const synsets = await englishWordnet.synsets({ form: 'sample' });
       if (synsets.length > 0) {
-        return await englishWordnet.synset(synsets[0].id);
+        await englishWordnet.synset(synsets[0].id);
       }
     });
 
     bench('getDefinitionsBySynsetId - English', async () => {
       const synsets = await englishWordnet.synsets({ form: 'sample' });
       if (synsets.length > 0) {
-        return await englishWordnet.definitions({ synset: synsets[0].id });
+        await englishWordnet.getDefinitions(synsets[0].id);
       }
     });
 
@@ -93,24 +93,26 @@ describe('Realistic Bilingual Demo Performance', () => {
       if (synsets.length > 0) {
         const synset = await englishWordnet.synset(synsets[0].id);
         if (synset && synset.ili) {
-          return synset.ili;
+          // Just access the ILI property
+          const ili = synset.ili;
+        } else {
+          // Fallback: extract ILI from synset ID
+          const ili = synsets[0].id.replace(/^[^-]+-/, 'i').replace(/-[a-z]$/, '');
         }
-        // Fallback: extract ILI from synset ID
-        return synsets[0].id.replace(/^[^-]+-/, 'i').replace(/-[a-z]$/, '');
       }
     });
 
     bench('getWordsByIliAndLanguage - Cross-lingual lookup', async () => {
       // Get ILI from English synset
       const enSynsets = await englishWordnet.synsets({ form: 'sample' });
-      if (enSynsets.length === 0) return [];
+      if (enSynsets.length === 0) return;
       
       const enSynset = await englishWordnet.synset(enSynsets[0].id);
       const ili = enSynset?.ili || enSynsets[0].id.replace(/^[^-]+-/, 'i').replace(/-[a-z]$/, '');
       
       // Find words with same ILI in French
       const frWords = await frenchWordnet.words({ form: 'sample' });
-      return frWords.filter(word => {
+      frWords.filter(word => {
         // In real scenario, this would query by ILI
         // For now, we'll simulate by returning all French words
         return true;
@@ -130,18 +132,18 @@ describe('Realistic Bilingual Demo Performance', () => {
       
       // Step 1: Find source words in English
       const srcWords = await englishWordnet.words({ form: term });
-      if (srcWords.length === 0) return [];
+      if (srcWords.length === 0) return;
       
-      const results = [];
+      const results: any[] = [];
       
       // Process each source word
       for (const word of srcWords) {
         // Step 2: Get senses for each word
-        const senses = await englishWordnet.senses({ word: word.id });
+        const senses = await englishWordnet.senses({ wordIdOrForm: word.id });
         
         for (const sense of senses) {
           // Step 3: Get synset
-          const synset = await englishWordnet.synset(sense.synset);
+          const synset = await englishWordnet.synset(sense.synsetId);
           if (!synset) continue;
           
           // Step 4: Extract ILI
@@ -151,8 +153,8 @@ describe('Realistic Bilingual Demo Performance', () => {
           const targetWords = await frenchWordnet.words({ form: term }); // Simulated
           
           // Step 6: Get definitions
-          const srcDefs = await englishWordnet.definitions({ synset: synset.id });
-          const targetDefs = await frenchWordnet.definitions({ synset: synset.id }); // Simulated
+          const srcDefs = await englishWordnet.getDefinitions(synset.id);
+          const targetDefs = await frenchWordnet.getDefinitions(synset.id); // Simulated
           
           // Step 7: Add results
           for (const targetWord of targetWords) {
@@ -170,7 +172,8 @@ describe('Realistic Bilingual Demo Performance', () => {
       
       const queryTime = Date.now() - queryStartTime;
       
-      return {
+      // Store results for analysis (benchmark functions should not return values)
+      const result = {
         term,
         pair: { from: fromLang, to: toLang },
         resultCount: results.length,
@@ -188,15 +191,15 @@ describe('Realistic Bilingual Demo Performance', () => {
       
       // Similar workflow as English to French
       const srcWords = await englishWordnet.words({ form: term });
-      if (srcWords.length === 0) return [];
+      if (srcWords.length === 0) return;
       
-      const results = [];
+      const results: any[] = [];
       
       for (const word of srcWords) {
-        const senses = await englishWordnet.senses({ word: word.id });
+        const senses = await englishWordnet.senses({ wordIdOrForm: word.id });
         
         for (const sense of senses) {
-          const synset = await englishWordnet.synset(sense.synset);
+          const synset = await englishWordnet.synset(sense.synsetId);
           if (!synset) continue;
           
           const ili = synset.ili || synset.id.replace(/^[^-]+-/, 'i').replace(/-[a-z]$/, '');
@@ -204,8 +207,8 @@ describe('Realistic Bilingual Demo Performance', () => {
           // Find Thai words with same ILI
           const targetWords = await thaiWordnet.words({ form: term }); // Simulated
           
-          const srcDefs = await englishWordnet.definitions({ synset: synset.id });
-          const targetDefs = await thaiWordnet.definitions({ synset: synset.id }); // Simulated
+          const srcDefs = await englishWordnet.getDefinitions(synset.id);
+          const targetDefs = await thaiWordnet.getDefinitions(synset.id); // Simulated
           
           for (const targetWord of targetWords) {
             results.push({
@@ -222,7 +225,8 @@ describe('Realistic Bilingual Demo Performance', () => {
       
       const queryTime = Date.now() - queryStartTime;
       
-      return {
+      // Store results for analysis (benchmark functions should not return values)
+      const result = {
         term,
         pair: { from: fromLang, to: toLang },
         resultCount: results.length,
@@ -233,7 +237,7 @@ describe('Realistic Bilingual Demo Performance', () => {
 
     bench('Multi-language query with error handling', async () => {
       const terms = ['sample', 'test', 'example'];
-      const allResults = [];
+      const allResults: any[] = [];
       
       for (const term of terms) {
         try {
@@ -243,15 +247,15 @@ describe('Realistic Bilingual Demo Performance', () => {
           const srcWords = await englishWordnet.words({ form: term });
           if (srcWords.length === 0) continue;
           
-          const termResults = [];
+          const termResults: any[] = [];
           
           for (const word of srcWords) {
             try {
-              const senses = await englishWordnet.senses({ word: word.id });
+              const senses = await englishWordnet.senses({ wordIdOrForm: word.id });
               
               for (const sense of senses) {
                 try {
-                  const synset = await englishWordnet.synset(sense.synset);
+                  const synset = await englishWordnet.synset(sense.synsetId);
                   if (!synset) continue;
                   
                   const ili = synset.ili || synset.id.replace(/^[^-]+-/, 'i').replace(/-[a-z]$/, '');
@@ -260,7 +264,7 @@ describe('Realistic Bilingual Demo Performance', () => {
                   const frWords = await frenchWordnet.words({ form: term });
                   const thWords = await thaiWordnet.words({ form: term });
                   
-                  const srcDefs = await englishWordnet.definitions({ synset: synset.id });
+                  const srcDefs = await englishWordnet.getDefinitions(synset.id);
                   
                   // Add French results
                   for (const frWord of frWords) {
@@ -310,7 +314,8 @@ describe('Realistic Bilingual Demo Performance', () => {
         }
       }
       
-      return allResults;
+      // Store results for analysis (benchmark functions should not return values)
+      const result = allResults;
     });
   });
 
@@ -324,7 +329,7 @@ describe('Realistic Bilingual Demo Performance', () => {
         'responsibility', // High complexity
       ];
       
-      const results = [];
+      const results: any[] = [];
       
       for (const word of testWords) {
         const startTime = Date.now();
@@ -335,7 +340,7 @@ describe('Realistic Bilingual Demo Performance', () => {
         
         if (words.length > 0) {
           const senseStartTime = Date.now();
-          const senses = await englishWordnet.senses({ word: words[0].id });
+          const senses = await englishWordnet.senses({ wordIdOrForm: words[0].id });
           const senseTime = Date.now() - senseStartTime;
           
           const synsetStartTime = Date.now();
@@ -356,7 +361,8 @@ describe('Realistic Bilingual Demo Performance', () => {
         }
       }
       
-      return results;
+      // Store results for analysis (benchmark functions should not return values)
+      const result = results;
     });
 
     bench('Memory usage during multilingual queries', async () => {
@@ -364,7 +370,7 @@ describe('Realistic Bilingual Demo Performance', () => {
       
       // Perform multiple multilingual queries
       const terms = ['sample', 'test', 'example'];
-      const results = [];
+      const results: any[] = [];
       
       for (const term of terms) {
         // English query
@@ -386,7 +392,8 @@ describe('Realistic Bilingual Demo Performance', () => {
       
       const finalMemory = process.memoryUsage();
       
-      return {
+      // Store results for analysis (benchmark functions should not return values)
+      const result = {
         initialMemory,
         finalMemory,
         memoryDelta: {
@@ -413,7 +420,8 @@ describe('Realistic Bilingual Demo Performance', () => {
           thaiWordnet.words({ form: term })
         ]);
         
-        return {
+        // Store results for analysis (benchmark functions should not return values)
+      const result = {
           term,
           enCount: enWords.length,
           frCount: frWords.length,
@@ -424,7 +432,8 @@ describe('Realistic Bilingual Demo Performance', () => {
       const results = await Promise.all(promises);
       const totalTime = Date.now() - startTime;
       
-      return {
+      // Store results for analysis (benchmark functions should not return values)
+      const result = {
         totalTime,
         queriesProcessed: terms.length,
         avgTimePerQuery: totalTime / terms.length,
@@ -446,20 +455,20 @@ describe('Realistic Bilingual Demo Performance', () => {
       // Step 1: Find source words in English
       const srcWords = await englishWordnet.words({ form: term });
       
-      if (srcWords.length === 0) return [];
+      if (srcWords.length === 0) return;
       
-      const out = [];
+      const out: any[] = [];
       
       for (const w of srcWords) {
         const wordStartTime = Date.now();
         
         // Step 2: Get senses for each word
-        const senses = await englishWordnet.senses({ word: w.id });
+        const senses = await englishWordnet.senses({ wordIdOrForm: w.id });
         const wordTime = Date.now() - wordStartTime;
         
         for (const s of senses) {
           // Step 3: Get synset
-          const synset = await englishWordnet.synset(s.synset);
+          const synset = await englishWordnet.synset(s.synsetId);
           if (!synset) continue;
           
           // Step 4: Extract ILI
@@ -475,16 +484,16 @@ describe('Realistic Bilingual Demo Performance', () => {
           let defTo: string | undefined;
           
           try {
-            const defs = await englishWordnet.definitions({ synset: synset.id });
+            const defs = await englishWordnet.getDefinitions(synset.id);
             defFrom = defs[0]?.text;
           } catch (e) {
             // Handle definition lookup failure
           }
           
           try {
-            const targetSenses = await frenchWordnet.senses({ word: targetWords[0].id });
+            const targetSenses = await frenchWordnet.senses({ wordIdOrForm: targetWords[0].id });
             if (targetSenses.length > 0) {
-              const targetDefs = await frenchWordnet.definitions({ synset: targetSenses[0].synset });
+              const targetDefs = await frenchWordnet.getDefinitions(targetSenses[0].synsetId);
               defTo = targetDefs[0]?.text;
             }
           } catch (e) {
@@ -507,7 +516,8 @@ describe('Realistic Bilingual Demo Performance', () => {
       
       const queryTime = Date.now() - queryStartTime;
       
-      return {
+      // Store results for analysis (benchmark functions should not return values)
+      const result = {
         term,
         pair,
         resultCount: out.length,
@@ -529,18 +539,19 @@ describe('Realistic Bilingual Demo Performance', () => {
         const srcWords = await englishWordnet.words({ form: term });
         
         if (srcWords.length === 0) {
-          return { error: 'No source words found', resultCount: 0 };
+          // Store results for analysis (benchmark functions should not return values)
+      const result = { error: 'No source words found', resultCount: 0 };
         }
         
-        const out = [];
+        const out: any[] = [];
         
         for (const w of srcWords) {
           try {
-            const senses = await englishWordnet.senses({ word: w.id });
+            const senses = await englishWordnet.senses({ wordIdOrForm: w.id });
             
             for (const s of senses) {
               try {
-                const synset = await englishWordnet.synset(s.synset);
+                const synset = await englishWordnet.synset(s.synsetId);
                 if (!synset) continue;
                 
                 const ili = synset.ili || synset.id.replace(/^[^-]+-/, 'i').replace(/-[a-z]$/, '');
@@ -555,16 +566,16 @@ describe('Realistic Bilingual Demo Performance', () => {
                 let defTo: string | undefined;
                 
                 try {
-                  const defs = await englishWordnet.definitions({ synset: synset.id });
+                  const defs = await englishWordnet.getDefinitions(synset.id);
                   defFrom = defs[0]?.text;
                 } catch (e) {
                   // Definition lookup failed, continue
                 }
                 
                 try {
-                  const targetSenses = await thaiWordnet.senses({ word: targetWords[0].id });
+                  const targetSenses = await thaiWordnet.senses({ wordIdOrForm: targetWords[0].id });
                   if (targetSenses.length > 0) {
-                    const targetDefs = await thaiWordnet.definitions({ synset: targetSenses[0].synset });
+                    const targetDefs = await thaiWordnet.getDefinitions(targetSenses[0].synsetId);
                     defTo = targetDefs[0]?.text;
                   }
                 } catch (e) {
@@ -595,7 +606,8 @@ describe('Realistic Bilingual Demo Performance', () => {
         
         const queryTime = Date.now() - queryStartTime;
         
-        return {
+        // Store results for analysis (benchmark functions should not return values)
+      const result = {
           term,
           pair,
           resultCount: out.length,
@@ -605,7 +617,8 @@ describe('Realistic Bilingual Demo Performance', () => {
           results: out.slice(0, 10)
         };
       } catch (e) {
-        return {
+        // Store results for analysis (benchmark functions should not return values)
+      const result = {
           error: e instanceof Error ? e.message : String(e),
           resultCount: 0
         };

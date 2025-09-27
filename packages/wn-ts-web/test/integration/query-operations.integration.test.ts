@@ -9,7 +9,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from "vitest";
 import { createWordNetInstance } from "../../src/factory";
 import type { WebWordnet } from "../../src/client/submodules/web-wordnet";
-import type { DataLoader } from "../../src/data-loader";
+import type { DataLoader } from "../../src/data-management/index.js";
 import { MockDataLoader } from '../mock-data-loader.js';
 
 const isNode =
@@ -17,7 +17,7 @@ const isNode =
   process.versions != null &&
   process.versions.node != null;
 
-describe.skipIf(isNode)("Query Operations E2E Tests", () => {
+describe("Query Operations E2E Tests", () => {
   let wordnet: WebWordnet;
   let dataLoader: DataLoader;
 
@@ -27,13 +27,13 @@ describe.skipIf(isNode)("Query Operations E2E Tests", () => {
     dataLoader = instance.dataLoader;
 
     // Use mock data instead of downloading real data for integration tests
-    const mockDataLoader = new MockDataLoader((wordnet as any).database, wordnet);
+    const mockDataLoader = new MockDataLoader(wordnet.databaseInstance, wordnet);
     await mockDataLoader.loadMockData("oewn:2024");
   }, 300000); // 5 minute timeout for setup
 
   beforeEach(async () => {
     // Ensure mock data is loaded for each test
-    const mockDataLoader = new MockDataLoader((wordnet as any).database, wordnet);
+    const mockDataLoader = new MockDataLoader(wordnet.databaseInstance, wordnet);
     await mockDataLoader.loadMockData("oewn:2024");
   });
 

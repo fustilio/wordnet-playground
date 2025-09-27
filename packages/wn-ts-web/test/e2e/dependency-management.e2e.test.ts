@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createWordNetInstance } from '../../src/factory.js';
 import type { WebWordnet } from '../../src/client/submodules/web-wordnet.js';
-import type { DataLoader } from '../../src/data-loader.js';
+import type { DataLoader } from '../../src/data-management/index.js';
 
 const isNode =
   typeof process !== 'undefined' &&

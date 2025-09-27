@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { setupTestEnvironment } from '../shared/test-setup.js';
 import { logger } from 'wn-ts-core/utils';
-import type { Wordnet } from '../../../src/wordnet.js';
+import type { Wordnet } from '../../src/wordnet.js';
 
 describe('Comprehensive Query Operations', () => {
   let wordnetClient: Wordnet;
