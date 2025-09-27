@@ -13,7 +13,7 @@ import {
   validateProjectId,
   getProxyUrl,
   needsProxy
-} from '../../src/config/project-config.js';
+} from '../project-config.js';
 
 describe('Project Configuration System', () => {
   describe('DEFAULT_PROJECTS', () => {

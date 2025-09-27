@@ -117,9 +117,33 @@ describe.skipIf(isNode)('Database Statistics Calculation E2E', () => {
   });
 
   describe('ILI Count Calculation Fix', () => {
-    it('should correctly count ILIs in synsets', async () => {
+    it('should correctly count ILIs from synsets table (not ilis table)', async () => {
       // This test specifically validates the fix for the ILI count calculation bug
-      // where synsets.ili was being compared to lexicons.id instead of counting non-null ILI values
+      // where statistics were counting records in ilis table instead of counting
+      // non-null ILI values in synsets table
+      
+      const stats = await wordnet.getStatistics();
+      
+      // The fix ensures we count ILIs from synsets table, not ilis table
+      expect(stats.totalILIs).toBeGreaterThan(0);
+      expect(stats.totalSynsets).toBeGreaterThan(0);
+      
+      // ILI count should be reasonable compared to synset count
+      // Most synsets should have ILI values
+      const iliCoverage = (stats.totalILIs / stats.totalSynsets) * 100;
+      expect(iliCoverage).toBeGreaterThan(80); // At least 80% ILI coverage
+      
+      console.log(`📊 Total ILIs: ${stats.totalILIs}`);
+      console.log(`📊 Total Synsets: ${stats.totalSynsets}`);
+      console.log(`📊 ILI Coverage: ${iliCoverage.toFixed(1)}%`);
+      
+      // This validates that the fix is working:
+      // - Before fix: counted ilis table records (would be 0)
+      // - After fix: counts synsets with non-null ILI values (should be > 0)
+    });
+
+    it('should correctly count ILIs in synsets', async () => {
+      // This test validates that lexicon-specific ILI counting works correctly
       
       const lexicons = await wordnet.lexicons();
       const oewnLexicon = lexicons.find(l => l.id === 'oewn');

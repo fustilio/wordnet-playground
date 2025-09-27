@@ -467,6 +467,14 @@ const wordnet = createWordNet({
 });
 ```
 
+## 📖 **Examples**
+
+Practical examples and usage patterns are available in the [examples directory](./examples/):
+
+- **[Kysely Typing Example](./examples/kysely-typing-example.md)** - Type-safe database queries with the relations plugin
+- **[Similarity Methods](./examples/similarity-lexicon-examples.md)** - Lexicon-aware similarity calculations and cross-lingual comparisons
+- **[Test Data Generation](./examples/test-data-generation.md)** - Generating realistic test data from WordNet sources
+
 ## 📖 **Related Documentation**
 
 - **[Main Project README](../../../README.md)** - Project overview and lexicon format details

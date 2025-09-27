@@ -1,14 +1,24 @@
-#!/usr/bin/env tsx
+# Test Data Generation with xml-introspect
 
-/**
- * Example: Test Data Generation with xml-introspect
- * 
- * This example demonstrates how to use the enhanced xml-introspect capabilities
- * to validate WordNet data sources and generate representative test data.
- * 
- * Run with: pnpm tsx examples/test-data-generation.ts
- */
+This example demonstrates how to use the enhanced xml-introspect capabilities to validate WordNet data sources and generate representative test data.
 
+## Overview
+
+The test data generation system helps create realistic test data for WordNet applications by analyzing real WordNet XML sources and generating representative samples.
+
+## Usage
+
+```bash
+# Run the example (if you have the original TypeScript file)
+# Note: This is now documentation - see the code example below
+
+# Or use the CLI
+pnpm run generate-test-data --help
+```
+
+## Code Example
+
+```typescript
 import { createTestDataManager, DEFAULT_WORDNET_SOURCES } from '../src/test/test-data-manager.js';
 import { join } from 'path';
 
@@ -34,14 +44,6 @@ async function main() {
   console.log(`📊 Validation Results:`);
   console.log(`✅ Valid sources: ${validSources.length}`);
   console.log(`❌ Invalid sources: ${invalidSources.length}\n`);
-
-  if (invalidSources.length > 0) {
-    console.log('❌ Invalid sources:');
-    invalidSources.forEach(result => {
-      console.log(`  - ${result.url}: ${result.error}`);
-    });
-    console.log('');
-  }
 
   if (validSources.length === 0) {
     console.log('❌ No valid sources found. Cannot generate test data.');
@@ -93,39 +95,7 @@ async function main() {
         console.log('');
       }
 
-      if (result.sampleXml) {
-        console.log('📄 Sample XML:');
-        console.log(`  - Size: ${result.sampleXml.length} characters`);
-        console.log(`  - Preview: ${result.sampleXml.substring(0, 200)}...`);
-        console.log('');
-      }
-
-      if (result.realisticXml) {
-        console.log('🎭 Realistic XML:');
-        console.log(`  - Size: ${result.realisticXml.length} characters`);
-        console.log(`  - Preview: ${result.realisticXml.substring(0, 200)}...`);
-        console.log('');
-      }
-
-      if (result.xsdSchema) {
-        console.log('📋 XSD Schema:');
-        console.log(`  - Size: ${result.xsdSchema.length} characters`);
-        console.log(`  - Preview: ${result.xsdSchema.substring(0, 200)}...`);
-        console.log('');
-      }
-
-      if (result.validation) {
-        console.log('✅ Schema Validation:');
-        console.log(`  - Valid: ${result.validation.isValid}`);
-        if (result.validation.errors.length > 0) {
-          console.log(`  - Errors: ${result.validation.errors.length}`);
-        }
-        if (result.validation.warnings.length > 0) {
-          console.log(`  - Warnings: ${result.validation.warnings.length}`);
-        }
-        console.log('');
-      }
-
+      // Display file information
       console.log('📁 Files saved to:');
       console.log(`  - ${join(outputDir, source.id, 'analysis.json')}`);
       if (result.sampleXml) {
@@ -163,3 +133,47 @@ main().catch(error => {
   console.error('❌ Unexpected error:', error);
   process.exit(1);
 });
+```
+
+## Features
+
+### Data Source Validation
+- **Accessibility Check**: Verifies that data sources are reachable
+- **XML Validation**: Ensures the downloaded content is valid XML
+- **Format Detection**: Identifies WordNet XML format and structure
+
+### Test Data Generation
+- **Sample XML**: Small representative samples for unit testing
+- **Realistic XML**: Larger samples that maintain data characteristics
+- **XSD Schema**: Generated schemas for validation
+- **Analysis Reports**: Detailed analysis of data characteristics
+
+### Generated Files
+- `analysis.json`: Detailed analysis of the source data
+- `sample.xml`: Small sample for unit testing
+- `realistic.xml`: Larger sample for integration testing
+- `{source}.xsd`: XSD schema for validation
+- `validation.json`: Schema validation results
+
+## Configuration
+
+The system uses `DEFAULT_WORDNET_SOURCES` which includes:
+- Open English WordNet (OEWN)
+- Multilingual WordNet sources
+- Various WordNet formats and versions
+
+## Benefits
+
+1. **Realistic Testing**: Uses actual WordNet data characteristics
+2. **Consistent Test Data**: Reproducible test data across environments
+3. **Schema Validation**: Ensures generated data follows proper schemas
+4. **Performance Testing**: Large datasets for performance validation
+5. **Format Validation**: Ensures compatibility with different WordNet formats
+
+## Use Cases
+
+- **Unit Testing**: Use sample.xml for fast unit tests
+- **Integration Testing**: Use realistic.xml for comprehensive testing
+- **Performance Testing**: Use large datasets for performance validation
+- **Schema Validation**: Use XSD schemas for data validation
+- **Documentation**: Use analysis reports for understanding data characteristics

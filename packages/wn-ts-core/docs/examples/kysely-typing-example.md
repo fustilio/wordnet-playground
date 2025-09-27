@@ -1,10 +1,10 @@
-/**
- * Example demonstrating proper Kysely typing in the relations plugin
- * 
- * This example shows how Kysely provides full type safety for database queries
- * in the relations plugin, eliminating the need for 'any' types.
- */
+# Kysely Typing Example
 
+This example demonstrates proper Kysely typing in the relations plugin, showing how Kysely provides full type safety for database queries and eliminates the need for 'any' types.
+
+## Code Example
+
+```typescript
 import { relations } from '../src/plugins/relations.js';
 import type { WordNetKernel } from '../src/wordnet-kernel.js';
 
@@ -53,3 +53,15 @@ async function demonstrateKyselyTyping(kernel: WordNetKernel, synsetId: string) 
 }
 
 export { demonstrateKyselyTyping };
+```
+
+## Key Benefits
+
+- **Full Type Safety**: No more 'any' types in database queries
+- **Compile-time Error Detection**: TypeScript catches typos and type mismatches
+- **IntelliSense Support**: Full autocomplete and documentation in IDEs
+- **Refactoring Safety**: Changes to database schema are caught at compile time
+
+## Usage
+
+This example shows how the relations plugin provides type-safe access to WordNet relationship data, making the code more maintainable and less error-prone.
