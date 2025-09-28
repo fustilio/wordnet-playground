@@ -164,6 +164,8 @@ export interface IliTable {
   id: string;
   definition: string | null;
   status: string | null;
+  superseded_by: string | null;
+  note: string | null;
   meta: JSONColumnType<Record<string, any>> | null;
 }
 

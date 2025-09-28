@@ -10,6 +10,7 @@ import {
   DeveloperDemo, 
   VisualizationDemo, 
   LexiconIntrospectionDemo,
+  RelationsDemo,
   TranslationShowcase,
   KernelDemo
 } from '../examples/tabs';
@@ -40,6 +41,7 @@ function App() {
   const tabs = [
     'Basic', 
     'Kernel Demo',
+    'Relations Demo',
     'Translation Showcase',
     'Data Catalog', 
     'Visualizations', 
@@ -115,6 +117,7 @@ function App() {
             <div className="mt-6">
               {activeTab === 'Basic' && <BasicDemo />}
               {activeTab === 'Kernel Demo' && <KernelDemo />}
+              {activeTab === 'Relations Demo' && <RelationsDemo />}
               {activeTab === 'Translation Showcase' && <TranslationShowcase />}
               {activeTab === 'Data Catalog' && <AdvancedDemo />}
               {activeTab === 'Visualizations' && <VisualizationDemo />}

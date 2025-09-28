@@ -85,7 +85,7 @@ export class WebDatabase {
       logger.error(`Failed to create database with ${this.adapter.getName()} adapter:`, error);
       
       // Try progressive fallback strategy
-      await this.tryProgressiveFallback(data, error);
+      await this.tryProgressiveFallback(data, error as Error);
     }
   }
 

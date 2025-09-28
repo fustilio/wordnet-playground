@@ -742,8 +742,8 @@ export async function flushDatabase() {
     const wordnet = orchestrator.getWordNetInstance();
     const database = wordnet.getDatabase();
     
-    if (database && typeof database.flush === 'function') {
-      await database.flush();
+    if (database && typeof (database as any).flush === 'function') {
+      await (database as any).flush();
       logger.success('Database flushed successfully');
       return { success: true };
     } else {

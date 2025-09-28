@@ -15,6 +15,9 @@ import type {
   WordNetKernelOptions
 } from '../../types/index.js';
 
+// Import common relation types
+import type { RelationMethod, RelationMethodReturn, RelationUtilityMethod } from '../../workers/type.js';
+
 // Import all types from the dedicated types file
 import type {
   CacheInfo,
@@ -39,6 +42,54 @@ import type {
 } from "../../types/index.ts";
 
 const logger = createScopedLogger("useWordNetKernel");
+
+// Helper function to create basic relation method callbacks
+const createBasicRelationMethod = (ensureInitialized: () => WebWordNetKernel, methodName: keyof WebWordNetKernel) => {
+  return useCallback(async (synsetId: string, lexicon?: string) => {
+    const kernel = ensureInitialized();
+    return (kernel[methodName] as RelationMethod)(synsetId, lexicon);
+  }, [ensureInitialized]);
+};
+
+// Helper function to create relation type method callbacks
+const createRelationTypeMethod = (ensureInitialized: () => WebWordNetKernel, methodName: keyof WebWordNetKernel) => {
+  return useCallback(async (synsetId: string, relationType: string, lexicon?: string) => {
+    const kernel = ensureInitialized();
+    return (kernel[methodName] as any)(synsetId, relationType, lexicon);
+  }, [ensureInitialized]);
+};
+
+// Helper function to create all relations method callbacks
+const createAllRelationsMethod = (ensureInitialized: () => WebWordNetKernel, methodName: keyof WebWordNetKernel) => {
+  return useCallback(async (synsetId: string, lexicon?: string) => {
+    const kernel = ensureInitialized();
+    return (kernel[methodName] as any)(synsetId, lexicon);
+  }, [ensureInitialized]);
+};
+
+// Helper function to create string array method callbacks
+const createStringArrayMethod = (ensureInitialized: () => WebWordNetKernel, methodName: keyof WebWordNetKernel) => {
+  return useCallback(async (synsetId: string, lexicon?: string) => {
+    const kernel = ensureInitialized();
+    return (kernel[methodName] as any)(synsetId, lexicon);
+  }, [ensureInitialized]);
+};
+
+// Helper function to create stats method callbacks
+const createStatsMethod = (ensureInitialized: () => WebWordNetKernel, methodName: keyof WebWordNetKernel) => {
+  return useCallback(async (synsetId: string, lexicon?: string) => {
+    const kernel = ensureInitialized();
+    return (kernel[methodName] as any)(synsetId, lexicon);
+  }, [ensureInitialized]);
+};
+
+// Helper function to create utility method callbacks
+const createUtilityMethod = <T>(ensureInitialized: () => WebWordNetKernel, methodName: keyof WebWordNetKernel) => {
+  return useCallback(async () => {
+    const kernel = ensureInitialized();
+    return (kernel[methodName] as RelationUtilityMethod<T>)();
+  }, [ensureInitialized]);
+};
 
 /**
  * useWordNetKernel Hook
@@ -170,57 +221,6 @@ export function useWordNetKernel(config?: {
     direction: 'incoming' | 'outgoing';
   }>>;
   
-  // Plugin methods - Similarity
-  getPathSimilarity: (synset1: string, synset2: string) => Promise<number>;
-  getWuPalmerSimilarity: (synset1: string, synset2: string) => Promise<number>;
-  getLeacockChodorowSimilarity: (synset1: string, synset2: string) => Promise<number>;
-  getJaccardSimilarity: (synset1: string, synset2: string) => Promise<number>;
-  getBestSimilarity: (synset1: string, synset2: string) => Promise<number>;
-  findMostSimilar: (synsetId: string, limit?: number) => Promise<Array<{
-    id: string;
-    similarity: number;
-  }>>;
-  
-  // Plugin methods - Translation
-  getTranslations: (synsetId: string, targetLanguage?: string) => Promise<Array<{
-    id: string;
-    language: string;
-    lexicon: string;
-    lemma: string;
-    pos: string;
-  }>>;
-  getTranslationsByWord: (wordForm: string, sourceLanguage: string, targetLanguage: string) => Promise<Array<{
-    sourceSynset: string;
-    ili: string;
-    translations: Array<{
-      lemma: string;
-      pos: string;
-      lexicon: string;
-    }>;
-  }>>;
-  getAvailableLanguages: (synsetId: string) => Promise<Array<{
-    language: string;
-    word_count: number;
-  }>>;
-  getSynsetsByIli: (ili: string) => Promise<Array<{
-    id: string;
-    language: string;
-    lexicon: string;
-    pos: string;
-    words: string;
-  }>>;
-  getTranslationConfidence: (synset1: string, synset2: string) => Promise<number>;
-  getTranslationSuggestions: (wordForm: string, sourceLanguage: string, targetLanguage: string) => Promise<Array<{
-    sourceSynset: string;
-    ili: string;
-    confidence: number;
-    targetWords: string[];
-  }>>;
-  
-  // Plugin management
-  getPlugins: () => string[];
-  has: (pluginName: string) => boolean;
-  
   // Schema management
   schemaManager: Record<string, unknown> | null;
 } {
@@ -231,27 +231,29 @@ export function useWordNetKernel(config?: {
 
   // Initialize the WordNet kernel
   const initialize = useCallback(async (lexicon?: string | string[], options?: WordNetKernelOptions) => {
+    if (loading) return;
+    
+    setLoading(true);
+    setError(null);
+    
     try {
-      setLoading(true);
-      setError(null);
+      logger.info('Initializing WordNet kernel...', { lexicon, options });
       
-      logger.debug("Initializing WordNet kernel", { lexicon, options });
-      
-      const kernel = new WebWordNetKernel(lexicon || config?.lexicon || 'oewn:2024', options || config?.options);
+      const kernel = new WebWordNetKernel();
       await kernel.initialize();
       
       setWordnet(kernel);
       setInitialized(true);
       
-      logger.success("WordNet kernel initialized successfully");
+      logger.info('WordNet kernel initialized successfully');
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to initialize WordNet kernel';
       setError(errorMessage);
-      logger.error("Failed to initialize WordNet kernel", { error: err });
+      logger.error('Failed to initialize WordNet kernel', { error: err });
     } finally {
       setLoading(false);
     }
-  }, [config]);
+  }, [loading, config?.lexicon, config?.options]);
 
   // Close the WordNet kernel
   const close = useCallback(async () => {
@@ -260,26 +262,17 @@ export function useWordNetKernel(config?: {
         await wordnet.close();
         setWordnet(null);
         setInitialized(false);
-        logger.debug("WordNet kernel closed");
+        logger.info('WordNet kernel closed successfully');
       } catch (err) {
-        logger.warn("Error closing WordNet kernel", { error: err });
+        logger.error('Error closing WordNet kernel', { error: err });
       }
     }
   }, [wordnet]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (wordnet) {
-        close();
-      }
-    };
-  }, [wordnet, close]);
-
-  // Helper function to ensure wordnet is initialized
+  // Ensure kernel is initialized
   const ensureInitialized = useCallback(() => {
     if (!wordnet || !initialized) {
-      throw new Error("WordNet kernel not initialized. Call initialize() first.");
+      throw new Error('WordNet kernel not initialized. Call initialize() first.');
     }
     return wordnet;
   }, [wordnet, initialized]);
@@ -336,128 +329,16 @@ export function useWordNetKernel(config?: {
   }, [ensureInitialized]);
 
   // Plugin methods - Relations
-  const getHypernyms = useCallback(async (synsetId: string, lexicon?: string) => {
-    const kernel = ensureInitialized();
-    return kernel.getHypernyms(synsetId, lexicon);
-  }, [ensureInitialized]);
-
-  const getHyponyms = useCallback(async (synsetId: string, lexicon?: string) => {
-    const kernel = ensureInitialized();
-    return kernel.getHyponyms(synsetId, lexicon);
-  }, [ensureInitialized]);
-
-  const getMeronyms = useCallback(async (synsetId: string, lexicon?: string) => {
-    const kernel = ensureInitialized();
-    return kernel.getMeronyms(synsetId, lexicon);
-  }, [ensureInitialized]);
-
-  const getHolonyms = useCallback(async (synsetId: string, lexicon?: string) => {
-    const kernel = ensureInitialized();
-    return kernel.getHolonyms(synsetId, lexicon);
-  }, [ensureInitialized]);
-
-  const getEntailments = useCallback(async (synsetId: string, lexicon?: string) => {
-    const kernel = ensureInitialized();
-    return kernel.getEntailments(synsetId, lexicon);
-  }, [ensureInitialized]);
-
-  const getSimilarTos = useCallback(async (synsetId: string, lexicon?: string) => {
-    const kernel = ensureInitialized();
-    return kernel.getSimilarTos(synsetId, lexicon);
-  }, [ensureInitialized]);
-
-  const getRelationsByType = useCallback(async (synsetId: string, relationType: string, lexicon?: string) => {
-    const kernel = ensureInitialized();
-    return kernel.getRelationsByType(synsetId, relationType, lexicon);
-  }, [ensureInitialized]);
-
-  const getAllRelations = useCallback(async (synsetId: string, lexicon?: string) => {
-    const kernel = ensureInitialized();
-    return kernel.getAllRelations(synsetId, lexicon);
-  }, [ensureInitialized]);
-
-  const getRelationTypes = useCallback(async (synsetId: string, lexicon?: string) => {
-    const kernel = ensureInitialized();
-    return kernel.getRelationTypes(synsetId, lexicon);
-  }, [ensureInitialized]);
-
-  const getRelationStats = useCallback(async (synsetId: string, lexicon?: string) => {
-    const kernel = ensureInitialized();
-    return kernel.getRelationStats(synsetId, lexicon);
-  }, [ensureInitialized]);
-
-  // Plugin methods - Similarity
-  const getPathSimilarity = useCallback(async (synset1: string, synset2: string) => {
-    const kernel = ensureInitialized();
-    return kernel.getPathSimilarity(synset1, synset2);
-  }, [ensureInitialized]);
-
-  const getWuPalmerSimilarity = useCallback(async (synset1: string, synset2: string) => {
-    const kernel = ensureInitialized();
-    return kernel.getWuPalmerSimilarity(synset1, synset2);
-  }, [ensureInitialized]);
-
-  const getLeacockChodorowSimilarity = useCallback(async (synset1: string, synset2: string) => {
-    const kernel = ensureInitialized();
-    return kernel.getLeacockChodorowSimilarity(synset1, synset2);
-  }, [ensureInitialized]);
-
-  const getJaccardSimilarity = useCallback(async (synset1: string, synset2: string) => {
-    const kernel = ensureInitialized();
-    return kernel.getJaccardSimilarity(synset1, synset2);
-  }, [ensureInitialized]);
-
-  const getBestSimilarity = useCallback(async (synset1: string, synset2: string) => {
-    const kernel = ensureInitialized();
-    return kernel.getBestSimilarity(synset1, synset2);
-  }, [ensureInitialized]);
-
-  const findMostSimilar = useCallback(async (synsetId: string, limit?: number) => {
-    const kernel = ensureInitialized();
-    return kernel.findMostSimilar(synsetId, limit);
-  }, [ensureInitialized]);
-
-  // Plugin methods - Translation
-  const getTranslations = useCallback(async (synsetId: string, targetLanguage?: string) => {
-    const kernel = ensureInitialized();
-    return kernel.getTranslations(synsetId, targetLanguage);
-  }, [ensureInitialized]);
-
-  const getTranslationsByWord = useCallback(async (wordForm: string, sourceLanguage: string, targetLanguage: string) => {
-    const kernel = ensureInitialized();
-    return kernel.getTranslationsByWord(wordForm, sourceLanguage, targetLanguage);
-  }, [ensureInitialized]);
-
-  const getAvailableLanguages = useCallback(async (synsetId: string) => {
-    const kernel = ensureInitialized();
-    return kernel.getAvailableLanguages(synsetId);
-  }, [ensureInitialized]);
-
-  const getSynsetsByIli = useCallback(async (ili: string) => {
-    const kernel = ensureInitialized();
-    return kernel.getSynsetsByIli(ili);
-  }, [ensureInitialized]);
-
-  const getTranslationConfidence = useCallback(async (synset1: string, synset2: string) => {
-    const kernel = ensureInitialized();
-    return kernel.getTranslationConfidence(synset1, synset2);
-  }, [ensureInitialized]);
-
-  const getTranslationSuggestions = useCallback(async (wordForm: string, sourceLanguage: string, targetLanguage: string) => {
-    const kernel = ensureInitialized();
-    return kernel.getTranslationSuggestions(wordForm, sourceLanguage, targetLanguage);
-  }, [ensureInitialized]);
-
-  // Plugin management
-  const getPlugins = useCallback(() => {
-    if (!wordnet) return [];
-    return wordnet.getPlugins();
-  }, [wordnet]);
-
-  const has = useCallback((pluginName: string) => {
-    if (!wordnet) return false;
-    return wordnet.has(pluginName);
-  }, [wordnet]);
+  const getHypernyms = createBasicRelationMethod(ensureInitialized, 'getHypernyms');
+  const getHyponyms = createBasicRelationMethod(ensureInitialized, 'getHyponyms');
+  const getMeronyms = createBasicRelationMethod(ensureInitialized, 'getMeronyms');
+  const getHolonyms = createBasicRelationMethod(ensureInitialized, 'getHolonyms');
+  const getEntailments = createBasicRelationMethod(ensureInitialized, 'getEntailments');
+  const getSimilarTos = createBasicRelationMethod(ensureInitialized, 'getSimilarTos');
+  const getRelationsByType = createRelationTypeMethod(ensureInitialized, 'getRelationsByType');
+  const getAllRelations = createAllRelationsMethod(ensureInitialized, 'getAllRelations');
+  const getRelationTypes = createStringArrayMethod(ensureInitialized, 'getRelationTypes');
+  const getRelationStats = createStatsMethod(ensureInitialized, 'getRelationStats');
 
   // Schema management
   const schemaManager = wordnet?.schemaManager || null;
@@ -497,29 +378,7 @@ export function useWordNetKernel(config?: {
     getRelationTypes,
     getRelationStats,
     
-    // Plugin methods - Similarity
-    getPathSimilarity,
-    getWuPalmerSimilarity,
-    getLeacockChodorowSimilarity,
-    getJaccardSimilarity,
-    getBestSimilarity,
-    findMostSimilar,
-    
-    // Plugin methods - Translation
-    getTranslations,
-    getTranslationsByWord,
-    getAvailableLanguages,
-    getSynsetsByIli,
-    getTranslationConfidence,
-    getTranslationSuggestions,
-    
-    // Plugin management
-    getPlugins,
-    has,
-    
     // Schema management
     schemaManager,
   };
 }
-
-

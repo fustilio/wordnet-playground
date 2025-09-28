@@ -13,6 +13,10 @@ This directory contains unit tests for the `wn-ts-core` package. Unit tests are 
 - `relations-lexicon-aware.test.ts` - Relations plugin lexicon awareness tests
 - `plugins.test.ts` - Plugin system tests
 - `lifecycle-tests.test.ts` - Plugin lifecycle management tests
+- `plugins/relations/` - Relations plugin unit tests
+  - `plugin-methods.test.ts` - Plugin methods unit tests
+  - `visual-feedback.test.ts` - Visual feedback utility tests
+  - `improved-search.test.ts` - Search utility tests
 - `setup.ts` - Test setup configuration
 
 ## Running Unit Tests

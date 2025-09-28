@@ -9,6 +9,10 @@ This directory contains integration tests for the `wn-ts-core` package. Integrat
   - `framework.test.ts` - Test framework utilities tests
   - `platform-test-framework.ts` - Cross-platform test framework implementation
   - `README.md` - Platform integration documentation
+- `plugins/relations/` - Relations plugin integration tests
+  - `enhanced-relations.test.ts` - Enhanced relations plugin integration tests
+  - `chain-traversal.test.ts` - Chain traversal functionality tests
+  - `comprehensive-relation-chain.test.ts` - Comprehensive relation chain tests
 
 ## Running Integration Tests
 

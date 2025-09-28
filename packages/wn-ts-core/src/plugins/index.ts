@@ -16,6 +16,7 @@ export type { Plugin, WordNetCore, WordNetWithPlugins, PluginMethod } from '../w
 
 // Relations queries (optional)
 export { relations } from './relations.js';
+export { enhancedRelations } from './relations/enhanced-relations.js';
 
 // Similarity algorithms (optional)
 export { similarity } from './similarity/index.js';
@@ -31,12 +32,20 @@ export { translation } from './translation.js';
 
 // Import plugins for use in collections
 import { relations } from './relations.js';
+import { enhancedRelations } from './relations/enhanced-relations.js';
 import { similarity } from './similarity/index.js';
 import { translation } from './translation.js';
 
 // Plugin collections for common use cases
 export const allPlugins = [
   relations,
+  enhancedRelations,
+  similarity,
+  translation
+];
+
+export const comprehensivePlugins = [
+  enhancedRelations,
   similarity,
   translation
 ];

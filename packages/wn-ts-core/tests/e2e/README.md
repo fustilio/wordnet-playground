@@ -4,7 +4,10 @@ This directory contains end-to-end tests for the `wn-ts-core` package. E2E tests
 
 ## Test Files
 
-Currently, there are no E2E tests in the core package. E2E tests are typically implemented in the platform-specific packages (`wn-ts-node` and `wn-ts-web`) where they can test against real databases and data.
+- `plugins/relations/` - Relations plugin end-to-end tests
+  - `real-data.test.ts` - Real WordNet data tests (currently skipped)
+
+E2E tests are also implemented in the platform-specific packages (`wn-ts-node` and `wn-ts-web`) where they can test against real databases and data.
 
 ## Future E2E Tests
 

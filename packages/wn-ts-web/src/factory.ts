@@ -38,6 +38,7 @@ export async function createWebWordnet(options: CreateWebWordnetOptions = {}): P
   return wordnet;
 }
 
+
 /**
  * Create a DataLoader for downloading and loading WordNet data
  */

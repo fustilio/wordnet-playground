@@ -4,7 +4,8 @@ Browser-compatible WordNet implementation with SQLite WASM and microkernel archi
 
 ## Features
 
-- **Microkernel Architecture** - Plugin-based design with relations, similarity, and translation plugins
+- **Microkernel Architecture** - Plugin-based design with comprehensive relations, similarity, and translation plugins
+- **Comprehensive Relations** - Complete support for all 70+ WordNet relation types
 - **SQLite WASM** - High-performance database operations in the browser
 - **OPFS Support** - Persistent storage using Origin Private File System
 - **Worker-First** - Designed to run in Web Workers for optimal performance
@@ -47,11 +48,32 @@ const { queryWords } = useWordNet();
 const words = await queryWords('computer');
 ```
 
-### Plugin Usage
+### Comprehensive Relations Usage
 ```typescript
-const { getHypernyms, getPathSimilarity } = useWordNetKernel();
-const hypernyms = await getHypernyms(synsetId);
-const similarity = await getPathSimilarity(synset1, synset2);
+const { 
+  getHypernyms, 
+  getMeronyms, 
+  getAgents, 
+  getDomainTopics,
+  getRelationsByCategory,
+  getRelationStatsByCategory 
+} = useWordNetKernel();
+
+// Basic relations
+const hypernyms = await getHypernyms('car-synset-id');
+const meronyms = await getMeronyms('car-synset-id');
+const agents = await getAgents('drive-synset-id');
+
+// Domain relations
+const domainTopics = await getDomainTopics('photosynthesis-synset-id');
+
+// Query by category
+const hierarchicalRelations = await getRelationsByCategory('car-synset-id', 'HIERARCHICAL');
+const semanticRoles = await getRelationsByCategory('drive-synset-id', 'SEMANTIC_ROLES');
+
+// Get relation statistics
+const stats = await getRelationStatsByCategory('car-synset-id');
+console.log(`Car has ${stats.HIERARCHICAL} hierarchical relations`);
 ```
 
 ## Browser Requirements

@@ -245,5 +245,6 @@ async function createIlisTable(schema: any): Promise<void> {
     .addColumn('status', 'text', (c: any) => c.notNull())
     .addColumn('superseded_by', 'text')
     .addColumn('note', 'text')
+    .addColumn('meta', 'text')
     .execute();
 }

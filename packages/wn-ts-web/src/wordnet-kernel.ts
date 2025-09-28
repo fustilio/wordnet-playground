@@ -6,8 +6,8 @@
  */
 
 import { createWordNet, type WordNetWithPlugins } from 'wn-ts-core';
-import { relations, similarity, translation } from 'wn-ts-core/plugins';
-import { WebWordNetCore } from './wordnet-core.js';
+import { relations, similarity, translation, enhancedRelations } from 'wn-ts-core/plugins';
+import { WebWordnet } from './client/submodules/web-wordnet.js';
 import type { 
   WordQuery, 
   SynsetQuery, 
@@ -28,14 +28,14 @@ import type {
  * Provides the new plugin system with full type safety
  */
 export class WebWordNetKernel {
-  private wordnet: WordNetWithPlugins<readonly [typeof relations, typeof similarity, typeof translation]>;
-  private core: WebWordNetCore;
+  private wordnet: WordNetWithPlugins<readonly [typeof relations, typeof similarity, typeof translation, typeof enhancedRelations]>;
+  private core: WebWordnet;
 
   constructor(lexicon: string | string[] = '*', options: WordNetKernelOptions = {}) {
-    this.core = new WebWordNetCore(lexicon, options);
+    this.core = new WebWordnet(lexicon, options);
     this.wordnet = createWordNet({
       core: this.core,
-      plugins: [relations, similarity, translation] as const
+      plugins: [relations, similarity, translation, enhancedRelations] as const
     });
   }
 
@@ -186,6 +186,317 @@ export class WebWordNetKernel {
     direction: 'incoming' | 'outgoing';
   }>> {
     return this.wordnet.getRelationStats(synsetId, lexicon);
+  }
+
+  // Enhanced Relations Methods - Comprehensive WordNet Relations
+  // Hierarchical relations
+  async getInstanceHypernyms(synsetId: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getInstanceHypernyms?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  async getInstanceHyponyms(synsetId: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getInstanceHyponyms?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  // Part-whole relations
+  async getPartMeronyms(synsetId: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getPartMeronyms?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  async getMemberMeronyms(synsetId: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getMemberMeronyms?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  async getSubstanceMeronyms(synsetId: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getSubstanceMeronyms?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  // Semantic role relations
+  async getAgents(synsetId: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getAgents?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  async getPatients(synsetId: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getPatients?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  async getInstruments(synsetId: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getInstruments?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  async getResults(synsetId: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getResults?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  async getSources(synsetId: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getSources?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  async getTargets(synsetId: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getTargets?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  async getLocations(synsetId: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getLocations?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  async getDirections(synsetId: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getDirections?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  async getManners(synsetId: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getManners?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  async getRoles(synsetId: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getRoles?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  // Domain relations
+  async getDomainTopics(synsetId: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getDomainTopics?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  async getDomainRegions(synsetId: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getDomainRegions?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  // Causal relations
+  async getCauses(synsetId: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getCauses?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  // Similarity relations
+  async getSimilar(synsetId: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getSimilar?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  // Opposition relations
+  async getAntonyms(synsetId: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getAntonyms?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  // Gender relations
+  async getFeminine(synsetId: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getFeminine?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  async getMasculine(synsetId: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getMasculine?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  // Size relations
+  async getDiminutives(synsetId: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getDiminutives?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  async getAugmentatives(synsetId: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getAugmentatives?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  // Generic query methods
+  async getRelationsByCategory(synsetId: string, category: string, lexicon?: string): Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+    relationType: string;
+  }>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getRelationsByCategory?.(this.wordnet, synsetId, category, lexicon) || [];
+  }
+
+  async getAvailableRelationTypes(synsetId: string, lexicon?: string): Promise<string[]> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getAvailableRelationTypes?.(this.wordnet, synsetId, lexicon) || [];
+  }
+
+  async getRelationStatsByCategory(synsetId: string, lexicon?: string): Promise<Record<string, number>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getRelationStatsByCategory?.(this.wordnet, synsetId, lexicon) || {};
+  }
+
+  // Utility methods
+  async getRelationDescriptions(): Promise<Record<string, string>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getRelationDescriptions?.() || {};
+  }
+
+  async getRelationCategories(): Promise<Record<string, string[]>> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getRelationCategories?.() || {};
+  }
+
+  async isValidRelationType(relationType: string): Promise<boolean> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.isValidRelationType?.(relationType) || false;
+  }
+
+  async getRelationTypesByCategory(category: string): Promise<string[]> {
+    return this.wordnet.plugins.get('enhanced-relations')?.methods.getRelationTypesByCategory?.(category) || [];
   }
 
   // Plugin methods - Similarity

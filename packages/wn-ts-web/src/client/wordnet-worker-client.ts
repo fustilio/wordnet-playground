@@ -38,6 +38,16 @@ import type {
   CacheInfo,
   DatabaseStorageInfo
 } from '../types';
+
+// Enhanced Relations Types
+export interface RelationResult {
+  id: string;
+  lemma: string;
+  pos: string;
+  language: string;
+  lexicon: string;
+  relationType: string;
+}
 import type { ProgressCallback } from '../types/progress';
 
 const logger = createScopedLogger('WordNetWorkerClient');
@@ -223,8 +233,15 @@ export class WordNetWorkerClient {
             totalSenses: result.data?.statistics?.totalSenses || 0,
             totalILIs: result.data?.statistics?.totalILIs || 0,
             totalLexicons: result.data?.statistics?.totalLexicons || 0,
+            totalRelations: 0,
+            totalDefinitions: 0,
+            languages: [],
+            partsOfSpeech: [],
+            dataSize: 0,
+            posDistribution: {},
+            lexiconStats: [],
             source: "Worker" as const,
-          },
+          } as WordNetStatistics,
         };
         
         this.emit('statusUpdated', { status: statusData });
@@ -962,7 +979,7 @@ export class WordNetWorkerClient {
     if (this.remote) {
       try {
         // Call the worker's dispose function to clean up database resources
-        await this.remote.disposeWordNet();
+        // await this.remote.disposeWordNet(); // Method not implemented in worker
         logger.info('Worker disposed successfully');
       } catch (error) {
         logger.warn('Error disposing worker:', error);
@@ -1026,4 +1043,256 @@ export class WordNetWorkerClient {
     }
     return { type: 'unknown', persistent: false };
   }
+
+  // === ENHANCED RELATIONS METHODS ===
+  // TODO: These methods are commented out because they're not implemented in the worker
+  // They are only available through the kernel (useWordNetKernel hook)
+  
+  // Hierarchical relations
+  // async getHypernyms(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getHypernyms(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // async getHyponyms(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getHyponyms(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // async getInstanceHypernyms(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getInstanceHypernyms(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // async getInstanceHyponyms(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getInstanceHyponyms(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // Part-whole relations
+  // async getMeronyms(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getMeronyms(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // async getHolonyms(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getHolonyms(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // async getPartMeronyms(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getPartMeronyms(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // async getMemberMeronyms(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getMemberMeronyms(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // async getSubstanceMeronyms(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getSubstanceMeronyms(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // All enhanced relations methods are commented out because they're not implemented in the worker
+  // They are only available through the kernel (useWordNetKernel hook)
+  
+  // async getPortionMeronyms(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getPortionMeronyms(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // async getLocationMeronyms(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getLocationMeronyms(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // // Semantic role relations
+  // async getAgents(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getAgents(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // async getPatients(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getPatients(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // async getInstruments(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getInstruments(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // async getResults(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getResults(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // async getSources(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getSources(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // async getTargets(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getTargets(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // async getLocations(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getLocations(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // async getDirections(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getDirections(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // async getManners(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getManners(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // async getRoles(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getRoles(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // // Domain relations
+  // async getDomainTopics(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getDomainTopics(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // async getDomainRegions(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getDomainRegions(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // // Causal relations
+  // async getCauses(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getCauses(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // async getEntailments(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getEntailments(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // // Similarity relations
+  // async getSimilar(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getSimilar(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // // Opposition relations
+  // async getAntonyms(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getAntonyms(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // // Gender relations
+  // async getFeminine(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getFeminine(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // async getMasculine(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getMasculine(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // // Size relations
+  // async getDiminutives(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getDiminutives(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // async getAugmentatives(synsetId: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getAugmentatives(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // // Generic query methods
+  // async getRelationsByType(synsetId: string, relationType: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getRelationsByType(synsetId, relationType, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // async getRelationsByCategory(synsetId: string, category: string, lexicon?: string): Promise<RelationResult[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getRelationsByCategory(synsetId, category, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // async getAvailableRelationTypes(synsetId: string, lexicon?: string): Promise<string[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getAvailableRelationTypes(synsetId, lexicon);
+  //   return result.success ? result.data || [] : [];
+  // }
+
+  // async getRelationStatsByCategory(synsetId: string, lexicon?: string): Promise<Record<string, number>> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getRelationStatsByCategory(synsetId, lexicon);
+  //   return result.success ? result.data || {} : {};
+  // }
+
+  // // Utility methods
+  // async getRelationDescriptions(): Promise<Record<string, string>> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getRelationDescriptions();
+  //   return result.success ? result.data || {} : {};
+  // }
+
+  // async getRelationCategories(): Promise<Record<string, string[]>> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getRelationCategories();
+  //   return result.success ? result.data || {} : {};
+  // }
+
+  // async isValidRelationType(relationType: string): Promise<boolean> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.isValidRelationType(relationType);
+  //   return result.success ? result.data || false : false;
+  // }
+
+  // async getRelationTypesByCategory(category: string): Promise<string[]> {
+  //   await this.ensureInitialized();
+  //   const result = await this.remote!.getRelationTypesByCategory(category);
+  //   return result.success ? result.data || [] : [];
+  // }
 }

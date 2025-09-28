@@ -509,8 +509,8 @@ export class WordNetOrchestrator {
       if (this.wordnet && this.isInitialized) {
         try {
           const database = this.wordnet.getDatabase();
-          if (database && typeof database.flush === "function") {
-            await database.flush();
+          if (database && typeof (database as any).flush === "function") {
+            await (database as any).flush();
             logger.debug("Database flushed after data loading completion");
           }
         } catch (flushError) {
@@ -1094,8 +1094,8 @@ export class WordNetOrchestrator {
 
     try {
       const database = this.wordnet.getDatabase();
-      if (database && typeof database.flush === "function") {
-        await database.flush();
+      if (database && typeof (database as any).flush === "function") {
+        await (database as any).flush();
         logger.info("Database flushed successfully for persistence");
       } else {
         logger.warn("Database flush method not available");
@@ -1130,17 +1130,17 @@ export class WordNetOrchestrator {
     path?: string;
   } {
     if (!this.isInitialized || !this.wordnet) {
-      return { type: "unknown", persistent: false };
+      return { type: "unknown" as const, persistent: false };
     }
 
     try {
       const database = this.wordnet.getDatabase();
       return database
-        ? database.getStorageInfo()
-        : { type: "unknown", persistent: false };
+        ? (database.getStorageInfo() as any)
+        : { type: "unknown" as const, persistent: false };
     } catch (error) {
       logger.warn("Failed to get database storage info:", error);
-      return { type: "unknown", persistent: false };
+      return { type: "unknown" as const, persistent: false };
     }
   }
 
@@ -1211,8 +1211,8 @@ export class WordNetOrchestrator {
 
         if (this.wordnet && this.isInitialized) {
           const database = this.wordnet.getDatabase();
-          if (database && typeof database.flush === "function") {
-            await database.flush();
+          if (database && typeof (database as any).flush === "function") {
+            await (database as any).flush();
             logger.debug("Periodic database flush completed");
           }
         }

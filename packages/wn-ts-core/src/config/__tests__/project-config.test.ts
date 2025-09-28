@@ -38,7 +38,7 @@ describe('Project Configuration System', () => {
 
     it('should have valid version structures', () => {
       for (const project of Object.values(DEFAULT_PROJECTS)) {
-        for (const [version, versionConfig] of Object.entries(project.versions)) {
+        for (const [, versionConfig] of Object.entries(project.versions)) {
           expect(versionConfig.url).toBeTruthy();
           if (typeof versionConfig.url === 'string') {
             expect(versionConfig.url).toMatch(/^https?:\/\//);
@@ -63,7 +63,7 @@ describe('Project Configuration System', () => {
     });
 
     it('should have valid endpoint configurations', () => {
-      for (const [name, endpoint] of Object.entries(DEFAULT_PROXY_CONFIG.endpoints)) {
+      for (const [, endpoint] of Object.entries(DEFAULT_PROXY_CONFIG.endpoints)) {
         expect(endpoint.target).toBeTruthy();
         expect(endpoint.target).toMatch(/^https?:\/\//);
         expect(typeof endpoint.rewrite).toBe('function');
