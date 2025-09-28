@@ -39,6 +39,7 @@ export async function batchInsert<T extends keyof Database>(
       const insertPromise = db
         .insertInto(tableName)
         .values(chunk)
+        .onConflict((oc) => oc.column('id').doNothing())
         .execute();
       
       await Promise.race([insertPromise, timeoutPromise]);
@@ -72,6 +73,10 @@ export function insertRecords<T extends keyof Database>(
   tableName: T,
   data: Database[T][]
 ) {
+  if (!data || data.length === 0) {
+    throw new Error('No data to insert');
+  }
+  
   return db
     .insertInto(tableName)
     .values(data as any[])

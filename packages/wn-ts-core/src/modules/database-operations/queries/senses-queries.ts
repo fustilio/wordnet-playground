@@ -37,7 +37,11 @@ export function getSensesQuery(
       // Direct word ID lookup - fastest possible
       query = query.where('senses.word_id', '=', wordIdOrForm);
     } else {
-      // Form lookup - words table already joined
+      // Form lookup - ensure words table is joined
+      if (!needsWordsJoin) {
+        query = query.innerJoin('words', 'senses.word_id', 'words.id');
+        needsWordsJoin = true;
+      }
       query = query.where(sql`words.lemma`, '=', wordIdOrForm.toLowerCase());
     }
   }
