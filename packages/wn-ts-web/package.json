@@ -84,7 +84,6 @@
     "fast-xml-parser": "^5.2.5",
     "kysely": "catalog:",
     "pako": "^2.1.0",
-    "wn-data-loader": "workspace:*",
     "zod": "catalog:"
   },
   "devDependencies": {

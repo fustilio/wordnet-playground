@@ -13,12 +13,12 @@ export function getBatchDefinitionsQuery(
 
 export function getBatchExamplesQuery(
   db: Kysely<Database>,
-  synsetIds: string[]
+  senseIds: string[]
 ) {
   return db
     .selectFrom('examples')
     .selectAll()
-    .where('synset_id', 'in', synsetIds);
+    .where('sense_id', 'in', senseIds);
 }
 
 export function getBatchRelationsQuery(
@@ -47,7 +47,7 @@ export function getSensesBySynsetIdForTransformationQuery(
 ) {
   return db
     .selectFrom('senses')
-    .select('word_id')
+    .selectAll()
     .where('synset_id', '=', synsetId);
 }
 

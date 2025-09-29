@@ -5,60 +5,45 @@
  * It's a simpler implementation but may be slower than SAX parsers.
  */
 
-// Browser environment check
-const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
-
-// Browser-compatible stubs
-const browserReadFile = async (_path: string, _encoding?: string) => {
-  throw new Error('File system operations not available in browser environment');
-};
-
-// Use browser stubs by default, will be overridden in Node.js
-let readFile = browserReadFile;
-
-// Initialize Node.js functions if available
-if (isNode) {
-  try {
-    const fsPromises = require('fs/promises');
-    readFile = fsPromises.readFile;
-  } catch (e) {
-    // Fall back to browser stubs if Node.js modules fail to load
-    console.warn('Failed to load Node.js modules, using browser stubs');
-  }
-}
-
 import type { LMFParser } from './base.js';
 import type { LMFDocument, LMFLoadOptions } from '../lmf.js';
 import { parseLMFXML } from '../lmf.js';
+import { parseOptions, logDebug, warnDuplicateHandling, measurePerformance, readFileSafely } from './shared-parser-utils.js';
 
 export class LegacyParser implements LMFParser {
   readonly name = 'Legacy Parser';
   readonly description = 'Original parser using fast-xml-parser library';
 
   async parse(input: string, options: LMFLoadOptions = {}): Promise<LMFDocument> {
-    const { debug = false, duplicateHandling } = options;
+    const { debug, duplicateHandling } = parseOptions(options);
     
-    if (debug) console.log(`[DEBUG] ${this.name}: Starting parse`);
+    logDebug(this.name, 'Starting parse', debug);
     
     // This parser expects a file path, not XML content
     const filePath = input;
-    const content = await readFile(filePath, 'utf8');
     
     // Note: This parser doesn't implement duplicate handling as it's designed for benchmarking
     // For production use with duplicate handling, use the web or node parsers
-    if (duplicateHandling && debug) {
-      console.log(`[DEBUG] ${this.name}: Duplicate handling options ignored (parser not designed for production use)`);
+    if (duplicateHandling) {
+      warnDuplicateHandling(this.name, debug);
     }
     
-    const result = parseLMFXML(content, options);
-    
-    if (debug) {
-      const totalElements = result.words.length + result.synsets.length + 
-                           result.lexicons.length + result.senses.length;
-      console.log(`[DEBUG] ${this.name}: Parsed ${totalElements} total elements`);
-    }
-    
-    return result;
+    return measurePerformance(async () => {
+      try {
+        const content = await readFileSafely(filePath, this.name, debug);
+        const result = parseLMFXML(content, options);
+        
+        if (debug) {
+          const totalElements = result.words.length + result.synsets.length + 
+                               result.lexicons.length + result.senses.length;
+          logDebug(this.name, `Parsed ${totalElements} total elements`, debug);
+        }
+        
+        return result;
+      } catch (error) {
+        throw new Error(`Legacy parsing failed: ${error}`);
+      }
+    }, this.name, debug).then(({ result }) => result);
   }
 }
 

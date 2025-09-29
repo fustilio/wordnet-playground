@@ -5,64 +5,58 @@
  * It's a simpler implementation but may be slower than SAX parsers.
  */
 
-// Browser environment check
-const isNode = typeof process !== 'undefined' && process.versions && process.versions.node;
-
-// Browser-compatible stubs
-const browserReadFile = async (_path: string, _encoding?: string): Promise<string> => {
-  throw new Error('File system operations not available in browser environment');
-};
-
-// Use browser stubs by default, will be overridden in Node.js
-let readFile = browserReadFile;
-
-// Initialize Node.js functions if available
-if (isNode) {
-  try {
-    const fsPromises = require('fs/promises');
-    readFile = fsPromises.readFile;
-  } catch (e) {
-    // Fall back to browser stubs if Node.js modules fail to load
-    console.warn('Failed to load Node.js modules, using browser stubs');
-  }
-}
-
 import type { LMFParser } from './base.js';
 import type { LMFDocument, LMFLoadOptions } from '../lmf.js';
+import { 
+  readFileSafely, 
+  parseOptions, 
+  logDebug, 
+  warnDuplicateHandling,
+  measurePerformance,
+  createParserResult,
+  getMemoryUsage
+} from './shared-parser-utils.js';
 
 export class NativeXMLParser implements LMFParser {
   readonly name = 'Native XML Parser (regex)';
   readonly description = 'Ultra-fast regex-based XML element counting';
 
   async parse(input: string, options: LMFLoadOptions = {}): Promise<LMFDocument> {
-    const { debug = false, duplicateHandling } = options;
+    const { debug, duplicateHandling } = parseOptions(options);
     
-    if (debug) console.log(`[DEBUG] ${this.name}: Starting parse`);
+    logDebug(this.name, 'Starting parse', debug);
     
     // This parser expects a file path, not XML content
     const filePath = input;
-    const xmlContent = await readFile(filePath, 'utf8');
     
     // Note: This parser doesn't implement duplicate handling as it's designed for benchmarking
     // For production use with duplicate handling, use the web or node parsers
-    if (duplicateHandling && debug) {
-      console.log(`[DEBUG] ${this.name}: Duplicate handling options ignored (parser not designed for production use)`);
+    if (duplicateHandling) {
+      warnDuplicateHandling(this.name, debug);
     }
     
-    // Use regex-based counting for maximum speed
-    const elementCount = (xmlContent.match(/<[^/][^>]*>/g) || []).length;
-    
-    if (debug) console.log(`[DEBUG] ${this.name}: Found ${elementCount} elements`);
-    
-    // Return a minimal document structure for compatibility
-    // This parser is mainly for benchmarking element counting speed
-    return {
-      lmfVersion: '1.0',
-      lexicons: [],
-      synsets: [],
-      words: [],
-      senses: [],
-    };
+    return measurePerformance(async () => {
+      const xmlContent = await readFileSafely(filePath, this.name, debug);
+      
+      // Use regex-based counting for maximum speed
+      const elementCount = (xmlContent.match(/<[^/][^>]*>/g) || []).length;
+      
+      logDebug(this.name, `Found ${elementCount} elements`, debug);
+      
+      // Return a minimal document structure for compatibility
+      // This parser is mainly for benchmarking element counting speed
+      return {
+        lmfVersion: '1.0',
+        lexicons: [],
+        synsets: [],
+        words: [],
+        senses: [],
+        definitions: [],
+        examples: [],
+        relations: [],
+        ilis: []
+      };
+    }, this.name, debug).then(({ result }) => result);
   }
 }
 
@@ -74,39 +68,46 @@ export class StringCountingParser implements LMFParser {
   readonly description = 'Ultra-fast string-based element counting';
 
   async parse(input: string, options: LMFLoadOptions = {}): Promise<LMFDocument> {
-    const { debug = false, duplicateHandling } = options;
+    const { debug, duplicateHandling } = parseOptions(options);
     
-    if (debug) console.log(`[DEBUG] ${this.name}: Starting parse`);
+    logDebug(this.name, 'Starting parse', debug);
     
     // This parser expects a file path, not XML content
     const filePath = input;
-    const xmlContent = await readFile(filePath, 'utf8');
     
     // Note: This parser doesn't implement duplicate handling as it's designed for benchmarking
     // For production use with duplicate handling, use the web or node parsers
-    if (duplicateHandling && debug) {
-      console.log(`[DEBUG] ${this.name}: Duplicate handling options ignored (parser not designed for production use)`);
+    if (duplicateHandling) {
+      warnDuplicateHandling(this.name, debug);
     }
     
-    // Use string split for even faster counting
-    let count = 0;
-    let pos = 0;
-    while ((pos = xmlContent.indexOf('<', pos)) !== -1) {
-      if (xmlContent[pos + 1] !== '/') {
-        count++;
+    return measurePerformance(async () => {
+      const xmlContent = await readFileSafely(filePath, this.name, debug);
+      
+      // Use string split for even faster counting
+      let count = 0;
+      let pos = 0;
+      while ((pos = xmlContent.indexOf('<', pos)) !== -1) {
+        if (xmlContent[pos + 1] !== '/') {
+          count++;
+        }
+        pos++;
       }
-      pos++;
-    }
-    
-    if (debug) console.log(`[DEBUG] ${this.name}: Found ${count} elements`);
-    
-    return {
-      lmfVersion: '1.0',
-      lexicons: [],
-      words: [],
-      synsets: [],
-      senses: [],
-    };
+      
+      logDebug(this.name, `Found ${count} elements`, debug);
+      
+      return {
+        lmfVersion: '1.0',
+        lexicons: [],
+        words: [],
+        synsets: [],
+        senses: [],
+        definitions: [],
+        examples: [],
+        relations: [],
+        ilis: []
+      };
+    }, this.name, debug).then(({ result }) => result);
   }
 }
 

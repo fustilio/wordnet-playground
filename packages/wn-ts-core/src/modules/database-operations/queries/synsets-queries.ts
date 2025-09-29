@@ -1,64 +1,74 @@
 import type { Database } from '../../../types/database.js';
 import type { Kysely } from 'kysely';
 import type { SynsetQuery } from '../../../core/types.js';
+import { SynsetQueryBuilder, createQueryBuilder } from './base-query-builder.js';
 
 export function getSynsetsV2Query(
   db: Kysely<Database>,
   options: SynsetQuery = {}
 ) {
-  const {
-    form,
-    pos,
-    lexicon,
-    language,
-    ili,
-    fuzzy = false,
-    maxResults
-  } = options;
+  let query = db.selectFrom('synsets').selectAll('synsets');
+  let hasWordsJoin = false;
+  
+  // Handle form filtering - need to join with senses and words
+  if (options.form) {
+    query = query
+      .innerJoin('senses', 'synsets.id', 'senses.synset_id')
+      .innerJoin('words', 'senses.word_id', 'words.id');
+    hasWordsJoin = true;
+    
+    if (options.fuzzy) {
+      const searchTerm = `%${options.form.toLowerCase()}%`;
+      query = query.where('words.lemma', 'like', searchTerm);
+    } else {
+      query = query.where('words.lemma', '=', options.form.toLowerCase());
+    }
+  }
 
-  // Use direct joins instead of subqueries for better performance
-  let query = db
-    .selectFrom('synsets')
-    .selectAll('synsets')
-    .$if(!!form, qb => {
-      if (!form) return qb;
-      return qb
-        .leftJoin('senses', 'senses.synset_id', 'synsets.id')
-        .leftJoin('words', 'words.id', 'senses.word_id')
-        .where('words.lemma', fuzzy ? 'like' : '=', fuzzy ? `%${form.toLowerCase()}%` : form.toLowerCase())
-        .distinct();
-    })
-    .$if(!!pos, qb => {
-      if (!form) {
-        // If no form, we need to join with senses and words for POS filtering
-        return qb
-          .leftJoin('senses', 'senses.synset_id', 'synsets.id')
-          .leftJoin('words', 'words.id', 'senses.word_id')
-          .where('words.pos', '=', pos!)
-          .distinct();
-      } else {
-        // Use subquery to filter by POS when no form is provided
-        return qb.where('synsets.id', 'in', 
-          db.selectFrom('senses')
-            .leftJoin('words', 'words.id', 'senses.word_id')
-            .select('senses.synset_id')
-            .where('words.pos', '=', pos!)
-        );
-      }
-    })
-    .$if(!!lexicon && lexicon !== '*', qb => {
-      if (Array.isArray(lexicon)) {
-        return lexicon.length > 0 ? qb.where('synsets.lexicon', 'in', lexicon) : qb;
-      } else {
-        return qb.where('synsets.lexicon', '=', lexicon!);
-      }
-    })
-    .$if(!!language, qb => qb.where('synsets.language', '=', language!))
-    .$if(!!ili, qb => qb.where('synsets.ili', '=', ili!))
-    .$if(!!maxResults, qb => qb.limit(maxResults!))
-    .orderBy('synsets.id');
+  // Handle POS filtering - need to join with senses and words
+  if (options.pos) {
+    if (!hasWordsJoin) {
+      query = query
+        .innerJoin('senses', 'synsets.id', 'senses.synset_id')
+        .innerJoin('words', 'senses.word_id', 'words.id');
+      hasWordsJoin = true;
+    }
+    query = query.where('words.pos', '=', options.pos);
+  }
 
-  return query;
+  // Handle lexicon filtering - need to join with senses and words
+  if (options.lexicon) {
+    if (!hasWordsJoin) {
+      query = query
+        .innerJoin('senses', 'synsets.id', 'senses.synset_id')
+        .innerJoin('words', 'senses.word_id', 'words.id');
+      hasWordsJoin = true;
+    }
+    query = query.where('words.lexicon', '=', options.lexicon);
+  }
+
+  // Handle language filtering - need to join with senses and words
+  if (options.language) {
+    if (!hasWordsJoin) {
+      query = query
+        .innerJoin('senses', 'synsets.id', 'senses.synset_id')
+        .innerJoin('words', 'senses.word_id', 'words.id');
+      hasWordsJoin = true;
+    }
+    query = query.where('words.language', '=', options.language);
+  }
+
+  // Handle ILI filtering (specific to synsets)
+  if (options.ili) {
+    query = query.where('synsets.ili', '=', options.ili);
+  }
+
+  // Handle max results
+  if (options.maxResults) {
+    query = query.limit(options.maxResults);
+  }
+
+  return query.orderBy('synsets.id');
 }
 
 export function getSynsetsV3Query(

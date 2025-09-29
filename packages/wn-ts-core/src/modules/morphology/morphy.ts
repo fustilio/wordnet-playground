@@ -7,6 +7,7 @@
 
 import type { WordNetKernel } from '../../wordnet-kernel.js';
 import type { PartOfSpeech, Word } from '../../core/types.js';
+import { COMMON_PARTS_OF_SPEECH } from '../../core/shared-types.js';
 
 export type MorphyResult = Partial<Record<PartOfSpeech | 'null', Set<string>>>;
 
@@ -124,9 +125,9 @@ export class Morphy {
 
     try {
       // Get words for all parts of speech
-      const posList: PartOfSpeech[] = ['n', 'v', 'a', 'r'];
+      const posList: PartOfSpeech[] = [...COMMON_PARTS_OF_SPEECH];
       for (const pos of posList) {
-        const words: Word[] = await this.wordnet.words({ pos });
+        const words: Word[] = await this.wordnet.words({ pos, language: undefined });
         for (const word of words) {
           const wordPos = word.pos;
           if (!wordPos || !this.exceptions[wordPos]) continue;
@@ -188,7 +189,7 @@ export class Morphy {
     }
     
     const result: MorphyResult = {};
-    const posList = pos ? [pos] : ['n', 'v', 'a', 'r'] as PartOfSpeech[];
+    const posList = pos ? [pos] : [...COMMON_PARTS_OF_SPEECH];
     const noPosForms = result['null'] || new Set();
     for (const _pos of posList) {
       if (!(_pos in DETACHMENT_RULES)) continue;

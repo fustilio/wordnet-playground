@@ -6,13 +6,14 @@
  */
 
 import type { Synset, PartOfSpeech } from '../../core/types.js';
+import { COMMON_PARTS_OF_SPEECH } from '../../core/shared-types.js';
 import { WnError } from '../../core/types.js';
 import type { WordNetCore } from '../../wordnet-kernel.js';
 // Note: This will be updated when we convert synset-utils to relations plugin
 import { hypernyms } from '../../modules/relations/synset-utils.js';
 
 // Just use a subset of all available parts of speech
-const IC_PARTS_OF_SPEECH = new Set<PartOfSpeech>(['n', 'v', 'a', 'r']);
+const IC_PARTS_OF_SPEECH = new Set<PartOfSpeech>(COMMON_PARTS_OF_SPEECH);
 
 export type Freq = Record<string, Record<string, number>>;
 

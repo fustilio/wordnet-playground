@@ -222,6 +222,32 @@ export function useWordNetKernel(config?: {
     direction: 'incoming' | 'outgoing';
   }>>;
   
+  // Plugin methods - Similarity
+  getPathSimilarity: (synset1: string, synset2: string) => Promise<number>;
+  getWuPalmerSimilarity: (synset1: string, synset2: string) => Promise<number>;
+  
+  // Plugin methods - Translation
+  getTranslations: (synsetId: string, targetLanguage?: string) => Promise<Array<{
+    id: string;
+    lemma: string;
+    pos: string;
+    language: string;
+    lexicon: string;
+  }>>;
+  getTranslationsByWord: (wordForm: string, sourceLanguage: string, targetLanguage: string) => Promise<Array<{
+    sourceSynset: string;
+    ili: string;
+    translations: Array<{
+      lemma: string;
+      pos: string;
+      lexicon: string;
+    }>;
+  }>>;
+  
+  // Plugin management
+  getPlugins: () => string[];
+  has: (pluginName: string) => boolean;
+  
   // Schema management
   schemaManager: Record<string, unknown> | null;
 } {
@@ -348,6 +374,39 @@ export function useWordNetKernel(config?: {
   const getRelationTypes = createStringArrayMethod(ensureInitialized, 'getRelationTypes');
   const getRelationStats = createStatsMethod(ensureInitialized, 'getRelationStats');
 
+  // Plugin methods - Similarity
+  const getPathSimilarity = useCallback(async (synset1: string, synset2: string) => {
+    const kernel = ensureInitialized();
+    return kernel.getPathSimilarity(synset1, synset2);
+  }, [ensureInitialized]);
+
+  const getWuPalmerSimilarity = useCallback(async (synset1: string, synset2: string) => {
+    const kernel = ensureInitialized();
+    return kernel.getWuPalmerSimilarity(synset1, synset2);
+  }, [ensureInitialized]);
+
+  // Plugin methods - Translation
+  const getTranslations = useCallback(async (synsetId: string, targetLanguage?: string) => {
+    const kernel = ensureInitialized();
+    return kernel.getTranslations(synsetId, targetLanguage);
+  }, [ensureInitialized]);
+
+  const getTranslationsByWord = useCallback(async (wordForm: string, sourceLanguage: string, targetLanguage: string) => {
+    const kernel = ensureInitialized();
+    return kernel.getTranslationsByWord(wordForm, sourceLanguage, targetLanguage);
+  }, [ensureInitialized]);
+
+  // Plugin management
+  const getPlugins = useCallback(() => {
+    if (!wordnet) return [];
+    return wordnet.getPlugins();
+  }, [wordnet]);
+
+  const has = useCallback((pluginName: string) => {
+    if (!wordnet) return false;
+    return wordnet.has(pluginName);
+  }, [wordnet]);
+
   // Schema management
   const schemaManager = wordnet?.schemaManager || null;
 
@@ -385,6 +444,18 @@ export function useWordNetKernel(config?: {
     getAllRelations,
     getRelationTypes,
     getRelationStats,
+    
+    // Plugin methods - Similarity
+    getPathSimilarity,
+    getWuPalmerSimilarity,
+    
+    // Plugin methods - Translation
+    getTranslations,
+    getTranslationsByWord,
+    
+    // Plugin management
+    getPlugins,
+    has,
     
     // Schema management
     schemaManager,

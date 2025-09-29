@@ -2,97 +2,60 @@ import type { Database } from '../../../types/database.js';
 import type { Kysely } from 'kysely';
 import { sql } from 'kysely';
 import type { PartOfSpeech, WordQuery } from '../../../core/types.js';
+import { WordQueryBuilder, createQueryBuilder } from './base-query-builder.js';
 
 export function getWordsBySynsetAndLanguageQuery(
   db: Kysely<Database>,
   synsetId: string,
   language?: string
 ) {
-  return db
+  let query = db
     .selectFrom('senses')
     .innerJoin('words', 'senses.word_id', 'words.id')
     .selectAll('words')
-    .where('senses.synset_id', '=', synsetId)
-    .$if(!!language, qb => qb.where('words.language', '=', language!));
+    .where('senses.synset_id', '=', synsetId);
+
+  if (language) {
+    query = query.where('words.language', '=', language);
+  }
+
+  return query.orderBy('words.lemma');
 }
 
 export function getWordsQuery(
   db: Kysely<Database>,
   options: WordQuery = {}
 ) {
-  const {
-    form,
-    pos,
-    lexicon,
-    language: lang,
-    searchAllForms = false,
-    fuzzy = false,
-    maxResults,
-    includeInflected = false
-  } = options;
-
-  let query = db
-    .selectFrom('words')
-    .distinct()
-    .selectAll('words');
-
-  // Handle lexicon filtering - support both single and multiple lexicons
-  if (lexicon && lexicon !== '*') {
-    if (Array.isArray(lexicon)) {
-      if (lexicon.length > 0) {
-        query = query.where('words.lexicon', 'in', lexicon);
-      }
+  let query = db.selectFrom('words').selectAll('words');
+  
+  // Handle form filtering
+  if (options.form) {
+    if (options.fuzzy) {
+      const searchTerm = `%${options.form.toLowerCase()}%`;
+      query = query.where('words.lemma', 'like', searchTerm);
     } else {
-      query = query.where(sql`words.lexicon`, '=', lexicon);
+      query = query.where('words.lemma', '=', options.form.toLowerCase());
     }
+  }
+
+  // Handle POS filtering
+  if (options.pos) {
+    query = query.where('words.pos', '=', options.pos);
+  }
+
+  // Handle lexicon filtering
+  if (options.lexicon) {
+    query = query.where('words.lexicon', '=', options.lexicon);
   }
 
   // Handle language filtering
-  if (lang && lang !== '*') {
-    query = query.where('words.language', '=', lang);
+  if (options.language) {
+    query = query.where('words.language', '=', options.language);
   }
 
-  // Handle part of speech filtering
-  if (pos) {
-    query = query.where(sql`words.pos`, '=', pos);
-  }
-
-  // Handle form searching with enhanced capabilities
-  if (form) {
-    const searchTerm = fuzzy ? `%${form.toLowerCase()}%` : form.toLowerCase();
-    
-    if (searchAllForms || includeInflected) {
-      // Join with forms table to search both lemma and inflected forms
-      query = query.leftJoin('forms', 'words.id', 'forms.word_id');
-      
-      if (fuzzy) {
-        query = query.where((eb) =>
-          eb.or([
-            eb(sql`lower(words.lemma)`, 'like', searchTerm),
-            eb(sql`lower(forms.written_form)`, 'like', searchTerm),
-          ])
-        );
-      } else {
-        query = query.where((eb) =>
-          eb.or([
-            eb(sql`lower(words.lemma)`, '=', searchTerm),
-            eb(sql`lower(forms.written_form)`, '=', searchTerm),
-          ])
-        );
-      }
-    } else {
-      // Only search lemma
-      if (fuzzy) {
-        query = query.where(sql`lower(words.lemma)`, 'like', searchTerm);
-      } else {
-        query = query.where(sql`lower(words.lemma)`, '=', searchTerm);
-      }
-    }
-  }
-
-  // Apply limit if specified
-  if (maxResults) {
-    query = query.limit(maxResults);
+  // Handle max results
+  if (options.maxResults) {
+    query = query.limit(options.maxResults);
   }
 
   return query

@@ -31,7 +31,9 @@ import {
   ExportOptionsSchema,
 } from './schemas.js';
 
-export type PartOfSpeech = 'n' | 'v' | 'a' | 'r' | 's' | 'c' | 'p' | 'i' | 'x' | 'u';
+// Re-export shared types to maintain backward compatibility
+export type { PartOfSpeech, LanguageCode, RelationType, ILIStatus } from './shared-types.js';
+export { PARTS_OF_SPEECH, COMMON_PARTS_OF_SPEECH, COMMON_LANGUAGE_CODES, COMMON_RELATION_TYPES } from './shared-types.js';
 
 // Re-export the PartOfSpeech schema for backward compatibility
 export { PartOfSpeechSchema } from './schemas.js';

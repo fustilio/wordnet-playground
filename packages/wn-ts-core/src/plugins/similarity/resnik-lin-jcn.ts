@@ -3,10 +3,12 @@
  */
 
 import type { Synset } from '../../core/types.js';
-import { WnError } from '../../core/types.js';
+import { WnError } from '../../core/errors.js';
 import type { WordNetCore } from '../../wordnet-kernel.js';
 import { information_content } from './information-content.js';
 import type { Freq } from './information-content.js';
+import { calculateIcSimilarity, calculateSimilarity } from './similarity-utils.js';
+import { lowestCommonHypernyms } from '../../modules/relations/synset-utils.js';
 
 /**
  * Return the Resnik similarity between two synsets.
@@ -23,10 +25,20 @@ export async function resnikSimilarity(
   ic: Freq, 
   wordnet: WordNetCore
 ): Promise<number> {
-  _checkIfPosCompatible(synset1.pos, synset2.pos);
-  
-  const lcs = await _mostInformativeLcs(synset1, synset2, ic, wordnet);
-  return information_content(lcs, ic);
+  return calculateSimilarity(
+    synset1,
+    synset2,
+    wordnet,
+    'ResnikSimilarity',
+    () => calculateIcSimilarity(
+      synset1,
+      synset2,
+      wordnet,
+      ic,
+      _mostInformativeLcs,
+      information_content
+    )
+  );
 }
 
 /**
@@ -44,25 +56,31 @@ export async function jiangConrathSimilarity(
   ic: Freq,
   wordnet: WordNetCore
 ): Promise<number> {
-  _checkIfPosCompatible(synset1.pos, synset2.pos);
-  if (synset1.id === synset2.id) return 1.0;
-  
-  const ic1 = information_content(synset1, ic);
-  const ic2 = information_content(synset2, ic);
-  const lcs = await _mostInformativeLcs(synset1, synset2, ic, wordnet);
-  const icLcs = information_content(lcs, ic);
-  
-  // Handle edge cases
-  if (ic1 === 0 && ic2 === 0 && icLcs === 0) {
-    return 0;
-  }
-  
-  const denom = ic1 + ic2 - 2 * icLcs;
-  if (denom <= 0) {
-    return 0;
-  }
-  
-  return 1 / denom;
+  return calculateSimilarity(
+    synset1,
+    synset2,
+    wordnet,
+    'JiangConrathSimilarity',
+    async () => {
+      const ic1 = information_content(synset1, ic);
+      const ic2 = information_content(synset2, ic);
+      const lcs = await _mostInformativeLcs(synset1, synset2, ic, wordnet);
+      const icLcs = information_content(lcs, ic);
+      
+      // Handle edge cases
+      if (ic1 === 0 && ic2 === 0 && icLcs === 0) {
+        return { score: 0, lcs };
+      }
+      
+      const denom = ic1 + ic2 - 2 * icLcs;
+      if (denom <= 0) {
+        return { score: 0, lcs };
+      }
+      
+      const score = 1 / denom;
+      return { score, lcs };
+    }
+  );
 }
 
 /**
@@ -80,18 +98,25 @@ export async function linSimilarity(
   ic: Freq,
   wordnet: WordNetCore
 ): Promise<number> {
-  _checkIfPosCompatible(synset1.pos, synset2.pos);
-  if (synset1.id === synset2.id) return 1.0;
-  const ic1 = information_content(synset1, ic);
-  const ic2 = information_content(synset2, ic);
-  const lcs = await _mostInformativeLcs(synset1, synset2, ic, wordnet);
-  const icLcs = information_content(lcs, ic);
-  const denom = ic1 + ic2;
-  if (denom === 0) {
-    return 0;
-  } else {
-    return Math.min(1, (2 * icLcs) / denom);
-  }
+  return calculateSimilarity(
+    synset1,
+    synset2,
+    wordnet,
+    'LinSimilarity',
+    async () => {
+      const ic1 = information_content(synset1, ic);
+      const ic2 = information_content(synset2, ic);
+      const lcs = await _mostInformativeLcs(synset1, synset2, ic, wordnet);
+      const icLcs = information_content(lcs, ic);
+      const denom = ic1 + ic2;
+      if (denom === 0) {
+        return { score: 0, lcs };
+      } else {
+        const score = Math.min(1, (2 * icLcs) / denom);
+        return { score, lcs };
+      }
+    }
+  );
 }
 
 /**
@@ -110,7 +135,7 @@ async function _mostInformativeLcs(
   wordnet: WordNetCore
 ): Promise<Synset> {
   // Note: This will need to be updated when we convert synset-utils to relations plugin
-  const lcsList = await (wordnet as any).getLowestCommonHypernyms(synset1, synset2);
+  const lcsList = await lowestCommonHypernyms(synset1, synset2, wordnet);
   if (lcsList.length === 0) {
     throw new WnError('No common subsumers found');
   }
@@ -134,15 +159,3 @@ async function _mostInformativeLcs(
   return mostInformative;
 }
 
-/**
- * Check if two parts of speech are compatible for similarity comparison.
- * 
- * @param pos1 - First part of speech
- * @param pos2 - Second part of speech
- * @throws {WnError} When parts of speech are not compatible
- */
-function _checkIfPosCompatible(pos1: string, pos2: string): void {
-  if (pos1 !== pos2) {
-    throw new WnError(`Parts of speech must match: ${pos1} != ${pos2}`);
-  }
-}

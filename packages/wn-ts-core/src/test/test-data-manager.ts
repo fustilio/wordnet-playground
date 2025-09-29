@@ -11,6 +11,7 @@ import {
 } from './xml-analyzer.js';
 import { isCompressedURL } from '../utils/url.js';
 import type { Word, Synset, Sense, Definition } from '../core/types.js';
+import { COMMON_PARTS_OF_SPEECH } from '../core/shared-types.js';
 
 export interface TestDataConfig {
   outputDir: string;
@@ -599,7 +600,7 @@ export function createMockData(type: 'word' | 'synset' | 'sense' | 'definition',
         data.push({
           id: `w-${i}`,
           lemma: `word${i}`,
-          pos: ['n', 'v', 'a', 'r'][i % 4],
+          pos: COMMON_PARTS_OF_SPEECH[i % COMMON_PARTS_OF_SPEECH.length],
           forms: [{ id: `f-${i}`, writtenForm: `word${i}` }],
           pronunciations: [],
           syntacticBehaviours: []
@@ -608,7 +609,7 @@ export function createMockData(type: 'word' | 'synset' | 'sense' | 'definition',
       case 'synset':
         data.push({
           id: `s-${i}`,
-          pos: ['n', 'v', 'a', 'r'][i % 4],
+          pos: COMMON_PARTS_OF_SPEECH[i % COMMON_PARTS_OF_SPEECH.length],
           definitions: [{ id: `d-${i}`, language: 'en', text: `Definition ${i}` }],
           examples: [],
           ili: `i-${i}`,

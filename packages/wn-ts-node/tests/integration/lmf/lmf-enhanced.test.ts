@@ -222,13 +222,13 @@ ${entries}
       const invalidURL = 'https://httpbin.org/status/404';
       
       await expect(loadLMF(invalidURL)).rejects.toThrow('Failed to load LMF');
-    }, 30000); // Increase timeout to 30 seconds
+    }, 60000); // Increase timeout to 60 seconds for network requests
 
     it('should handle non-XML URLs gracefully', async () => {
       const jsonURL = 'https://httpbin.org/json';
       
       await expect(loadLMF(jsonURL)).rejects.toThrow('Failed to load LMF');
-    }, 30000); // Increase timeout to 30 seconds
+    }, 60000); // Increase timeout to 60 seconds for network requests
   });
 
   describe('LMF Version Support', () => {

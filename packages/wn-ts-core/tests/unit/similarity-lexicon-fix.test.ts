@@ -180,7 +180,7 @@ describe('Similarity Methods Lexicon Context Fix', () => {
 
       await expect(
         (kernel as any).getPathSimilarity(enSynset, frSynset)
-      ).rejects.toThrow('Synsets must be from the same lexicon');
+      ).rejects.toThrow('Lexicons must match: omw-en != omw-fr');
     });
 
     it('should throw error for Wu-Palmer similarity between different lexicons', async () => {
@@ -189,7 +189,7 @@ describe('Similarity Methods Lexicon Context Fix', () => {
 
       await expect(
         (kernel as any).getWuPalmerSimilarity(enSynset, frSynset)
-      ).rejects.toThrow('Synsets must be from the same lexicon');
+      ).rejects.toThrow('Lexicons must match: omw-en != omw-fr');
     });
 
     it('should throw error for cross-lingual similarity without ILI', async () => {

@@ -1,55 +1,64 @@
 import { z } from 'zod';
+import { 
+  StringValidators, 
+  NumberValidators, 
+  CommonFields, 
+  PartOfSpeechSchema,
+  ObjectValidators,
+  createQuerySchema,
+  createValidationHelpers
+} from './schema-utils.js';
 
-// Base schemas with enhanced validation
-export const PartOfSpeechSchema = z.enum(['n', 'v', 'a', 'r', 's', 'c', 'p', 'i', 'x', 'u']);
+// Base schemas with enhanced validation using shared utilities
+export { PartOfSpeechSchema };
 
 export const FormSchema = z.object({
-  id: z.string().min(1, "Form ID must not be empty"),
-  writtenForm: z.string().min(1, "Written form must not be empty").max(200, "Written form too long"),
+  id: CommonFields.id,
+  writtenForm: CommonFields.writtenForm,
   script: z.string().optional(),
   tag: z.string().optional(),
 });
 
 export const PronunciationSchema = z.object({
-  id: z.string().min(1, "Pronunciation ID must not be empty"),
-  value: z.string().min(1, "Pronunciation value must not be empty").max(100, "Pronunciation value too long"),
+  id: CommonFields.id,
+  value: StringValidators.shortText(100, 'Pronunciation value'),
   variety: z.string().optional(),
   notation: z.string().optional(),
   geographic: z.string().optional(),
 });
 
 export const TagSchema = z.object({
-  id: z.string().min(1, "Tag ID must not be empty"),
-  category: z.string().min(1, "Tag category must not be empty").max(50, "Tag category too long"),
-  value: z.string().min(1, "Tag value must not be empty").max(100, "Tag value too long"),
+  id: CommonFields.id,
+  category: StringValidators.shortText(50, 'Tag category'),
+  value: StringValidators.shortText(100, 'Tag value'),
 });
 
 export const CountSchema = z.object({
-  id: z.string().min(1, "Count ID must not be empty"),
-  value: z.number().int("Count must be an integer").min(0, "Count must be non-negative"),
-  writtenForm: z.string().min(1, "Written form must not be empty"),
+  id: CommonFields.id,
+  value: NumberValidators.nonNegativeInt('Count'),
+  writtenForm: CommonFields.writtenForm,
   pos: PartOfSpeechSchema,
 });
 
 export const ExampleSchema = z.object({
-  id: z.string().min(1, "Example ID must not be empty"),
-  language: z.string().min(2, "Language code must be at least 2 characters").max(5, "Language code too long"),
-  text: z.string().min(1, "Example text must not be empty").max(1000, "Example text too long"),
-  source: z.string().optional(),
+  id: CommonFields.id,
+  language: CommonFields.language,
+  text: StringValidators.longText(1000, 'Example text'),
+  source: CommonFields.source,
 });
 
 export const DefinitionSchema = z.object({
-  id: z.string().min(1, "Definition ID must not be empty"),
-  language: z.string().min(2, "Language code must be at least 2 characters").max(5, "Language code too long"),
-  text: z.string().min(1, "Definition text must not be empty").max(2000, "Definition text too long"),
-  source: z.string().optional(),
+  id: CommonFields.id,
+  language: CommonFields.language,
+  text: StringValidators.longText(2000, 'Definition text'),
+  source: CommonFields.source,
 });
 
 export const RelationSchema = z.object({
-  id: z.string().min(1, "Relation ID must not be empty"),
-  type: z.string().min(1, "Relation type must not be empty").max(50, "Relation type too long"),
-  target: z.string().min(1, "Relation target must not be empty"),
-  source: z.string().optional(),
+  id: CommonFields.id,
+  type: StringValidators.shortText(50, 'Relation type'),
+  target: StringValidators.id('Relation target'),
+  source: CommonFields.source,
   dcType: z.string().optional(), // Changed from snake_case to camelCase
 }).refine(
   (relation) => relation.id !== relation.target,
@@ -60,23 +69,23 @@ export const RelationSchema = z.object({
 );
 
 export const SyntacticBehaviourSchema = z.object({
-  id: z.string().min(1, "Syntactic behaviour ID must not be empty"),
-  subcategorizationFrame: z.string().min(1, "Subcategorization frame must not be empty").max(500, "Frame too long"),
-  source: z.string().optional(),
-  senseIds: z.array(z.string().min(1, "Sense ID must not be empty")).min(1, "Must have at least one sense ID"),
+  id: CommonFields.id,
+  subcategorizationFrame: CommonFields.subcategorizationFrame,
+  source: CommonFields.source,
+  senseIds: z.array(StringValidators.id('Sense ID')).min(1, "Must have at least one sense ID"),
 });
 
 export const WordSchema = z.object({
-  id: z.string().min(1, "Word ID must not be empty"),
-  lemma: z.string().min(1, "Lemma must not be empty").max(100, "Lemma too long"),
+  id: CommonFields.id,
+  lemma: CommonFields.lemma,
   pos: PartOfSpeechSchema,
   forms: z.array(FormSchema).min(1, "Word must have at least one form"),
   pronunciations: z.array(PronunciationSchema),
   tags: z.array(TagSchema),
   counts: z.array(CountSchema),
   syntacticBehaviours: z.array(SyntacticBehaviourSchema).optional(),
-  language: z.string().min(2, "Language code must be at least 2 characters").max(5, "Language code too long"),
-  lexicon: z.string().min(1, "Lexicon must not be empty"),
+  language: CommonFields.language,
+  lexicon: StringValidators.id('Lexicon'),
 }).refine(
   (word) => word.forms.some(form => form.writtenForm === word.lemma),
   {
@@ -86,14 +95,14 @@ export const WordSchema = z.object({
 );
 
 export const SenseSchema = z.object({
-  id: z.string().min(1, "Sense ID must not be empty"),
-  wordId: z.string().min(1, "Word ID must not be empty"),
-  synsetId: z.string().min(1, "Synset ID must not be empty"),
+  id: CommonFields.id,
+  wordId: StringValidators.id('Word ID'),
+  synsetId: StringValidators.id('Synset ID'),
   examples: z.array(ExampleSchema),
   counts: z.array(CountSchema),
   tags: z.array(TagSchema),
   relations: z.array(RelationSchema).optional(),
-  source: z.string().optional(),
+  source: CommonFields.source,
   sensekey: z.string().optional(),
   adjposition: z.string().optional(),
   subcategory: z.string().optional(),
@@ -108,17 +117,17 @@ export const SenseSchema = z.object({
 );
 
 export const SynsetSchema = z.object({
-  id: z.string().min(1, "Synset ID must not be empty"),
+  id: CommonFields.id,
   ili: z.string().optional(),
   pos: PartOfSpeechSchema,
   definitions: z.array(DefinitionSchema).min(1, "Synset must have at least one definition"),
   examples: z.array(ExampleSchema),
   relations: z.array(RelationSchema),
   iliDefinitions: z.array(DefinitionSchema).optional(),
-  language: z.string().min(2, "Language code must be at least 2 characters").max(5, "Language code too long"),
-  lexicon: z.string().min(1, "Lexicon must not be empty"),
-  memberIds: z.array(z.string().min(1, "Member ID must not be empty")),
-  senseIds: z.array(z.string().min(1, "Sense ID must not be empty")),
+  language: CommonFields.language,
+  lexicon: StringValidators.id('Lexicon'),
+  memberIds: z.array(StringValidators.id('Member ID')),
+  senseIds: z.array(StringValidators.id('Sense ID')),
 }).superRefine((synset, ctx) => {
   // Validate ID format consistency - make this a warning
   if (synset.id && !synset.id.match(/^[a-z]+-[a-z]+-\d+$/)) {
@@ -174,7 +183,7 @@ export const SynsetSchema = z.object({
 });
 
 export const ILISchema = z.object({
-  id: z.string().min(1, "ILI ID must not be empty"),
+  id: CommonFields.id,
   definition: z.string().optional(),
   status: z.enum(['standard', 'proposed', 'deprecated']),
   supersededBy: z.string().optional(),
@@ -188,86 +197,67 @@ export const ILISchema = z.object({
 );
 
 export const LexiconSchema = z.object({
-  id: z.string().min(1, "Lexicon ID must not be empty"),
-  label: z.string().min(1, "Lexicon label must not be empty").max(200, "Label too long"),
-  language: z.string().min(2, "Language code must be at least 2 characters").max(5, "Language code too long"),
+  id: CommonFields.id,
+  label: CommonFields.label,
+  language: CommonFields.language,
   email: z.string().email("Invalid email format").optional(),
-  license: z.string().optional(),
+  license: CommonFields.license,
   version: z.string().optional(),
-  url: z.string().url("Invalid URL format").optional(),
-  citation: z.string().optional(),
+  url: CommonFields.url,
+  citation: CommonFields.citation,
   logo: z.string().optional(),
-  requires: z.array(z.string().min(1, "Required lexicon ID must not be empty")).optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
+  requires: z.array(StringValidators.id('Required lexicon ID')).optional(),
+  metadata: CommonFields.metadata,
 });
 
 export const ProjectSchema = z.object({
-  id: z.string().min(1, "Project ID must not be empty"),
-  label: z.string().min(1, "Project label must not be empty").max(200, "Label too long"),
-  description: z.string().optional(),
-  url: z.string().url("Invalid URL format").optional(),
-  license: z.string().optional(),
-  citation: z.string().optional(),
-  metadata: z.record(z.string(), z.unknown()).optional(),
+  id: CommonFields.id,
+  label: CommonFields.label,
+  description: CommonFields.description,
+  url: CommonFields.url,
+  license: CommonFields.license,
+  citation: CommonFields.citation,
+  metadata: CommonFields.metadata,
 });
 
-// Query schemas with enhanced validation
-export const WordQuerySchema = z.object({
-  form: z.string().optional(),
-  pos: PartOfSpeechSchema.optional(),
-  lexicon: z.union([z.string(), z.array(z.string())]).optional(),
-  language: z.string().min(2, "Language code must be at least 2 characters").max(5, "Language code too long").optional(),
-  searchAllForms: z.boolean().optional(),
-  fuzzy: z.boolean().optional(),
-  maxResults: z.number().positive("Max results must be positive").optional(),
+// Query schemas with enhanced validation using shared utilities
+export const WordQuerySchema = createQuerySchema({
   includeInflected: z.boolean().optional(),
-  strategy: z.string().optional(),
 });
 
-export const SynsetQuerySchema = z.object({
-  form: z.string().optional(),
-  pos: PartOfSpeechSchema.optional(),
+export const SynsetQuerySchema = createQuerySchema({
   ili: z.string().optional(),
-  lexicon: z.union([z.string(), z.array(z.string())]).optional(),
-  language: z.string().min(2, "Language code must be at least 2 characters").max(5, "Language code too long").optional(),
-  searchAllForms: z.boolean().optional(),
-  fuzzy: z.boolean().optional(),
-  maxResults: z.number().positive("Max results must be positive").optional(),
   includeDefinitions: z.boolean().optional(),
   includeExamples: z.boolean().optional(),
   includeRelations: z.boolean().optional(),
-  strategy: z.string().optional(),
 });
 
-export const SenseQuerySchema = z.object({
+export const SenseQuerySchema = createQuerySchema({
   wordIdOrForm: z.string().optional(),
-  pos: PartOfSpeechSchema.optional(),
-  lexicon: z.string().optional(),
-  strategy: z.string().optional(),
 });
 
-// Configuration schemas
+// Configuration schemas using shared utilities
 export const WordnetConfigSchema = z.object({
-  dataDirectory: z.string().min(1, "Data directory must not be empty"),
+  dataDirectory: StringValidators.id('Data directory'),
   downloadDirectory: z.string().optional(),
   cacheDirectory: z.string().optional(),
 });
 
 export const WordnetOptionsSchema = z.object({
-  lexicon: z.union([z.string(), z.array(z.string())]).optional(),
+  lexicon: ObjectValidators.stringOrStringArray(),
   version: z.string().optional(),
-  expand: z.union([z.string(), z.array(z.string())]).optional(),
+  expand: ObjectValidators.stringOrStringArray(),
   normalizer: z.any().optional(), // Function type
   lemmatizer: z.any().optional(), // Function type
   searchAllForms: z.boolean().optional(),
-  language: z.string().min(2, "Language code must be at least 2 characters").max(5, "Language code too long").optional(),
+  language: StringValidators.languageCode(false),
   strategy: z.string().optional(),
 });
 
 export const DownloadOptionsSchema = z.object({
   force: z.boolean().optional(),
   progress: z.any().optional(), // Function type
-  timeout: z.number().positive("Timeout must be positive").optional(),
+  timeout: NumberValidators.optionalPositiveInt('Timeout'),
 });
 
 export const AddOptionsSchema = z.object({
@@ -288,83 +278,16 @@ export const SynsetArraySchema = z.array(SynsetSchema).min(1, "WordNet must cont
 export const WordArraySchema = z.array(WordSchema);
 export const SenseArraySchema = z.array(SenseSchema);
 
-// Enhanced validation functions with better error handling
-export function validateSynset(synset: unknown): synset is z.infer<typeof SynsetSchema> {
-  return SynsetSchema.safeParse(synset).success;
-}
-
-export function validateWord(word: unknown): word is z.infer<typeof WordSchema> {
-  return WordSchema.safeParse(word).success;
-}
-
-export function validateSense(sense: unknown): sense is z.infer<typeof SenseSchema> {
-  return SenseSchema.safeParse(sense).success;
-}
+// Enhanced validation functions using shared utilities
+export const { validate: validateSynset, parse: parseSynset } = createValidationHelpers(SynsetSchema, 'synset');
+export const { validate: validateWord, parse: parseWord } = createValidationHelpers(WordSchema, 'word');
+export const { validate: validateSense, parse: parseSense } = createValidationHelpers(SenseSchema, 'sense');
 
 export function validateWordnet(synsets: unknown): synsets is z.infer<typeof SynsetArraySchema> {
   return SynsetArraySchema.safeParse(synsets).success;
 }
 
-// Parse and validate functions that throw on error with detailed messages
-export function parseSynset(synset: unknown): z.infer<typeof SynsetSchema> {
-  try {
-    return SynsetSchema.parse(synset);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      const zodError = error as z.ZodError;
-      const errorMessages = zodError.issues.map(issue => 
-        `${issue.path.join('.')}: ${issue.message}`
-      ).join(', ');
-      throw new Error(`Invalid synset: ${errorMessages}`);
-    }
-    throw error;
-  }
-}
-
-export function parseWord(word: unknown): z.infer<typeof WordSchema> {
-  try {
-    return WordSchema.parse(word);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      const zodError = error as z.ZodError;
-      const errorMessages = zodError.issues.map(issue => 
-        `${issue.path.join('.')}: ${issue.message}`
-      ).join(', ');
-      throw new Error(`Invalid word: ${errorMessages}`);
-    }
-    throw error;
-  }
-}
-
-export function parseSense(sense: unknown): z.infer<typeof SenseSchema> {
-  try {
-    return SenseSchema.parse(sense);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      const zodError = error as z.ZodError;
-      const errorMessages = zodError.issues.map(issue => 
-        `${issue.path.join('.')}: ${issue.message}`
-      ).join(', ');
-      throw new Error(`Invalid sense: ${errorMessages}`);
-    }
-    throw error;
-  }
-}
-
-export function parseWordnet(synsets: unknown): z.infer<typeof SynsetArraySchema> {
-  try {
-    return SynsetArraySchema.parse(synsets);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      const zodError = error as z.ZodError;
-      const errorMessages = zodError.issues.map(issue => 
-        `${issue.path.join('.')}: ${issue.message}`
-      ).join(', ');
-      throw new Error(`Invalid WordNet data: ${errorMessages}`);
-    }
-    throw error;
-  }
-}
+export const { parse: parseWordnet } = createValidationHelpers(SynsetArraySchema, 'WordNet data');
 
 // Advanced validation functions
 export function validateCrossReferences(

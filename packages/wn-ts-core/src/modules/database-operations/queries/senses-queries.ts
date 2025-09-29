@@ -2,67 +2,58 @@ import type { Database } from '../../../types/database.js';
 import type { Kysely } from 'kysely';
 import { sql } from 'kysely';
 import type { SenseQuery } from '../../../core/types.js';
+import { SenseQueryBuilder, createQueryBuilder } from './base-query-builder.js';
 
 export function getSensesQuery(
   db: Kysely<Database>,
   options: SenseQuery = {}
 ) {
-  const {
-    wordIdOrForm,
-    pos,
-    lexicon
-  } = options;
-
-  // Build query with single JOIN to avoid column ambiguity
-  let query = db
-    .selectFrom('senses')
-    .selectAll('senses');
-
-  // Determine if we need to join with words table
-  // We need to join if:
-  // 1. wordIdOrForm is provided and doesn't contain a dot (indicating it's a form, not a word ID)
-  // 2. pos filter is provided
-  // 3. lexicon filter is provided (and not '*')
-  let needsWordsJoin = !!(wordIdOrForm && !wordIdOrForm.includes('.')) || pos || (lexicon && lexicon !== '*');
+  let query = db.selectFrom('senses').selectAll('senses');
+  let hasWordsJoin = false;
   
-  if (needsWordsJoin) {
-    query = query.innerJoin('words', 'senses.word_id', 'words.id');
-  }
-
-  // Apply filters
-  if (wordIdOrForm) {
+  // Handle wordIdOrForm - this is specific to senses
+  if (options.wordIdOrForm) {
     // Check if it's a word ID (contains lexicon prefix and part of speech)
-    // Pattern examples: "oewn-fire-n", "omw-fr-ordinateur-n", "cili-1234"
-    if (wordIdOrForm.includes('-') && (wordIdOrForm.endsWith('-n') || wordIdOrForm.endsWith('-v') || wordIdOrForm.endsWith('-a') || wordIdOrForm.endsWith('-r') || wordIdOrForm.endsWith('-s') || wordIdOrForm.endsWith('-c') || wordIdOrForm.endsWith('-p') || wordIdOrForm.endsWith('-i') || wordIdOrForm.endsWith('-x') || wordIdOrForm.endsWith('-u'))) {
+    // Word IDs typically have format: word-pos-number (e.g., computer-n-1)
+    const isWordId = options.wordIdOrForm.includes('-') && 
+      (options.wordIdOrForm.match(/-[nvarscpix]-\d+$/) || 
+       options.wordIdOrForm.endsWith('-n') || options.wordIdOrForm.endsWith('-v') || 
+       options.wordIdOrForm.endsWith('-a') || options.wordIdOrForm.endsWith('-r') || 
+       options.wordIdOrForm.endsWith('-s') || options.wordIdOrForm.endsWith('-c') || 
+       options.wordIdOrForm.endsWith('-p') || options.wordIdOrForm.endsWith('-i') || 
+       options.wordIdOrForm.endsWith('-x') || options.wordIdOrForm.endsWith('-u'));
+    
+    if (isWordId) {
       // Direct word ID lookup - fastest possible
-      query = query.where('senses.word_id', '=', wordIdOrForm);
+      query = query.where('senses.word_id', '=', options.wordIdOrForm);
     } else {
-      // Form lookup - ensure words table is joined
-      if (!needsWordsJoin) {
-        query = query.innerJoin('words', 'senses.word_id', 'words.id');
-        needsWordsJoin = true;
-      }
-      query = query.where(sql`words.lemma`, '=', wordIdOrForm.toLowerCase());
+      // Form lookup - join with words table
+      query = query
+        .innerJoin('words', 'senses.word_id', 'words.id')
+        .where('words.lemma', '=', options.wordIdOrForm.toLowerCase());
+      hasWordsJoin = true;
     }
   }
 
-  if (pos) {
-    if (!needsWordsJoin) {
+  // Handle POS filtering
+  if (options.pos) {
+    if (!hasWordsJoin) {
       query = query.innerJoin('words', 'senses.word_id', 'words.id');
-      needsWordsJoin = true; // Update the flag
+      hasWordsJoin = true;
     }
-    query = query.where(sql`words.pos`, '=', pos);
+    query = query.where('words.pos', '=', options.pos);
   }
 
-  if (lexicon && lexicon !== '*') {
-    if (!needsWordsJoin) {
+  // Handle lexicon filtering
+  if (options.lexicon) {
+    if (!hasWordsJoin) {
       query = query.innerJoin('words', 'senses.word_id', 'words.id');
-      needsWordsJoin = true; // Update the flag
+      hasWordsJoin = true;
     }
-    query = query.where(sql`words.lexicon`, '=', lexicon);
+    query = query.where('words.lexicon', '=', options.lexicon);
   }
 
-  return query;
+  return query.orderBy('senses.id');
 }
 
 export function getSenseByIdQuery(
@@ -79,18 +70,15 @@ export function getSensesByWordIdQuery(
   db: Kysely<Database>,
   wordId: string
 ) {
-  return db
-    .selectFrom('senses')
-    .selectAll()
-    .where('word_id', '=', wordId);
+  const builder = new SenseQueryBuilder(db);
+  return builder.buildSensesByWordQuery(wordId);
 }
 
 export function getSensesBySynsetIdQuery(
   db: Kysely<Database>,
   synsetId: string
 ) {
-  return db
-    .selectFrom('senses')
-    .selectAll()
-    .where('synset_id', '=', synsetId);
+  const builder = new SenseQueryBuilder(db);
+  return builder.buildSensesBySynsetQuery(synsetId);
 }
+
