@@ -1,5 +1,11 @@
 # wn-ts-node
 
+## 0.7.0
+
+### Minor Changes
+
+- refactor queries and add relations
+
 ## 0.6.3
 
 ### Patch Changes

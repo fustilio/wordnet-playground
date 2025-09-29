@@ -1,5 +1,11 @@
 # wn-ts-web
 
+## 0.7.0
+
+### Minor Changes
+
+- refactor queries and add relations
+
 ## 0.6.4
 
 ### Breaking Changes

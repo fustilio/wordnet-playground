@@ -1,6 +1,6 @@
 {
   "name": "wordnet-benchmark",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "private": true,
   "description": "Comprehensive performance benchmarking suite for WordNet implementations - comparing 6 major libraries with detailed performance metrics and feature parity analysis",
   "keywords": [
