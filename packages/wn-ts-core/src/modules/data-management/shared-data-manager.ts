@@ -17,6 +17,7 @@ import {
   insertLMFDataInTransaction,
   clearConflictingLexiconData
 } from '../database-operations/mutations/index.js';
+import { ProjectError } from '../../core/errors.js';
 
 export interface DataManagerOptions {
   force?: boolean;
@@ -104,7 +105,7 @@ export class SharedDataManager {
     
     // Check for project version errors
     if (project.error) {
-      throw new Error(`Project version error: ${project.error}`);
+      throw new ProjectError(`Project version error: ${project.error}`);
     }
 
     // Check dependencies
@@ -113,7 +114,7 @@ export class SharedDataManager {
     // Get URLs
     const urls = project.allUrls;
     if (!urls || urls.length === 0) {
-      throw new Error(`No download URL found for project ${projectId}`);
+      throw new ProjectError(`No download URL found for project ${projectId}`);
     }
 
     this.logger.info(`🔗 URL information for ${projectId}:`, {
@@ -173,7 +174,7 @@ export class SharedDataManager {
       fallbackUrls: project.fallbackUrls,
       lastError: lastError?.message,
     });
-    throw new Error(
+    throw new ProjectError(
       `❌ Failed to download/load project ${projectId} from all URLs. Last error: ${lastError?.message}`
     );
   }

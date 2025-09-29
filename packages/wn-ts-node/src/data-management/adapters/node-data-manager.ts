@@ -173,21 +173,86 @@ export class NodeDataManager extends SharedDataManager {
   async parseLMF(content: string, options?: any): Promise<LMFDocument> {
     this.logger.debug(`📝 Parsing LMF content`);
     
-    // Create temporary file for LMF parsing
-    const tempDir = this.config.downloadDirectory || '/tmp';
-    const tempFile = join(tempDir, `temp-lmf-${randomUUID()}.xml`);
+    // Check if content looks like gzipped data (starts with gzip magic bytes)
+    const isGzipped = content.charCodeAt(0) === 0x1f && content.charCodeAt(1) === 0x8b;
     
-    try {
-      writeFileSync(tempFile, content, 'utf-8');
-      const lmfDocument = await loadLMF(tempFile, options);
-      unlinkSync(tempFile); // Clean up temp file
-      return lmfDocument;
-    } catch (error) {
-      // Clean up temp file on error
-      if (existsSync(tempFile)) {
-        unlinkSync(tempFile);
+    if (isGzipped) {
+      this.logger.debug(`📦 Content appears to be gzipped, decompressing...`);
+      
+      // Create temporary gzipped file
+      const tempDir = this.config.downloadDirectory || join(process.cwd(), 'temp');
+      // Ensure temp directory exists
+      if (!existsSync(tempDir)) {
+        const { mkdirSync } = await import('fs');
+        mkdirSync(tempDir, { recursive: true });
       }
-      throw error;
+      
+      const tempGzFile = join(tempDir, `temp-lmf-${randomUUID()}.xml.gz`);
+      const tempXmlFile = join(tempDir, `temp-lmf-${randomUUID()}.xml`);
+      
+      try {
+        // Write gzipped content as binary
+        const buffer = Buffer.from(content, 'binary');
+        writeFileSync(tempGzFile, buffer);
+        
+        // Decompress the file
+        await this.decompressFile(tempGzFile, tempXmlFile);
+        
+        // Verify the decompressed file exists and has content
+        if (!existsSync(tempXmlFile)) {
+          throw new Error('Decompression failed - output file not created');
+        }
+        
+        const decompressedSize = (await import('fs')).statSync(tempXmlFile).size;
+        if (decompressedSize === 0) {
+          throw new Error('Decompression failed - output file is empty');
+        }
+        
+        this.logger.debug(`✅ Decompressed file: ${decompressedSize} bytes`);
+        
+        // Parse the decompressed XML
+        const lmfDocument = await loadLMF(tempXmlFile, options);
+        
+        // Clean up temp files
+        unlinkSync(tempGzFile);
+        unlinkSync(tempXmlFile);
+        
+        return lmfDocument;
+      } catch (error) {
+        this.logger.error(`❌ LMF parsing failed`, { error: error instanceof Error ? error.message : String(error) });
+        // Clean up temp files on error
+        try {
+          if (existsSync(tempGzFile)) unlinkSync(tempGzFile);
+          if (existsSync(tempXmlFile)) unlinkSync(tempXmlFile);
+        } catch (cleanupError) {
+          // Ignore cleanup errors
+        }
+        throw error;
+      }
+    } else {
+      // Content is not gzipped, parse normally
+      const tempDir = this.config.downloadDirectory || join(process.cwd(), 'temp');
+      // Ensure temp directory exists
+      if (!existsSync(tempDir)) {
+        const { mkdirSync } = await import('fs');
+        mkdirSync(tempDir, { recursive: true });
+      }
+      
+      const tempFile = join(tempDir, `temp-lmf-${randomUUID()}.xml`);
+      
+      try {
+        writeFileSync(tempFile, content, 'utf-8');
+        const lmfDocument = await loadLMF(tempFile, options);
+        unlinkSync(tempFile); // Clean up temp file
+        return lmfDocument;
+      } catch (error) {
+        this.logger.error(`❌ LMF parsing failed`, { error: error instanceof Error ? error.message : String(error) });
+        // Clean up temp file on error
+        if (existsSync(tempFile)) {
+          unlinkSync(tempFile);
+        }
+        throw error;
+      }
     }
   }
 
@@ -287,15 +352,45 @@ export class NodeDataManager extends SharedDataManager {
   ): Promise<WordNetProcessingResult> {
     this.logger.debug(`🔄 Processing WordNet data for: ${projectId}`);
 
+    // Create temp directory if it doesn't exist
+    const tempDir = this.config.downloadDirectory || join(process.cwd(), 'temp');
+    if (!existsSync(tempDir)) {
+      const { mkdirSync } = await import('fs');
+      mkdirSync(tempDir, { recursive: true });
+    }
+
     // Save data to temporary file
-    const tempDir = this.config.downloadDirectory || '/tmp';
     const tempFile = join(tempDir, `temp-wordnet-${randomUUID()}.gz`);
+    let processedPath: string | null = null;
     
     try {
+      // Write the ArrayBuffer directly as binary data
       writeFileSync(tempFile, Buffer.from(data));
       
-      // Process the file
-      const result = await this.processFile(tempFile);
+      this.logger.debug(`📁 Saved ${data.byteLength} bytes to ${tempFile}`);
+      
+      // Process the file (decompress if needed)
+      processedPath = await this.processFile(tempFile);
+      
+      // Read the processed file content
+      const xmlContent = readFileSync(processedPath, 'utf-8');
+      
+      // Debug: Check if the content looks like XML
+      if (!xmlContent.includes('<?xml') && !xmlContent.includes('<LexicalResource')) {
+        this.logger.warn(`⚠️ Processed file does not appear to contain XML content. First 200 chars: ${xmlContent.substring(0, 200)}`);
+        // Try to read as binary to see what we actually have
+        const binaryContent = readFileSync(processedPath);
+        this.logger.debug(`📊 Binary content first 20 bytes: ${Array.from(binaryContent.slice(0, 20)).map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
+        
+        // Check if the file is still gzipped
+        const isStillGzipped = binaryContent[0] === 0x1f && binaryContent[1] === 0x8b;
+        if (isStillGzipped) {
+          this.logger.error(`❌ File is still gzipped after processing! Decompression failed.`);
+          throw new Error('Decompression failed - file is still gzipped');
+        }
+      } else {
+        this.logger.debug(`✅ Successfully processed XML content: ${xmlContent.length} characters`);
+      }
       
       return {
         success: true,
@@ -304,15 +399,33 @@ export class NodeDataManager extends SharedDataManager {
         version: '1.0',
         contentType: 'lmf',
         confidence: 'high' as const,
-        xmlContent: result,
+        xmlContent,
         error: null,
       };
+    } catch (error) {
+      this.logger.error(`❌ WordNet processing failed for ${projectId}:`, error);
+      return {
+        success: false,
+        projectId,
+        language: 'en',
+        version: '1.0',
+        contentType: 'lmf',
+        confidence: 'low' as const,
+        xmlContent: null,
+        error: error instanceof Error ? error.message : String(error),
+      };
     } finally {
-      // Clean up temporary file
+      // Clean up temporary files
       try {
-        unlinkSync(tempFile);
+        if (existsSync(tempFile)) {
+          unlinkSync(tempFile);
+        }
+        // Also clean up the processed file if it's different
+        if (processedPath && processedPath !== tempFile && existsSync(processedPath)) {
+          unlinkSync(processedPath);
+        }
       } catch (error) {
-        this.logger.warn(`Failed to clean up temporary file ${tempFile}:`, error);
+        this.logger.warn(`Failed to clean up temporary files:`, error);
       }
     }
   }
@@ -331,12 +444,20 @@ export class NodeDataManager extends SharedDataManager {
     path: string,
     _progress?: (progress: number) => void
   ): Promise<string> {
-    this.logger.debug(`🔄 Processing file: ${path}`);
-
     // Check if file needs decompression
     if (path.endsWith('.gz') || path.endsWith('.xz')) {
       const decompressedPath = path.replace(/\.(gz|xz)$/, '');
+      this.logger.debug(`🗜️ Decompressing ${path} to ${decompressedPath}`);
       await this.decompressFile(path, decompressedPath);
+      
+      // Verify the decompressed file exists and has content
+      if (!existsSync(decompressedPath)) {
+        throw new Error(`Decompression failed - output file not created: ${decompressedPath}`);
+      }
+      
+      const stats = (await import('fs')).statSync(decompressedPath);
+      this.logger.debug(`✅ Decompressed file created: ${decompressedPath} (${stats.size} bytes)`);
+      
       return decompressedPath;
     }
 
@@ -442,7 +563,7 @@ export class NodeDataManager extends SharedDataManager {
         id: synset.id,
         pos: synset.pos,
         ili: synset.ili || null,
-        language: synset.language,
+        language: synset.language || null,
         lexicon: synset.lexicon
       }));
       await insertRecords(db, 'synsets', synsetsForDb);
@@ -475,7 +596,7 @@ export class NodeDataManager extends SharedDataManager {
         id: word.id,
         lemma: word.lemma,
         pos: word.pos, // LMF uses 'pos' which matches database schema
-        language: word.language,
+        language: word.language || null,
         lexicon: word.lexicon
       }));
       await insertRecords(db, 'words', wordsForDb);

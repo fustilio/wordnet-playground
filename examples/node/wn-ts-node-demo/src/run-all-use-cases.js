@@ -66,6 +66,12 @@ const examples = [
     description: 'A comprehensive demo on analyzing database scope and quality.',
     focus: 'Data Analysis'
   },
+  {
+    name: 'Crossword Demo (Advanced)',
+    file: 'examples/advanced/crossword-demo.js',
+    description: 'A comprehensive demo on generating crossword hints using WordNet.',
+    focus: 'Game Development'
+  },
 ];
 
 console.log(`

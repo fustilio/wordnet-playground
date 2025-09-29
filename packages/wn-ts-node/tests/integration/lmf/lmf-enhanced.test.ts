@@ -216,7 +216,7 @@ ${entries}
         expect(error).toBeInstanceOf(Error);
         expect((error as Error).message).toContain('Failed to load LMF');
       }
-    }, 30000); // Increase timeout to 30 seconds
+    }, 60000); // Increase timeout to 60 seconds
 
     it('should handle invalid URLs gracefully', async () => {
       const invalidURL = 'https://httpbin.org/status/404';

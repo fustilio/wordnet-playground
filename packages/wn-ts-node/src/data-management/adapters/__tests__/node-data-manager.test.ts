@@ -13,6 +13,7 @@ vi.mock('fs', () => ({
   existsSync: vi.fn(),
   mkdirSync: vi.fn(),
   unlinkSync: vi.fn(),
+  statSync: vi.fn(),
 }));
 
 vi.mock('path', () => ({
@@ -69,7 +70,7 @@ describe('NodeDataManager', () => {
   let dataManager: NodeDataManager;
   let mockConfig: NodeDataManagerConfig;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     mockConfig = {
       database: {
         getQueryService: vi.fn().mockReturnValue({
@@ -107,6 +108,10 @@ describe('NodeDataManager', () => {
     };
     dataManager = new NodeDataManager(mockConfig);
     vi.clearAllMocks();
+    
+    // Mock readFileSync to return a sample XML content
+    const { readFileSync } = await import('fs');
+    vi.mocked(readFileSync).mockReturnValue('<?xml version="1.0" encoding="UTF-8"?><LexicalResource><Lexicon id="test" label="Test Lexicon" language="en" version="1.0"></Lexicon></LexicalResource>');
   });
 
   afterEach(() => {
@@ -179,7 +184,10 @@ describe('NodeDataManager', () => {
   describe('processFile', () => {
     it('should process compressed files', async () => {
       const { decompressGz } = await import('../../../utils/archive.js');
+      const { existsSync, statSync } = await import('fs');
       (decompressGz as any).mockResolvedValue(undefined);
+      (existsSync as any).mockReturnValue(true);
+      (statSync as any).mockReturnValue({ size: 1024 });
 
       const result = await (dataManager as any).processFile('/path/to/file.gz');
 

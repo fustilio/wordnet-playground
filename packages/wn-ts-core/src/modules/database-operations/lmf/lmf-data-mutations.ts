@@ -144,11 +144,18 @@ export async function insertLMFDataInTransaction(
       logger?.step(`inserting ${lexicons.length} lexicons with IDs: ${lexicons.map((l) => l.id).join(", ")}`);
       logger?.step(`lexicon data to insert:`, JSON.stringify(lexicons, null, 2));
       
-      // Use batch insert for lexicons
-      const chunkSize = 25;
-      for (let i = 0; i < lexicons.length; i += chunkSize) {
-        const chunk = lexicons.slice(i, i + chunkSize);
-        await trx.insertInto('lexicons').values(chunk as any).execute();
+      // Use individual inserts to avoid "too many SQL variables" error
+      for (let i = 0; i < lexicons.length; i++) {
+        const lexicon = lexicons[i];
+        if (i % 1000 === 0) {
+          logger?.step(`Inserting lexicon ${i + 1}/${lexicons.length}: ${lexicon.id}`);
+        }
+        try {
+          await trx.insertInto('lexicons').values(lexicon as any).onConflict((oc) => oc.column('id').doNothing()).execute();
+        } catch (error) {
+          logger?.error(`Failed to insert lexicon ${i + 1}: ${lexicon.id}`, error);
+          throw error;
+        }
       }
       
       logger?.debug(`inserted ${lexicons.length} lexicons with IDs: ${lexicons.map((l) => l.id).join(", ")}`);
@@ -159,10 +166,13 @@ export async function insertLMFDataInTransaction(
     // Insert words (they reference lexicons)
     logger?.step(`inserting words (referencing lexicons)`);
     if (words.length > 0) {
-      const chunkSize = 25;
-      for (let i = 0; i < words.length; i += chunkSize) {
-        const chunk = words.slice(i, i + chunkSize);
-        await trx.insertInto('words').values(chunk as any).execute();
+      // Use individual inserts to avoid "too many SQL variables" error
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        if (i % 1000 === 0) {
+          logger?.step(`Inserting word ${i + 1}/${words.length}: ${word.lemma}`);
+        }
+        await trx.insertInto('words').values(word as any).onConflict((oc) => oc.column('id').doNothing()).execute();
       }
       logger?.debug(`inserted ${words.length} words`);
     }
@@ -170,10 +180,13 @@ export async function insertLMFDataInTransaction(
     // Insert synsets (they also reference lexicons)
     logger?.step(`inserting synsets (referencing lexicons)`);
     if (synsets.length > 0) {
-      const chunkSize = 25;
-      for (let i = 0; i < synsets.length; i += chunkSize) {
-        const chunk = synsets.slice(i, i + chunkSize);
-        await trx.insertInto('synsets').values(chunk as any).execute();
+      // Use individual inserts to avoid "too many SQL variables" error
+      for (let i = 0; i < synsets.length; i++) {
+        const synset = synsets[i];
+        if (i % 1000 === 0) {
+          logger?.step(`Inserting synset ${i + 1}/${synsets.length}: ${synset.id}`);
+        }
+        await trx.insertInto('synsets').values(synset as any).onConflict((oc) => oc.column('id').doNothing()).execute();
       }
       logger?.debug(`inserted ${synsets.length} synsets`);
     }
@@ -181,10 +194,13 @@ export async function insertLMFDataInTransaction(
     // Insert senses (they reference words and synsets)
     logger?.step(`inserting senses (referencing words and synsets)`);
     if (senses.length > 0) {
-      const chunkSize = 25;
-      for (let i = 0; i < senses.length; i += chunkSize) {
-        const chunk = senses.slice(i, i + chunkSize);
-        await trx.insertInto('senses').values(chunk as any).execute();
+      // Use individual inserts to avoid "too many SQL variables" error
+      for (let i = 0; i < senses.length; i++) {
+        const sense = senses[i];
+        if (i % 1000 === 0) {
+          logger?.step(`Inserting sense ${i + 1}/${senses.length}: ${sense.id}`);
+        }
+        await trx.insertInto('senses').values(sense as any).onConflict((oc) => oc.column('id').doNothing()).execute();
       }
       logger?.debug(`inserted ${senses.length} senses`);
     }
@@ -192,10 +208,13 @@ export async function insertLMFDataInTransaction(
     // Insert definitions (they reference synsets)
     logger?.step(`inserting definitions (referencing synsets)`);
     if (definitions.length > 0) {
-      const chunkSize = 25;
-      for (let i = 0; i < definitions.length; i += chunkSize) {
-        const chunk = definitions.slice(i, i + chunkSize);
-        await trx.insertInto('definitions').values(chunk as any).execute();
+      // Use individual inserts to avoid "too many SQL variables" error
+      for (let i = 0; i < definitions.length; i++) {
+        const definition = definitions[i];
+        if (i % 1000 === 0) {
+          logger?.step(`Inserting definition ${i + 1}/${definitions.length}: ${definition.id}`);
+        }
+        await trx.insertInto('definitions').values(definition as any).onConflict((oc) => oc.column('id').doNothing()).execute();
       }
       logger?.debug(`inserted ${definitions.length} definitions`);
     }

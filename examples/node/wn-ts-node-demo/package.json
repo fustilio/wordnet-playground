@@ -26,6 +26,7 @@
     "example:database-statistics-advanced": "node src/examples/advanced/database-statistics.js",
     "example:python-style": "node src/examples/basic/python-style-wordnet.js",
     "example:multilingual-definitions": "node src/examples/basic/multilingual-definitions.js",
+    "example:crossword": "node src/examples/advanced/crossword-demo.js",
     "cache:status": "wn-ts db status",
     "cache:unlock": "wn-ts db unlock",
     "cache:clear": "wn-ts db clean"
