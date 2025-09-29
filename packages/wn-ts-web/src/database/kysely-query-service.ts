@@ -169,8 +169,7 @@ export class KyselyQueryService extends BaseKyselyQueryService {
       id: rel.id,
       type: rel.type,
       target: rel.target_id,
-      source: rel.source || undefined,
-      dcType: rel.dc_type || undefined
+      source: rel.source || undefined
     }));
     
     // Filter by type if specified

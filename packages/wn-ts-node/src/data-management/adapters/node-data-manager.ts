@@ -5,10 +5,8 @@
  */
 
 import { SharedDataManager } from 'wn-ts-core';
-import type { Database } from 'wn-ts-core';
-import type { Kysely } from 'kysely';
 import type { LMFDocument } from 'wn-ts-core';
-import type { DataManagerOptions, DataManagerLogger, DataManagerProjectInfo, Lexicon } from 'wn-ts-core';
+import type { DataManagerOptions, DataManagerLogger, DataManagerProjectInfo, QueryService } from 'wn-ts-core';
 import { logger } from 'wn-ts-core';
 import { ProjectError } from 'wn-ts-core';
 
@@ -69,10 +67,10 @@ export interface NodeWordnet {
   getQueryService(): QueryService;
 }
 
-export interface QueryService {
-  database: Kysely<Database>;
-  getLexicons(): Promise<Lexicon[]>;
-}
+// Export QueryService interface
+export type { QueryService };
+
+// QueryService interface is now imported from wn-ts-core
 
 export interface LexiconInfo {
   id: string;

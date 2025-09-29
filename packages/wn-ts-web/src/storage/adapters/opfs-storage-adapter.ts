@@ -234,12 +234,12 @@ export class OpfsStorageAdapter implements StorageAdapter {
         reject(new Error('Access handle creation timed out'));
       }, timeoutMs);
 
-      fileHandle.createSyncAccessHandle()
-        .then(handle => {
+      (fileHandle as any).createSyncAccessHandle()
+        .then((handle: any) => {
           clearTimeout(timeout);
           resolve(handle);
         })
-        .catch(error => {
+        .catch((error: any) => {
           clearTimeout(timeout);
           reject(error);
         });
@@ -339,11 +339,12 @@ export class OpfsStorageAdapter implements StorageAdapter {
       async () => {
         logger.info("Strategy 5: Create new file with different name");
         try {
+          const opfsRoot = await navigator.storage.getDirectory();
           const newFileName = `${this.config.databaseName}.${Date.now()}`;
-          const newFileHandle = await this.opfsRoot.getFileHandle(newFileName, { create: true });
+          const newFileHandle = await opfsRoot.getFileHandle(newFileName, { create: true });
           const newDb = new this.sqlModule!.oo1.OpfsDb(`/${newFileName}`);
           newDb.close();
-          await this.opfsRoot.removeEntry(newFileName);
+          await opfsRoot.removeEntry(newFileName);
           logger.info("Strategy 5: Successfully created and cleaned up new file");
           return true;
         } catch (error) {
@@ -408,10 +409,14 @@ export class OpfsStorageAdapter implements StorageAdapter {
     try {
       if (navigator.storage && 'getDirectory' in navigator.storage) {
         const opfsRoot = await navigator.storage.getDirectory();
-        const entries = opfsRoot.entries();
+        // Use type assertion to access the async iterator methods
+        const opfsRootWithIterator = opfsRoot as FileSystemDirectoryHandle & {
+          keys(): AsyncIterableIterator<string>;
+        };
         
-        for await (const [name, handle] of entries) {
+        for await (const name of opfsRootWithIterator.keys()) {
           try {
+            const handle = await opfsRoot.getFileHandle(name);
             if (handle.kind === 'file') {
               await opfsRoot.removeEntry(name);
               logger.info(`Removed OPFS file: ${name}`);

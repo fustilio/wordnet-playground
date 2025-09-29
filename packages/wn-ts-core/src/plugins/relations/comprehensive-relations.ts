@@ -45,7 +45,7 @@ async function executeRelationQuery(
   kernel: WordNetKernel,
   synsetId: string,
   targetLexicon: string,
-  relationType: string | string[]
+  relationType: string | readonly string[]
 ): Promise<Array<{
   id: string;
   lemma: string;

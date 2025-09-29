@@ -9,8 +9,9 @@ import type {
   NewDefinition, 
   NewExample, 
   NewRelation, 
-  NewILI 
+  NewILI
 } from '../types/database.js';
+import type { PartOfSpeech } from '../core/types.js';
 
 export interface TestFixture {
   lexicons: NewLexicon[];
@@ -63,9 +64,9 @@ function parseXMLToFixture(xmlContent: string, fixtureName: string): TestFixture
   // Extract synsets from XML
   const synsetMatches = xmlContent.matchAll(/<Synset[^>]*id="([^"]*)"[^>]*ili="([^"]*)"[^>]*partOfSpeech="([^"]*)"[^>]*>/g);
   const synsets: NewSynset[] = Array.from(synsetMatches).map((match, index) => ({
-    id: match[1],
-    ili: match[2],
-    pos: match[3],
+    id: match[1] || `synset-${index}`,
+    ili: match[2] || null,
+    pos: (match[3] || 'n') as PartOfSpeech,
     language: 'en',
     lexicon: lexicon.id
   }));
@@ -76,20 +77,20 @@ function parseXMLToFixture(xmlContent: string, fixtureName: string): TestFixture
   const senses: NewSense[] = [];
   const forms: NewForm[] = [];
 
-  for (const [index, match] of Array.from(lexicalEntryMatches).entries()) {
-    const wordId = match[1];
+  for (const match of Array.from(lexicalEntryMatches)) {
+    const wordId = match[1] || `word-${words.length}`;
     
     // Extract lemma information - look for Lemma tag within this LexicalEntry
     const lexicalEntryContent = xmlContent.match(new RegExp(`<LexicalEntry[^>]*id="${wordId}"[^>]*>([\\s\\S]*?)</LexicalEntry>`));
-    if (lexicalEntryContent) {
+    if (lexicalEntryContent && lexicalEntryContent[1]) {
       const entryContent = lexicalEntryContent[1];
       const lemmaMatch = entryContent.match(/<Lemma[^>]*writtenForm="([^"]*)"[^>]*partOfSpeech="([^"]*)"[^>]*>/);
       
       if (lemmaMatch) {
         const word: NewWord = {
           id: wordId,
-          lemma: lemmaMatch[1],
-          pos: lemmaMatch[2],
+          lemma: lemmaMatch[1] || `lemma-${words.length}`,
+          pos: (lemmaMatch[2] || 'n') as PartOfSpeech,
           language: 'en',
           lexicon: lexicon.id
         };
@@ -101,7 +102,7 @@ function parseXMLToFixture(xmlContent: string, fixtureName: string): TestFixture
           forms.push({
             id: `${wordId}-form-${forms.length + 1}`,
             word_id: wordId,
-            written_form: formMatch[1],
+            written_form: formMatch[1] || '',
             script: null,
             tag: null
           });
@@ -111,9 +112,9 @@ function parseXMLToFixture(xmlContent: string, fixtureName: string): TestFixture
         const senseMatches = entryContent.matchAll(/<Sense[^>]*id="([^"]*)"[^>]*synset="([^"]*)"[^>]*>/g);
         for (const senseMatch of senseMatches) {
           senses.push({
-            id: senseMatch[1],
+            id: senseMatch[1] || `sense-${senses.length}`,
             word_id: wordId,
-            synset_id: senseMatch[2],
+            synset_id: senseMatch[2] || `synset-${senses.length}`,
             source: 'test',
             sensekey: null,
             adjposition: null,
@@ -130,9 +131,9 @@ function parseXMLToFixture(xmlContent: string, fixtureName: string): TestFixture
   const definitionMatches = xmlContent.matchAll(/<Definition[^>]*>([^<]*)<\/Definition>/g);
   const definitions: NewDefinition[] = Array.from(definitionMatches).map((match, index) => ({
     id: `def-${index + 1}`,
-    synset_id: synsets[index % synsets.length]?.id || 'synset-1',
+    synset_id: synsets[index % synsets.length]?.id || `synset-${index + 1}`,
     language: 'en',
-    text: match[1].trim(),
+    text: (match[1] || `definition-${index + 1}`).trim(),
     source: 'test'
   }));
 
@@ -140,10 +141,10 @@ function parseXMLToFixture(xmlContent: string, fixtureName: string): TestFixture
   const exampleMatches = xmlContent.matchAll(/<Example[^>]*>([^<]*)<\/Example>/g);
   const examples: NewExample[] = Array.from(exampleMatches).map((match, index) => ({
     id: `ex-${index + 1}`,
-    synset_id: synsets[index % synsets.length]?.id || 'synset-1',
+    synset_id: synsets[index % synsets.length]?.id || `synset-${index + 1}`,
     sense_id: null,
     language: 'en',
-    text: match[1].trim(),
+    text: (match[1] || `example-${index + 1}`).trim(),
     source: 'test'
   }));
 
@@ -151,7 +152,7 @@ function parseXMLToFixture(xmlContent: string, fixtureName: string): TestFixture
   const ilis: NewILI[] = synsets.map(synset => ({
     id: synset.ili || `i${Math.random().toString(36).substr(2, 9)}`,
     definition: definitions.find(d => d.synset_id === synset.id)?.text || 'Sample definition',
-    status: 'standard',
+    status: 'standard' as const,
     superseded_by: null,
     note: null,
     meta: null
@@ -160,13 +161,15 @@ function parseXMLToFixture(xmlContent: string, fixtureName: string): TestFixture
   // Create some basic relations
   const relations: NewRelation[] = [];
   for (let i = 0; i < Math.min(synsets.length - 1, 3); i++) {
-    relations.push({
-      id: `rel-${i + 1}`,
-      source_id: synsets[i].id,
-      target_id: synsets[i + 1].id,
-      type: 'related_to',
-      source: 'test'
-    });
+    if (synsets[i] && synsets[i + 1]) {
+      relations.push({
+        id: `rel-${i + 1}`,
+        source_id: synsets[i].id,
+        target_id: synsets[i + 1].id,
+        type: 'related_to',
+        source: 'test'
+      });
+    }
   }
 
   // If no forms were found, create some sample forms for testing
@@ -174,7 +177,7 @@ function parseXMLToFixture(xmlContent: string, fixtureName: string): TestFixture
     for (const word of words) {
       // Create some sample forms based on the word's part of speech
       const baseForm = word.lemma;
-      const sampleForms = [];
+      const sampleForms: string[] = [];
       
       if (word.pos === 'n') {
         // Noun forms
@@ -194,7 +197,7 @@ function parseXMLToFixture(xmlContent: string, fixtureName: string): TestFixture
         forms.push({
           id: `${word.id}-form-${i + 1}`,
           word_id: word.id,
-          written_form: sampleForms[i],
+          written_form: sampleForms[i] || `form-${i + 1}`,
           script: null,
           tag: null
         });
@@ -236,14 +239,14 @@ function createFallbackFixture(fixtureName: string): TestFixture {
     {
       id: 'test-word-1',
       lemma: 'computer',
-      pos: 'n',
+      pos: 'n' as PartOfSpeech,
       language: 'en',
       lexicon: lexicon.id
     },
     {
       id: 'test-word-2',
       lemma: 'run',
-      pos: 'v',
+      pos: 'v' as PartOfSpeech,
       language: 'en',
       lexicon: lexicon.id
     }
@@ -253,14 +256,14 @@ function createFallbackFixture(fixtureName: string): TestFixture {
     {
       id: 'test-synset-1',
       ili: 'i12345',
-      pos: 'n',
+      pos: 'n' as PartOfSpeech,
       language: 'en',
       lexicon: lexicon.id
     },
     {
       id: 'test-synset-2',
       ili: 'i12346',
-      pos: 'v',
+      pos: 'v' as PartOfSpeech,
       language: 'en',
       lexicon: lexicon.id
     }
@@ -358,7 +361,7 @@ function createFallbackFixture(fixtureName: string): TestFixture {
     {
       id: 'i12345',
       definition: 'a machine for performing calculations automatically',
-      status: 'standard',
+      status: 'standard' as const,
       superseded_by: null,
       note: null,
       meta: null
@@ -366,7 +369,7 @@ function createFallbackFixture(fixtureName: string): TestFixture {
     {
       id: 'i12346',
       definition: 'move fast by using one\'s feet',
-      status: 'standard',
+      status: 'standard' as const,
       superseded_by: null,
       note: null,
       meta: null

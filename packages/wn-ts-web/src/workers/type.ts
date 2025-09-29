@@ -28,7 +28,13 @@ export type RelationInfo = Relation;
 // Use return types from core library methods instead of redefining
 import type { LexiconStatistics } from '../types/index.js';
 export type { LexiconStatistics };
-export type OverallStatistics = Awaited<ReturnType<import('wn-ts-core').WordNetKernel['getStatistics']>>;
+export type OverallStatistics = {
+  totalWords: number;
+  totalSynsets: number;
+  totalSenses: number;
+  totalILIs: number;
+  totalLexicons: number;
+};
 
 export interface MemoryQueryTestResult {
   lexicons: {

@@ -79,7 +79,7 @@ export default defineConfig({
         "**/e2e/**",
         "**/bench/**"
       ],
-      rollupTypes: true,
+      rollupTypes: false,
       bundledPackages: ['wn-ts-core'],
     }),
   ],

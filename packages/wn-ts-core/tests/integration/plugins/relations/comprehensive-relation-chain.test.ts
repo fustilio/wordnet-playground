@@ -30,28 +30,28 @@ export const COMPREHENSIVE_RELATION_TEST_CHAIN = {
       "vehicle",           // car is a kind of vehicle
       "motor_vehicle",     // car is a kind of motor vehicle
       "automobile"         // car is a kind of automobile
-    ],
+    ] as string[],
     hyponyms: [
       "sedan",            // sedan is a kind of car
       "coupe",            // coupe is a kind of car
       "suv",              // SUV is a kind of car
       "convertible",      // convertible is a kind of car
       "hatchback"         // hatchback is a kind of car
-    ],
+    ] as string[],
     coordinate_terms: [
       "truck",            // truck is a coordinate term of car
       "bus",              // bus is a coordinate term of car
       "motorcycle",       // motorcycle is a coordinate term of car
       "van"               // van is a coordinate term of car
-    ],
+    ] as string[],
     instance_hypernyms: [
       "entity",           // car is an instance of entity
       "physical_object"   // car is an instance of physical object
-    ],
+    ] as string[],
     instance_hyponyms: [
       "ford_focus",       // Ford Focus is an instance of car
       "toyota_camry"      // Toyota Camry is an instance of car
-    ]
+    ] as string[]
   },
   
   // Part-Whole Relations (Nouns) - from WordNet Wikipedia

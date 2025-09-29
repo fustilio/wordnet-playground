@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { WebWordNetKernel } from '../../wordnet-kernel.js';
 import { createScopedLogger } from "utils/logger";
+import sqlite3InitModule, { type Sqlite3Static } from '@sqlite.org/sqlite-wasm';
 import type { 
   WordQuery,
   SynsetQuery,
@@ -240,7 +241,14 @@ export function useWordNetKernel(config?: {
       logger.info('Initializing WordNet kernel...', { lexicon, options });
       
       const kernel = new WebWordNetKernel();
-      await kernel.initialize();
+      
+      // Load SQLite WASM module
+      const sqlModule = await sqlite3InitModule({
+        print: (msg: string) => logger.debug('sqlite3InitModule:', msg),
+        printErr: (msg: string) => logger.error('sqlite3InitModule error:', msg)
+      });
+      
+      await kernel.initialize(sqlModule);
       
       setWordnet(kernel);
       setInitialized(true);

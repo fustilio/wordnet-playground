@@ -45,7 +45,8 @@
     "test:coverage": "pnpm --filter wn-ts-core test:coverage",
     "test:e2e": "pnpm --filter wn-ts-core test:e2e",
     "dev": "pnpm --filter wn-cli... dev",
-    "suite": "pnpm build && pnpm test"
+    "suite": "pnpm build && pnpm test",
+    "evaluate-duplicates": "pnpx jscpd --ignore \"node_modules,dist\" packages/wn-ts-core/src"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.7"

@@ -8,7 +8,7 @@
 import { Kysely } from 'kysely';
 import type { Database } from '../types/database.js';
 import type { PartOfSpeech, Lexicon, Word, Synset, Sense, ILI, WordQuery, SynsetQuery, SenseQuery } from '../core/types.js';
-import { batchInsert } from '../modules/database-operations/mutations/insert-mutations.js';
+import { batchInsert } from './batch-insert.js';
 import { 
   getWordsBySynsetAndLanguageQuery,
   getWordsQuery,
@@ -241,12 +241,10 @@ export abstract class BaseKyselyQueryService {
     const synsetIds = results.map(r => r.id);
     
     // Load all related data in parallel for ALL synsets at once
-    const [allDefinitions, allExamples, allRelations, allSenses] = await Promise.all([
-      getBatchDefinitionsQuery(this.db, synsetIds).execute(),
-      getBatchExamplesQuery(this.db, synsetIds).execute(),
-      getBatchRelationsQuery(this.db, synsetIds).execute(),
-      getBatchSensesQuery(this.db, synsetIds).execute()
-    ]);
+    const allDefinitions = await getBatchDefinitionsQuery(this.db, synsetIds).execute();
+    const allExamples = await getBatchExamplesQuery(this.db, synsetIds).execute();
+    const allRelations = await getBatchRelationsQuery(this.db, synsetIds).execute();
+    const allSenses = await getBatchSensesQuery(this.db, synsetIds).execute();
 
     // Group related data by synset ID for O(1) lookup
     const definitionsBySynset = new Map<string, any[]>();
@@ -509,12 +507,10 @@ export abstract class BaseKyselyQueryService {
     // V6 Optimization: Load related data in single batch query
     const synsetIds = results.map(r => r.id);
     
-    const [allDefinitions, allExamples, allRelations, allSenses] = await Promise.all([
-      getBatchDefinitionsQuery(this.db, synsetIds).execute(),
-      getBatchExamplesQuery(this.db, synsetIds).execute(),
-      getBatchRelationsQuery(this.db, synsetIds).execute(),
-      getBatchSensesQuery(this.db, synsetIds).execute()
-    ]);
+    const allDefinitions = await getBatchDefinitionsQuery(this.db, synsetIds).execute();
+    const allExamples = await getBatchExamplesQuery(this.db, synsetIds).execute();
+    const allRelations = await getBatchRelationsQuery(this.db, synsetIds).execute();
+    const allSenses = await getBatchSensesQuery(this.db, synsetIds).execute();
 
     // V6 Optimization: Pre-group data for maximum efficiency
     const definitionsBySynset = new Map<string, any[]>();
@@ -837,13 +833,11 @@ export abstract class BaseKyselyQueryService {
 
   protected async transformSynsetRecordV2(record: any): Promise<Synset> {
     // V2 - Optimized with batched queries
-    const [definitionRecords, exampleRecords, relationRecords, memberWords, senseRecords] = await Promise.all([
-      this.getDefinitionsBySynsetId(record.id),
-      this.getExamplesBySynsetId(record.id),
-      this.getRelationsBySynsetId(record.id),
-      getSensesBySynsetIdForTransformationQuery(this.db, record.id).execute(),
-      getSensesBySynsetIdAllQuery(this.db, record.id).execute()
-    ]);
+    const definitionRecords = await this.getDefinitionsBySynsetId(record.id);
+    const exampleRecords = await this.getExamplesBySynsetId(record.id);
+    const relationRecords = await this.getRelationsBySynsetId(record.id);
+    const memberWords = await getSensesBySynsetIdForTransformationQuery(this.db, record.id).execute();
+    const senseRecords = await getSensesBySynsetIdAllQuery(this.db, record.id).execute();
     
     const result: Synset = {
       id: record.id,

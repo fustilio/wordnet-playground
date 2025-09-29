@@ -187,10 +187,8 @@ export class TranslationHelper {
     language2: string,
     options: Omit<BilingualQueryOptions, 'sourceLanguage' | 'targetLanguage'> = {}
   ) {
-    const [result1, result2] = await Promise.all([
-      this.translateWord(word, { ...options, sourceLanguage: language1, targetLanguage: language2 }),
-      this.translateWord(word, { ...options, sourceLanguage: language2, targetLanguage: language1 })
-    ]);
+    const result1 = await this.translateWord(word, { ...options, sourceLanguage: language1, targetLanguage: language2 });
+    const result2 = await this.translateWord(word, { ...options, sourceLanguage: language2, targetLanguage: language1 });
 
     return {
       [language1]: result1,

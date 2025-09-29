@@ -89,8 +89,8 @@ describe('Chain Traversal Functionality', () => {
       ];
 
       expect(chain.length).toBe(2);
-      expect(chain[0].relationType).toBe('hypernym');
-      expect(chain[1].relationType).toBe('hyponym');
+      if (chain[0]) expect(chain[0].relationType).toBe('hypernym');
+      if (chain[1]) expect(chain[1].relationType).toBe('hyponym');
     });
 
     it('should support backward navigation', () => {
@@ -102,7 +102,7 @@ describe('Chain Traversal Functionality', () => {
       // Simulate going back
       const newChain = chain.slice(0, -1);
       expect(newChain.length).toBe(1);
-      expect(newChain[0].relationType).toBe('hypernym');
+      if (newChain[0]) expect(newChain[0].relationType).toBe('hypernym');
     });
   });
 
@@ -130,8 +130,8 @@ describe('Chain Traversal Functionality', () => {
       expect(exportData.path).toEqual(mockPath);
       expect(exportData.chain).toHaveLength(2);
       expect(exportData.totalSteps).toBe(2);
-      expect(exportData.chain[0].relationType).toBe('hypernym');
-      expect(exportData.chain[1].relationType).toBe('hyponym');
+      if (exportData.chain[0]) expect(exportData.chain[0].relationType).toBe('hypernym');
+      if (exportData.chain[1]) expect(exportData.chain[1].relationType).toBe('hyponym');
     });
   });
 

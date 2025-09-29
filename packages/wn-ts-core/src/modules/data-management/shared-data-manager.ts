@@ -511,6 +511,8 @@ export class SharedDataManager {
         id: record.id,
         definition: record.definition || null,
         status: record.status || "active",
+        superseded_by: null,
+        note: null,
         meta: null,
       }));
 

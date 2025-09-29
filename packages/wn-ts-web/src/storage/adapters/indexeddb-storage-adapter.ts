@@ -138,7 +138,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
     setInterval(async () => {
       if (this.db) {
         try {
-          const data = this.db.export();
+          const data = (this.db as { exportBytes?: () => Uint8Array }).exportBytes?.() || new Uint8Array();
           await this.saveToIndexedDB(data);
           logger.debug("Database saved to IndexedDB");
         } catch (error) {
@@ -165,7 +165,7 @@ export class IndexedDBStorageAdapter implements StorageAdapter {
     if (this.db) {
       // Save final state to IndexedDB before closing
       try {
-        const data = this.db.export();
+        const data = (this.db as { exportBytes?: () => Uint8Array }).exportBytes?.() || new Uint8Array();
         this.saveToIndexedDB(data).catch(error => {
           logger.warn("Failed to save final database state to IndexedDB:", error);
         });

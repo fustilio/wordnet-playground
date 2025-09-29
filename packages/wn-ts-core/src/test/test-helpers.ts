@@ -1,6 +1,5 @@
 import type { Kysely } from 'kysely';
 import type { Database as DatabaseSchema } from '../types/database.js';
-import type { TestFixture } from './fixture-loader.js';
 
 /**
  * Test helper functions for integration tests
@@ -274,3 +273,4 @@ export class TestHelpers {
 export function createTestHelpers(db: Kysely<DatabaseSchema>) {
   return new TestHelpers(db);
 }
+

@@ -4,34 +4,48 @@
  * A modern TypeScript implementation of the wn library for accessing WordNet data.
  * This package is environment-agnostic and provides interfaces and abstract classes.
  * Concrete implementations are provided by environment-specific packages.
+ * 
+ * ## Core Architecture
+ * 
+ * The library is built around a kernel-based architecture with the following main components:
+ * - **WordNetKernel**: The main entry point for WordNet operations
+ * - **WordNetCore**: Core interface for database operations
+ * - **Plugins**: Optional functionality that can be loaded dynamically
+ * 
+ * ## Main Exports
+ * 
+ * ### Core Classes and Functions
+ * - `WordNetKernel` - Main kernel class for WordNet operations
+ * - `createWordNet` - Factory function to create WordNet instances
+ * - `WordNetCore` - Core interface for database operations
+ * 
+ * ### Database Types
+ * - `Database` - Main database interface
+ * - `LexiconTable`, `WordTable`, `SynsetTable`, etc. - Table type definitions
+ * - `NodeDatabaseConfig`, `WebDatabaseConfig` - Database configuration types
+ * 
+ * ### Query and Data Management
+ * - `batchInsert` - Batch insert operations
+ * - `BaseKyselyQueryService` - Base query service class
+ * - `SchemaBuilder` - Database schema builder
+ * 
+ * ### Configuration and Utilities
+ * - Project configuration functions and types
+ * - Download and archive utilities
+ * - Logging utilities
+ * - Validation utilities
+ * 
+ * ### Plugins and Extensions
+ * - Relation plugins for semantic relationships
+ * - Morphology plugins for word forms
+ * - Translation utilities
  */
 
-// Core abstract classes removed - use WordNetCore interface instead
+// ============================================================================
+// CORE ARCHITECTURE
+// ============================================================================
 
-// Configuration system
-export {
-  DEFAULT_PROJECTS,
-  DEFAULT_PROXY_CONFIG,
-  FALLBACK_URLS,
-  getProjectConfig,
-  getProjectVersionConfig,
-  getProjectUrls,
-  getFallbackUrls,
-  getAllProjectUrls,
-  projectExists,
-  getAllProjectIds,
-  validateProjectId,
-  getProxyUrl,
-  needsProxy
-} from './config/project-config.js';
-export type {
-  ProjectConfig,
-  ProjectVersionConfig,
-  ProxyConfig,
-  DataSourceConfig
-} from './config/project-config.js';
-
-// New kernel-based architecture (recommended)
+// Main kernel and core interfaces
 export { 
   WordNetKernel, 
   createWordNet
@@ -48,36 +62,235 @@ export type {
 } from './wordnet-kernel.js';
 
 // Core functionality
-export * from './core/index.js';
+export {
+  // Core validation functions
+  validateSynsetData,
+  validateSenseData,
+  validateWordData,
+  validateRelation,
+  validateWordnetData
+} from './core/index.js';
 
-// Core modules (essential functionality)
-export * from './modules/index.js';
+// Core types
+export type {
+  // Basic types
+  PartOfSpeech,
+  Form,
+  Pronunciation,
+  Tag,
+  Count,
+  Example,
+  Definition,
+  Relation,
+  SyntacticBehaviour,
+  Word,
+  Sense,
+  Synset,
+  ILI,
+  Lexicon,
+  Project,
+  // Query types
+  WordQuery,
+  SynsetQuery,
+  SenseQuery,
+  // Configuration types
+  WordnetConfig,
+  WordnetOptions,
+  DownloadOptions,
+  AddOptions,
+  ExportOptions
+} from './core/types.js';
 
-// Basic query functions are now available through the WordNetCore client
+// ============================================================================
+// DATABASE TYPES AND CONFIGURATION
+// ============================================================================
 
-// True plugins (optional functionality)
-export * from './plugins/index.js';
+// Database table types
+export type { 
+  Database,
+  LexiconTable, 
+  WordTable, 
+  SynsetTable, 
+  SenseTable, 
+  DefinitionTable, 
+  RelationTable, 
+  ExampleTable, 
+  IliTable, 
+  FormTable,
+  NewLexicon,
+  NewWord,
+  NewSynset,
+  NewSense,
+  NewDefinition,
+  NewExample,
+  NewRelation,
+  NewILI,
+  NewForm
+} from './types/database.js';
 
-// Abstract query classes have been replaced by Kysely-based implementations
+// Database configuration types
+export type { 
+  BaseDatabaseConfig,
+  NodeDatabaseConfig,
+  WebDatabaseConfig,
+  DatabaseStats,
+  DatabaseConnectionState
+} from './shared/database-config.js';
 
-// Shared Kysely-based implementations
-export * from './shared/index.js';
+// ============================================================================
+// DATABASE OPERATIONS
+// ============================================================================
 
-// Additional utilities (environment-agnostic)
-export { downloadFile, DownloadError } from './utils/download.js';
-export { logger, Logger, LogLevel } from './utils/logger.js';
-export { extractTarArchive, decompressXz, decompressGz, findLMFiles } from './utils/archive.js';
-export { parsePackageId, formatPackageId, isValidPackageId, getPackageBase, getPackageVersion } from './utils/package-id.js';
-export type { PackageIdParts } from './utils/package-id.js';
+// Shared database utilities
+export {
+  BaseKyselyQueryService,
+  batchInsert,
+  SchemaBuilder,
+  DatabaseUtils
+} from './shared/index.js';
+
+// Database operations
+export {
+  insertRecord,
+  insertRecords
+} from './modules/database-operations/mutations/index.js';
 
 // Query strategy types
-export type { QueryStrategy, QueryOptions } from './shared/base-query-service.js';
+export type { 
+  QueryStrategy, 
+  QueryOptions 
+} from './shared/index.js';
 
-// LMF Parsers module (environment-agnostic)
-export type { LMFParser as LMFXMLParser, LMFDocument, LMFLoadOptions } from './parsers/index.js';
+// Common interfaces
+export type { QueryService } from './shared/index.js';
+
+// ============================================================================
+// PROJECT CONFIGURATION
+// ============================================================================
+
+// Project configuration functions
+export {
+  DEFAULT_PROJECTS,
+  DEFAULT_PROXY_CONFIG,
+  FALLBACK_URLS,
+  getProjectConfig,
+  getProjectVersionConfig,
+  getProjectUrls,
+  getFallbackUrls,
+  getAllProjectUrls,
+  projectExists,
+  getAllProjectIds,
+  validateProjectId,
+  getProxyUrl,
+  needsProxy
+} from './config/project-config.js';
+
+// Project configuration types
+export type {
+  ProjectConfig,
+  ProjectVersionConfig,
+  ProxyConfig,
+  DataSourceConfig
+} from './config/project-config.js';
+
+// Project management
+export type { ProjectIndex } from './modules/data-management/project.js';
+
+// ============================================================================
+// DATA MANAGEMENT
+// ============================================================================
+
+// Data management functions
+export {
+  download,
+  loadLexicalResource,
+  getProjects,
+  getProject,
+  getProjectVersions,
+  getProjectVersionUrls,
+  getProjectVersionError,
+  loadProjectIndex,
+  clearProjectIndexCache,
+  isILI,
+  loadILI,
+  SharedDataManager
+} from './modules/data-management/index.js';
+
+// Data management types
+export type { 
+  DataManagerOptions,
+  DataManagerLogger,
+  DataManagerAdapter,
+  DataManagerProjectInfo
+} from './modules/data-management/shared-data-manager.js';
+export type { IliRecord } from './modules/data-management/ili.js';
+
+// ============================================================================
+// PLUGINS AND EXTENSIONS
+// ============================================================================
+
+// Morphology plugins
+export {
+  Morphy,
+  createMorphy,
+  morphy
+} from './modules/morphology/index.js';
+export type { MorphyResult } from './modules/morphology/index.js';
+
+// Relation plugins
+export {
+  hypernyms,
+  shortestPath,
+  maxDepth,
+  lowestCommonHypernyms,
+  roots,
+  leaves,
+  taxonomyDepth,
+  hypernymPaths,
+  minDepth,
+  taxonomyShortestPath,
+  getHypernyms,
+  getHyponyms,
+  getMeronyms,
+  getHolonyms,
+  getEntailments,
+  getSimilarTos,
+  getRelationsByType,
+  getAllRelations
+} from './modules/relations/index.js';
+
+// Comprehensive relation methods
+export {
+  comprehensiveRelationMethods,
+  RELATION_CATEGORIES,
+  ALL_RELATION_TYPES,
+  RELATION_DESCRIPTIONS
+} from './plugins/relations/comprehensive-relations.js';
+
+// Translation utilities
+export {
+  TranslationHelper,
+  createTranslationHelper,
+  quickTranslate
+} from './shared/translation-utils.js';
+export type {
+  TranslationResult,
+  BilingualQueryOptions
+} from './shared/translation-utils.js';
+
+// ============================================================================
+// LMF (LEXICAL MARKUP FRAMEWORK)
+// ============================================================================
+
+// LMF parsers
+export type { 
+  LMFParser as LMFXMLParser, 
+  LMFDocument, 
+  LMFLoadOptions 
+} from './parsers/index.js';
 export { StreamingSaxParser } from './parsers/index.js';
 
-// LMF utilities - use explicit exports to avoid conflicts
+// LMF utilities
 export type { 
   Lexicon as LMFlexicon
 } from './lmf.js';
@@ -87,21 +300,79 @@ export {
   createMinimalLMF
 } from './lmf.js';
 
+// ============================================================================
+// UTILITIES
+// ============================================================================
+
+// File and download utilities
+export { 
+  downloadFile, 
+  DownloadError 
+} from './utils/download.js';
+
+// Archive utilities
+export { 
+  extractTarArchive, 
+  decompressXz, 
+  decompressGz, 
+  findLMFiles 
+} from './utils/archive.js';
+
+// Package ID utilities
+export { 
+  parsePackageId, 
+  formatPackageId, 
+  isValidPackageId, 
+  getPackageBase, 
+  getPackageVersion 
+} from './utils/package-id.js';
+export type { PackageIdParts } from './utils/package-id.js';
+
+// Logging utilities
+export { 
+  logger, 
+  Logger, 
+  LogLevel 
+} from './utils/logger.js';
+
 // Validation utilities
-export * from './validation.js';
+export {
+  validateLMFDataIntegrity,
+  fileOperations
+} from './validation.js';
+export type {
+  ValidationResult,
+  ValidationDifference,
+  DatabaseAdapter,
+  ValidationOptions
+} from './validation.js';
 
-// Translation utilities
-export * from './shared/translation-utils.js';
+// Environment utilities
+export {
+  config,
+  ConfigManager,
+  PlaceholderConfigManager
+} from './modules/environment/index.js';
+export type {
+  ProjectVersion,
+  ProjectInfo,
+  Config
+} from './modules/environment/index.js';
 
-// Test utilities (Node.js only - not exported for browser compatibility)
-// export * from './test/test-data-manager.js';
+// ============================================================================
+// ERROR HANDLING
+// ============================================================================
 
-// Version
+export { 
+  WnError,
+  DatabaseError,
+  ConfigurationError,
+  ProjectError,
+  WnWarning
+} from './core/errors.js';
+
+// ============================================================================
+// VERSION
+// ============================================================================
+
 export const __version__ = '0.1.1';
-
-// Additional exports for compatibility
-export type { ProjectIndex } from './modules/data-management/project.js';
-export { WnError } from './core/errors.js';
-
-// Environment module
-export * from './modules/environment/index.js';

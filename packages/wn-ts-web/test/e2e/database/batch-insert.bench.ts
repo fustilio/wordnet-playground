@@ -1,6 +1,6 @@
 import { bench, describe } from "vitest";
 import { Kysely } from "kysely";
-import { batchInsert } from "../../../../src/database/batch-insert.js";
+import { batchInsert } from "wn-ts-core";
 import { KyselyQueryService } from "../../../src/database/kysely-query-service.js";
 import { createSqliteWasmDialect } from "../../../src/database/sqlite-wasm-dialect.js";
 import { WebDatabase } from "../../../src/client/submodules/web-database.js";
@@ -31,7 +31,12 @@ async function setup() {
   await webDb.initializeWithModule(sqlModule);
   await webDb.createDatabase();
 
-  const dialect = createSqliteWasmDialect(webDb.getDatabase());
+  const database = webDb.getDatabase();
+  if (!database) {
+    throw new Error('Database is not available');
+  }
+
+  const dialect = createSqliteWasmDialect({ database, sqlModule });
   kyselyDb = new Kysely<Database>({ dialect });
   queryService = new KyselyQueryService(kyselyDb);
 

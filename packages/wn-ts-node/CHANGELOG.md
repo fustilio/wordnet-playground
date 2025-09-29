@@ -1,5 +1,11 @@
 # wn-ts-node
 
+## 0.7.1
+
+### Patch Changes
+
+- fix build errors and reorganize exports
+
 ## 0.7.0
 
 ### Minor Changes

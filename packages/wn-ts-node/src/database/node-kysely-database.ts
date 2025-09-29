@@ -6,7 +6,7 @@
 import type { Database } from './types/database.js';
 import { Kysely, SqliteDialect } from 'kysely';
 import type { NodeDatabaseConfig } from 'wn-ts-core';
-import { SchemaBuilder } from 'wn-ts-core';
+import { SchemaBuilder } from 'wn-ts-core/shared';
 
 // Local interface that works with our database types
 export interface NodeKyselyDatabaseInterface {

@@ -8,7 +8,7 @@ import { SharedDataManager } from 'wn-ts-core';
 import type { Database } from 'wn-ts-core';
 import type { Kysely } from 'kysely';
 import type { LMFDocument } from 'wn-ts-core';
-import type { DataManagerOptions, ProjectInfo, DataManagerLogger } from 'wn-ts-core';
+import type { DataManagerOptions, ProjectInfo, DataManagerProjectInfo, DataManagerLogger, QueryService } from 'wn-ts-core';
 import { Logger } from 'wn-ts-core';
 import type { WordNetProcessingResult } from 'wn-data-loader';
 import { WordNetProcessor } from 'wn-data-loader';
@@ -27,10 +27,7 @@ export interface WebWordnet {
   getQueryService(): QueryService;
 }
 
-export interface QueryService {
-  database: Kysely<Database>;
-  getLexicons(): Promise<LexiconInfo[]>;
-}
+// QueryService interface is now imported from wn-ts-core
 
 export interface LexiconInfo {
   id: string;
@@ -251,7 +248,7 @@ export class WebDataManager extends SharedDataManager {
   /**
    * Get project information from the centralized configuration
    */
-  protected async getProjectInfo(projectId: string): Promise<ProjectInfo> {
+  protected async getProjectInfo(projectId: string): Promise<DataManagerProjectInfo> {
     this.logger.debug(`🔍 Getting project info for: ${projectId}`);
 
     try {
@@ -284,7 +281,7 @@ export class WebDataManager extends SharedDataManager {
       
       const [baseId, version] = projectId.split(':');
       
-      const projectInfo: ProjectInfo = {
+      const projectInfo: DataManagerProjectInfo = {
         id: projectId,
         label: projectConfig.label,
         language: projectConfig.language,
@@ -303,7 +300,7 @@ export class WebDataManager extends SharedDataManager {
       this.logger.warn(`⚠️ Failed to get project info for ${projectId}, using fallback:`, error);
       
       // Fallback to basic project info if configuration fails
-      const projectInfo: ProjectInfo = {
+      const projectInfo: DataManagerProjectInfo = {
         id: projectId,
         label: projectId,
         language: 'en',
@@ -634,14 +631,5 @@ export interface ILIRecord {
   status: string;
 }
 
-export interface LexiconInfo {
-  id: string;
-  label: string;
-  language: string;
-  version: string;
-  wordCount: number;
-  synsetCount: number;
-  senseCount: number;
-  iliCount: number;
-  loadedAt?: string;
-}
+// Re-export types that are imported from other packages
+export type { QueryService, ProjectInfo, WordNetProcessingResult };

@@ -1,7 +1,7 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { parse } from 'smol-toml';
-import { isCompressedURL, getURLExtension } from '../utils/url.js';
+import { isCompressedURL } from '../utils/url.js';
 
 const execAsync = promisify(exec);
 
@@ -36,7 +36,6 @@ export interface WordNetIndexEntry {
  * Analyze a WordNet archive URL to determine its structure and contents
  */
 export async function analyzeWordNetArchive(url: string): Promise<WordNetArchiveInfo> {
-  const extension = getURLExtension(url);
   const isCompressed = isCompressedURL(url);
   
   if (!isCompressed) {
@@ -152,7 +151,7 @@ function extractLanguages(xmlFiles: string[]): string[] {
   for (const file of xmlFiles) {
     // Look for language codes in the path
     const languageMatch = file.match(/([a-z]{2,3})(?:-[A-Z]{2})?\.xml$/i);
-    if (languageMatch) {
+    if (languageMatch && languageMatch[1]) {
       languages.add(languageMatch[1].toLowerCase());
     }
     
@@ -193,11 +192,11 @@ export function parseWordNetIndex(tomlContent: string): WordNetIndexEntry[] {
         if (typeof versionData === 'object' && versionData !== null) {
           const versionInfo: { url?: string; error?: string } = {};
           
-          if (typeof versionData.url === 'string') {
-            versionInfo.url = versionData.url;
+          if (typeof (versionData as any).url === 'string') {
+            versionInfo.url = (versionData as any).url;
           }
-          if (typeof versionData.error === 'string') {
-            versionInfo.error = versionData.error;
+          if (typeof (versionData as any).error === 'string') {
+            versionInfo.error = (versionData as any).error;
           }
           
           entry.versions[version] = versionInfo;
@@ -274,7 +273,7 @@ export async function analyzeAllWordNetUrls(entries: WordNetIndexEntry[]): Promi
   console.log(`Analyzing ${urls.length} WordNet URLs...`);
   
   for (let i = 0; i < urls.length; i++) {
-    const url = urls[i];
+    const url = urls[i] || `url-${i}`;
     console.log(`[${i + 1}/${urls.length}] Analyzing: ${url}`);
     
     try {

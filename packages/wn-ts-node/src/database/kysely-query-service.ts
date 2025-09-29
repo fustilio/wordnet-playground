@@ -5,7 +5,7 @@
  */
 
 import { Kysely } from 'kysely';
-import { BaseKyselyQueryService, SchemaBuilder, DatabaseUtils, type QueryStrategy } from 'wn-ts-core';
+import { BaseKyselyQueryService, SchemaBuilder, DatabaseUtils, type QueryStrategy } from 'wn-ts-core/shared';
 import type { Database } from './types/database.js';
 
 export class KyselyQueryService extends BaseKyselyQueryService {

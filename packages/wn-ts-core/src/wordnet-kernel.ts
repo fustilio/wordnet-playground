@@ -648,7 +648,9 @@ export class WordNetKernel<TPlugins extends readonly Plugin[] = readonly []> {
   // Private schema management methods (simplified from microkernel)
   private async checkForConflicts(newRequirements: PluginSchemaRequirements): Promise<void> {
     // Check for conflicts with existing requirements
-    for (const [pluginName, existingReq] of this.pluginRequirements) {
+    for (const entry of this.pluginRequirements) {
+      const pluginName = entry[0];
+      const existingReq = entry[1];
       if (pluginName === newRequirements.pluginName) continue;
       
       // Check for table conflicts
@@ -805,7 +807,9 @@ export class WordNetKernel<TPlugins extends readonly Plugin[] = readonly []> {
     
     // Check if required tables exist
     const currentTables = await this.getCurrentTables();
-    for (const [pluginName, requirements] of this.pluginRequirements) {
+    for (const entry of this.pluginRequirements) {
+      const pluginName = entry[0];
+      const requirements = entry[1];
       for (const tableReq of requirements.tables || []) {
         if (!currentTables.includes(tableReq.name)) {
           issues.push({
@@ -837,7 +841,9 @@ export class WordNetKernel<TPlugins extends readonly Plugin[] = readonly []> {
     const issues: HealthIssue[] = [];
     
     // Convert conflict resolutions to health issues
-    for (const [conflictId, conflict] of this.conflictResolutions) {
+    for (const entry of this.conflictResolutions) {
+      const conflictId = entry[0];
+      const conflict = entry[1];
       issues.push({
         id: conflictId,
         type: 'conflict',

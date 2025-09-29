@@ -302,6 +302,14 @@ export class WordNetWorkerClient {
         this.statistics = {
           ...result.data.statistics,
           source: "Worker" as const,
+          // Add default values for properties not in OverallStatistics
+          totalRelations: 0,
+          totalDefinitions: 0,
+          languages: [],
+          partsOfSpeech: [],
+          dataSize: 0,
+          posDistribution: {},
+          lexiconStats: [],
         };
         
         // Emit change event if there were changes

@@ -87,11 +87,11 @@ export interface ProjectData {
 export interface ProjectInfo {
   id: string;
   label: string;
-  language?: string;
-  license?: string;
-  description?: string;
-  url?: string;
-  citation?: string;
+  language: string;
+  license: string;
+  description: string;
+  url: string;
+  citation: string;
   versions: string[];
 }
 
@@ -121,7 +121,7 @@ export function getAvailableProjects(): ProjectInfo[] {
         label: project.label!,
         language: project.language || 'en',
         license: project.license || 'https://creativecommons.org/licenses/by/4.0/',
-        description: project.type || 'WordNet project',
+        description: 'WordNet project',
         url: tempProject.primaryUrl,
         citation: tempProject.citation,
         versions: validVersions
@@ -147,7 +147,7 @@ export function getProjectDetails(projectId: string): ProjectInfo | null {
     label: project.label,
     language: project.language || 'en',
     license: project.license || 'https://creativecommons.org/licenses/by/4.0/',
-    description: project.type || 'WordNet project',
+    description: 'WordNet project',
     url: tempProject.primaryUrl,
     citation: tempProject.citation,
     versions: Object.keys(project.versions)

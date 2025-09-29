@@ -5,15 +5,13 @@ Welcome to the comprehensive documentation for the WordNet TypeScript ecosystem.
 ## Quick Start
 
 - **[Getting Started Guide](./getting-started/README.md)** - Set up and run your first WordNet application
-- **[Installation Guide](./getting-started/installation.md)** - Install dependencies and configure your environment
-- **[Basic Usage](./getting-started/basic-usage.md)** - Learn the fundamentals
+- **[Development Guide](./development/README.md)** - Install dependencies and configure your environment
 
 ## Documentation Sections
 
 ### Architecture & Design
-- **[System Architecture](./architecture/SYSTEM_ARCHITECTURE.md)** - High-level system design
+- **[System Architecture](./architecture/SYSTEM_ARCHITECTURE.md)** - High-level system design and microkernel architecture
 - **[Web Architecture](./architecture/WEB_ARCHITECTURE.md)** - Browser-specific implementation details
-- **[Microkernel Design](./architecture/MICROKERNEL_ARCHITECTURE.md)** - Plugin system and extensibility
 
 ### Package Documentation
 - **[wn-ts-core](./packages/wn-ts-core/README.md)** - Foundation library with microkernel architecture
@@ -28,13 +26,11 @@ Welcome to the comprehensive documentation for the WordNet TypeScript ecosystem.
 - **[Integration Examples](./examples/integration-examples/README.md)** - Cross-platform scenarios
 
 ### API Reference
-- **[Core API](./api/CORE_API.md)** - Core interfaces and types
-- **[Web API](./api/WEB_API.md)** - Browser-specific APIs
-- **[Plugin API](./api/PLUGIN_API.md)** - Plugin development guide
+- **[Unified API](./api/UNIFIED_API.md)** - Complete API documentation
 
 ### Development
 - **[Development Guide](./development/README.md)** - Contributing and development setup
-- **[Testing Strategy](./development/TESTING_STRATEGY.md)** - Testing approach and coverage
+- **[Testing Strategy](./standards/TESTING_STRATEGY.md)** - Testing approach and coverage
 - **[Performance Guidelines](./development/PERFORMANCE.md)** - Optimization and benchmarking
 
 ### Standards & Conventions
@@ -81,9 +77,9 @@ wn-cli translate "computer" --from en --to fr
 - **CLI**: [CLI Documentation](./packages/wn-cli/README.md)
 
 ### By Task
-- **Search Words**: [Basic Usage Guide](./getting-started/basic-usage.md)
+- **Search Words**: [Getting Started Guide](./getting-started/README.md)
 - **Cross-Lingual Translation**: [Translation Examples](./examples/integration-examples/translation.md)
-- **Plugin Development**: [Plugin API Guide](./api/PLUGIN_API.md)
+- **Plugin Development**: [Unified API Guide](./api/UNIFIED_API.md)
 - **Performance Optimization**: [Performance Guidelines](./development/PERFORMANCE.md)
 
 ## Contributing to Documentation

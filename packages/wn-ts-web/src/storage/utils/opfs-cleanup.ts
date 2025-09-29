@@ -122,7 +122,7 @@ export async function nuclearOpfsCleanup(): Promise<OpfsCleanupResult> {
     logger.warn('Starting nuclear OPFS cleanup - this will delete ALL OPFS files!');
 
     const opfsRoot = await navigator.storage.getDirectory();
-    const entries = opfsRoot.entries();
+    const entries = (opfsRoot as any).entries();
     
     let deletedCount = 0;
     const errors: any[] = [];

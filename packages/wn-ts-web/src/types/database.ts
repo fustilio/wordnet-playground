@@ -6,7 +6,6 @@
 
 export type { 
   Database,
-  DatabaseSchema,
   LexiconTable,
   WordTable,
   SynsetTable,
@@ -17,4 +16,8 @@ export type {
   IliTable,
   FormTable
 } from 'wn-ts-core';
+
+// DatabaseSchema is an alias for Database
+import type { Database } from 'wn-ts-core';
+export type DatabaseSchema = Database;
 

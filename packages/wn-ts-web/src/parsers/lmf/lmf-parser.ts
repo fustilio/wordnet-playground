@@ -9,7 +9,38 @@ type ParsedXMLStructure = {
   attributes?: Record<string, string>;
   children?: (XMLElement | XMLTextNode)[];
   text?: string;
+  // Common LMF element properties
+  id?: string;
+  label?: string;
+  language?: string;
+  version?: string;
+  email?: string;
+  license?: string;
+  url?: string;
+  citation?: string;
+  logo?: string;
+  ili?: string;
+  partOfSpeech?: string;
+  lexicon?: string;
+  writtenForm?: string;
+  tag?: string;
+  script?: string;
+  // Complex nested structures
+  Synset?: Record<string, ParsedXMLStructure>;
+  Sense?: Record<string, ParsedXMLStructure>;
+  Form?: Record<string, ParsedXMLStructure>;
+  Lemma?: ParsedXMLStructure;
 };
+
+// Type guard to check if an object can be treated as ParsedXMLStructure
+function isParsedXMLStructure(obj: unknown): obj is ParsedXMLStructure {
+  return typeof obj === 'object' && obj !== null;
+}
+
+// Helper function to safely cast to ParsedXMLStructure
+function asParsedXMLStructure(obj: unknown): ParsedXMLStructure {
+  return obj as ParsedXMLStructure;
+}
 import type {
   LMFXMLParser,
   LMFDocument,
@@ -21,6 +52,7 @@ import type {
   Form,
   Definition,
   Relation,
+  PartOfSpeech,
 } from "wn-ts-core";
 import { 
   DuplicateHandler, 
@@ -405,24 +437,28 @@ export class LmfParser implements LMFXMLParser {
     let xmlData: ParsedXMLStructure;
     if (xmlResult.data) {
       // MultiXMLParser result structure
-      xmlData = xmlResult.data as ParsedXMLStructure;
+      xmlData = asParsedXMLStructure(xmlResult.data);
       this.logger.debug(`Using MultiXMLParser result structure with data property`);
     } else {
       // Direct XML result structure
-      xmlData = xmlResult;
+      xmlData = asParsedXMLStructure(xmlResult);
       this.logger.debug(`Using direct XML result structure`);
     }
 
     this.logger.debug(`XML data keys:`, Object.keys(xmlData));
-    if (xmlData.LexicalResource) {
-      this.logger.debug(`LexicalResource keys:`, Object.keys(xmlData.LexicalResource));
-      if (xmlData.LexicalResource.children) {
-        this.logger.debug(`LexicalResource has children array with ${xmlData.LexicalResource.children.length} elements`);
+    
+    // Extract LMF version from the root element if available
+    const lexicalResource = xmlData.LexicalResource as ParsedXMLStructure | undefined;
+    
+    if (lexicalResource) {
+      this.logger.debug(`LexicalResource keys:`, Object.keys(lexicalResource));
+      if (lexicalResource.children) {
+        this.logger.debug(`LexicalResource has children array with ${lexicalResource.children.length} elements`);
       }
     }
 
     // Log if no LexicalResource found
-    if (!xmlData.LexicalResource) {
+    if (!lexicalResource) {
       this.logger.warn(
         "convertXMLResultToLMFDocument: No LexicalResource found in XML data",
         {
@@ -432,30 +468,28 @@ export class LmfParser implements LMFXMLParser {
         }
       );
     }
-
-    // Extract LMF version from the root element if available
     if (
-      xmlData.LexicalResource &&
-      xmlData.LexicalResource.attributes &&
-      xmlData.LexicalResource.attributes.lmfVersion
+      lexicalResource &&
+      lexicalResource.attributes &&
+      lexicalResource.attributes.lmfVersion
     ) {
-      result.lmfVersion = xmlData.LexicalResource.attributes.lmfVersion;
+      result.lmfVersion = lexicalResource.attributes.lmfVersion;
     }
 
     // Process LexicalResource element
-    if (xmlData.LexicalResource) {
+    if (lexicalResource) {
       this.logger.debug(`Found LexicalResource, processing...`);
-      this.logger.debug(`LexicalResource type:`, typeof xmlData.LexicalResource);
-      this.logger.debug(`LexicalResource keys:`, Object.keys(xmlData.LexicalResource));
-      if (xmlData.LexicalResource.children) {
-        this.logger.debug(`LexicalResource.children type:`, typeof xmlData.LexicalResource.children);
-        this.logger.debug(`LexicalResource.children is array:`, Array.isArray(xmlData.LexicalResource.children));
-        if (Array.isArray(xmlData.LexicalResource.children)) {
-          this.logger.debug(`LexicalResource.children length:`, xmlData.LexicalResource.children.length);
-          this.logger.debug(`First few children:`, xmlData.LexicalResource.children.slice(0, 3).map((c: XMLElement | XMLTextNode) => ({ name: c.name, type: typeof c })));
+      this.logger.debug(`LexicalResource type:`, typeof lexicalResource);
+      this.logger.debug(`LexicalResource keys:`, Object.keys(lexicalResource));
+      if (lexicalResource.children) {
+        this.logger.debug(`LexicalResource.children type:`, typeof lexicalResource.children);
+        this.logger.debug(`LexicalResource.children is array:`, Array.isArray(lexicalResource.children));
+        if (Array.isArray(lexicalResource.children)) {
+          this.logger.debug(`LexicalResource.children length:`, lexicalResource.children.length);
+          this.logger.debug(`First few children:`, lexicalResource.children.slice(0, 3).map((c: XMLElement | XMLTextNode) => ({ name: c.name, type: typeof c })));
         }
       }
-      this.processLexicalResource(xmlData.LexicalResource, result, progressCallback, options);
+      this.processLexicalResource(lexicalResource, result, progressCallback, options);
     }
 
     // Enhanced fallback: if nothing was extracted, use improved regex parsing
@@ -562,14 +596,14 @@ export class LmfParser implements LMFXMLParser {
             elementKeys: Object.keys(child)
           });
           
-          const lexicon = this.processLexicon(child);
+          const lexicon = this.processLexicon(asParsedXMLStructure(child));
           if (lexicon) {
             lexicons.push(lexicon);
             // All lexicons should contribute to aggregated arrays
             const includeIntoAggregates = child.name === "Lexicon"; // Only Lexicon, not LexiconExtension
             this.logger.debug(`Processing lexicon ${lexicon.id} with language ${lexicon.language}, includeIntoAggregates=${includeIntoAggregates}`);
             // Process LexicalEntry, Synset, and Sense elements within the Lexicon
-            this.processLexiconContents(child, words, synsets, senses, includeIntoAggregates, options);
+            this.processLexiconContents(asParsedXMLStructure(child), words, synsets, senses, includeIntoAggregates, options);
           } else {
             this.logger.warn(`Failed to process lexicon element:`, child);
           }
@@ -578,19 +612,19 @@ export class LmfParser implements LMFXMLParser {
           if (child.name === "LexicalEntry") {
             // For direct LexicalEntry elements, try to find the primary lexicon ID
             const primaryLexiconId = lexicons.length > 0 ? lexicons[0].id : "unknown";
-            const word = this.processLexicalEntry(child, primaryLexiconId);
+            const word = this.processLexicalEntry(asParsedXMLStructure(child), primaryLexiconId);
             if (word) {
               words.push(word);
             }
           } else if (child.name === "Synset") {
             // For direct Synset elements, try to find the primary lexicon ID
             const primaryLexiconId = lexicons.length > 0 ? lexicons[0].id : "unknown";
-            const synset = this.processSynset(child, primaryLexiconId);
+            const synset = this.processSynset(asParsedXMLStructure(child), primaryLexiconId);
             if (synset) {
               synsets.push(synset);
             }
           } else if (child.name === "Sense") {
-            const sense = this.processSense(child, undefined);
+            const sense = this.processSense(asParsedXMLStructure(child), undefined);
             if (sense) {
               senses.push(sense);
             }
@@ -629,14 +663,14 @@ export class LmfParser implements LMFXMLParser {
             switch (key) {
               case "Lexicon":
               case "LexiconExtension":
-                const lexicon = this.processLexicon(childElement);
+                const lexicon = this.processLexicon(asParsedXMLStructure(childElement));
                 if (lexicon) {
                   lexicons.push(lexicon);
                   // Process LexicalEntry, Synset, and Sense elements within the Lexicon
                   const includeIntoAggregates = key === "Lexicon"; // Only Lexicon, not LexiconExtension
                   this.logger.debug(`Processing lexicon ${lexicon.id} with language ${lexicon.language}, includeIntoAggregates=${includeIntoAggregates}`);
                   this.processLexiconContents(
-                    childElement,
+                    asParsedXMLStructure(childElement),
                     words,
                     synsets,
                     senses,
@@ -651,7 +685,7 @@ export class LmfParser implements LMFXMLParser {
                 if (!hasLexiconKey) {
                   // For direct LexicalEntry elements, try to find the primary lexicon ID
                   const primaryLexiconId = lexicons.length > 0 ? lexicons[0].id : "unknown";
-                  const word = this.processLexicalEntry(childElement, primaryLexiconId);
+                  const word = this.processLexicalEntry(asParsedXMLStructure(childElement), primaryLexiconId);
                   if (word) {
                     words.push(word);
                   }
@@ -662,7 +696,7 @@ export class LmfParser implements LMFXMLParser {
                 if (!hasLexiconKey) {
                   // For direct Synset elements, try to find the primary lexicon ID
                   const primaryLexiconId = lexicons.length > 0 ? lexicons[0].id : "unknown";
-                  const synset = this.processSynset(childElement, primaryLexiconId);
+                  const synset = this.processSynset(asParsedXMLStructure(childElement), primaryLexiconId);
                   if (synset) {
                     synsets.push(synset);
                   }
@@ -671,7 +705,7 @@ export class LmfParser implements LMFXMLParser {
               case "Sense":
                 // Handle Sense elements that are direct children of LexicalResource
                 if (!hasLexiconKey) {
-                  const sense = this.processSense(childElement, undefined); // Pass undefined as no explicit lexical entry ID
+                  const sense = this.processSense(asParsedXMLStructure(childElement), undefined); // Pass undefined as no explicit lexical entry ID
                   if (sense) {
                     senses.push(sense);
                   }
@@ -778,7 +812,7 @@ export class LmfParser implements LMFXMLParser {
       // This matches the Python implementation's approach
       for (const child of lexiconElement.children) {
         if (child.name === "LexicalEntry") {
-          const word = this.processLexicalEntry(child, lexiconElement.attributes?.id || "unknown");
+          const word = this.processLexicalEntry(asParsedXMLStructure(child), lexiconElement.attributes?.id || "unknown");
           if (word) {
             if (lexiconLanguage) {
               word.language = lexiconLanguage as string;
@@ -789,7 +823,7 @@ export class LmfParser implements LMFXMLParser {
             if (child.children && Array.isArray(child.children)) {
               for (const senseChild of child.children) {
                 if (senseChild.name === "Sense") {
-                  const sense = this.processSense(senseChild, word.id);
+                  const sense = this.processSense(asParsedXMLStructure(senseChild), word.id);
                   if (sense) {
                     const lexicalizedAttr = (senseChild as ParsedXMLStructure).attributes?.lexicalized ?? (senseChild as ParsedXMLStructure).lexicalized as string | undefined;
                     if (typeof lexicalizedAttr === 'string' && lexicalizedAttr === 'false') {
@@ -817,7 +851,7 @@ export class LmfParser implements LMFXMLParser {
       // PHASE 2: Process Synset elements
       for (const child of lexiconElement.children) {
         if (child.name === "Synset") {
-          const synset = this.processSynset(child, lexiconElement.attributes?.id || "unknown");
+          const synset = this.processSynset(asParsedXMLStructure(child), lexiconElement.attributes?.id || "unknown");
           if (synset) {
             if (lexiconLanguage) {
               synset.language = lexiconLanguage as string;
@@ -920,9 +954,9 @@ export class LmfParser implements LMFXMLParser {
               key
             )
           ) {
-            const lexicalEntry = lexiconElement.LexicalEntry[key];
+            const lexicalEntry = (lexiconElement.LexicalEntry as Record<string, ParsedXMLStructure>)[key];
             // For old structure, try to get lexicon ID from the lexicon element
-            const lexiconId = lexiconElement.id || "unknown";
+            const lexiconId = (lexiconElement.id as string) || "unknown";
             const word = this.processLexicalEntry(lexicalEntry, lexiconId);
             if (word) {
               if (includeIntoAggregates) {
@@ -968,8 +1002,8 @@ export class LmfParser implements LMFXMLParser {
             Object.prototype.hasOwnProperty.call(lexiconElement.Synset, key)
           ) {
             // For old structure, try to get lexicon ID from the lexicon element
-            const lexiconId = lexiconElement.id || "unknown";
-            const synset = this.processSynset(lexiconElement.Synset[key], lexiconId);
+            const lexiconId = (lexiconElement.id as string) || "unknown";
+            const synset = this.processSynset(lexiconElement.Synset[key] as ParsedXMLStructure, lexiconId);
             if (synset) {
               if (includeIntoAggregates) {
                 synsets.push(synset);
@@ -987,7 +1021,7 @@ export class LmfParser implements LMFXMLParser {
       if (lexiconElement.Sense) {
         for (const key in lexiconElement.Sense) {
           if (Object.prototype.hasOwnProperty.call(lexiconElement.Sense, key)) {
-            const sense = this.processSense(lexiconElement.Sense[key]);
+            const sense = this.processSense(lexiconElement.Sense[key] as ParsedXMLStructure);
             if (sense) {
               if (includeIntoAggregates) {
                 senses.push(sense);
@@ -1085,15 +1119,15 @@ export class LmfParser implements LMFXMLParser {
     } else {
       // Old structure
       this.logger.debug(`Processing lexicon with old structure:`, element);
-      id = element.id;
-      label = element.label;
-      language = element.language;
-      version = element.version;
-      email = element.email;
-      license = element.license;
-      url = element.url;
-      citation = element.citation;
-      logo = element.logo;
+      id = element.id as string | undefined;
+      label = element.label as string | undefined;
+      language = element.language as string | undefined;
+      version = element.version as string | undefined;
+      email = element.email as string | undefined;
+      license = element.license as string | undefined;
+      url = element.url as string | undefined;
+      citation = element.citation as string | undefined;
+      logo = element.logo as string | undefined;
     }
 
     // Parse Requires dependencies from children
@@ -1162,7 +1196,7 @@ export class LmfParser implements LMFXMLParser {
       indexAttr = element.attributes.index;
     } else {
       // Old structure
-      id = element.id;
+      id = element.id as string | undefined;
       indexAttr = (element as { index?: string }).index;
     }
 
@@ -1180,7 +1214,7 @@ export class LmfParser implements LMFXMLParser {
       ) as XMLElement | undefined;
     } else {
       // Old structure - direct property
-      lemmaElement = element.Lemma;
+      lemmaElement = element.Lemma as XMLElement | undefined;
     }
 
     if (lemmaElement) {
@@ -1191,8 +1225,8 @@ export class LmfParser implements LMFXMLParser {
         partOfSpeech = lemmaData.attributes.partOfSpeech;
       } else {
         // Old structure
-        lemma = lemmaData.writtenForm;
-        partOfSpeech = lemmaData.partOfSpeech;
+        lemma = lemmaData.writtenForm as string | undefined;
+        partOfSpeech = lemmaData.partOfSpeech as string | undefined;
       }
     }
 
@@ -1218,11 +1252,12 @@ export class LmfParser implements LMFXMLParser {
       // Old structure
       for (const key in element.Form) {
         if (Object.prototype.hasOwnProperty.call(element.Form, key)) {
+          const formData = element.Form[key] as ParsedXMLStructure;
           forms.push({
             id: key,
-            writtenForm: element.Form[key].writtenForm || "",
-            tag: element.Form[key].tag || "",
-            script: element.Form[key].script,
+            writtenForm: (formData.writtenForm as string) || "",
+            tag: (formData.tag as string) || "",
+            script: formData.script as string | undefined,
           });
         }
       }
@@ -1233,7 +1268,7 @@ export class LmfParser implements LMFXMLParser {
     return {
       id,
       lemma,
-      pos: partOfSpeech as string,
+      pos: partOfSpeech as PartOfSpeech,
       forms,
       pronunciations: [],
       tags: [],
@@ -1282,11 +1317,11 @@ export class LmfParser implements LMFXMLParser {
       lexicon = element.attributes.lexicon;
     } else {
       // Old structure
-      id = element.id;
-      ili = element.ili;
-      partOfSpeech = element.partOfSpeech;
-      language = element.language;
-      lexicon = element.lexicon;
+      id = element.id as string | undefined;
+      ili = element.ili as string | undefined;
+      partOfSpeech = element.partOfSpeech as string | undefined;
+      language = element.language as string | undefined;
+      lexicon = element.lexicon as string | undefined;
     }
 
     if (!id) {
@@ -1371,7 +1406,7 @@ export class LmfParser implements LMFXMLParser {
       // Old structure
       for (const key in element.Definition) {
         if (Object.prototype.hasOwnProperty.call(element.Definition, key)) {
-          const defElement = element.Definition[key];
+          const defElement = (element.Definition as any)[key];
           const glossElement = defElement.gloss;
           const gloss =
             glossElement?.textContent || defElement.textContent || "";
@@ -1408,12 +1443,13 @@ export class LmfParser implements LMFXMLParser {
       // Old structure
       for (const key in element.SynsetRelation) {
         if (Object.prototype.hasOwnProperty.call(element.SynsetRelation, key)) {
+          const relation = (element.SynsetRelation as any)[key];
           relations.push({
             id: key,
-            type: element.SynsetRelation[key].relType || "unknown",
-            target: element.SynsetRelation[key].target || "",
-            source: element.SynsetRelation[key].source,
-            dcType: element.SynsetRelation[key].dcType,
+            type: relation.relType || "unknown",
+            target: relation.target || "",
+            source: relation.source,
+            dcType: relation.dcType,
           });
         }
       }
@@ -1422,7 +1458,7 @@ export class LmfParser implements LMFXMLParser {
     return {
       id,
       ili: ili || undefined,
-      pos: (partOfSpeech || "n") as string,
+      pos: (partOfSpeech || "n") as PartOfSpeech,
       definitions: definitions.length > 0 ? definitions : [],
       examples: [],
       relations: relations.length > 0 ? relations : [],
@@ -1461,8 +1497,8 @@ export class LmfParser implements LMFXMLParser {
       synset = element.attributes.synset;
     } else {
       // Old structure
-      id = element.id;
-      synset = element.synset;
+      id = element.id as string | undefined;
+      synset = element.synset as string | undefined;
     }
 
     if (!id) {
@@ -1604,7 +1640,7 @@ export class LmfParser implements LMFXMLParser {
         result.words.push({
           id: ea.id || "unknown",
           lemma: la.writtenForm || ea.id || "unknown",
-          pos: (la.partOfSpeech || "n") as string,
+          pos: (la.partOfSpeech || "n") as PartOfSpeech,
           forms: [],
           pronunciations: [],
           tags: [],
@@ -1653,7 +1689,7 @@ export class LmfParser implements LMFXMLParser {
         result.synsets.push({
           id: sa.id || "unknown",
           ili: sa.ili || undefined,
-          pos: (sa.partOfSpeech || "n") as string,
+          pos: (sa.partOfSpeech || "n") as PartOfSpeech,
           definitions: defText
             ? [
                 {

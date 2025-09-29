@@ -124,6 +124,7 @@ export class WebWordnet implements WordNetCore {
   private database: WebDatabase;
   private kyselyDb: Kysely<Database> | undefined;
   private queryService: KyselyQueryService | undefined;
+  private sqlModule: Sqlite3Static | undefined;
 
   // Public getters for test access
   get kyselyDatabase(): Kysely<Database> | undefined {
@@ -330,6 +331,7 @@ export class WebWordnet implements WordNetCore {
     try {
       console.log("🔍 WebWordnet.initialize() called");
       logger.info("🔍 WebWordnet.initialize() called");
+      this.sqlModule = sqlJsModule;
       await this.database.initializeWithModule(sqlJsModule);
       console.log("✅ Database module initialized");
       await this.database.createDatabase();
@@ -340,8 +342,12 @@ export class WebWordnet implements WordNetCore {
       console.log(`🗄️ Database storage: ${storageInfo.type} (persistent: ${storageInfo.persistent})${storageInfo.path ? ` at ${storageInfo.path}` : ''}`);
       logger.info(`🗄️ Database storage: ${storageInfo.type} (persistent: ${storageInfo.persistent})${storageInfo.path ? ` at ${storageInfo.path}` : ''}`);
 
+      const database = this.database.getDatabase();
+      if (!database) {
+        throw new Error('Database is not available');
+      }
       const dialect = createSqliteWasmDialect({
-        database: this.database.getDatabase(),
+        database,
         sqlModule: sqlJsModule,
       });
       console.log("✅ Kysely dialect created");
@@ -379,9 +385,16 @@ export class WebWordnet implements WordNetCore {
    * Refresh Kysely connections after the underlying database handle changes
    */
   refreshConnections(): void {
+    const database = this.database.getDatabase();
+    if (!database) {
+      throw new Error('Database is not available');
+    }
+    if (!this.sqlModule) {
+      throw new Error('SQL module is not available');
+    }
     const dialect = createSqliteWasmDialect({
-      database: this.database.getDatabase(),
-      sqlModule: this.database.getSqlModule(),
+      database,
+      sqlModule: this.sqlModule,
     });
     this.kyselyDb = new Kysely<Database>({ dialect });
     this.queryService = new KyselyQueryService(this.kyselyDb);
@@ -2023,8 +2036,9 @@ export class WebWordnet implements WordNetCore {
    * Export the underlying SQLite database bytes
    */
   exportDataBytes(): Uint8Array {
-    if (typeof (this.database as { exportBytes?: () => Uint8Array }).exportBytes === "function") {
-      return (this.database as { exportBytes: () => Uint8Array }).exportBytes();
+    const db = this.database as unknown as { exportBytes?: () => Uint8Array };
+    if (typeof db.exportBytes === "function") {
+      return db.exportBytes();
     }
     throw new Error("Export not supported");
   }

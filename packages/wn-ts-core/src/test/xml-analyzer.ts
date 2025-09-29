@@ -26,7 +26,7 @@ async function initializeXmlIntrospect() {
       XMLValidator = xmlIntrospect.XMLValidator;
       SampleGenerator = xmlIntrospect.SampleGenerator;
       XMLFakerGenerator = xmlIntrospect.XMLFakerGenerator;
-    } catch (error) {
+    } catch (error: any) {
       // xml-introspect not available, keep variables as null
     }
   }

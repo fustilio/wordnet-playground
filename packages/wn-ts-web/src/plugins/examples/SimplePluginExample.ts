@@ -1,172 +1,103 @@
 /**
- * Dead Simple Plugin Example - Just like Jotai/Jest
+ * Simple Plugin Example
+ * Demonstrates basic plugin usage with WordNet kernel
  */
 
-import { createWordNet } from 'wn-ts-core/plugins';
-import { relations, similarity, translation } from 'wn-ts-core/plugins';
+import { createWordNet } from 'wn-ts-core';
+import type { WordNetCore, Word, Synset, Sense } from 'wn-ts-core';
 
 // Mock core implementation
-const mockCore = {
-  query: async (sql: string, params?: any[]) => {
+const mockCore: WordNetCore = {
+  query: async (sql: string, params?: unknown[]) => {
     console.log('Query:', sql, params);
-    // Return mock data
-    return [
-      { id: 'synset1', lemma: 'computer', pos: 'n', language: 'en' },
-      { id: 'synset2', lemma: 'machine', pos: 'n', language: 'en' }
-    ];
+    return [];
   },
   getWord: async (form: string) => [],
-  getSynset: async (id: string) => ({ id, lemma: 'test' }),
+  getSynset: async (id: string) => ({
+    id,
+    pos: 'n' as const,
+    definitions: [],
+    examples: [],
+    relations: [],
+    language: 'en',
+    lexicon: 'test',
+    ili: undefined,
+    memberIds: [],
+    senseIds: []
+  }),
   getSenses: async (wordId: string) => [],
   getDefinitions: async (synsetId: string) => [],
-  getRelations: async (synsetId: string, type?: string) => []
+  getRelations: async (synsetId: string, type?: string) => [],
+  words: async () => [],
+  word: async (wordId: string) => ({
+    id: wordId,
+    lemma: 'test',
+    pos: 'n' as const,
+    forms: [],
+    pronunciations: [],
+    tags: [],
+    counts: [],
+    language: 'en',
+    lexicon: 'test',
+    senses: [],
+    syntacticBehaviours: []
+  }),
+  synsets: async () => [],
+  synset: async (synsetId: string) => ({
+    id: synsetId,
+    pos: 'n' as const,
+    definitions: [],
+    examples: [],
+    relations: [],
+    language: 'en',
+    lexicon: 'test',
+    ili: undefined,
+    memberIds: [],
+    senseIds: []
+  }),
+  senses: async () => [],
+  sense: async (senseId: string) => ({
+    id: senseId,
+    wordId: 'test-word',
+    synsetId: 'test-synset',
+    examples: [],
+    counts: [],
+    tags: [],
+    language: 'en',
+    lexicon: 'test',
+    register: undefined
+  }),
+  ili: async (iliId: string) => ({
+    id: iliId,
+    definition: 'test definition',
+    status: 'standard' as const
+  }),
+  ilis: async () => [],
+  synsetsByILI: async (iliId: string) => [],
+  lexicons: async () => []
 };
 
-/**
- * Example 1: Basic usage with plugins
- */
-export async function basicExample() {
-  console.log('=== Basic Plugin Usage ===');
+// Create WordNet with plugins
+const wordnet = createWordNet({
+  core: mockCore
+});
 
-  // Create WordNet with plugins - just like Jotai atoms
-  const wordnet = createWordNet({
-    core: mockCore,
-    plugins: [relations, similarity, translation]
-  });
-
-  // All methods are now available
-  const hypernyms = await wordnet.getHypernyms('computer-synset');
-  console.log('Hypernyms:', hypernyms);
-
-  const sim = await wordnet.getPathSimilarity('car', 'vehicle');
-  console.log('Similarity:', sim);
-
-  const translations = await wordnet.getTranslations('computer-synset', 'fr');
-  console.log('Translations:', translations);
-}
-
-/**
- * Example 2: Lazy loading
- */
-export async function lazyLoadingExample() {
-  console.log('=== Lazy Loading ===');
-
-  // Start with no plugins
-  const wordnet = createWordNet({ core: mockCore });
-
-  console.log('Has relations?', wordnet.has('relations')); // false
-  console.log('Has similarity?', wordnet.has('similarity')); // false
-
-  // Add plugins on demand
-  wordnet.use(relations);
-  console.log('Has relations?', wordnet.has('relations')); // true
-
-  wordnet.use(similarity);
-  console.log('Has similarity?', wordnet.has('similarity')); // true
-
-  // Now methods are available
-  const hypernyms = await wordnet.getHypernyms('computer-synset');
-  const sim = await wordnet.getPathSimilarity('car', 'vehicle');
-}
-
-/**
- * Example 3: Plugin composition
- */
-export async function compositionExample() {
-  console.log('=== Plugin Composition ===');
-
-  const wordnet = createWordNet({ core: mockCore });
-
-  // Create custom plugin that uses others
-  const advancedSimilarity = {
-    name: 'advanced-similarity',
-    methods: {
-      getBestSimilarity: async (core: any, synset1: string, synset2: string) => {
-        // Use other plugins
-        const pathSim = await core.getPathSimilarity(synset1, synset2);
-        const wuPalmerSim = await core.getWuPalmerSimilarity(synset1, synset2);
-        return Math.max(pathSim, wuPalmerSim);
-      }
-    }
-  };
-
-  // Add dependencies first
-  wordnet.use(similarity);
-  wordnet.use(advancedSimilarity);
-
-  // Use composed functionality
-  const bestSim = await wordnet.getBestSimilarity('car', 'vehicle');
-  console.log('Best similarity:', bestSim);
-}
-
-/**
- * Example 4: Conditional loading
- */
-export async function conditionalLoadingExample() {
-  console.log('=== Conditional Loading ===');
-
-  const wordnet = createWordNet({ core: mockCore });
-
-  // Only load what you need based on user preferences
-  const userPrefs = {
-    needsSimilarity: true,
-    needsTranslation: false,
-    needsRelations: true
-  };
-
-  if (userPrefs.needsRelations) {
-    wordnet.use(relations);
-  }
-
-  if (userPrefs.needsSimilarity) {
-    wordnet.use(similarity);
-  }
-
-  if (userPrefs.needsTranslation) {
-    wordnet.use(translation);
-  }
-
-  console.log('Loaded plugins:', wordnet.getPlugins());
-}
-
-/**
- * Example 5: Plugin management
- */
-export async function pluginManagementExample() {
-  console.log('=== Plugin Management ===');
-
-  const wordnet = createWordNet({ 
-    core: mockCore,
-    plugins: [relations, similarity, translation]
-  });
-
-  console.log('Initial plugins:', wordnet.getPlugins());
-
-  // Remove a plugin
-  wordnet.remove('translation');
-  console.log('After removing translation:', wordnet.getPlugins());
-
-  // Add it back
-  wordnet.use(translation);
-  console.log('After adding translation back:', wordnet.getPlugins());
-}
-
-/**
- * Run all examples
- */
-export async function runAllExamples() {
-  console.log('🚀 Dead Simple Plugin System Examples\n');
-
+// Example usage
+async function demonstrateSimpleUsage() {
   try {
-    await basicExample();
-    await lazyLoadingExample();
-    await compositionExample();
-    await conditionalLoadingExample();
-    await pluginManagementExample();
-
-    console.log('\n✅ All examples completed!');
+    console.log('=== Simple Plugin Demo ===\n');
+    
+    // Basic WordNet operations
+    const words = await wordnet.getWord('test');
+    console.log('Words found:', words.length);
+    
+    console.log('\n=== Demo Complete ===');
   } catch (error) {
-    console.error('❌ Example failed:', error);
+    console.error('Simple plugin error:', error);
   }
 }
 
+export {
+  wordnet,
+  demonstrateSimpleUsage
+};

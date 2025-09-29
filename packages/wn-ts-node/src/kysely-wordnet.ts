@@ -23,8 +23,9 @@ import { Kysely } from 'kysely';
 import type { NodeDatabaseConfig } from 'wn-ts-core';
 import { NodeKyselyDatabase } from './database/node-kysely-database.js';
 import { KyselyQueryService } from './database/kysely-query-service.js';
-import { batchInsert } from 'wn-ts-core';
+
 import type { Database } from './database/types/database.js';
+import { batchInsert } from 'wn-ts-core/shared';
 
 export interface NodeWordnetConfig extends NodeDatabaseConfig {
   journalMode?: 'DELETE' | 'WAL' | 'MEMORY' | 'OFF';

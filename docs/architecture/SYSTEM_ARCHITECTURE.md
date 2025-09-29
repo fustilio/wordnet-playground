@@ -4,6 +4,12 @@
 
 The WordNet TypeScript ecosystem uses a **microkernel architecture** with a plugin system, providing a modular, extensible, and type-safe foundation for WordNet operations across different environments.
 
+### **Key Design Principles**
+- **Plugin System**: Extensible, composable, and type-safe plugins
+- **Type Safety**: Full TypeScript support with compile-time type checking
+- **Cross-Platform**: Works in Node.js, browsers, and other JavaScript environments
+- **Modularity**: Core functionality separated from environment-specific implementations
+
 ## 📊 **Architecture Diagram**
 
 ```

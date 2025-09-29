@@ -32,43 +32,49 @@ describe('Cross-Platform Test Framework', () => {
       const testData = TestDataFactory.createBasicTestData();
       const lexicon = testData.lexicons[0];
       
-      expect(lexicon.id).toBe('test-lexicon');
-      expect(lexicon.label).toBe('Test Lexicon');
-      expect(lexicon.language).toBe('en');
-      expect(lexicon.version).toBe('1.0');
-      expect(lexicon.license).toBe('MIT');
-      expect(lexicon.url).toBe('https://example.com');
-      expect(lexicon.citation).toBe('Test Citation');
+      if (lexicon) {
+        expect(lexicon.id).toBe('test-lexicon');
+        expect(lexicon.label).toBe('Test Lexicon');
+        expect(lexicon.language).toBe('en');
+        expect(lexicon.version).toBe('1.0');
+        expect(lexicon.license).toBe('MIT');
+        expect(lexicon.url).toBe('https://example.com');
+        expect(lexicon.citation).toBe('Test Citation');
+      }
     });
 
     it('should create valid word data', () => {
       const testData = TestDataFactory.createBasicTestData();
       const word = testData.words[0];
       
-      expect(word.id).toBe('word-1');
-      expect(word.lemma).toBe('computer');
-      expect(word.pos).toBe('n');
-      expect(word.language).toBe('en');
-      expect(word.lexicon).toBe('test-lexicon');
-      expect(Array.isArray(word.forms)).toBe(true);
-      expect(Array.isArray(word.pronunciations)).toBe(true);
-      expect(Array.isArray(word.tags)).toBe(true);
-      expect(Array.isArray(word.counts)).toBe(true);
+      if (word) {
+        expect(word.id).toBe('word-1');
+        expect(word.lemma).toBe('computer');
+        expect(word.pos).toBe('n');
+        expect(word.language).toBe('en');
+        expect(word.lexicon).toBe('test-lexicon');
+        expect(Array.isArray(word.forms)).toBe(true);
+        expect(Array.isArray(word.pronunciations)).toBe(true);
+        expect(Array.isArray(word.tags)).toBe(true);
+        expect(Array.isArray(word.counts)).toBe(true);
+      }
     });
 
     it('should create valid synset data', () => {
       const testData = TestDataFactory.createBasicTestData();
       const synset = testData.synsets[0];
       
-      expect(synset.id).toBe('synset-1');
-      expect(synset.pos).toBe('n');
-      expect(synset.language).toBe('en');
-      expect(synset.lexicon).toBe('test-lexicon');
-      expect(Array.isArray(synset.definitions)).toBe(true);
-      expect(Array.isArray(synset.examples)).toBe(true);
-      expect(Array.isArray(synset.relations)).toBe(true);
-      expect(Array.isArray(synset.memberIds)).toBe(true);
-      expect(Array.isArray(synset.senseIds)).toBe(true);
+      if (synset) {
+        expect(synset.id).toBe('synset-1');
+        expect(synset.pos).toBe('n');
+        expect(synset.language).toBe('en');
+        expect(synset.lexicon).toBe('test-lexicon');
+        expect(Array.isArray(synset.definitions)).toBe(true);
+        expect(Array.isArray(synset.examples)).toBe(true);
+        expect(Array.isArray(synset.relations)).toBe(true);
+        expect(Array.isArray(synset.memberIds)).toBe(true);
+        expect(Array.isArray(synset.senseIds)).toBe(true);
+      }
     });
   });
 

@@ -43,12 +43,12 @@ wn-cli search "computer" --lexicon oewn:2024
 ## 📚 **Next Steps**
 
 ### **Learn the Basics**
-1. **[Basic Usage Guide](./basic-usage.md)** - Core concepts and common operations
-2. **[Installation Guide](./installation.md)** - Detailed setup instructions
-3. **[Examples](./examples/README.md)** - Working code examples
+1. **[Development Guide](../development/README.md)** - Detailed setup instructions
+2. **[Examples](../examples/README.md)** - Working code examples
+3. **[System Architecture](../architecture/SYSTEM_ARCHITECTURE.md)** - Core concepts and architecture
 
 ### **Explore Advanced Features**
-1. **[Plugin System](../api/PLUGIN_API.md)** - Extending functionality with plugins
+1. **[Unified API](../api/UNIFIED_API.md)** - Complete API documentation and plugin system
 2. **[Cross-Lingual Translation](../examples/integration-examples/translation.md)** - Multi-language support
 3. **[Performance Optimization](../development/PERFORMANCE.md)** - Making your app faster
 
@@ -105,25 +105,25 @@ Cross-Origin-Embedder-Policy: require-corp
 ## 🆘 **Getting Help**
 
 ### **Documentation**
-- **[API Reference](../api/README.md)** - Complete API documentation
+- **[Unified API](../api/UNIFIED_API.md)** - Complete API documentation
 - **[Examples](../examples/README.md)** - Working code examples
-- **[Architecture Guide](../architecture/README.md)** - System design details
+- **[System Architecture](../architecture/SYSTEM_ARCHITECTURE.md)** - System design details
 
 ### **Community**
 - **GitHub Issues**: [Report bugs or ask questions](https://github.com/fustilio/wordnet-playground-2/issues)
 - **GitHub Discussions**: [Community discussions](https://github.com/fustilio/wordnet-playground-2/discussions)
 
 ### **Common Issues**
-- **Installation problems**: Check [Installation Guide](./installation.md)
+- **Installation problems**: Check [Development Guide](../development/README.md)
 - **Type errors**: Ensure you're using TypeScript 5.0+
-- **Browser compatibility**: Check [Web Requirements](../packages/wn-ts-web/README.md#browser-requirements)
+- **Browser compatibility**: Check [Web Documentation](../packages/wn-ts-web/README.md)
 
 ## 🎉 **Ready to Go!**
 
 You now have the basics to start using WordNet TypeScript! Choose your next step:
 
-- **New to WordNet?** → [Basic Usage Guide](./basic-usage.md)
+- **New to WordNet?** → [System Architecture](../architecture/SYSTEM_ARCHITECTURE.md)
 - **Ready to build?** → [Examples](../examples/README.md)
-- **Need specific help?** → [API Reference](../api/README.md)
+- **Need specific help?** → [Unified API](../api/UNIFIED_API.md)
 
 Happy coding! 🚀

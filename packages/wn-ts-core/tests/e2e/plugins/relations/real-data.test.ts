@@ -31,8 +31,8 @@ describe.skip('Enhanced Relations - Real Data Tests', () => {
   });
   
   afterAll(async () => {
-    if (kernel) {
-      await kernel.close();
+    if (kernel && typeof (kernel as any).close === 'function') {
+      await (kernel as any).close();
     }
   });
   
@@ -49,14 +49,16 @@ describe.skip('Enhanced Relations - Real Data Tests', () => {
       }
       
       try {
-        const carSynsets = await kernel.core.synsets({ form: 'car', pos: 'n' });
-        if (carSynsets.length > 0) carSynsetId = carSynsets[0].id;
-        
-        const driveSynsets = await kernel.core.synsets({ form: 'drive', pos: 'v' });
-        if (driveSynsets.length > 0) driveSynsetId = driveSynsets[0].id;
-        
-        const happySynsets = await kernel.core.synsets({ form: 'happy', pos: 'a' });
-        if (happySynsets.length > 0) happySynsetId = happySynsets[0].id;
+        if (kernel && typeof (kernel as any).core === 'object' && (kernel as any).core) {
+          const carSynsets = await ((kernel as any).core as any).synsets({ form: 'car', pos: 'n' });
+          if (carSynsets.length > 0) carSynsetId = carSynsets[0].id;
+          
+          const driveSynsets = await ((kernel as any).core as any).synsets({ form: 'drive', pos: 'v' });
+          if (driveSynsets.length > 0) driveSynsetId = driveSynsets[0].id;
+          
+          const happySynsets = await ((kernel as any).core as any).synsets({ form: 'happy', pos: 'a' });
+          if (happySynsets.length > 0) happySynsetId = happySynsets[0].id;
+        }
       } catch (error) {
         console.warn('Could not find test synsets:', error);
       }
@@ -88,14 +90,14 @@ describe.skip('Enhanced Relations - Real Data Tests', () => {
     it('should find hyponyms for car', async () => {
       if (!carSynsetId || !kernel) return;
       
-      const hyponyms = await kernel.plugins.get('enhanced-relations')?.methods.getHyponyms?.(kernel, carSynsetId);
+      const hyponyms = await (kernel as any).plugins?.get('enhanced-relations')?.methods?.getHyponyms?.(kernel, carSynsetId);
       expect(Array.isArray(hyponyms)).toBe(true);
       
-      if (hyponyms.length > 0) {
+      if (hyponyms && hyponyms.length > 0) {
         expect(hyponyms[0]).toHaveProperty('relationType', 'hyponym');
         
         // Car should have hyponyms like specific car types
-        const lemmas = hyponyms.map((h: RelationResult) => h.lemma.toLowerCase());
+        const lemmas = hyponyms.map((h: any) => h.lemma.toLowerCase());
         expect(lemmas.length).toBeGreaterThan(0);
       }
     });
@@ -103,12 +105,12 @@ describe.skip('Enhanced Relations - Real Data Tests', () => {
     it('should find meronyms for car', async () => {
       if (!carSynsetId || !kernel) return;
       
-      const meronyms = await kernel.plugins.get('enhanced-relations')?.methods.getMeronyms?.(kernel, carSynsetId);
+      const meronyms = await (kernel as any).plugins?.get('enhanced-relations')?.methods?.getMeronyms?.(kernel, carSynsetId);
       expect(Array.isArray(meronyms)).toBe(true);
       
       if (meronyms.length > 0) {
         // Car should have parts like "wheel", "engine", "door"
-        const lemmas = meronyms.map((h: RelationResult) => h.lemma.toLowerCase());
+        const lemmas = meronyms.map((h: any) => h.lemma.toLowerCase());
         expect(lemmas.some((lemma: string) => 
           lemma.includes('wheel') || 
           lemma.includes('engine') || 
@@ -121,14 +123,14 @@ describe.skip('Enhanced Relations - Real Data Tests', () => {
     it('should find agents for drive verb', async () => {
       if (!driveSynsetId || !kernel) return;
       
-      const agents = await kernel.plugins.get('enhanced-relations')?.methods.getAgents?.(kernel, driveSynsetId);
+      const agents = await (kernel as any).plugins?.get('enhanced-relations')?.methods?.getAgents?.(kernel, driveSynsetId);
       expect(Array.isArray(agents)).toBe(true);
       
-      if (agents.length > 0) {
+      if (agents && agents.length > 0) {
         expect(agents[0]).toHaveProperty('relationType', 'agent');
         
         // Drive should have agents like "driver", "person"
-        const lemmas = agents.map((h: RelationResult) => h.lemma.toLowerCase());
+        const lemmas = agents.map((h: any) => h.lemma.toLowerCase());
         expect(lemmas.some((lemma: string) => 
           lemma.includes('driver') || 
           lemma.includes('person') ||
@@ -140,14 +142,14 @@ describe.skip('Enhanced Relations - Real Data Tests', () => {
     it('should find patients for drive verb', async () => {
       if (!driveSynsetId || !kernel) return;
       
-      const patients = await kernel.plugins.get('enhanced-relations')?.methods.getPatients?.(kernel, driveSynsetId);
+      const patients = await (kernel as any).plugins?.get('enhanced-relations')?.methods?.getPatients?.(kernel, driveSynsetId);
       expect(Array.isArray(patients)).toBe(true);
       
       if (patients.length > 0) {
         expect(patients[0]).toHaveProperty('relationType', 'patient');
         
         // Drive should have patients like "vehicle", "car"
-        const lemmas = patients.map((h: RelationResult) => h.lemma.toLowerCase());
+        const lemmas = patients.map((h: any) => h.lemma.toLowerCase());
         expect(lemmas.some((lemma: string) => 
           lemma.includes('vehicle') || 
           lemma.includes('car') ||
@@ -159,14 +161,14 @@ describe.skip('Enhanced Relations - Real Data Tests', () => {
     it('should find instruments for drive verb', async () => {
       if (!driveSynsetId || !kernel) return;
       
-      const instruments = await kernel.plugins.get('enhanced-relations')?.methods.getInstruments?.(kernel, driveSynsetId);
+      const instruments = await (kernel as any).plugins?.get('enhanced-relations')?.methods?.getInstruments?.(kernel, driveSynsetId);
       expect(Array.isArray(instruments)).toBe(true);
       
       if (instruments.length > 0) {
         expect(instruments[0]).toHaveProperty('relationType', 'instrument');
         
         // Drive should have instruments like "steering_wheel", "pedal"
-        const lemmas = instruments.map((h: RelationResult) => h.lemma.toLowerCase());
+        const lemmas = instruments.map((h: any) => h.lemma.toLowerCase());
         expect(lemmas.some((lemma: string) => 
           lemma.includes('steering') || 
           lemma.includes('pedal') ||
@@ -178,12 +180,12 @@ describe.skip('Enhanced Relations - Real Data Tests', () => {
     it('should find antonyms for happy adjective', async () => {
       if (!happySynsetId || !kernel) return;
       
-      const antonyms = await kernel.plugins.get('enhanced-relations')?.methods.getAntonyms?.(kernel, happySynsetId);
+      const antonyms = await (kernel as any).plugins?.get('enhanced-relations')?.methods?.getAntonyms?.(kernel, happySynsetId);
       expect(Array.isArray(antonyms)).toBe(true);
       
-      if (antonyms.length > 0) {
+      if (antonyms && antonyms.length > 0) {
         // Happy should have antonyms like "sad", "unhappy"
-        const lemmas = antonyms.map((h: RelationResult) => h.lemma.toLowerCase());
+        const lemmas = antonyms.map((h: any) => h.lemma.toLowerCase());
         expect(lemmas.some((lemma: string) => 
           lemma.includes('sad') || 
           lemma.includes('unhappy') ||
@@ -195,12 +197,12 @@ describe.skip('Enhanced Relations - Real Data Tests', () => {
     it('should find similar adjectives for happy', async () => {
       if (!happySynsetId || !kernel) return;
       
-      const similar = await kernel.plugins.get('enhanced-relations')?.methods.getSimilar?.(kernel, happySynsetId);
+      const similar = await (kernel as any).plugins?.get('enhanced-relations')?.methods?.getSimilar?.(kernel, happySynsetId);
       expect(Array.isArray(similar)).toBe(true);
       
-      if (similar.length > 0) {
+      if (similar && similar.length > 0) {
         // Happy should be similar to "joyful", "cheerful"
-        const lemmas = similar.map((h: RelationResult) => h.lemma.toLowerCase());
+        const lemmas = similar.map((h: any) => h.lemma.toLowerCase());
         expect(lemmas.some((lemma: string) => 
           lemma.includes('joyful') || 
           lemma.includes('cheerful') ||
@@ -211,15 +213,15 @@ describe.skip('Enhanced Relations - Real Data Tests', () => {
     
     it('should find domain topics for scientific terms', async () => {
       // Try to find a scientific term
-      const scienceSynsets = await kernel.core.synsets({ form: 'photosynthesis', pos: 'n' });
-      if (scienceSynsets.length === 0) return;
+      const scienceSynsets = await ((kernel as any).core as any)?.synsets({ form: 'photosynthesis', pos: 'n' });
+      if (scienceSynsets && scienceSynsets.length === 0) return;
       
-      const domainTopics = await kernel.plugins.get('enhanced-relations')?.methods.getDomainTopics?.(kernel, scienceSynsets[0].id);
+      const domainTopics = await ((kernel as any).plugins as any)?.get('enhanced-relations')?.methods?.getDomainTopics?.(kernel, scienceSynsets?.[0]?.id);
       expect(Array.isArray(domainTopics)).toBe(true);
       
       if (domainTopics.length > 0) {
         // Photosynthesis should be in biology domain
-        const lemmas = domainTopics.map((h: RelationResult) => h.lemma.toLowerCase());
+        const lemmas = domainTopics.map((h: any) => h.lemma.toLowerCase());
         expect(lemmas.some((lemma: string) => 
           lemma.includes('biology') || 
           lemma.includes('science') ||
@@ -231,15 +233,17 @@ describe.skip('Enhanced Relations - Real Data Tests', () => {
     it('should get relations by category', async () => {
       if (!carSynsetId || !kernel) return;
       
-      const hierarchicalRelations = await kernel.plugins.get('enhanced-relations')?.methods.getRelationsByCategory?.(kernel, carSynsetId, 'HIERARCHICAL');
+      const hierarchicalRelations = await ((kernel as any).plugins as any)?.get('enhanced-relations')?.methods?.getRelationsByCategory?.(kernel, carSynsetId, 'HIERARCHICAL');
       expect(Array.isArray(hierarchicalRelations)).toBe(true);
       
-      if (hierarchicalRelations.length > 0) {
+      if (hierarchicalRelations && hierarchicalRelations.length > 0) {
         // Should only contain hierarchical relation types
-        const relationTypes = hierarchicalRelations.map((r: RelationResult) => r.relationType);
+        const relationTypes = hierarchicalRelations.map((r: any) => r.relationType);
         const hierarchicalTypes = RELATION_CATEGORIES.HIERARCHICAL;
-        relationTypes.forEach(type => {
-          expect(hierarchicalTypes).toContain(type);
+        relationTypes.forEach((type: any) => {
+          if (hierarchicalTypes) {
+            expect(hierarchicalTypes).toContain(type);
+          }
         });
       }
     });
@@ -247,7 +251,7 @@ describe.skip('Enhanced Relations - Real Data Tests', () => {
     it('should get relation statistics by category', async () => {
       if (!carSynsetId || !kernel) return;
       
-      const stats = await kernel.plugins.get('enhanced-relations')?.methods.getRelationStatsByCategory?.(kernel, carSynsetId);
+      const stats = await ((kernel as any).plugins as any)?.get('enhanced-relations')?.methods?.getRelationStatsByCategory?.(kernel, carSynsetId);
       expect(typeof stats).toBe('object');
       
       // Car should have hierarchical relations
@@ -260,7 +264,7 @@ describe.skip('Enhanced Relations - Real Data Tests', () => {
     it('should get available relation types', async () => {
       if (!carSynsetId || !kernel) return;
       
-      const relationTypes = await kernel.plugins.get('enhanced-relations')?.methods.getAvailableRelationTypes?.(kernel, carSynsetId);
+      const relationTypes = await ((kernel as any).plugins as any)?.get('enhanced-relations')?.methods?.getAvailableRelationTypes?.(kernel, carSynsetId);
       expect(Array.isArray(relationTypes)).toBe(true);
       expect(relationTypes.length).toBeGreaterThan(0);
       
@@ -272,17 +276,17 @@ describe.skip('Enhanced Relations - Real Data Tests', () => {
     it('should validate relation types', async () => {
       if (!kernel) return;
       
-      const isValid = await kernel.plugins.get('enhanced-relations')?.methods.isValidRelationType?.('hypernym');
+      const isValid = await ((kernel as any).plugins as any)?.get('enhanced-relations')?.methods?.isValidRelationType?.('hypernym');
       expect(isValid).toBe(true);
       
-      const isInvalid = await kernel.plugins.get('enhanced-relations')?.methods.isValidRelationType?.('invalid-relation');
+      const isInvalid = await ((kernel as any).plugins as any)?.get('enhanced-relations')?.methods?.isValidRelationType?.('invalid-relation');
       expect(isInvalid).toBe(false);
     });
     
     it('should get relation types by category', async () => {
       if (!kernel) return;
       
-      const hierarchicalTypes = await kernel.plugins.get('enhanced-relations')?.methods.getRelationTypesByCategory?.('HIERARCHICAL');
+      const hierarchicalTypes = await ((kernel as any).plugins as any)?.get('enhanced-relations')?.methods?.getRelationTypesByCategory?.('HIERARCHICAL');
       expect(Array.isArray(hierarchicalTypes)).toBe(true);
       expect(hierarchicalTypes).toContain('hypernym');
       expect(hierarchicalTypes).toContain('hyponym');
@@ -291,7 +295,7 @@ describe.skip('Enhanced Relations - Real Data Tests', () => {
     it('should get relation descriptions', async () => {
       if (!kernel) return;
       
-      const descriptions = await kernel.plugins.get('enhanced-relations')?.methods.getRelationDescriptions?.();
+      const descriptions = await ((kernel as any).plugins as any)?.get('enhanced-relations')?.methods?.getRelationDescriptions?.();
       expect(typeof descriptions).toBe('object');
       expect(descriptions).toHaveProperty('hypernym');
       expect(descriptions).toHaveProperty('meronym');
@@ -301,7 +305,7 @@ describe.skip('Enhanced Relations - Real Data Tests', () => {
     it('should get relation categories', async () => {
       if (!kernel) return;
       
-      const categories = await kernel.plugins.get('enhanced-relations')?.methods.getRelationCategories?.();
+      const categories = await ((kernel as any).plugins as any)?.get('enhanced-relations')?.methods?.getRelationCategories?.();
       expect(typeof categories).toBe('object');
       expect(categories).toHaveProperty('HIERARCHICAL');
       expect(categories).toHaveProperty('PART_WHOLE');

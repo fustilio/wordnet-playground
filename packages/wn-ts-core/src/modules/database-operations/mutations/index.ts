@@ -18,7 +18,6 @@
 // ============================================================================
 // Single and batch record insertion operations
 export {
-  batchInsert,        // Batch insert with chunking and timeout handling
   insertRecord,       // Insert a single record with conflict handling
   insertRecords       // Insert multiple records with conflict handling
 } from './insert-mutations.js';

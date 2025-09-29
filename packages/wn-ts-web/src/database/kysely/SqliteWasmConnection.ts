@@ -40,7 +40,7 @@ export class SqliteWasmConnection implements DatabaseConnection {
     // execute the statement
     const rows = this.#db.exec({
       sql: sql,
-      bind: parameters as unknown[],
+      bind: parameters as { [paramName: string]: any },
       returnValue: "resultRows",
       rowMode: "object",
       columnNames: statementData.columns,
@@ -63,7 +63,7 @@ export class SqliteWasmConnection implements DatabaseConnection {
       insertId: lastInsertId,
 
       // queries with result
-      rows: (rows || []) as O[],
+      rows: (rows || []) as unknown as O[],
     });
   }
 
