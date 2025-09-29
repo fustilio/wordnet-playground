@@ -1,5 +1,11 @@
 # wn-ts-web
 
+## 0.7.2
+
+### Patch Changes
+
+- reduce code duplication
+
 ## 0.7.1
 
 ### Patch Changes
