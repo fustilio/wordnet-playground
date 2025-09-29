@@ -46,10 +46,16 @@ async function demonstrateMultilingualLinking() {
         const computerSynset = computerSynsets[0];
         console.log(`📚 Synset ID: ${computerSynset.id}`);
         console.log(`🌍 ILI ID: ${computerSynset.ili}`);
-        console.log(`👥 Members: ${computerSynset.members.join(", ")}`);
+        // Get members using the new API
+        try {
+          const members = await wordnet.getSynsetLemmas(computerSynset.id);
+          console.log(`👥 Members: ${members.length > 0 ? members.join(", ") : 'No members'}`);
+        } catch (error) {
+          console.log(`👥 Members: ${computerSynset.memberIds?.join(", ") || 'No members'}`);
+        }
         
         // Display definition and examples
-        await displaySynset(computerSynset, 1);
+        await displaySynset(computerSynset, wordnet, 1);
         
         // Get ILI entry
         const iliEntry = await ili(computerSynset.ili);
@@ -94,10 +100,16 @@ async function demonstrateMultilingualLinking() {
       if (synsetEntries.length > 0) {
         const firstSynset = synsetEntries[0];
         console.log(`  🌍 First synset ILI: ${firstSynset.ili}`);
-        console.log(`  👥 Members: ${firstSynset.members.join(", ")}`);
+        // Get members using the new API
+        try {
+          const members = await wordnet.getSynsetLemmas(firstSynset.id);
+          console.log(`  👥 Members: ${members.length > 0 ? members.join(", ") : 'No members'}`);
+        } catch (error) {
+          console.log(`  👥 Members: ${firstSynset.memberIds?.join(", ") || 'No members'}`);
+        }
         
         // Display definition and examples
-        await displaySynset(firstSynset, 1);
+        await displaySynset(firstSynset, wordnet, 1);
         
         if (firstSynset.ili) {
           const iliEntry = await ili(firstSynset.ili);
@@ -121,17 +133,17 @@ async function demonstrateMultilingualLinking() {
     // Group by part of speech
     const computerByPOS = {};
     computerSynsets.forEach(synset => {
-      const pos = synset.partOfSpeech;
+      const pos = synset.pos || synset.partOfSpeech;
       if (!computerByPOS[pos]) computerByPOS[pos] = [];
       computerByPOS[pos].push(synset);
     });
     
-    Object.entries(computerByPOS).forEach(([pos, synsets]) => {
+    for (const [pos, synsets] of Object.entries(computerByPOS)) {
       console.log(`\n📚 ${pos.toUpperCase()} senses:`);
-      synsets.forEach(async (synset, index) => {
-        await displaySynset(synset, index + 1);
-      });
-    });
+      for (let i = 0; i < synsets.length; i++) {
+        await displaySynset(synsets[i], wordnet, i + 1);
+      }
+    }
 
     console.log(`
 🎉 Multilingual Linking Demo Completed!

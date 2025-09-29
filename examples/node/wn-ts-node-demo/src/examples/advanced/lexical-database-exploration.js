@@ -95,7 +95,7 @@ async function demonstrateLexicalDatabaseExploration() {
         Object.entries(byLexicon).forEach(([lexicon, words]) => {
           console.log(`    📚 ${lexicon}: ${words.length} entries`);
           words.slice(0, 2).forEach(wordObj => {
-            console.log(`      - ${wordObj.lemma} (${wordObj.partOfSpeech})`);
+            console.log(`      - ${wordObj.lemma} (${wordObj.pos || wordObj.partOfSpeech})`);
           });
         });
       } else {
@@ -127,7 +127,7 @@ async function demonstrateLexicalDatabaseExploration() {
       Object.entries(synsetsByLexicon).forEach(([lexicon, synsets]) => {
         console.log(`\n📚 ${lexicon}: ${synsets.length} synsets`);
         synsets.slice(0, 2).forEach(async (synset, index) => {
-          await displaySynset(synset, index + 1);
+          await displaySynset(synset, wordnet, index + 1);
         });
       });
     }
@@ -196,7 +196,7 @@ async function demonstrateLexicalDatabaseExploration() {
     // Group by part of speech
     const infoByPOS = {};
     informationSynsets.forEach(synset => {
-      const pos = synset.partOfSpeech;
+      const pos = synset.pos || synset.partOfSpeech;
       if (!infoByPOS[pos]) infoByPOS[pos] = [];
       infoByPOS[pos].push(synset);
     });
@@ -204,7 +204,7 @@ async function demonstrateLexicalDatabaseExploration() {
     Object.entries(infoByPOS).forEach(([pos, synsets]) => {
       console.log(`\n📚 ${pos.toUpperCase()} senses:`);
       synsets.forEach(async (synset, index) => {
-        await displaySynset(synset, index + 1);
+        await displaySynset(synset, wordnet, index + 1);
       });
     });
 

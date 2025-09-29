@@ -543,11 +543,11 @@ export class NodeDataManager extends SharedDataManager {
    */
   async download(
     projectId: string,
-    _options: any = {}
+    options: any = {}
   ): Promise<string> {
-    // For now, this is a placeholder that throws an error
-    // The actual download functionality should be implemented based on the old system
-    throw new ProjectError(`Download functionality not yet implemented in new data management system. Project: ${projectId}`);
+    // Use the parent class downloadAndLoad method
+    await this.downloadAndLoad(projectId, options);
+    return projectId;
   }
 
   /**

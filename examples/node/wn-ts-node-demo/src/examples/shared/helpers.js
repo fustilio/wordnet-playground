@@ -20,33 +20,43 @@ export async function createWordnet(demoName, { multilingual = false } = {}) {
   // Set the data directory for the wn-ts library instance
   config.dataDirectory = dataDirectory;
 
+  // Check if database already exists
+  const dbPath = join(dataDirectory, 'wn.db');
+  const fs = await import('fs');
+  const dbExists = fs.existsSync(dbPath);
+
   // Ensure OEWN is present
   const wn = new Wordnet('*');
 
-  const lexicons = await wn.lexicons();
-  const hasOEWN = lexicons.some(l => l.id === 'oewn');
-  if (!hasOEWN) {
-    console.log('⬇️  Downloading OEWN...');
-    const oewnPath = await download('oewn:2024', { force: true });
-    console.log('✅ OEWN downloaded. Adding to database...');
-    await add(oewnPath, { force: true });
-    console.log('✅ OEWN added to database.');
-  } else {
-    console.log('✅ OEWN already present in database.');
-  }
-
-  // If multilingual, ensure CILI is present
-  if (multilingual) {
-    const hasCILI = lexicons.some(l => l.id === 'cili');
-    if (!hasCILI) {
-      console.log('⬇️  Downloading CILI...');
-      const ciliPath = await download('cili:1.0', { force: true });
-      console.log('✅ CILI downloaded. Adding to database...');
-      await add(ciliPath, { force: true });
-      console.log('✅ CILI added to database.');
+  try {
+    const lexicons = await wn.lexicons();
+    const hasOEWN = lexicons.some(l => l.id === 'oewn');
+    if (!hasOEWN) {
+      console.log('⬇️  Downloading OEWN...');
+      const oewnPath = await download('oewn:2024', { force: true });
+      console.log('✅ OEWN downloaded. Adding to database...');
+      await add(oewnPath, { force: true });
+      console.log('✅ OEWN added to database.');
     } else {
-      console.log('✅ CILI already present in database.');
+      console.log('✅ OEWN already present in database.');
     }
+
+    // If multilingual, ensure CILI is present
+    if (multilingual) {
+      const hasCILI = lexicons.some(l => l.id === 'cili');
+      if (!hasCILI) {
+        console.log('⬇️  Downloading CILI...');
+        const ciliPath = await download('cili:1.0', { force: true });
+        console.log('✅ CILI downloaded. Adding to database...');
+        await add(ciliPath, { force: true });
+        console.log('✅ CILI added to database.');
+      } else {
+        console.log('✅ CILI already present in database.');
+      }
+    }
+  } catch (error) {
+    console.log('⚠️  Error checking/loading data, but continuing with existing database if available...');
+    console.log(`   Error: ${error.message}`);
   }
 
   return wn;
@@ -55,10 +65,21 @@ export async function createWordnet(demoName, { multilingual = false } = {}) {
 /**
  * Display synset information with definitions and examples
  */
-export async function displaySynset(synset, index = 1) {
-  console.log(`\n  ${index}. ${synset.id} (${synset.members?.length || 0} members)`);
-  console.log(`     Members: ${synset.members?.join(", ") || 'No members'}`);
+export async function displaySynset(synset, wordnet, index = 1) {
+  // Get synset lemmas using the new API
+  let members = [];
+  try {
+    members = await wordnet.getSynsetLemmas(synset.id);
+  } catch (error) {
+    // Fallback to memberIds if available
+    members = synset.memberIds || [];
+  }
+  
+  console.log(`\n  ${index}. ${synset.id} (${members.length} members)`);
+  console.log(`     Members: ${members.length > 0 ? members.join(", ") : 'No members'}`);
   console.log(`     ILI: ${synset.ili || 'None'}`);
+  console.log(`     Part of Speech: ${synset.pos || 'undefined'}`);
+  console.log(`     Lexicon: ${synset.lexicon || 'unknown'}`);
   
   // Prefer localized definition if available
   const targetLang = synset.language || null;
@@ -75,7 +96,7 @@ export async function displaySynset(synset, index = 1) {
   } else if (synset.ili) {
     // Fallback: show ILI definition
     try {
-      const iliEntry = await ili(synset.ili);
+      const iliEntry = await wordnet.getIli(synset.ili);
       if (iliEntry && iliEntry.definition) {
         console.log(`     ILI Definition: ${iliEntry.definition}`);
       }
@@ -108,13 +129,13 @@ export async function displaySynset(synset, index = 1) {
 /**
  * Display synsets grouped by part of speech
  */
-export async function displaySynsetsByPOS(synsets, title) {
+export async function displaySynsetsByPOS(synsets, title, wordnet) {
   console.log(`\n📚 ${title}:`);
   
   // Group by part of speech
   const byPOS = {};
   synsets.forEach(synset => {
-    const pos = synset.partOfSpeech;
+    const pos = synset.pos || synset.partOfSpeech || 'undefined';
     if (!byPOS[pos]) byPOS[pos] = [];
     byPOS[pos].push(synset);
   });
@@ -122,7 +143,7 @@ export async function displaySynsetsByPOS(synsets, title) {
   for (const [pos, posSynsets] of Object.entries(byPOS)) {
     console.log(`\n📚 ${pos.toUpperCase()} senses (${posSynsets.length}):`);
     for (let i = 0; i < posSynsets.length; i++) {
-      await displaySynset(posSynsets[i], i + 1);
+      await displaySynset(posSynsets[i], wordnet, i + 1);
     }
   }
 }
@@ -144,11 +165,19 @@ export async function displayMultilingualDefinitions(word, wordnet) {
     byLexicon[lexicon].push(synset);
   });
   
-  Object.entries(byLexicon).forEach(([lexicon, lexSynsets]) => {
+  for (const [lexicon, lexSynsets] of Object.entries(byLexicon)) {
     console.log(`\n📖 ${lexicon}:`);
-    lexSynsets.slice(0, 2).forEach((synset, index) => {
-      console.log(`  ${index + 1}. ${synset.id}`);
-      console.log(`     Members: ${synset.members.join(", ")}`);
+    for (let i = 0; i < Math.min(lexSynsets.length, 2); i++) {
+      const synset = lexSynsets[i];
+      console.log(`  ${i + 1}. ${synset.id}`);
+      
+      // Get members using the new API
+      try {
+        const members = await wordnet.getSynsetLemmas(synset.id);
+        console.log(`     Members: ${members.length > 0 ? members.join(", ") : 'No members'}`);
+      } catch (error) {
+        console.log(`     Members: ${synset.memberIds?.join(", ") || 'No members'}`);
+      }
       
       if (synset.definitions && synset.definitions.length > 0) {
         console.log(`     Definition: ${synset.definitions[0].text}`);
@@ -157,8 +186,8 @@ export async function displayMultilingualDefinitions(word, wordnet) {
       if (synset.examples && synset.examples.length > 0) {
         console.log(`     Example: "${synset.examples[0].text}"`);
       }
-    });
-  });
+    }
+  }
 }
 
 /**

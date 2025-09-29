@@ -61,7 +61,8 @@ export async function download(
   options: any = {}
 ): Promise<string> {
   const manager = await getDataManager();
-  return await manager.download(projectId, options);
+  await manager.downloadAndLoad(projectId, options);
+  return projectId; // Return the project ID as the path
 }
 
 /**

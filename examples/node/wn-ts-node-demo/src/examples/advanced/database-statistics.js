@@ -109,7 +109,7 @@ async function demonstrateDatabaseStatistics() {
         // Group by part of speech
         const byPOS = {};
         synsetEntries.forEach(synset => {
-          const pos = synset.partOfSpeech;
+          const pos = synset.pos || synset.partOfSpeech;
           if (!byPOS[pos]) byPOS[pos] = [];
           byPOS[pos].push(synset);
         });
@@ -120,7 +120,7 @@ async function demonstrateDatabaseStatistics() {
         
         // Show detailed information for the first synset
         const firstSynset = synsetEntries[0];
-        await displaySynset(firstSynset, 1);
+        await displaySynset(firstSynset, wordnet, 1);
       }
     }
 
@@ -202,7 +202,7 @@ async function demonstrateDatabaseStatistics() {
     // Group by part of speech
     const bankByPOS = {};
     bankSynsets.forEach(synset => {
-      const pos = synset.partOfSpeech;
+      const pos = synset.pos || synset.partOfSpeech;
       if (!bankByPOS[pos]) bankByPOS[pos] = [];
       bankByPOS[pos].push(synset);
     });
@@ -210,7 +210,7 @@ async function demonstrateDatabaseStatistics() {
     Object.entries(bankByPOS).forEach(([pos, synsets]) => {
       console.log(`\n📚 ${pos.toUpperCase()} senses (${synsets.length}):`);
       synsets.forEach(async (synset, index) => {
-        await displaySynset(synset, index + 1);
+        await displaySynset(synset, wordnet, index + 1);
       });
     });
 

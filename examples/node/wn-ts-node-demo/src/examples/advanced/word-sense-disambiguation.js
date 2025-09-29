@@ -44,7 +44,7 @@ async function demonstrateWordSenseDisambiguation() {
     console.log(`\n📚 Found ${bankSynsets.length} synsets for "bank"`);
 
     // Display detailed synset information with definitions and examples
-    await displaySynsetsByPOS(bankSynsets, 'Bank senses');
+    await displaySynsetsByPOS(bankSynsets, 'Bank senses', wordnet);
 
     console.log(`
 🔍 Example 2: Analyzing "light" - Complex Polysemy
@@ -65,7 +65,7 @@ async function demonstrateWordSenseDisambiguation() {
     // Show different parts of speech
     const lightByPOS = {};
     lightSynsets.forEach((synset) => {
-      const pos = synset.partOfSpeech;
+      const pos = synset.pos || synset.partOfSpeech;
       if (!lightByPOS[pos]) lightByPOS[pos] = [];
       lightByPOS[pos].push(synset);
     });
@@ -76,7 +76,7 @@ async function demonstrateWordSenseDisambiguation() {
     });
 
     // Show detailed examples from each POS
-    await displaySynsetsByPOS(lightSynsets, 'Light senses');
+    await displaySynsetsByPOS(lightSynsets, 'Light senses', wordnet);
 
     console.log(`
 🔍 Example 3: Building a Sense Disambiguation System
@@ -99,7 +99,7 @@ async function demonstrateWordSenseDisambiguation() {
       // Group by part of speech
       const byPOS = {};
       synsetEntries.forEach((synset) => {
-        const pos = synset.partOfSpeech;
+        const pos = synset.pos || synset.partOfSpeech;
         if (!byPOS[pos]) byPOS[pos] = [];
         byPOS[pos].push(synset);
       });
@@ -141,7 +141,14 @@ async function demonstrateWordSenseDisambiguation() {
       if (wordSynsets.length > 0) {
         const firstSynset = wordSynsets[0];
         console.log(`🏷️  First synset: ${firstSynset.id}`);
-        console.log(`👥 Members: ${firstSynset.members.slice(0, 3).join(", ")}`);
+        
+        // Get members using the new API
+        try {
+          const members = await wordnet.getSynsetLemmas(firstSynset.id);
+          console.log(`👥 Members: ${members.slice(0, 3).join(", ")}`);
+        } catch (error) {
+          console.log(`👥 Members: ${firstSynset.memberIds?.slice(0, 3).join(", ") || 'No members'}`);
+        }
         
         // Show definition for context
         if (firstSynset.definitions && firstSynset.definitions.length > 0) {

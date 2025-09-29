@@ -30,14 +30,14 @@ async function demonstrateWordSenseDisambiguation() {
 =======================================`);
 
     const bankSynsets = await wordnet.synsets('bank');
-    await displaySynsetsByPOS(bankSynsets, 'Bank senses');
+    await displaySynsetsByPOS(bankSynsets, 'Bank senses', wordnet);
 
     console.log(`
 🔍 Example 2: "light" - Complex Polysemy
 ========================================`);
 
     const lightSynsets = await wordnet.synsets('light');
-    await displaySynsetsByPOS(lightSynsets, 'Light senses');
+    await displaySynsetsByPOS(lightSynsets, 'Light senses', wordnet);
 
     console.log(`
 🔍 Example 3: Context-Based Sense Selection
@@ -60,7 +60,14 @@ async function demonstrateWordSenseDisambiguation() {
       if (wordSynsets.length > 0) {
         const firstSynset = wordSynsets[0];
         console.log(`🏷️  First synset: ${firstSynset.id}`);
-        console.log(`👥 Members: ${firstSynset.members.join(", ")}`);
+        
+        // Get members using the new API
+        try {
+          const members = await wordnet.getSynsetLemmas(firstSynset.id);
+          console.log(`👥 Members: ${members.length > 0 ? members.join(", ") : 'No members'}`);
+        } catch (error) {
+          console.log(`👥 Members: ${firstSynset.memberIds?.join(", ") || 'No members'}`);
+        }
         
         if (firstSynset.definitions && firstSynset.definitions.length > 0) {
           console.log(`📖 Definition: ${firstSynset.definitions[0].text}`);
