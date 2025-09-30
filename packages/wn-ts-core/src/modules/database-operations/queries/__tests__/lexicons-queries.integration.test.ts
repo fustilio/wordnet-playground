@@ -22,11 +22,15 @@ createIntegrationTestSuite('Lexicons Queries Integration Tests', (getContext: ()
     
     expect(Array.isArray(results)).toBe(true);
     expect(results.length).toBeGreaterThan(0);
-    if (results.length > 0 && results[0]) {
-      expect(results[0]).toHaveProperty('id');
-      expect(results[0]).toHaveProperty('label');
-      expect(results[0]).toHaveProperty('language');
+    
+    if (results.length === 0 || !results[0]) {
+      expect(results[0]).toBeDefined();
+      return;
     }
+    
+    expect(results[0]).toHaveProperty('id');
+    expect(results[0]).toHaveProperty('label');
+    expect(results[0]).toHaveProperty('language');
   });
 
   it('should get lexicon by ID', async () => {
@@ -36,13 +40,15 @@ createIntegrationTestSuite('Lexicons Queries Integration Tests', (getContext: ()
     const query = getLexiconByIdQuery(context.kyselyDb, lexiconId);
     const result = await query.executeTakeFirst();
     
-    expect(result).toBeDefined();
-    if (result) {
-      expect(result).toHaveProperty('id');
-      expect(result).toHaveProperty('label');
-      expect(result).toHaveProperty('language');
-      expect(result.id).toBe(lexiconId);
+    if (!result) {
+      expect(result).toBeDefined();
+      return;
     }
+    
+    expect(result).toHaveProperty('id');
+    expect(result).toHaveProperty('label');
+    expect(result).toHaveProperty('language');
+    expect(result.id).toBe(lexiconId);
   });
 
   it('should return null for non-existent lexicon', async () => {
@@ -61,23 +67,31 @@ createIntegrationTestSuite('Lexicons Queries Integration Tests', (getContext: ()
     const results = await query.execute();
     
     expect(Array.isArray(results)).toBe(true);
-    if (results.length > 0) {
-      const lexicon = results[0];
-      expect(lexicon).toHaveProperty('id');
-      expect(lexicon).toHaveProperty('label');
-      expect(lexicon).toHaveProperty('language');
-      expect(lexicon).toHaveProperty('email');
-      expect(lexicon).toHaveProperty('license');
-      expect(lexicon).toHaveProperty('version');
-      expect(lexicon).toHaveProperty('url');
-      expect(lexicon).toHaveProperty('citation');
-      expect(lexicon).toHaveProperty('logo');
-      expect(lexicon).toHaveProperty('metadata');
-      
-      expect(typeof lexicon.id).toBe('string');
-      expect(typeof lexicon.label).toBe('string');
-      expect(typeof lexicon.language).toBe('string');
+    
+    if (results.length === 0) {
+      return;
     }
+    
+    const lexicon = results[0];
+    if (!lexicon) {
+      expect(lexicon).toBeDefined();
+      return;
+    }
+    
+    expect(lexicon).toHaveProperty('id');
+    expect(lexicon).toHaveProperty('label');
+    expect(lexicon).toHaveProperty('language');
+    expect(lexicon).toHaveProperty('email');
+    expect(lexicon).toHaveProperty('license');
+    expect(lexicon).toHaveProperty('version');
+    expect(lexicon).toHaveProperty('url');
+    expect(lexicon).toHaveProperty('citation');
+    expect(lexicon).toHaveProperty('logo');
+    expect(lexicon).toHaveProperty('metadata');
+    
+    expect(typeof lexicon.id).toBe('string');
+    expect(typeof lexicon.label).toBe('string');
+    expect(typeof lexicon.language).toBe('string');
   });
 
   it('should handle empty lexicon list gracefully', async () => {
@@ -96,11 +110,19 @@ createIntegrationTestSuite('Lexicons Queries Integration Tests', (getContext: ()
     const results = await query.execute();
     
     expect(Array.isArray(results)).toBe(true);
-    if (results.length > 0) {
-      const lexicon = results[0];
-      if (lexicon.metadata) {
-        expect(() => JSON.parse(lexicon.metadata)).not.toThrow();
-      }
+    
+    if (results.length === 0) {
+      return;
+    }
+    
+    const lexicon = results[0];
+    if (!lexicon) {
+      expect(lexicon).toBeDefined();
+      return;
+    }
+    
+    if (lexicon.metadata) {
+      expect(() => JSON.parse(lexicon.metadata as string)).not.toThrow();
     }
   });
 
@@ -172,13 +194,21 @@ createIntegrationTestSuite('Lexicons Queries Integration Tests', (getContext: ()
     const results = await query.execute();
     
     expect(Array.isArray(results)).toBe(true);
-    if (results.length > 0) {
-      const lexicon = results[0];
-      if (lexicon.url) {
-        expect(typeof lexicon.url).toBe('string');
-        // URL should be valid if present
-        expect(() => new URL(lexicon.url)).not.toThrow();
-      }
+    
+    if (results.length === 0) {
+      return;
+    }
+    
+    const lexicon = results[0];
+    if (!lexicon) {
+      expect(lexicon).toBeDefined();
+      return;
+    }
+    
+    if (lexicon.url) {
+      expect(typeof lexicon.url).toBe('string');
+      // URL should be valid if present
+      expect(() => new URL(lexicon.url as string)).not.toThrow();
     }
   });
 
@@ -197,9 +227,11 @@ createIntegrationTestSuite('Lexicons Queries Integration Tests', (getContext: ()
     expect(allResults.length).toBeGreaterThan(0);
     expect(specificResult).toBeDefined();
     
-    if (specificResult) {
-      expect(allResults.some(l => l.id === specificResult.id)).toBe(true);
+    if (!specificResult) {
+      return;
     }
+    
+    expect(allResults.some(l => l.id === specificResult.id)).toBe(true);
   });
 
 });

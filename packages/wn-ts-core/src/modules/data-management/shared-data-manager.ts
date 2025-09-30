@@ -303,13 +303,17 @@ export class SharedDataManager {
     progress?: (progress: number, message?: string) => void
   ): Promise<void> {
     this.logger.debug(`🔍 Loading data for ${projectId}`);
+    this.logger.debug(`About to call processWordNetData with ${data.byteLength} bytes`);
+    this.logger.debug(`loadData function called with projectId: ${projectId}, data size: ${data.byteLength}`);
 
     if (progress) {
       progress(0.05, 'Starting data processing...');
     }
 
     // Use WordNet processor to handle decompression and format detection
+    this.logger.debug(`Calling processWordNetData...`);
     const wordnetResult = await this.processWordNetData(data, projectId, progress);
+    this.logger.debug(`processWordNetData completed successfully`);
     
     if (!wordnetResult.success) {
       throw new Error(`WordNet processing failed: ${wordnetResult.error}`);
@@ -328,9 +332,13 @@ export class SharedDataManager {
 
     // Handle different content types
     if (wordnetResult.contentType === "ili" || wordnetResult.contentType === "cili-data") {
+      this.logger.debug(`Calling loadILIData...`);
       await this.loadILIData(xmlText, projectId, progress);
+      this.logger.debug(`loadILIData completed successfully`);
     } else if (wordnetResult.contentType === "lmf" || wordnetResult.contentType === "omw-package" || wordnetResult.contentType === "own-package") {
+      this.logger.debug(`Calling loadLMFData...`);
       await this.loadLMFData(xmlText, projectId, progress);
+      this.logger.debug(`loadLMFData completed successfully`);
     } else {
       // Default to LMF XML processing for unknown types
       this.logger.warn(
@@ -343,7 +351,9 @@ export class SharedDataManager {
         );
       }
       
+      this.logger.debug(`Calling loadLMFData (fallback)...`);
       await this.loadLMFData(xmlText, projectId, progress);
+      this.logger.debug(`loadLMFData (fallback) completed successfully`);
     }
 
     this.logger.info(`✅ Successfully loaded ${projectId}`);
@@ -405,7 +415,21 @@ export class SharedDataManager {
       this.logger.step(`inserting parsed data into database`);
       if (progress) progress(0.8, 'Inserting data into database...');
       
+      this.logger.debug(`About to call insertLMFData with document:`, {
+        lexicons: lmfDocument.lexicons?.length || 0,
+        words: lmfDocument.words?.length || 0,
+        synsets: lmfDocument.synsets?.length || 0,
+        senses: lmfDocument.senses?.length || 0
+      });
+      
+      this.logger.debug(`Calling insertLMFData...`);
+      try {
       await this.insertLMFData(lmfDocument, projectId, progress);
+        this.logger.debug(`insertLMFData completed successfully`);
+      } catch (error) {
+        this.logger.error(`insertLMFData failed with error:`, error);
+        throw error;
+      }
 
       if (progress) progress(1.0, 'LMF data loaded successfully');
 
@@ -429,10 +453,25 @@ export class SharedDataManager {
     _progress?: (progress: number, message?: string) => void
   ): Promise<void> {
     this.logger.start(`inserting LMF data for ${projectId}`);
+    this.logger.debug(`About to start insertLMFData for project: ${projectId}`);
+    this.logger.debug(`insertLMFData function called with projectId: ${projectId}, document:`, {
+      lexicons: lmfDocument.lexicons?.length || 0,
+      words: lmfDocument.words?.length || 0,
+      synsets: lmfDocument.synsets?.length || 0,
+      senses: lmfDocument.senses?.length || 0
+    });
+    this.logger.debug(`LMF Document has ${lmfDocument.lexicons?.length || 0} lexicons, ${lmfDocument.words?.length || 0} words, ${lmfDocument.synsets?.length || 0} synsets, ${lmfDocument.senses?.length || 0} senses`);
 
+    this.logger.debug(`Getting query service...`);
+    try {
     const queryService = this.adapter.getQueryService();
     if (!queryService) {
       throw new Error("Query service not available for batch insert.");
+      }
+      this.logger.debug(`Query service obtained successfully`);
+    } catch (error) {
+      this.logger.error(`Failed to get query service:`, error);
+      throw error;
     }
 
     try {
@@ -440,17 +479,59 @@ export class SharedDataManager {
       await this.clearConflictingData(projectId);
 
       // Use the refactored functions to prepare data
-      const lexiconsToInsert = prepareLexiconData(lmfDocument, projectId);
-      const wordsToInsert = prepareWordData(lmfDocument, projectId);
-      const synsetsToInsert = prepareSynsetData(lmfDocument, projectId);
+      this.logger.debug(`Preparing lexicon data...`);
+      let lexiconsToInsert: any[];
+      try {
+        lexiconsToInsert = prepareLexiconData(lmfDocument, projectId);
+        this.logger.debug(`Prepared ${lexiconsToInsert.length} lexicons`);
+      } catch (error) {
+        this.logger.error(`Error preparing lexicon data:`, error);
+        throw error;
+      }
+      
+      this.logger.debug(`Preparing word data...`);
+      let wordsToInsert: any[];
+      try {
+        wordsToInsert = prepareWordData(lmfDocument, projectId);
+        this.logger.debug(`Prepared ${wordsToInsert.length} words`);
+      } catch (error) {
+        this.logger.error(`Error preparing word data:`, error);
+        throw error;
+      }
+      
+      this.logger.debug(`Preparing synset data...`);
+      let synsetsToInsert: any[];
+      try {
+        synsetsToInsert = prepareSynsetData(lmfDocument, projectId);
+        this.logger.debug(`Prepared ${synsetsToInsert.length} synsets`);
+      } catch (error) {
+        this.logger.error(`Error preparing synset data:`, error);
+        throw error;
+      }
 
       // Prepare sense data with validation
+      this.logger.debug(`Preparing sense data...`);
+      let sensesToInsert: any[];
+      try {
       const validWordIds = new Set(wordsToInsert.map((w: any) => w.id));
       const validSynsetIds = new Set(synsetsToInsert.map((s: any) => s.id));
-      const sensesToInsert = prepareSenseData(lmfDocument, validWordIds, validSynsetIds);
+        sensesToInsert = prepareSenseData(lmfDocument, validWordIds, validSynsetIds);
+        this.logger.debug(`Prepared ${sensesToInsert.length} senses`);
+      } catch (error) {
+        this.logger.error(`Error preparing sense data:`, error);
+        throw error;
+      }
 
       // Prepare definition data
-      const definitionsToInsert = prepareDefinitionData(lmfDocument);
+      this.logger.debug(`Preparing definition data...`);
+      let definitionsToInsert: any[];
+      try {
+        definitionsToInsert = prepareDefinitionData(lmfDocument);
+        this.logger.debug(`Prepared ${definitionsToInsert.length} definitions`);
+      } catch (error) {
+        this.logger.error(`Error preparing definition data:`, error);
+        throw error;
+      }
 
       this.logger.step(`preparing final insertion data`, {
         lexicons: lexiconsToInsert.length,
@@ -460,7 +541,8 @@ export class SharedDataManager {
         definitions: definitionsToInsert.length,
       });
 
-      // Use the refactored transaction function
+      this.logger.debug(`About to call insertLMFDataInTransaction...`);
+      // Use the batched insertion function
       await insertLMFDataInTransaction(
         this.adapter.getDatabase(),
         {
@@ -472,8 +554,9 @@ export class SharedDataManager {
         },
         this.logger
       );
+      this.logger.debug(`insertLMFDataInTransaction completed successfully`);
 
-      this.logger.info(`LMF data inserted successfully`, {
+      this.logger.info(`✅ LMF data inserted successfully`, {
         projectId: projectId,
         lexicons: lexiconsToInsert.length,
         words: wordsToInsert.length,
@@ -481,15 +564,10 @@ export class SharedDataManager {
         senses: sensesToInsert.length,
         definitions: definitionsToInsert.length,
       });
-
-      this.logger.end(`inserting LMF data for ${projectId}`);
     } catch (error) {
-      this.logger.fail(`failed to insert LMF data`, {
-        projectId: projectId,
+      this.logger.fail(`LMF data insertion failed`, {
         error: error instanceof Error ? error.message : String(error),
       });
-
-      this.logger.end(`inserting LMF data for ${projectId}`);
       throw error;
     }
   }
@@ -538,12 +616,14 @@ export class SharedDataManager {
     this.logger.debug(`🧹 Clearing conflicting data for ${projectId}`);
     
     try {
+      this.logger.debug(`Getting query service...`);
       const queryService = this.adapter.getQueryService();
       if (!queryService) {
         this.logger.warn("Query service not available for conflict clearing");
         return;
       }
 
+      this.logger.debug(`Parsing project ID: ${projectId}`);
       // Parse project ID to get base ID and version
       const [baseId] = projectId.split(':');
       if (!baseId) {
@@ -551,6 +631,7 @@ export class SharedDataManager {
         return;
       }
 
+      this.logger.debug(`About to call clearConflictingLexiconData with IDs: [${baseId}, ${projectId}]`);
       // Clear conflicting data using the shared function
       await clearConflictingLexiconData(
         this.adapter.getDatabase(),

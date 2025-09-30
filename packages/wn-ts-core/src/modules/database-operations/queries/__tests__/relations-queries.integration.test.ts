@@ -23,12 +23,16 @@ createIntegrationTestSuite('Relations Queries Integration Tests', (getContext: (
     
     expect(Array.isArray(results)).toBe(true);
     expect(results.length).toBeGreaterThan(0);
-    if (results.length > 0 && results[0]) {
-      expect(results[0]).toHaveProperty('id');
-      expect(results[0]).toHaveProperty('source_id');
-      expect(results[0]).toHaveProperty('target_id');
-      expect(results[0]).toHaveProperty('type');
+    
+    if (results.length === 0 || !results[0]) {
+      expect(results[0]).toBeDefined();
+      return;
     }
+    
+    expect(results[0]).toHaveProperty('id');
+    expect(results[0]).toHaveProperty('source_id');
+    expect(results[0]).toHaveProperty('target_id');
+    expect(results[0]).toHaveProperty('type');
   });
 
   it('should return empty array for non-existent synset', async () => {
@@ -50,19 +54,27 @@ createIntegrationTestSuite('Relations Queries Integration Tests', (getContext: (
     const results = await query.execute();
     
     expect(Array.isArray(results)).toBe(true);
-    if (results.length > 0) {
-      const relation = results[0];
-      expect(relation).toHaveProperty('id');
-      expect(relation).toHaveProperty('source_id');
-      expect(relation).toHaveProperty('target_id');
-      expect(relation).toHaveProperty('type');
-      // Note: metadata property may not exist in all database schemas
-      
-      expect(typeof relation.id).toBe('string');
-      expect(typeof relation.source_id).toBe('string');
-      expect(typeof relation.target_id).toBe('string');
-      expect(typeof relation.type).toBe('string');
+    
+    if (results.length === 0) {
+      return;
     }
+    
+    const relation = results[0];
+    if (!relation) {
+      expect(relation).toBeDefined();
+      return;
+    }
+    
+    expect(relation).toHaveProperty('id');
+    expect(relation).toHaveProperty('source_id');
+    expect(relation).toHaveProperty('target_id');
+    expect(relation).toHaveProperty('type');
+    // Note: metadata property may not exist in all database schemas
+    
+    expect(typeof relation.id).toBe('string');
+    expect(typeof relation.source_id).toBe('string');
+    expect(typeof relation.target_id).toBe('string');
+    expect(typeof relation.type).toBe('string');
   });
 
   it('should handle multiple relations for same synset', async () => {
@@ -86,7 +98,7 @@ createIntegrationTestSuite('Relations Queries Integration Tests', (getContext: (
     
     expect(Array.isArray(results)).toBe(true);
     if (results.length > 0) {
-      const relation = results[0];
+      // const relation = results[0];
       // Note: metadata property may not exist in all database schemas
       // Note: metadata validation removed as it may not exist in all schemas
     }

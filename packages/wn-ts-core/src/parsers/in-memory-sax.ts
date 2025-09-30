@@ -15,8 +15,8 @@ import {
   measurePerformance,
   createSaxParser,
   setupSaxHandlers,
-  createParserResult,
-  getMemoryUsage,
+  // createParserResult,
+  // getMemoryUsage,
   type SaxEventHandlers
 } from './shared-parser-utils.js';
 
@@ -58,11 +58,7 @@ export class InMemorySaxParser implements LMFParser {
               lexicons: [],
               synsets: [],
               words: [],
-              senses: [],
-              definitions: [],
-              examples: [],
-              relations: [],
-              ilis: []
+              senses: []
             });
           },
           onError: (error) => {

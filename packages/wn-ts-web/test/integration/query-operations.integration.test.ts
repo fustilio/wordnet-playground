@@ -22,13 +22,30 @@ describe("Query Operations E2E Tests", () => {
   let dataLoader: DataLoader;
 
   beforeAll(async () => {
-    const instance = await createWordNetInstance("oewn:2024");
-    wordnet = instance.wordnet;
-    dataLoader = instance.dataLoader;
-
-    // Use mock data instead of downloading real data for integration tests
-    const mockDataLoader = new MockDataLoader(wordnet.databaseInstance, wordnet);
-    await mockDataLoader.loadMockData("oewn:2024");
+    
+    try {
+      // Create WebWordnet instance without loading real data
+      const { createWebWordnet } = await import('../../src/factory.js');
+      
+      const sqlite3InitModule = await import('@sqlite.org/sqlite-wasm');
+      const sqlModule = await sqlite3InitModule.default({
+        print: () => {},
+        printErr: () => {}
+      });
+      
+      wordnet = await createWebWordnet({
+        sqliteWasmModule: sqlModule,
+        lexicon: "oewn:2024"
+      });
+      
+      // Load mock data directly
+      const mockDataLoader = new MockDataLoader(wordnet.databaseInstance, wordnet);
+      
+      await mockDataLoader.loadMockData("oewn:2024");
+      
+    } catch (error) {
+      throw error;
+    }
   }, 300000); // 5 minute timeout for setup
 
   beforeEach(async () => {
@@ -45,99 +62,87 @@ describe("Query Operations E2E Tests", () => {
 
   describe('Word Queries', () => {
     it('should find words by form', async () => {
-      console.log('🔍 Testing word search by form...');
       
-      const words = await wordnet.words({ form: 'computer' });
+      const words = await wordnet.words({ form: 'computer', language: 'en' });
       expect(words.length).toBeGreaterThan(0);
       expect(words.every(w => w.lemma.toLowerCase().includes('computer'))).toBe(true);
       
-      console.log(`✅ Found ${words.length} words for 'computer'`);
     });
 
     it('should filter words by part of speech', async () => {
-      console.log('📝 Testing word filtering by part of speech...');
       
-      const nounWords = await wordnet.words({ form: 'run', pos: 'n' });
-      const verbWords = await wordnet.words({ form: 'run', pos: 'v' });
+      const nounWords = await wordnet.words({ form: 'run', pos: 'n', language: 'en' });
+      const verbWords = await wordnet.words({ form: 'run', pos: 'v', language: 'en' });
       
       expect(nounWords.every(w => w.pos === 'n')).toBe(true);
       expect(verbWords.every(w => w.pos === 'v')).toBe(true);
       
-      console.log(`✅ Found ${nounWords.length} noun and ${verbWords.length} verb forms of 'run'`);
     });
 
     it('should support fuzzy word search', async () => {
-      console.log('🔍 Testing fuzzy word search...');
       
       // Test exact match first
       const exactResults = await wordnet.words({ 
         form: 'computer', 
-        maxResults: 10 
+        maxResults: 10,
+        language: 'en'
       });
       
       expect(exactResults.length).toBeGreaterThan(0);
       expect(exactResults.some(w => w.lemma.includes('computer'))).toBe(true);
       
-      console.log(`✅ Found ${exactResults.length} exact matches for 'computer'`);
     });
 
     it('should limit results with maxResults', async () => {
-      console.log('📊 Testing result limiting...');
       
       const limitedResults = await wordnet.words({ 
         form: 'test', 
-        maxResults: 5 
+        maxResults: 5,
+        language: 'en'
       });
       
       expect(limitedResults.length).toBeLessThanOrEqual(5);
       
-      console.log(`✅ Limited results to ${limitedResults.length} items`);
     });
   });
 
   describe('Synset Queries', () => {
     it('should find synsets by word form', async () => {
-      console.log('🔍 Testing synset search by form...');
       
-      const synsets = await wordnet.synsets({ form: 'computer' });
+      const synsets = await wordnet.synsets({ form: 'computer', language: 'en' });
       expect(synsets.length).toBeGreaterThan(0);
       expect(synsets.every(s => s.memberIds.some(id => 
         synsets.some(s2 => s2.memberIds.includes(id))
       ))).toBe(true);
       
-      console.log(`✅ Found ${synsets.length} synsets for 'computer'`);
     });
 
     it('should filter synsets by part of speech', async () => {
-      console.log('📝 Testing synset filtering by part of speech...');
-      
-      const nounSynsets = await wordnet.synsets({ form: 'run', pos: 'n' });
-      const verbSynsets = await wordnet.synsets({ form: 'run', pos: 'v' });
+      const nounSynsets = await wordnet.synsets({ form: 'run', pos: 'n', language: 'en' });
+      const verbSynsets = await wordnet.synsets({ form: 'run', pos: 'v', language: 'en' });
       
       expect(nounSynsets.every(s => s.pos === 'n')).toBe(true);
       expect(verbSynsets.every(s => s.pos === 'v')).toBe(true);
-      
-      console.log(`✅ Found ${nounSynsets.length} noun and ${verbSynsets.length} verb synsets for 'run'`);
     });
 
     it('should include definitions when requested', async () => {
-      console.log('📖 Testing synset definitions...');
       
       const synsets = await wordnet.synsets({ 
-        form: 'computer'
+        form: 'computer',
+        language: 'en'
       });
       
       expect(synsets.length).toBeGreaterThan(0);
       expect(synsets.every(s => s.definitions && s.definitions.length > 0)).toBe(true);
       
-      console.log(`✅ Found ${synsets.length} synsets with definitions for 'computer'`);
     });
 
     it('should include examples when requested', async () => {
       console.log('💡 Testing synset examples...');
       
       const synsets = await wordnet.synsets({ 
-        form: 'computer'
+        form: 'computer',
+        language: 'en'
       });
       
       expect(synsets.length).toBeGreaterThan(0);
@@ -155,7 +160,8 @@ describe("Query Operations E2E Tests", () => {
       console.log('🔗 Testing synset relations...');
       
       const synsets = await wordnet.synsets({ 
-        form: 'computer'
+        form: 'computer',
+        language: 'en'
       });
       
       expect(synsets.length).toBeGreaterThan(0);
@@ -174,7 +180,7 @@ describe("Query Operations E2E Tests", () => {
     it('should find senses by word form', async () => {
       console.log('🔍 Testing sense search by form...');
       
-      const senses = await wordnet.senses({ wordIdOrForm: 'computer' });
+      const senses = await wordnet.senses({ form: 'computer', language: 'en' } as any);
       expect(senses.length).toBeGreaterThan(0);
       expect(senses.every(s => s.wordId && s.synsetId)).toBe(true);
       
@@ -184,8 +190,8 @@ describe("Query Operations E2E Tests", () => {
     it('should filter senses by part of speech', async () => {
       console.log('📝 Testing sense filtering by part of speech...');
       
-      const nounSenses = await wordnet.senses({ wordIdOrForm: 'run', pos: 'n' });
-      const verbSenses = await wordnet.senses({ wordIdOrForm: 'run', pos: 'v' });
+      const nounSenses = await wordnet.senses({ form: 'run', pos: 'n', language: 'en' } as any);
+      const verbSenses = await wordnet.senses({ form: 'run', pos: 'v', language: 'en' } as any);
       
       expect(nounSenses.length).toBeGreaterThan(0);
       expect(verbSenses.length).toBeGreaterThan(0);
@@ -197,14 +203,31 @@ describe("Query Operations E2E Tests", () => {
       console.log('🆔 Testing sense search by word ID...');
       
       // First get a word to get its ID
-      const words = await wordnet.words({ form: 'computer', maxResults: 1 });
+      const words = await wordnet.words({ form: 'computer', maxResults: 1, language: 'en' });
       console.log(`🔍 Found ${words.length} words for 'computer'`);
       console.log('🔍 Words:', words.map(w => ({ id: w.id, lemma: w.lemma, pos: w.pos })));
       expect(words.length).toBeGreaterThan(0);
       
       const word = words[0];
       console.log(`🔍 Using word ID: ${word.id}`);
-      const senses = await wordnet.senses({ wordIdOrForm: word.id });
+      
+      // Debug: Check what's in the database
+      const queryService = (wordnet as any).queryService;
+      if (queryService) {
+        try {
+          // Try to get all words with lemma 'computer'
+          const allWords = await queryService.getWords({ form: 'computer' });
+          console.log('🔍 All words in DB with lemma "computer":', allWords);
+          
+          // Try to get all senses with word_id
+          const allSenses = await queryService.getSenses({ wordIdOrForm: word.id });
+          console.log(`🔍 All senses in DB with word_id "${word.id}":`, allSenses);
+        } catch (error) {
+          console.log('🔍 Error querying database:', error);
+        }
+      }
+      
+      const senses = await wordnet.senses({ form: word.id, language: 'en' } as any);
       console.log(`🔍 Found ${senses.length} senses for word ID '${word.id}'`);
       console.log('🔍 Senses:', senses.map(s => ({ id: s.id, wordId: s.wordId, synsetId: s.synsetId })));
       
@@ -222,7 +245,8 @@ describe("Query Operations E2E Tests", () => {
       const complexQuery = await wordnet.synsets({
         form: 'run',
         pos: 'v',
-        maxResults: 10
+        maxResults: 10,
+        language: 'en'
       });
       
       expect(complexQuery.length).toBeGreaterThan(0);
@@ -235,13 +259,13 @@ describe("Query Operations E2E Tests", () => {
     it('should handle empty results gracefully', async () => {
       console.log('🚫 Testing empty results handling...');
       
-      const emptyResults = await wordnet.words({ form: 'nonexistentword12345' });
+      const emptyResults = await wordnet.words({ form: 'nonexistentword12345', language: 'en' });
       expect(emptyResults).toEqual([]);
       
-      const emptySynsets = await wordnet.synsets({ form: 'nonexistentword12345' });
+      const emptySynsets = await wordnet.synsets({ form: 'nonexistentword12345', language: 'en' });
       expect(emptySynsets).toEqual([]);
       
-      const emptySenses = await wordnet.senses({ wordIdOrForm: 'nonexistentword12345' });
+      const emptySenses = await wordnet.senses({ form: 'nonexistentword12345', language: 'en' } as any);
       expect(emptySenses).toEqual([]);
       
       console.log('✅ Empty results handled gracefully');
@@ -259,7 +283,8 @@ describe("Query Operations E2E Tests", () => {
       const oewnWords = await wordnet.words({ 
         form: 'computer', 
         lexicon: 'oewn',
-        maxResults: 5 
+        maxResults: 5,
+        language: 'en'
       });
       
       expect(oewnWords.length).toBeGreaterThan(0);
@@ -275,7 +300,8 @@ describe("Query Operations E2E Tests", () => {
       
       const start = performance.now();
       const synsets = await wordnet.synsets({ 
-        form: 'computer'
+        form: 'computer',
+        language: 'en'
       });
       const end = performance.now();
       
@@ -292,7 +318,7 @@ describe("Query Operations E2E Tests", () => {
       console.log('⚡ Testing V6 strategy performance...');
       
       const start = performance.now();
-      const senses = await wordnet.senses({ wordIdOrForm: 'computer' });
+      const senses = await wordnet.senses({ form: 'computer', language: 'en' } as any);
       const end = performance.now();
       
       expect(senses.length).toBeGreaterThan(0);
@@ -309,7 +335,7 @@ describe("Query Operations E2E Tests", () => {
     it('should maintain referential integrity', async () => {
       console.log('🔗 Testing referential integrity...');
       
-      const synsets = await wordnet.synsets({ form: 'computer', maxResults: 5 });
+      const synsets = await wordnet.synsets({ form: 'computer', maxResults: 5, language: 'en' });
       
       for (const synset of synsets) {
         // Check that all member IDs exist
@@ -331,9 +357,9 @@ describe("Query Operations E2E Tests", () => {
     it('should have consistent data structure', async () => {
       console.log('📋 Testing data structure consistency...');
       
-      const words = await wordnet.words({ form: 'test', maxResults: 5 });
-      const synsets = await wordnet.synsets({ form: 'test', maxResults: 5 });
-      const senses = await wordnet.senses({ wordIdOrForm: 'test' });
+      const words = await wordnet.words({ form: 'test', maxResults: 5, language: 'en' });
+      const synsets = await wordnet.synsets({ form: 'test', maxResults: 5, language: 'en' });
+      const senses = await wordnet.senses({ form: 'test', language: 'en' } as any);
       
       // Check word structure
       words.forEach(word => {

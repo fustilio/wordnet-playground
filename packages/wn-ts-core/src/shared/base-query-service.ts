@@ -81,6 +81,7 @@ export interface QueryOptions {
   includeExamples?: boolean;
   includeRelations?: boolean;
   includeSenses?: boolean;
+  language?: string | undefined;
 }
 
 /**
@@ -177,7 +178,7 @@ export abstract class BaseKyselyQueryService {
   }
 
   // Word queries
-  async getWords(options: WordQuery & QueryOptions = {}): Promise<Word[]> {
+  async getWords(options: WordQuery & QueryOptions = { language: undefined }): Promise<Word[]> {
     const query = getWordsQuery(this.db, options);
     const results = await query.execute();
     return await Promise.all(results.map(this.transformWordRecord.bind(this)));
@@ -202,7 +203,7 @@ export abstract class BaseKyselyQueryService {
   }
 
   // Synset queries - Strategy-specific methods for better type safety
-  async getSynsets(options: SynsetQuery & QueryOptions = {}): Promise<Synset[]> {
+  async getSynsets(options: SynsetQuery & QueryOptions = { language: undefined }): Promise<Synset[]> {
     // Use V5 strategy by default (fastest with caching)
     return this.getSynsetsV5(options);
   }
@@ -210,7 +211,7 @@ export abstract class BaseKyselyQueryService {
   // V1 Strategy - DEPRECATED: Use V5 or V6 for better performance
   // Performance: ~0.4 Hz (very slow)
   // This strategy is kept for backward compatibility only
-  async getSynsetsV1(options: SynsetQuery = {}): Promise<Synset[]> {
+  async getSynsetsV1(options: SynsetQuery = { language: undefined }): Promise<Synset[]> {
     // V1 now uses the exact same implementation as V4 for consistency
     return this.getSynsetsV4(options);
   }
@@ -218,7 +219,7 @@ export abstract class BaseKyselyQueryService {
   // V2 Strategy - DEPRECATED: Use V5 or V6 for better performance
   // Performance: ~0.42 Hz (very slow)
   // This strategy is kept for backward compatibility only
-  async getSynsetsV2(options: SynsetQuery = {}): Promise<Synset[]> {
+  async getSynsetsV2(options: SynsetQuery = { language: undefined }): Promise<Synset[]> {
     const query = getSynsetsV2Query(this.db, options);
     const results = await query.execute();
     const transformedSynsets: Synset[] = [];
@@ -231,7 +232,7 @@ export abstract class BaseKyselyQueryService {
   // V3 Strategy - DEPRECATED: Use V5 or V6 for better performance
   // Performance: ~0.47 Hz (very slow)
   // This strategy is kept for backward compatibility only
-  async getSynsetsV3(options: SynsetQuery = {}): Promise<Synset[]> {
+  async getSynsetsV3(options: SynsetQuery = { language: undefined }): Promise<Synset[]> {
 
     const query = getSynsetsV3Query(this.db, options);
     const results = await query.execute();
@@ -317,7 +318,7 @@ export abstract class BaseKyselyQueryService {
   // V4 Strategy - DEPRECATED: Use V5 or V6 for better performance
   // Performance: ~0.40 Hz (very slow)
   // This strategy is kept for backward compatibility only
-  async getSynsetsV4(options: SynsetQuery = {}): Promise<Synset[]> {
+  async getSynsetsV4(options: SynsetQuery = { language: undefined }): Promise<Synset[]> {
 
     const query = getSynsetsV4Query(this.db, options);
     const results = await query.execute();
@@ -393,7 +394,7 @@ export abstract class BaseKyselyQueryService {
   private cacheHits = 0;
   private cacheMisses = 0;
 
-  async getSynsetsV5(options: SynsetQuery = {}): Promise<Synset[]> {
+  async getSynsetsV5(options: SynsetQuery = { language: undefined }): Promise<Synset[]> {
 
     // V5 Optimization: Create cache key for query
     const cacheKey = `synsets:${JSON.stringify(options)}`;
@@ -498,7 +499,7 @@ export abstract class BaseKyselyQueryService {
   }
 
   // V6 Strategy - Memory-optimized with pre-computed indexes
-  async getSynsetsV6(options: SynsetQuery = {}): Promise<Synset[]> {
+  async getSynsetsV6(options: SynsetQuery = { language: undefined }): Promise<Synset[]> {
 
     const query = getSynsetsV6Query(this.db, options);
     const results = await query.execute();
@@ -586,7 +587,7 @@ export abstract class BaseKyselyQueryService {
   }
 
   // Fast Strategy - Minimal data loading (no related data)
-  async getSynsetsFast(options: SynsetQuery = {}): Promise<Synset[]> {
+  async getSynsetsFast(options: SynsetQuery = { language: undefined }): Promise<Synset[]> {
 
     const query = getSynsetsFastQuery(this.db, options);
     const results = await query.execute();
@@ -597,13 +598,13 @@ export abstract class BaseKyselyQueryService {
     return transformedSynsets;
   }
 
-  async getSynsetById(id: string, options: QueryOptions = {}): Promise<Synset | undefined> {
+  async getSynsetById(id: string, options: QueryOptions = { language: undefined }): Promise<Synset | undefined> {
     const result = await getSynsetByIdQuery(this.db, id).executeTakeFirst();
     return result ? await this.transformSynsetRecord(result, options) : undefined;
   }
 
   // Optimized synset query methods
-  async getSynsetsByFormFast(form: string, options: { pos?: PartOfSpeech; lexicon?: string; maxResults?: number } & QueryOptions = {}): Promise<Synset[]> {
+  async getSynsetsByFormFast(form: string, options: { pos?: PartOfSpeech; lexicon?: string; maxResults?: number } & QueryOptions = { language: undefined }): Promise<Synset[]> {
     const query = getSynsetsByFormFastQuery(this.db, form, options);
     const results = await query.execute();
     const transformedSynsets: Synset[] = [];
@@ -615,7 +616,7 @@ export abstract class BaseKyselyQueryService {
 
 
   // Sense queries
-  async getSenses(options: SenseQuery & QueryOptions = {}): Promise<Sense[]> {
+  async getSenses(options: SenseQuery & QueryOptions = { language: undefined }): Promise<Sense[]> {
     // Use V5 strategy by default (fastest with caching)
     return this.getSensesV5(options);
   }
@@ -623,7 +624,7 @@ export abstract class BaseKyselyQueryService {
   // V1 Strategy - DEPRECATED: Use V5 or V6 for better performance
   // Performance: ~4-39 Hz (slow)
   // This strategy is kept for backward compatibility only
-  async getSensesV1(options: SenseQuery & QueryOptions = {}): Promise<Sense[]> {
+  async getSensesV1(options: SenseQuery & QueryOptions = { language: undefined }): Promise<Sense[]> {
     const query = getSensesQuery(this.db, options);
     const results = await query.execute();
     return await Promise.all(results.map(this.transformSenseRecord.bind(this)));
@@ -632,7 +633,7 @@ export abstract class BaseKyselyQueryService {
   // V5 Strategy - Ultra-fast with caching and optimized queries
   // Performance: ~50,000+ Hz (ultra-fast)
   // Best for: Production applications with repeated queries
-  async getSensesV5(options: SenseQuery & QueryOptions = {}): Promise<Sense[]> {
+  async getSensesV5(options: SenseQuery & QueryOptions = { language: undefined }): Promise<Sense[]> {
 
     // V5 Optimization: Create cache key for query
     const cacheKey = `senses:${JSON.stringify(options)}`;
@@ -669,7 +670,7 @@ export abstract class BaseKyselyQueryService {
   // V6 Strategy - Memory-optimized with batch loading
   // Performance: ~1,000+ Hz (very fast)
   // Best for: Consistent performance without caching complexity
-  async getSensesV6(options: SenseQuery & QueryOptions = {}): Promise<Sense[]> {
+  async getSensesV6(options: SenseQuery & QueryOptions = { language: undefined }): Promise<Sense[]> {
 
     const query = getSensesQuery(this.db, options);
     const results = await query.execute();
@@ -764,12 +765,12 @@ export abstract class BaseKyselyQueryService {
       id: record.id,
       label: record.label,
       language: record.language,
+      url: record.url,
     };
     
     if (record.email !== undefined) result.email = record.email;
     if (record.license !== undefined) result.license = record.license;
     if (record.version !== undefined) result.version = record.version;
-    if (record.url !== undefined) result.url = record.url;
     if (record.citation !== undefined) result.citation = record.citation;
     if (record.logo !== undefined) result.logo = record.logo;
     if (record.metadata !== undefined) result.metadata = JSON.parse(record.metadata);
@@ -889,7 +890,7 @@ export abstract class BaseKyselyQueryService {
   }
 
   // Legacy method for backward compatibility
-  protected async transformSynsetRecord(record: any, options: QueryOptions = {}): Promise<Synset> {
+  protected async transformSynsetRecord(record: any, options: QueryOptions = { language: undefined }): Promise<Synset> {
     // Determine strategy from query options or use default
     const strategy = options.strategy || this.defaultStrategy;
     const opts = this.getOptionsForStrategy(strategy);

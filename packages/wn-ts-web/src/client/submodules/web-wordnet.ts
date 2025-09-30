@@ -155,7 +155,7 @@ export class WebWordnet implements WordNetCore {
   // Event emitter for backward compatibility with tests
   private eventEmitter: WordNetEventEmitter;
 
-  constructor(lexicon: string | string[] = "*", options: WordnetOptions = {}) {
+  constructor(lexicon: string | string[] = "*", options: WordnetOptions & { language?: string } = { language: undefined }) {
     // Initialize properties directly since we're implementing WordNetCore interface
     this.eventEmitter = new WordNetEventEmitter();
 
@@ -329,17 +329,13 @@ export class WebWordnet implements WordNetCore {
   // Core initialization and lifecycle
   async initialize(sqlJsModule: Sqlite3Static): Promise<void> {
     try {
-      console.log("🔍 WebWordnet.initialize() called");
       logger.info("🔍 WebWordnet.initialize() called");
       this.sqlModule = sqlJsModule;
       await this.database.initializeWithModule(sqlJsModule);
-      console.log("✅ Database module initialized");
       await this.database.createDatabase();
-      console.log("✅ Database created");
 
       // Log database storage information
       const storageInfo = this.database.getStorageInfo();
-      console.log(`🗄️ Database storage: ${storageInfo.type} (persistent: ${storageInfo.persistent})${storageInfo.path ? ` at ${storageInfo.path}` : ''}`);
       logger.info(`🗄️ Database storage: ${storageInfo.type} (persistent: ${storageInfo.persistent})${storageInfo.path ? ` at ${storageInfo.path}` : ''}`);
 
       const database = this.database.getDatabase();
@@ -350,16 +346,11 @@ export class WebWordnet implements WordNetCore {
         database,
         sqlModule: sqlJsModule,
       });
-      console.log("✅ Kysely dialect created");
       this.kyselyDb = new Kysely<Database>({ dialect });
-      console.log("✅ Kysely database created");
       this.queryService = new KyselyQueryService(this.kyselyDb);
-      console.log("✅ Query service created");
 
       // Create tables using Kysely
-      console.log("🔍 About to call createTables()");
       await this.queryService.createTables();
-      console.log("✅ Tables created successfully");
 
       logger.info(
         "🔍 WebWordnet.initialize() completed, queryService:",
@@ -475,7 +466,8 @@ export class WebWordnet implements WordNetCore {
     if (!this.initialized || !this.queryService)
       throw new Error("WebWordnet not initialized");
 
-    const { form, pos, ili, lexicon, language } = query || {};
+    const { form, pos, lexicon, language } = query || { language: undefined };
+    const ili = (query as any)?.ili;
     
     // Handle multi-lexicon queries
     let lexiconFilter: string | undefined;
@@ -574,7 +566,8 @@ export class WebWordnet implements WordNetCore {
     if (!this.initialized || !this.queryService)
       throw new Error("WebWordnet not initialized");
 
-    const { wordIdOrForm, pos, lexicon } = query || {};
+    const { pos, lexicon, language } = query || { language: undefined };
+    const wordIdOrForm = (query as any)?.wordIdOrForm;
     const searchTerm = wordIdOrForm;
     
     // Handle multi-lexicon queries
@@ -600,10 +593,11 @@ export class WebWordnet implements WordNetCore {
 
     // Query by search term (can be either word ID or form)
     return this.queryService.getSenses({
-      wordIdOrForm: searchTerm,
+      form: searchTerm,
       pos,
       lexicon: lexiconFilter,
-    });
+      language,
+    } as any);
   }
 
   async ilis(status?: string): Promise<ILI[]> {
@@ -622,10 +616,11 @@ export class WebWordnet implements WordNetCore {
     const lexiconFilter = primaryLexiconId.includes(':') ? primaryLexiconId.split(':')[0] : primaryLexiconId;
 
     return this.queryService.getSenses({
-      wordIdOrForm,
+      form: wordIdOrForm,
       pos,
       lexicon: lexiconFilter,
-    });
+      language: this.lang,
+    } as any);
   }
 
   async getWord(form: string): Promise<Word[]> {
@@ -633,7 +628,7 @@ export class WebWordnet implements WordNetCore {
       throw new Error("WebWordnet not initialized");
     
     // Use searchWords to find words by form
-    return this.searchWords({ form });
+    return this.searchWords({ form, language: this.lang });
   }
 
   async getWordById(wordId: string): Promise<Word | undefined> {
@@ -813,8 +808,7 @@ export class WebWordnet implements WordNetCore {
       language: lang,
       searchAllForms: includeForms,
       fuzzy,
-      maxResults,
-      includeInflected: includeForms
+      maxResults
     });
     
     const ms = performance.now() - started;
@@ -840,13 +834,13 @@ export class WebWordnet implements WordNetCore {
       form,
       pos,
       lexicon,
-    language: language,
-      ili,
+      language,
       fuzzy = false,
       maxResults,
       includeDefinitions = false,
       includeExamples = false
     } = query;
+    const ili = (query as any)?.ili;
     
     // Use the enhanced getSynsets method
     const result = await this.queryService.getSynsets({
@@ -855,7 +849,7 @@ export class WebWordnet implements WordNetCore {
       lexicon,
       language,
       searchAllForms: false, // For synsets, we typically don't need inflected forms
-      ili: ili ? String(ili) : undefined, // Convert ILI to string if present
+      ...(ili ? { ili: String(ili) } : {}), // Convert ILI to string if present
       fuzzy,
       maxResults,
       includeDefinitions,
@@ -892,8 +886,7 @@ export class WebWordnet implements WordNetCore {
       pos,
       lexicon,
       language,
-      searchAllForms: includeInflected,
-      includeInflected
+      searchAllForms: includeInflected
     });
   }
 
@@ -932,7 +925,7 @@ export class WebWordnet implements WordNetCore {
     if (!this.initialized || !this.queryService)
       throw new Error("WebWordnet not initialized");
     
-    return this.queryService.getSynsets({ ili: iliId });
+    return this.queryService.getSynsets({ ili: iliId, language: this.lang } as any);
   }
 
   /**
@@ -975,7 +968,8 @@ export class WebWordnet implements WordNetCore {
       form,
       pos,
       searchAllForms: true,
-      fuzzy: true
+      fuzzy: true,
+      language: this.lang
     });
     
     const result: Record<PartOfSpeech, Set<string>> = {} as Record<PartOfSpeech, Set<string>>;
@@ -1757,7 +1751,7 @@ export class WebWordnet implements WordNetCore {
     
     for (const synset of synsets) {
       const lang = synset.language;
-      if (!targetLangs || targetLangs.includes(lang)) {
+      if (lang && (!targetLangs || targetLangs.includes(lang))) {
         if (!result[lang]) {
           result[lang] = [];
         }
@@ -1783,7 +1777,7 @@ export class WebWordnet implements WordNetCore {
     const synset = await this.synset(synsetId);
     return synset.definitions.map(d => ({
       id: d.id,
-      language: d.language,
+      language: d.language || 'en',
       text: d.text,
       source: d.source
     }));
@@ -1945,7 +1939,7 @@ export class WebWordnet implements WordNetCore {
       const lexiconData: ExportLexicon = {
         id: lexicon.id,
         label: lexicon.label,
-        language: lexicon.language,
+        language: lexicon.language || 'en',
         version: lexicon.version || '1.0',
         entries: [],
         synsets: [],

@@ -49,23 +49,21 @@ export class MockDataLoader extends DataLoader {
    * Directly load mock data without attempting to download.
    */
   public async loadMockData(projectIdWithVersion: string): Promise<void> {
-    console.log(`🔧 [MockDataLoader] Starting loadMockData for ${projectIdWithVersion}`);
     logger.info(`Inserting mock data for ${projectIdWithVersion}...`);
+    
     try {
       const mockData = await this.insertMockLargeDataset(projectIdWithVersion);
       this.mockStatistics = mockData.statistics;
       this.mockIntegrity = mockData.integrity;
       this.mockDataSource = mockData.dataSource;
-      console.log(`🔧 [MockDataLoader] Successfully loaded mock large dataset for ${projectIdWithVersion}`);
       logger.success(`Successfully loaded mock large dataset for ${projectIdWithVersion}`);
     } catch (error) {
-      console.log(`🔧 [MockDataLoader] Failed to load mock large dataset for ${projectIdWithVersion}:`, error);
       logger.error(`Failed to load mock large dataset for ${projectIdWithVersion}:`, error);
       logger.info(`Falling back to sample data for ${projectIdWithVersion}...`);
       await this.insertSampleData(projectIdWithVersion);
-      console.log(`🔧 [MockDataLoader] Successfully loaded sample data for ${projectIdWithVersion}`);
       logger.success(`Successfully loaded sample data for ${projectIdWithVersion}`);
     }
+    
   }
 
   /**
@@ -100,6 +98,9 @@ export class MockDataLoader extends DataLoader {
       logger.info(`🔍 Debug: projectId = ${project.id}`);
       logger.info(`🔍 Debug: project =`, project);
 
+      // Use base lexicon ID (without version) for database queries
+      const baseLexiconId = project.id.includes(':') ? project.id.split(':')[0] : project.id;
+
       // Insert sample lexicon using real project data
       try {
         const queryService = this.getQueryService();
@@ -114,7 +115,7 @@ export class MockDataLoader extends DataLoader {
 
         if (queryService) {
           await queryService.insertLexicon({
-            id: project.id,
+            id: baseLexiconId,
             label: label,
             language: language,
             license: license,
@@ -123,11 +124,11 @@ export class MockDataLoader extends DataLoader {
         } else {
           await (this as any).config.wordnet.getQueryService().query(
             "INSERT OR REPLACE INTO lexicons (id, label, language, license) VALUES (?, ?, ?, ?)",
-            [project.id, label, language, license]
+            [baseLexiconId, label, language, license]
           );
         }
         logger.success(
-          `✅ Sample lexicon inserted for ${project.id}`
+          `✅ Sample lexicon inserted for ${baseLexiconId}`
         );
       } catch (error) {
         logger.warn(
@@ -149,23 +150,23 @@ export class MockDataLoader extends DataLoader {
 
       for (const [lemma, pos, synsetId] of sampleWords) {
         try {
-          // Insert word
-          const wordId = `${lemma}.${pos}.01`;
+          // Insert word with correct ID format for senses query
+          const wordId = `${lemma}-${pos}-1`;
           await (this as any).config.wordnet.getQueryService().query(
             "INSERT OR REPLACE INTO words (id, lemma, pos, language, lexicon) VALUES (?, ?, ?, ?, ?)",
-            [wordId, lemma, pos, "en", project.id] // Use base lexicon ID
+            [wordId, lemma, pos, "en", baseLexiconId] // Use base lexicon ID
           );
 
           // Insert synset with ILI identifier
           await (this as any).config.wordnet.getQueryService().query(
             "INSERT OR REPLACE INTO synsets (id, pos, language, lexicon, ili) VALUES (?, ?, ?, ?, ?)",
-            [synsetId, pos, "en", project.id, `i-${synsetId}`] // Use base lexicon ID and add ILI
+            [synsetId, pos, "en", baseLexiconId, `i-${synsetId}`] // Use base lexicon ID and add ILI
           );
 
           // Insert sense
           await (this as any).config.wordnet.getQueryService().query(
             "INSERT OR REPLACE INTO senses (id, word_id, synset_id, source, sensekey, adjposition, subcategory, domain, register) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            [`${wordId}.01`, wordId, synsetId, null, null, null, null, null, null]
+            [`${wordId}.sense.1`, wordId, synsetId, null, null, null, null, null, null]
           );
 
           // Insert definition
@@ -181,15 +182,12 @@ export class MockDataLoader extends DataLoader {
       // Check if synsets table exists and has correct schema
       try {
         const tableInfo = await (this as any).config.wordnet.getQueryService().query("PRAGMA table_info(synsets)");
-        console.log(`🔍 Synsets table info:`, tableInfo);
         
         // Also check if the table exists at all
         const tableExists = await (this as any).config.wordnet.getQueryService().query("SELECT name FROM sqlite_master WHERE type='table' AND name='synsets'");
-        console.log(`🔍 Synsets table exists:`, tableExists);
         
         // Check all tables
         const allTables = await (this as any).config.wordnet.getQueryService().query("SELECT name FROM sqlite_master WHERE type='table'");
-        console.log(`🔍 All tables:`, allTables);
       } catch (error) {
         console.error(`❌ Failed to get table info:`, error);
       }
@@ -207,12 +205,10 @@ export class MockDataLoader extends DataLoader {
 
       for (const [synsetId, pos] of sampleSynsets) {
         try {
-          console.log(`🔍 Inserting synset: ${synsetId}, pos: ${pos}, lexicon: ${project.id}`);
           await (this as any).config.wordnet.getQueryService().query(
             "INSERT OR REPLACE INTO synsets (id, pos, language, lexicon, ili) VALUES (?, ?, ?, ?, ?)",
-            [synsetId, pos, "en", project.id, `i-${synsetId}`] // Use base lexicon ID and add ILI
+            [synsetId, pos, "en", baseLexiconId, `i-${synsetId}`] // Use base lexicon ID and add ILI
           );
-          console.log(`✅ Successfully inserted synset: ${synsetId}`);
         } catch (error) {
           console.error(`❌ Failed to insert synset ${synsetId}:`, error);
           throw error;
@@ -221,13 +217,13 @@ export class MockDataLoader extends DataLoader {
 
       // Insert sample senses
       const sampleSenses = [
-        ["happy.a.01.sense.1", "happy.a.01", "happy.a.01"],
-        ["run.v.01.sense.1", "run.v.01", "run.v.01"],
-        ["book.n.01.sense.1", "book.n.01", "book.n.01"],
-        ["quickly.r.01.sense.1", "quickly.r.01", "quickly.r.01"],
-        ["water.n.01.sense.1", "water.n.01", "water.n.01"],
-        ["computer.n.01.sense.1", "computer.n.01", "computer.n.01"], // Add computer sense
-        ["information.n.01.sense.1", "information.n.01", "information.n.01"], // Add information sense
+        ["happy-a-1.sense.1", "happy-a-1", "happy.a.01"],
+        ["run-v-1.sense.1", "run-v-1", "run.v.01"],
+        ["book-n-1.sense.1", "book-n-1", "book.n.01"],
+        ["quickly-r-1.sense.1", "quickly-r-1", "quickly.r.01"],
+        ["water-n-1.sense.1", "water-n-1", "water.n.01"],
+        ["computer-n-1.sense.1", "computer-n-1", "computer.n.01"], // Add computer sense
+        ["information-n-1.sense.1", "information-n-1", "information.n.01"], // Add information sense
       ];
 
       for (const [senseId, wordId, synsetId] of sampleSenses) {
@@ -306,20 +302,15 @@ export class MockDataLoader extends DataLoader {
     logger.info(
       `📝 Inserting mock large dataset for ${projectIdWithVersion}...`
     );
-    console.log(`🔧 [MockDataLoader] Starting insertMockLargeDataset for ${projectIdWithVersion}`);
 
     try {
-      console.log(`🔧 [MockDataLoader] Creating Project for ${projectIdWithVersion}`);
       const project = new Project(projectIdWithVersion);
-      console.log(`🔧 [MockDataLoader] Project created successfully: ${project.id}`);
       logger.info(`🔍 Debug Mock: projectId = ${project.id}`);
       logger.info(`🔍 Debug Mock: project =`, project);
 
       // Insert lexicon using real project data
-      console.log(`🔧 [MockDataLoader] About to insert lexicon`);
       try {
         const queryService = this.getQueryService();
-        console.log(`🔧 [MockDataLoader] Query service obtained: ${!!queryService}`);
         const label =
           project.label || `Mock Large ${project.id.toUpperCase()}`;
         const language = project.language;
@@ -345,7 +336,6 @@ export class MockDataLoader extends DataLoader {
         }
       } catch (error) {
         // If insertion fails, lexicon might already exist, but we still need to insert data
-        console.log(`🔧 [MockDataLoader] Lexicon insertion failed, continuing with data insertion:`, error);
         logger.info(
           `✅ Lexicon ${projectIdWithVersion} already exists, continuing with data insertion`
         );
@@ -355,14 +345,10 @@ export class MockDataLoader extends DataLoader {
       const wordCount = 5000;
       const synsetCount = 3000;
 
-      console.log(`🔧 [MockDataLoader] About to generate ${wordCount} words and ${synsetCount} synsets`);
       logger.info(
         `📊 Generating ${wordCount} words and ${synsetCount} synsets...`
       );
 
-      // Debug: Check if database is available
-      console.log(`🔧 [MockDataLoader] Database available: ${!!this.database}`);
-      console.log(`🔧 [MockDataLoader] Database type: ${typeof this.database}`);
       logger.info(`🔍 [MockDataLoader] Database available: ${!!this.database}`);
       logger.info(`🔍 [MockDataLoader] Database type: ${typeof this.database}`);
 
@@ -531,7 +517,6 @@ export class MockDataLoader extends DataLoader {
 
       // Insert senses (connect words to synsets) using correct schema
       logger.info(`🔗 Inserting ${wordCount} senses...`);
-      console.log(`🔗 [MockDataLoader] About to insert ${wordCount} senses...`);
       for (let i = 0; i < wordCount; i++) {
         const word = commonWords[i % commonWords.length];
         const pos = partsOfSpeech[i % partsOfSpeech.length];
@@ -545,17 +530,14 @@ export class MockDataLoader extends DataLoader {
             [senseId, wordId, synsetId, null, null, null, null, null, null]
           );
           if (i < 5) { // Log first 5 sense insertions for debugging
-            console.log(`🔗 [MockDataLoader] Inserted sense ${i + 1}: ${senseId} -> ${wordId} -> ${synsetId}`);
           }
         } catch (error) {
           logger.error(`❌ [MockDataLoader] Error inserting sense ${senseId}:`, error);
-          console.error(`❌ [MockDataLoader] Error inserting sense ${senseId}:`, error);
         }
       }
       
       // Ensure 'computer' gets senses by adding them explicitly
       // Since we can't query the database directly, we'll create senses for the computer words we know exist
-      console.log(`🔗 [MockDataLoader] Adding explicit senses for 'computer'...`);
       try {
         // We know computer appears at position 445 in the commonWords array
         // and the large dataset creates words for the first 5000 iterations
@@ -571,7 +553,6 @@ export class MockDataLoader extends DataLoader {
           }
         }
         
-        console.log(`🔗 [MockDataLoader] Found ${computerWordPositions.length} computer words:`, computerWordPositions.map(w => w.wordId));
         
         for (let i = 0; i < computerWordPositions.length; i++) {
           const { wordId, pos, index } = computerWordPositions[i];
@@ -584,7 +565,6 @@ export class MockDataLoader extends DataLoader {
               "INSERT OR REPLACE INTO senses (id, word_id, synset_id, source, sensekey, adjposition, subcategory, domain, register) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
               [senseId, wordId, synsetId, null, null, null, null, null, null]
             );
-            console.log(`🔗 [MockDataLoader] Added computer sense: ${senseId} -> ${wordId} -> ${synsetId}`);
           } catch (error) {
             logger.error(`❌ [MockDataLoader] Error inserting computer sense ${senseId}:`, error);
           }
@@ -594,7 +574,6 @@ export class MockDataLoader extends DataLoader {
       }
       
       logger.info(`🔗 Finished inserting senses`);
-      console.log(`🔗 [MockDataLoader] Finished inserting ${wordCount} senses`);
 
       // Insert definitions for all synsets
       for (let i = 0; i < synsetCount; i++) {

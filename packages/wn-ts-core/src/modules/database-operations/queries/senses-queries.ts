@@ -1,36 +1,38 @@
 import type { Database } from '../../../types/database.js';
 import type { Kysely } from 'kysely';
-import { sql } from 'kysely';
+// import { sql } from 'kysely';
 import type { SenseQuery } from '../../../core/types.js';
-import { SenseQueryBuilder, createQueryBuilder } from './base-query-builder.js';
+import { SenseQueryBuilder } from './base-query-builder.js';
+// import { createQueryBuilder } from './base-query-builder.js';
 
 export function getSensesQuery(
   db: Kysely<Database>,
-  options: SenseQuery = {}
+  options: SenseQuery = { language: undefined }
 ) {
   let query = db.selectFrom('senses').selectAll('senses');
   let hasWordsJoin = false;
   
   // Handle wordIdOrForm - this is specific to senses
-  if (options.wordIdOrForm) {
+  const wordIdOrForm = (options as any).wordIdOrForm;
+  if (wordIdOrForm) {
     // Check if it's a word ID (contains lexicon prefix and part of speech)
     // Word IDs typically have format: word-pos-number (e.g., computer-n-1)
-    const isWordId = options.wordIdOrForm.includes('-') && 
-      (options.wordIdOrForm.match(/-[nvarscpix]-\d+$/) || 
-       options.wordIdOrForm.endsWith('-n') || options.wordIdOrForm.endsWith('-v') || 
-       options.wordIdOrForm.endsWith('-a') || options.wordIdOrForm.endsWith('-r') || 
-       options.wordIdOrForm.endsWith('-s') || options.wordIdOrForm.endsWith('-c') || 
-       options.wordIdOrForm.endsWith('-p') || options.wordIdOrForm.endsWith('-i') || 
-       options.wordIdOrForm.endsWith('-x') || options.wordIdOrForm.endsWith('-u'));
+    const isWordId = wordIdOrForm.includes('-') && 
+      (wordIdOrForm.match(/-[nvarscpix]-\d+$/) || 
+       wordIdOrForm.endsWith('-n') || wordIdOrForm.endsWith('-v') || 
+       wordIdOrForm.endsWith('-a') || wordIdOrForm.endsWith('-r') || 
+       wordIdOrForm.endsWith('-s') || wordIdOrForm.endsWith('-c') || 
+       wordIdOrForm.endsWith('-p') || wordIdOrForm.endsWith('-i') || 
+       wordIdOrForm.endsWith('-x') || wordIdOrForm.endsWith('-u'));
     
     if (isWordId) {
       // Direct word ID lookup - fastest possible
-      query = query.where('senses.word_id', '=', options.wordIdOrForm);
+      query = query.where('senses.word_id', '=', wordIdOrForm);
     } else {
       // Form lookup - join with words table
       query = query
         .innerJoin('words', 'senses.word_id', 'words.id')
-        .where('words.lemma', '=', options.wordIdOrForm.toLowerCase());
+        .where('words.lemma', '=', wordIdOrForm.toLowerCase());
       hasWordsJoin = true;
     }
   }
@@ -41,7 +43,7 @@ export function getSensesQuery(
       query = query.innerJoin('words', 'senses.word_id', 'words.id');
       hasWordsJoin = true;
     }
-    query = query.where('words.pos', '=', options.pos);
+    query = query.where('words.pos' as any, '=', options.pos);
   }
 
   // Handle lexicon filtering
@@ -50,7 +52,7 @@ export function getSensesQuery(
       query = query.innerJoin('words', 'senses.word_id', 'words.id');
       hasWordsJoin = true;
     }
-    query = query.where('words.lexicon', '=', options.lexicon);
+    query = query.where('words.lexicon' as any, '=', options.lexicon);
   }
 
   return query.orderBy('senses.id');

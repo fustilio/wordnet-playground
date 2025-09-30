@@ -662,7 +662,6 @@ export class WordNetWorkerClient {
     await this.ensureInitialized();
     
     try {
-      console.log(`Getting synset by ID: ${synsetId}`);
       
       if (!this.remote) {
         throw new Error('Worker not available');
@@ -702,7 +701,6 @@ export class WordNetWorkerClient {
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error(`Failed to get synset by ID: ${synsetId}`, { error: errorMessage });
       this.emit('error', { error: errorMessage, context: 'getSynsetById' });
       throw error;
     }

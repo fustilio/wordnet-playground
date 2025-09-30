@@ -1,8 +1,9 @@
 import type { Database } from '../../../types/database.js';
 import type { Kysely } from 'kysely';
-import { sql } from 'kysely';
+// import { sql } from 'kysely';
 import type { PartOfSpeech, WordQuery } from '../../../core/types.js';
-import { WordQueryBuilder, createQueryBuilder } from './base-query-builder.js';
+// import { WordQueryBuilder } from './base-query-builder.js';
+// import { createQueryBuilder } from './base-query-builder.js';
 
 export function getWordsBySynsetAndLanguageQuery(
   db: Kysely<Database>,
@@ -24,7 +25,7 @@ export function getWordsBySynsetAndLanguageQuery(
 
 export function getWordsQuery(
   db: Kysely<Database>,
-  options: WordQuery = {}
+  options: WordQuery = { language: undefined }
 ) {
   let query = db.selectFrom('words').selectAll('words');
   

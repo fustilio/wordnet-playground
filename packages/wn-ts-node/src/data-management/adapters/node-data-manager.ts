@@ -351,6 +351,7 @@ export class NodeDataManager extends SharedDataManager {
     _progress?: (progress: number, message?: string) => void
   ): Promise<WordNetProcessingResult> {
     this.logger.debug(`🔄 Processing WordNet data for: ${projectId}`);
+    this.logger.debug(`About to start processWordNetData with ${data.byteLength} bytes`);
 
     // Create temp directory if it doesn't exist
     const tempDir = this.config.downloadDirectory || join(process.cwd(), 'temp');
@@ -359,19 +360,30 @@ export class NodeDataManager extends SharedDataManager {
       mkdirSync(tempDir, { recursive: true });
     }
 
+    // Determine file extension based on project ID
+    let fileExtension = '.gz'; // default
+    if (projectId.includes('omw-fr') || projectId.includes('omw-th')) {
+      fileExtension = '.tar.xz';
+    } else if (projectId.includes('cili')) {
+      fileExtension = '.tsv.xz';
+    }
+    
     // Save data to temporary file
-    const tempFile = join(tempDir, `temp-wordnet-${randomUUID()}.gz`);
+    const tempFile = join(tempDir, `temp-wordnet-${randomUUID()}${fileExtension}`);
     let processedPath: string | null = null;
     
     try {
+      this.logger.debug(`About to write ${data.byteLength} bytes to ${tempFile}`);
       // Write the ArrayBuffer directly as binary data
       writeFileSync(tempFile, Buffer.from(data));
       
       this.logger.debug(`📁 Saved ${data.byteLength} bytes to ${tempFile}`);
       
+      this.logger.debug(`About to call processFile with: ${tempFile}`);
       // Process the file (decompress if needed)
       processedPath = await this.processFile(tempFile);
       
+      this.logger.debug(`About to read processed file: ${processedPath}`);
       // Read the processed file content
       const xmlContent = readFileSync(processedPath, 'utf-8');
       
@@ -411,7 +423,7 @@ export class NodeDataManager extends SharedDataManager {
         version: '1.0',
         contentType: 'lmf',
         confidence: 'low' as const,
-        xmlContent: null,
+        // xmlContent: undefined, // Optional property
         error: error instanceof Error ? error.message : String(error),
       };
     } finally {
@@ -444,6 +456,26 @@ export class NodeDataManager extends SharedDataManager {
     path: string,
     _progress?: (progress: number) => void
   ): Promise<string> {
+    // Check if file is a tar.xz archive (needs special handling)
+    if (path.endsWith('.tar.xz')) {
+      this.logger.debug(`🗜️ Processing tar.xz archive: ${path}`);
+      
+      // First decompress the .xz part
+      const tarPath = path.replace(/\.tar\.xz$/, '.tar');
+      this.logger.debug(`🗜️ Decompressing ${path} to ${tarPath}`);
+      await this.decompressFile(path, tarPath);
+      
+      // Then extract the tar archive
+      const extractedDir = await this.extractArchive(tarPath, dirname(tarPath));
+      const lmfFiles = await this.findLMFiles(extractedDir);
+      
+      if (lmfFiles.length === 0) {
+        throw new Error(`No LMF files found in archive: ${path}`);
+      }
+      
+      return lmfFiles[0] || path;
+    }
+
     // Check if file needs decompression
     if (path.endsWith('.gz') || path.endsWith('.xz')) {
       const decompressedPath = path.replace(/\.(gz|xz)$/, '');
@@ -536,15 +568,36 @@ export class NodeDataManager extends SharedDataManager {
    */
   protected async insertLMFData(lmfDocument: LMFDocument): Promise<void> {
     this.logger.debug(`📥 Inserting LMF data into database`);
+    this.logger.debug(`LMF Document structure:`, {
+      lexicons: lmfDocument.lexicons?.length || 0,
+      words: lmfDocument.words?.length || 0,
+      synsets: lmfDocument.synsets?.length || 0,
+      senses: lmfDocument.senses?.length || 0
+    });
 
     const db = this.adapter.getDatabase();
 
-    // Import insert functions
-    const { insertRecords } = await import('wn-ts-core');
+    // Import the batched insert function that handles large datasets
+    const { insertLMFDataInTransaction } = await import('wn-ts-core');
 
-    // Insert lexicons
+    // Prepare data for batched insertion
+    const dataToInsert: {
+      lexicons: any[];
+      words: any[];
+      synsets: any[];
+      senses: any[];
+      definitions: any[];
+    } = {
+      lexicons: [],
+      words: [],
+      synsets: [],
+      senses: [],
+      definitions: []
+    };
+
+    // Prepare lexicons
     if (lmfDocument.lexicons && lmfDocument.lexicons.length > 0) {
-      const lexiconsForDb = lmfDocument.lexicons.map(lexicon => ({
+      dataToInsert.lexicons = lmfDocument.lexicons.map(lexicon => ({
         ...lexicon,
         version: lexicon.version || null,
         email: lexicon.email || null,
@@ -552,30 +605,28 @@ export class NodeDataManager extends SharedDataManager {
         url: lexicon.url || null,
         citation: lexicon.citation || null,
         logo: lexicon.logo || null,
+        requires: lexicon.requires ? JSON.stringify(lexicon.requires) : null,
         metadata: (lexicon.metadata as any) || null
       }));
-      await insertRecords(db, 'lexicons', lexiconsForDb);
     }
 
-    // Insert synsets (without definitions)
+    // Prepare synsets
     if (lmfDocument.synsets && lmfDocument.synsets.length > 0) {
-      const synsetsForDb = lmfDocument.synsets.map(synset => ({
+      dataToInsert.synsets = lmfDocument.synsets.map(synset => ({
         id: synset.id,
         pos: synset.pos,
         ili: synset.ili || null,
         language: synset.language || null,
         lexicon: synset.lexicon
       }));
-      await insertRecords(db, 'synsets', synsetsForDb);
     }
 
-    // Insert definitions (extracted from synsets)
+    // Prepare definitions (extracted from synsets)
     if (lmfDocument.synsets && lmfDocument.synsets.length > 0) {
-      const definitions = [];
       for (const synset of lmfDocument.synsets) {
         if (synset.definitions && synset.definitions.length > 0) {
           for (const definition of synset.definitions) {
-            definitions.push({
+            dataToInsert.definitions.push({
               id: `${synset.id}-def-${Math.random().toString(36).substr(2, 9)}`,
               synset_id: synset.id,
               language: definition.language || synset.language || 'en',
@@ -585,26 +636,22 @@ export class NodeDataManager extends SharedDataManager {
           }
         }
       }
-      if (definitions.length > 0) {
-        await insertRecords(db, 'definitions', definitions);
-      }
     }
 
-    // Insert words (map LMF data to database schema)
+    // Prepare words
     if (lmfDocument.words && lmfDocument.words.length > 0) {
-      const wordsForDb = lmfDocument.words.map(word => ({
+      dataToInsert.words = lmfDocument.words.map(word => ({
         id: word.id,
         lemma: word.lemma,
         pos: word.pos, // LMF uses 'pos' which matches database schema
         language: word.language || null,
         lexicon: word.lexicon
       }));
-      await insertRecords(db, 'words', wordsForDb);
     }
 
-    // Insert senses (map LMF data to database schema)
+    // Prepare senses
     if (lmfDocument.senses && lmfDocument.senses.length > 0) {
-      const sensesForDb = lmfDocument.senses.map(sense => ({
+      dataToInsert.senses = lmfDocument.senses.map(sense => ({
         id: sense.id,
         word_id: sense.wordId, // Map wordId to word_id
         synset_id: sense.synsetId, // Map synsetId to synset_id
@@ -615,14 +662,21 @@ export class NodeDataManager extends SharedDataManager {
         domain: sense.domain || null,
         register: sense.register || null
       }));
-      await insertRecords(db, 'senses', sensesForDb);
     }
 
+    // Use the batched insertion function that handles large datasets
+    await insertLMFDataInTransaction(db, dataToInsert, {
+      step: (message, data) => this.logger.info(message, data),
+      debug: (message, data) => this.logger.debug(message, data),
+      error: (message, data) => this.logger.error(message, data)
+    });
+
     this.logger.info(`LMF data inserted successfully`, {
-      lexicons: lmfDocument.lexicons?.length || 0,
-      words: lmfDocument.words?.length || 0,
-      synsets: lmfDocument.synsets?.length || 0,
-      senses: lmfDocument.senses?.length || 0,
+      lexicons: dataToInsert.lexicons.length,
+      words: dataToInsert.words.length,
+      synsets: dataToInsert.synsets.length,
+      senses: dataToInsert.senses.length,
+      definitions: dataToInsert.definitions.length
     });
   }
 

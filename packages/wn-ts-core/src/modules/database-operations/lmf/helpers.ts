@@ -1,5 +1,5 @@
 import type { Database } from '../../../types/database.js';
-import type { LMFDocument, Lexicon, Word, Synset, Sense } from 'wn-ts-core';
+import type { LMFDocument, Word, Synset, Sense } from 'wn-ts-core';
 
 /**
  * Prepare lexicon data for insertion from LMF document
@@ -10,16 +10,17 @@ export function prepareLexiconData(
 ): Database["lexicons"][] {
   const lexicons = lmfDocument.lexicons || [];
   
-  return lexicons.map((lexicon: Lexicon) => ({
+  return lexicons.map((lexicon: any) => ({
     id: projectIdWithVersion, // Use full package ID for consistency
     label: lexicon.label,
-    language: lexicon.language,
+    language: lexicon.language ?? null, // Convert undefined to null
     license: lexicon.license ?? null,
     version: lexicon.version ?? null,
     email: lexicon.email || null,
-    url: lexicon.url || null,
+    url: lexicon.url ?? null, // Use nullish coalescing to ensure we always have a value
     citation: lexicon.citation || null,
     logo: lexicon.logo || null,
+    requires: null, // Add missing requires field
     metadata: null,
   }));
 }

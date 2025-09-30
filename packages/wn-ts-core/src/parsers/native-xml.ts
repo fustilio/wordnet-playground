@@ -13,8 +13,8 @@ import {
   logDebug, 
   warnDuplicateHandling,
   measurePerformance,
-  createParserResult,
-  getMemoryUsage
+  // createParserResult,
+  // getMemoryUsage
 } from './shared-parser-utils.js';
 
 export class NativeXMLParser implements LMFParser {

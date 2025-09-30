@@ -152,7 +152,8 @@ export {
 // Database operations
 export {
   insertRecord,
-  insertRecords
+  insertRecords,
+  insertLMFDataInTransaction
 } from './modules/database-operations/mutations/index.js';
 
 // Query strategy types

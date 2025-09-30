@@ -278,16 +278,16 @@ export class BaseQueryBuilder {
     // Apply joins using proper Kysely syntax
     for (const join of this.joins) {
       if (join.type === 'inner') {
-        query = query.innerJoin(join.table as any, (join) => 
-          join.onRef(join.leftColumn, '=', join.rightColumn)
+        query = query.innerJoin(join.table as any, (jb) => 
+          jb.onRef(join.leftColumn, '=', join.rightColumn)
         );
       } else if (join.type === 'left') {
-        query = query.leftJoin(join.table as any, (join) => 
-          join.onRef(join.leftColumn, '=', join.rightColumn)
+        query = query.leftJoin(join.table as any, (jb) => 
+          jb.onRef(join.leftColumn, '=', join.rightColumn)
         );
       } else if (join.type === 'right') {
-        query = query.rightJoin(join.table as any, (join) => 
-          join.onRef(join.leftColumn, '=', join.rightColumn)
+        query = query.rightJoin(join.table as any, (jb) => 
+          jb.onRef(join.leftColumn, '=', join.rightColumn)
         );
       }
     }
@@ -351,16 +351,16 @@ export class BaseQueryBuilder {
     // Apply joins
     for (const join of this.joins) {
       if (join.type === 'inner') {
-        query = query.innerJoin(join.table as any, (join) => 
-          join.onRef(join.leftColumn, '=', join.rightColumn)
+        query = query.innerJoin(join.table as any, (jb) => 
+          jb.onRef(join.leftColumn, '=', join.rightColumn)
         );
       } else if (join.type === 'left') {
-        query = query.leftJoin(join.table as any, (join) => 
-          join.onRef(join.leftColumn, '=', join.rightColumn)
+        query = query.leftJoin(join.table as any, (jb) => 
+          jb.onRef(join.leftColumn, '=', join.rightColumn)
         );
       } else if (join.type === 'right') {
-        query = query.rightJoin(join.table as any, (join) => 
-          join.onRef(join.leftColumn, '=', join.rightColumn)
+        query = query.rightJoin(join.table as any, (jb) => 
+          jb.onRef(join.leftColumn, '=', join.rightColumn)
         );
       }
     }

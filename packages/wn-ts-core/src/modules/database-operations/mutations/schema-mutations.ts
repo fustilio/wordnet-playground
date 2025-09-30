@@ -159,6 +159,7 @@ async function createLexiconsTable(schema: any): Promise<void> {
     .addColumn('url', 'text')
     .addColumn('citation', 'text')
     .addColumn('logo', 'text')
+    .addColumn('requires', 'text')
     .addColumn('metadata', 'text')
     .execute();
 }

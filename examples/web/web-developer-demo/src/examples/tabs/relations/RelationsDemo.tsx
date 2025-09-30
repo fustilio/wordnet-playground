@@ -163,8 +163,25 @@ export function RelationsDemo() {
       console.log('Synset structure:', selectedSynset);
       console.log('Words property:', selectedSynset.words);
       
-      const synsetWords = selectedSynset.words || [];
-      const wordForms = synsetWords.map((w: WordInfo) => w.lemma).filter(Boolean);
+      let synsetWords: WordInfo[] = [];
+      let wordForms: string[] = [];
+      
+      // Try to get words from the synset structure first
+      if (selectedSynset.words && selectedSynset.words.length > 0) {
+        synsetWords = selectedSynset.words;
+        wordForms = synsetWords.map((w: WordInfo) => w.lemma).filter(Boolean);
+        console.log('Using words from synset structure:', wordForms);
+      } else {
+        // Fetch words for this synset using the API
+        console.log('Fetching words for synset:', synsetId);
+        try {
+          synsetWords = await wordNetState.getWordsBySynsetAndLanguage(synsetId, selectedSynset.language || 'en');
+          wordForms = synsetWords.map((w: WordInfo) => w.lemma).filter(Boolean);
+          console.log('Fetched synset words:', wordForms);
+        } catch (error) {
+          console.warn('Failed to fetch words for synset:', error);
+        }
+      }
       
       console.log('Synset words:', synsetWords);
       console.log('Word forms:', wordForms);
@@ -239,7 +256,7 @@ export function RelationsDemo() {
         commonRelatedTerms.forEach((term, index) => {
           if (!realRelations.some(rel => rel.lemma === term)) {
             realRelations.push({
-              id: `common-${index}`,
+              id: `common-${term}-${index}`, // Make ID more unique
               lemma: term,
               pos: 'n',
               language: 'en',
@@ -263,7 +280,7 @@ export function RelationsDemo() {
       });
       
       setRelationStats(stats);
-      setAvailableRelationTypes(realRelations.map(rel => rel.relationType));
+      setAvailableRelationTypes([...new Set(realRelations.map(rel => rel.relationType))]);
       
       // Load relations for the first category
       if (Object.keys(stats).length > 0) {

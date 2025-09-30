@@ -16,14 +16,10 @@ export class KyselyQueryService extends BaseKyselyQueryService {
 
   // Implement the abstract createTables method using shared SchemaBuilder
   async createTables(): Promise<void> {
-    console.log('🔍 KyselyQueryService.createTables() called');
     try {
       await SchemaBuilder.createTables(this.db);
-      console.log('✅ SchemaBuilder.createTables() completed');
       await SchemaBuilder.createIndexes(this.db);
-      console.log('✅ SchemaBuilder.createIndexes() completed');
     } catch (error) {
-      console.error('❌ Failed to create tables:', error);
       throw error;
     }
   }

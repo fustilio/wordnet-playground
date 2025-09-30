@@ -22,7 +22,7 @@ import {
 } from '../synsets-queries.js';
 import { 
   createIntegrationTestSuite,
-  testAssertions,
+  // testAssertions,
   type IntegrationTestContext
 } from '../../../../test/integration-test-utils.js';
 
@@ -33,7 +33,8 @@ createIntegrationTestSuite('Synsets Queries Integration Tests', (getContext: () 
   describe('getSynsetsV2Query', () => {
     it('should find synsets by form', async () => {
       const options: SynsetQuery = {
-        form: 'computer'
+        form: 'computer',
+        language: 'en'
       };
       
       const query = getSynsetsV2Query(getContext().kyselyDb, options);
@@ -45,7 +46,8 @@ createIntegrationTestSuite('Synsets Queries Integration Tests', (getContext: () 
 
     it('should find synsets by POS', async () => {
       const options: SynsetQuery = {
-        pos: 'n'
+        pos: 'n',
+        language: 'en'
       };
       
       const query = getSynsetsV2Query(getContext().kyselyDb, options);
@@ -57,7 +59,8 @@ createIntegrationTestSuite('Synsets Queries Integration Tests', (getContext: () 
 
     it('should find synsets by lexicon', async () => {
       const options: SynsetQuery = {
-        lexicon: 'test-lexicon'
+        lexicon: 'test-lexicon',
+        language: 'en'
       };
       
       const query = getSynsetsV2Query(getContext().kyselyDb, options);
@@ -81,8 +84,9 @@ createIntegrationTestSuite('Synsets Queries Integration Tests', (getContext: () 
 
     it('should find synsets by ILI', async () => {
       const options: SynsetQuery = {
-        ili: 'i-computer-1'
-      };
+        language: 'en'
+      } as any;
+      (options as any).ili = 'i-computer-1';
       
       const query = getSynsetsV2Query(getContext().kyselyDb, options);
       const results = await query.execute();
@@ -94,9 +98,9 @@ createIntegrationTestSuite('Synsets Queries Integration Tests', (getContext: () 
     it('should handle complex filtering', async () => {
       const options: SynsetQuery = {
         form: 'computer',
+        language: 'en',
         pos: 'n',
-        lexicon: 'test-lexicon',
-        language: 'en'
+        lexicon: 'test-lexicon'
       };
       
       const query = getSynsetsV2Query(getContext().kyselyDb, options);
@@ -111,6 +115,7 @@ createIntegrationTestSuite('Synsets Queries Integration Tests', (getContext: () 
     it('should find synsets with V3 optimization', async () => {
       const options: SynsetQuery = {
         form: 'computer',
+        language: 'en',
         pos: 'n'
       };
       
@@ -123,7 +128,8 @@ createIntegrationTestSuite('Synsets Queries Integration Tests', (getContext: () 
 
     it('should find synsets by form only', async () => {
       const options: SynsetQuery = {
-        form: 'run'
+        form: 'run',
+        language: 'en'
       };
       
       const query = getSynsetsV3Query(getContext().kyselyDb, options);
@@ -137,7 +143,8 @@ createIntegrationTestSuite('Synsets Queries Integration Tests', (getContext: () 
   describe('getSynsetsV4Query', () => {
     it('should find synsets with V4 massive join', async () => {
       const options: SynsetQuery = {
-        form: 'computer'
+        form: 'computer',
+        language: 'en'
       };
       
       const query = getSynsetsV4Query(getContext().kyselyDb, options);
@@ -149,7 +156,8 @@ createIntegrationTestSuite('Synsets Queries Integration Tests', (getContext: () 
 
     it('should return detailed synset data', async () => {
       const options: SynsetQuery = {
-        form: 'computer'
+        form: 'computer',
+        language: 'en'
       };
       
       const query = getSynsetsV4Query(getContext().kyselyDb, options);
@@ -157,18 +165,23 @@ createIntegrationTestSuite('Synsets Queries Integration Tests', (getContext: () 
       
       expect(Array.isArray(results)).toBe(true);
       expect(results.length).toBeGreaterThan(0);
-      if (results.length > 0 && results[0]) {
-        expect(results[0]).toHaveProperty('synset_id');
-        expect(results[0]).toHaveProperty('synset_pos');
-        expect(results[0]).toHaveProperty('synset_language');
+      
+      if (results.length === 0 || !results[0]) {
+        expect(results[0]).toBeDefined();
+        return;
       }
+      
+      expect(results[0]).toHaveProperty('synset_id');
+      expect(results[0]).toHaveProperty('synset_pos');
+      expect(results[0]).toHaveProperty('synset_language');
     });
   });
 
   describe('getSynsetsV5Query', () => {
     it('should find synsets with V5 index optimization', async () => {
       const options: SynsetQuery = {
-        form: 'computer'
+        form: 'computer',
+        language: 'en'
       };
       
       const query = getSynsetsV5Query(getContext().kyselyDb, options);
@@ -181,6 +194,7 @@ createIntegrationTestSuite('Synsets Queries Integration Tests', (getContext: () 
     it('should handle fuzzy search', async () => {
       const options: SynsetQuery = {
         form: 'comp',
+        language: 'en',
         fuzzy: true
       };
       
@@ -194,7 +208,8 @@ createIntegrationTestSuite('Synsets Queries Integration Tests', (getContext: () 
   describe('getSynsetsV6Query', () => {
     it('should find synsets with V6 most efficient query', async () => {
       const options: SynsetQuery = {
-        form: 'computer'
+        form: 'computer',
+        language: 'en'
       };
       
       const query = getSynsetsV6Query(getContext().kyselyDb, options);
@@ -207,6 +222,7 @@ createIntegrationTestSuite('Synsets Queries Integration Tests', (getContext: () 
     it('should handle maxResults limit', async () => {
       const options: SynsetQuery = {
         form: 'computer',
+        language: 'en',
         maxResults: 1
       };
       
@@ -221,7 +237,8 @@ createIntegrationTestSuite('Synsets Queries Integration Tests', (getContext: () 
   describe('getSynsetsFastQuery', () => {
     it('should find synsets quickly', async () => {
       const options: SynsetQuery = {
-        form: 'computer'
+        form: 'computer',
+        language: 'en'
       };
       
       const query = getSynsetsFastQuery(getContext().kyselyDb, options);
@@ -233,7 +250,8 @@ createIntegrationTestSuite('Synsets Queries Integration Tests', (getContext: () 
 
     it('should find synsets by POS only', async () => {
       const options: SynsetQuery = {
-        pos: 'v'
+        pos: 'v',
+        language: 'en'
       };
       
       const query = getSynsetsFastQuery(getContext().kyselyDb, options);
@@ -253,9 +271,13 @@ createIntegrationTestSuite('Synsets Queries Integration Tests', (getContext: () 
       
       expect(Array.isArray(results)).toBe(true);
       expect(results.length).toBeGreaterThan(0);
-      if (results.length > 0 && results[0]) {
-        expect(results[0].id).toBe(synsetId);
+      
+      if (results.length === 0 || !results[0]) {
+        expect(results[0]).toBeDefined();
+        return;
       }
+      
+      expect(results[0].id).toBe(synsetId);
     });
 
     it('should return empty array for non-existent synset ID', async () => {
@@ -323,9 +345,13 @@ createIntegrationTestSuite('Synsets Queries Integration Tests', (getContext: () 
       
       expect(Array.isArray(results)).toBe(true);
       expect(results.length).toBeGreaterThan(0);
-      if (results.length > 0 && results[0]) {
-        expect(results[0].lexicon).toBe(lexiconId);
+      
+      if (results.length === 0 || !results[0]) {
+        expect(results[0]).toBeDefined();
+        return;
       }
+      
+      expect(results[0].lexicon).toBe(lexiconId);
     });
 
     it('should return empty array for non-existent lexicon', async () => {
@@ -348,9 +374,13 @@ createIntegrationTestSuite('Synsets Queries Integration Tests', (getContext: () 
       
       expect(Array.isArray(results)).toBe(true);
       expect(results.length).toBeGreaterThan(0);
-      if (results.length > 0 && results[0]) {
-        expect(results[0].ili).toBe(ili);
+      
+      if (results.length === 0 || !results[0]) {
+        expect(results[0]).toBeDefined();
+        return;
       }
+      
+      expect(results[0].ili).toBe(ili);
     });
 
     it('should find synsets by ILI with language exclusion', async () => {
@@ -381,12 +411,18 @@ createIntegrationTestSuite('Synsets Queries Integration Tests', (getContext: () 
       const lexicons = await getContext().mockCore.lexicons();
       expect(Array.isArray(lexicons)).toBe(true);
       
-      if (lexicons.length > 0) {
-        const lexicon = lexicons[0];
-        expect(lexicon).toBeDefined();
-        const synsets = await getContext().mockCore.synsets({ lexicon: lexicon?.id });
-        expect(Array.isArray(synsets)).toBe(true);
+      if (lexicons.length === 0) {
+        return;
       }
+      
+      const lexicon = lexicons[0];
+      if (!lexicon) {
+        expect(lexicon).toBeDefined();
+        return;
+      }
+      
+      const synsets = await getContext().mockCore.synsets({ lexicon: lexicon.id, language: 'en' });
+      expect(Array.isArray(synsets)).toBe(true);
     });
 
     it('should handle database constraints correctly', async () => {

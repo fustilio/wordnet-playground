@@ -8,6 +8,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { WordNetCore } from '../wordnet-kernel.js';
 import { Kysely, SqliteDialect } from 'kysely';
+import type { JSONColumnType } from 'kysely';
 import type Database from 'better-sqlite3';
 import type { Database as DatabaseSchema } from '../types/database.js';
 import { createTables, createIndexes } from '../modules/database-operations/mutations/schema-mutations.js';
@@ -52,6 +53,7 @@ export const COMMON_TEST_DATA = {
       url: 'https://example.com',
       citation: 'Test Citation',
       logo: null,
+      requires: null,
       metadata: null
     },
     {
@@ -64,6 +66,7 @@ export const COMMON_TEST_DATA = {
       url: 'https://example.com',
       citation: 'Test Citation',
       logo: null,
+      requires: null,
       metadata: null
     }
   ],
@@ -265,7 +268,7 @@ export async function setupIntegrationTest(): Promise<IntegrationTestContext> {
     status: 'standard' as const,
     superseded_by: null,
     note: null,
-    meta: '{}'
+    meta: JSON.stringify({}) // Convert to JSON string for SQLite
   }));
   
   await insertRecords(kyselyDb, 'words', wordsForDb);
@@ -363,14 +366,24 @@ export async function setupIntegrationTest(): Promise<IntegrationTestContext> {
  * Teardown function for integration tests
  * Cleans up the test environment and temporary files
  */
-export async function teardownIntegrationTest(context: IntegrationTestContext): Promise<void> {
+export async function teardownIntegrationTest(context: IntegrationTestContext | undefined): Promise<void> {
   try {
+    if (!context) {
+      return; // Nothing to teardown
+    }
+    
     // Close database connections
-    context.sqliteDb.close();
-    await context.kyselyDb.destroy();
+    if (context.sqliteDb) {
+      context.sqliteDb.close();
+    }
+    if (context.kyselyDb) {
+      await context.kyselyDb.destroy();
+    }
     
     // Cleanup test context
-    await context.testContext.cleanup();
+    if (context.testContext) {
+      await context.testContext.cleanup();
+    }
   } catch (error) {
     console.warn('Error during test teardown:', error);
   }

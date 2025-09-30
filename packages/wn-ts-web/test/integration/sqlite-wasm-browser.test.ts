@@ -147,8 +147,9 @@ describe.skipIf(isNode)('SQLite WASM Browser Tests', () => {
       }
 
       // The mock should be reliable. If `exec` doesn't exist, it's a failure.
-      const dbInstance = (database as any).db;
-      expect(typeof dbInstance.exec).toBe('function');
+      const dbInstance = database.getDatabase();
+      expect(dbInstance).toBeDefined();
+      expect(typeof dbInstance!.exec).toBe('function');
 
       // This should not throw if the database is initialized correctly
       expect(() => {
@@ -162,10 +163,11 @@ describe.skipIf(isNode)('SQLite WASM Browser Tests', () => {
         return;
       }
 
-      const dbInstance = (database as any).db;
-      expect(typeof dbInstance.prepare).toBe('function');
+      const dbInstance = database.getDatabase();
+      expect(dbInstance).toBeDefined();
+      expect(typeof dbInstance!.prepare).toBe('function');
 
-      const stmt = dbInstance.prepare('SELECT 1 as test');
+      const stmt = dbInstance!.prepare('SELECT 1 as test');
       expect(stmt).toBeDefined();
 
       // The prepared statement should provide these methods

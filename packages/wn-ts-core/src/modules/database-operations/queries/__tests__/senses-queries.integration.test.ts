@@ -30,10 +30,14 @@ createIntegrationTestSuite('Senses Queries Integration Tests', (getContext: () =
       
       expect(Array.isArray(results)).toBe(true);
       expect(results.length).toBeGreaterThan(0);
-      if (results.length > 0 && results[0]) {
-        expect(results[0]).toHaveProperty('id');
-        expect(results[0]).toHaveProperty('word_id', 'computer-n-1');
+      
+      if (results.length === 0 || !results[0]) {
+        expect(results[0]).toBeDefined();
+        return;
       }
+      
+      expect(results[0]).toHaveProperty('id');
+      expect(results[0]).toHaveProperty('word_id', 'computer-n-1');
     });
 
     it('should find senses by form', async () => {
@@ -78,9 +82,9 @@ createIntegrationTestSuite('Senses Queries Integration Tests', (getContext: () =
     it('should handle complex filtering', async () => {
       const options: SenseQuery = {
         form: 'computer',
+        language: 'en',
         pos: 'n',
-        lexicon: 'test-lexicon',
-        language: 'en'
+        lexicon: 'test-lexicon'
       };
       
       const query = getSensesQuery(getContext().kyselyDb, options);
@@ -100,9 +104,13 @@ createIntegrationTestSuite('Senses Queries Integration Tests', (getContext: () =
       
       expect(Array.isArray(results)).toBe(true);
       expect(results.length).toBeGreaterThan(0);
-      if (results.length > 0 && results[0]) {
-        expect(results[0].id).toBe(senseId);
+      
+      if (results.length === 0 || !results[0]) {
+        expect(results[0]).toBeDefined();
+        return;
       }
+      
+      expect(results[0].id).toBe(senseId);
     });
 
     it('should return empty array for non-existent sense ID', async () => {
@@ -125,9 +133,13 @@ createIntegrationTestSuite('Senses Queries Integration Tests', (getContext: () =
       
       expect(Array.isArray(results)).toBe(true);
       expect(results.length).toBeGreaterThan(0);
-      if (results.length > 0 && results[0]) {
-        expect(results[0].word_id).toBe(wordId);
+      
+      if (results.length === 0 || !results[0]) {
+        expect(results[0]).toBeDefined();
+        return;
       }
+      
+      expect(results[0].word_id).toBe(wordId);
     });
 
     it('should return empty array for word with no senses', async () => {
@@ -150,9 +162,13 @@ createIntegrationTestSuite('Senses Queries Integration Tests', (getContext: () =
       
       expect(Array.isArray(results)).toBe(true);
       expect(results.length).toBeGreaterThan(0);
-      if (results.length > 0 && results[0]) {
-        expect(results[0].synset_id).toBe(synsetId);
+      
+      if (results.length === 0 || !results[0]) {
+        expect(results[0]).toBeDefined();
+        return;
       }
+      
+      expect(results[0].synset_id).toBe(synsetId);
     });
 
     it('should return empty array for synset with no senses', async () => {
@@ -172,19 +188,31 @@ createIntegrationTestSuite('Senses Queries Integration Tests', (getContext: () =
       const lexicons = await getContext().mockCore.lexicons();
       expect(Array.isArray(lexicons)).toBe(true);
       
-      if (lexicons.length > 0) {
-        const lexicon = lexicons[0];
-        expect(lexicon).toBeDefined();
-        const words = await getContext().mockCore.words({ lexicon: lexicon?.id, language: undefined });
-        expect(Array.isArray(words)).toBe(true);
-        
-        if (words.length > 0) {
-          const word = words[0];
-          expect(word).toBeDefined();
-          const senses = await getContext().mockCore.senses({ form: word?.id, language: 'en' });
-          expect(Array.isArray(senses)).toBe(true);
-        }
+      if (lexicons.length === 0) {
+        return;
       }
+      
+      const lexicon = lexicons[0];
+      if (!lexicon) {
+        expect(lexicon).toBeDefined();
+        return;
+      }
+      
+      const words = await getContext().mockCore.words({ lexicon: lexicon.id, language: undefined });
+      expect(Array.isArray(words)).toBe(true);
+      
+      if (words.length === 0) {
+        return;
+      }
+      
+      const word = words[0];
+      if (!word) {
+        expect(word).toBeDefined();
+        return;
+      }
+      
+      const senses = await getContext().mockCore.senses({ form: word.id, language: 'en' });
+      expect(Array.isArray(senses)).toBe(true);
     });
 
     it('should handle database constraints correctly', async () => {

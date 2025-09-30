@@ -23,11 +23,15 @@ createIntegrationTestSuite('Examples Queries Integration Tests', (getContext: ()
     
     expect(Array.isArray(results)).toBe(true);
     expect(results.length).toBeGreaterThan(0);
-    if (results.length > 0 && results[0]) {
-      expect(results[0]).toHaveProperty('id');
-      expect(results[0]).toHaveProperty('sense_id');
-      expect(results[0]).toHaveProperty('text');
+    
+    if (results.length === 0 || !results[0]) {
+      expect(results[0]).toBeDefined();
+      return;
     }
+    
+    expect(results[0]).toHaveProperty('id');
+    expect(results[0]).toHaveProperty('sense_id');
+    expect(results[0]).toHaveProperty('text');
   });
 
   it('should return empty array for non-existent synset', async () => {
@@ -49,18 +53,26 @@ createIntegrationTestSuite('Examples Queries Integration Tests', (getContext: ()
     const results = await query.execute();
     
     expect(Array.isArray(results)).toBe(true);
-    if (results.length > 0) {
-      const example = results[0];
-      expect(example).toHaveProperty('id');
-      expect(example).toHaveProperty('sense_id');
-      expect(example).toHaveProperty('language');
-      expect(example).toHaveProperty('text');
-      
-      expect(typeof example.id).toBe('string');
-      expect(typeof example.sense_id).toBe('string');
-      expect(typeof example.language).toBe('string');
-      expect(typeof example.text).toBe('string');
+    
+    if (results.length === 0) {
+      return;
     }
+    
+    const example = results[0];
+    if (!example) {
+      expect(example).toBeDefined();
+      return;
+    }
+    
+    expect(example).toHaveProperty('id');
+    expect(example).toHaveProperty('sense_id');
+    expect(example).toHaveProperty('language');
+    expect(example).toHaveProperty('text');
+    
+    expect(typeof example.id).toBe('string');
+    expect(typeof example.sense_id).toBe('string');
+    expect(typeof example.language).toBe('string');
+    expect(typeof example.text).toBe('string');
   });
 
   it('should handle multiple examples for same synset', async () => {
@@ -83,12 +95,20 @@ createIntegrationTestSuite('Examples Queries Integration Tests', (getContext: ()
     const results = await query.execute();
     
     expect(Array.isArray(results)).toBe(true);
-    if (results.length > 0) {
-      const example = results[0];
-      expect(example.text).toBeDefined();
-      expect(typeof example.text).toBe('string');
-      expect(example.text.length).toBeGreaterThan(0);
+    
+    if (results.length === 0) {
+      return;
     }
+    
+    const example = results[0];
+    if (!example) {
+      expect(example).toBeDefined();
+      return;
+    }
+    
+    expect(example.text).toBeDefined();
+    expect(typeof example.text).toBe('string');
+    expect(example.text.length).toBeGreaterThan(0);
   });
 
   it('should return examples with valid language codes', async () => {
@@ -99,12 +119,20 @@ createIntegrationTestSuite('Examples Queries Integration Tests', (getContext: ()
     const results = await query.execute();
     
     expect(Array.isArray(results)).toBe(true);
-    if (results.length > 0) {
-      const example = results[0];
-      expect(example.language).toBeDefined();
-      expect(typeof example.language).toBe('string');
-      expect(example.language.length).toBeGreaterThan(0);
+    
+    if (results.length === 0) {
+      return;
     }
+    
+    const example = results[0];
+    if (!example) {
+      expect(example).toBeDefined();
+      return;
+    }
+    
+    expect(example.language).toBeDefined();
+    expect(typeof example.language).toBe('string');
+    expect(example.language.length).toBeGreaterThan(0);
   });
 
   it('should handle concurrent example queries', async () => {
@@ -222,13 +250,21 @@ createIntegrationTestSuite('Examples Queries Integration Tests', (getContext: ()
     const results = await query.execute();
     
     expect(Array.isArray(results)).toBe(true);
-    if (results.length > 0) {
-      const example = results[0];
-      // Example text should be meaningful (not just whitespace)
-      expect(example.text.trim().length).toBeGreaterThan(0);
-      // Should contain some alphabetic characters
-      expect(/[a-zA-Z]/.test(example.text)).toBe(true);
+    
+    if (results.length === 0) {
+      return;
     }
+    
+    const example = results[0];
+    if (!example) {
+      expect(example).toBeDefined();
+      return;
+    }
+    
+    // Example text should be meaningful (not just whitespace)
+    expect(example.text.trim().length).toBeGreaterThan(0);
+    // Should contain some alphabetic characters
+    expect(/[a-zA-Z]/.test(example.text)).toBe(true);
   });
 
 });

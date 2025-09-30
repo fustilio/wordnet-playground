@@ -7,7 +7,8 @@
 import type { Synset } from '../../core/types.js';
 import { WnError } from '../../core/errors.js';
 import type { WordNetCore } from '../../wordnet-kernel.js';
-import { shortestPath, lowestCommonHypernyms } from '../../modules/relations/synset-utils.js';
+import { shortestPath } from '../../modules/relations/synset-utils.js';
+// import { lowestCommonHypernyms } from '../../modules/relations/synset-utils.js';
 
 /**
  * Common similarity calculation options
@@ -250,7 +251,7 @@ export async function calculateIcSimilarity(
 export async function calculateSimilarity(
   synset1: Synset,
   synset2: Synset,
-  wordnet: WordNetCore,
+  _wordnet: WordNetCore,
   algorithm: string,
   calculation: () => Promise<SimilarityResult>,
   options: SimilarityOptions = DEFAULT_SIMILARITY_OPTIONS
@@ -275,7 +276,7 @@ export async function calculateSimilarity(
 export async function calculateSimilarityDetailed(
   synset1: Synset,
   synset2: Synset,
-  wordnet: WordNetCore,
+  _wordnet: WordNetCore,
   algorithm: string,
   calculation: () => Promise<SimilarityResult>,
   options: SimilarityOptions = DEFAULT_SIMILARITY_OPTIONS

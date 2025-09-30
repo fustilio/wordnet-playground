@@ -15,8 +15,8 @@ import {
   measurePerformance,
   createSaxParser,
   setupSaxHandlers,
-  createParserResult,
-  getMemoryUsage,
+  // createParserResult,
+  // getMemoryUsage,
   type SaxEventHandlers
 } from './shared-parser-utils.js';
 // import type { Synset, Word, Sense, Lexicon, PartOfSpeech } from '../types.js';
@@ -59,11 +59,7 @@ export class OptimizedSaxParser implements LMFParser {
               lexicons: [],
               synsets: [],
               words: [],
-              senses: [],
-              definitions: [],
-              examples: [],
-              relations: [],
-              ilis: []
+              senses: []
             });
           },
           onError: (error) => {

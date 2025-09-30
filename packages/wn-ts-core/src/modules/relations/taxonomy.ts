@@ -22,7 +22,7 @@ export async function roots(
   wordnet: WordNetCore,
   pos?: PartOfSpeech
 ): Promise<Synset[]> {
-  const query: SynsetQuery = {};
+  const query: SynsetQuery = { language: 'en' };
   if (pos) query.pos = pos;
   const synsets = await wordnet.synsets(query);
   const rootSynsets: Synset[] = [];
@@ -48,7 +48,7 @@ export async function leaves(
   wordnet: WordNetCore,
   pos?: PartOfSpeech
 ): Promise<Synset[]> {
-  const query: SynsetQuery = {};
+  const query: SynsetQuery = { language: 'en' };
   if (pos) query.pos = pos;
   const synsets = await wordnet.synsets(query);
   const leafSynsets: Synset[] = [];
@@ -83,7 +83,7 @@ export async function taxonomyDepth(
   wordnet: WordNetCore,
   pos: PartOfSpeech
 ): Promise<number> {
-  const synsets = await wordnet.synsets({ pos });
+  const synsets = await wordnet.synsets({ pos, language: 'en' });
   if (synsets.length === 0) return 0;
 
   let maxDepthValue = 0;

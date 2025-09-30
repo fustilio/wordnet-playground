@@ -1,11 +1,11 @@
 import type { Database } from '../../../types/database.js';
 import type { Kysely } from 'kysely';
 import type { SynsetQuery } from '../../../core/types.js';
-import { SynsetQueryBuilder, createQueryBuilder } from './base-query-builder.js';
+// import { SynsetQueryBuilder } from './base-query-builder.js';
 
 export function getSynsetsV2Query(
   db: Kysely<Database>,
-  options: SynsetQuery = {}
+  options: SynsetQuery = { language: undefined }
 ) {
   let query = db.selectFrom('synsets').selectAll('synsets');
   let hasWordsJoin = false;
@@ -19,9 +19,9 @@ export function getSynsetsV2Query(
     
     if (options.fuzzy) {
       const searchTerm = `%${options.form.toLowerCase()}%`;
-      query = query.where('words.lemma', 'like', searchTerm);
+      query = query.where('words.lemma' as any, 'like', searchTerm);
     } else {
-      query = query.where('words.lemma', '=', options.form.toLowerCase());
+      query = query.where('words.lemma' as any, '=', options.form.toLowerCase());
     }
   }
 
@@ -33,7 +33,7 @@ export function getSynsetsV2Query(
         .innerJoin('words', 'senses.word_id', 'words.id');
       hasWordsJoin = true;
     }
-    query = query.where('words.pos', '=', options.pos);
+    query = query.where('words.pos' as any, '=', options.pos);
   }
 
   // Handle lexicon filtering - need to join with senses and words
@@ -44,7 +44,7 @@ export function getSynsetsV2Query(
         .innerJoin('words', 'senses.word_id', 'words.id');
       hasWordsJoin = true;
     }
-    query = query.where('words.lexicon', '=', options.lexicon);
+    query = query.where('words.lexicon' as any, '=', options.lexicon);
   }
 
   // Handle language filtering - need to join with senses and words
@@ -55,12 +55,13 @@ export function getSynsetsV2Query(
         .innerJoin('words', 'senses.word_id', 'words.id');
       hasWordsJoin = true;
     }
-    query = query.where('words.language', '=', options.language);
+    query = query.where('words.language' as any, '=', options.language);
   }
 
   // Handle ILI filtering (specific to synsets)
-  if (options.ili) {
-    query = query.where('synsets.ili', '=', options.ili);
+  const ili = (options as any).ili;
+  if (ili) {
+    query = query.where('synsets.ili', '=', ili);
   }
 
   // Handle max results
@@ -73,17 +74,17 @@ export function getSynsetsV2Query(
 
 export function getSynsetsV3Query(
   db: Kysely<Database>,
-  options: SynsetQuery = {}
+  options: SynsetQuery = { language: undefined }
 ) {
   const {
     form,
     pos,
     lexicon,
     language,
-    ili,
     fuzzy = false,
     maxResults
   } = options;
+  const ili = (options as any).ili;
 
   // Use direct joins instead of subqueries for better performance
   let query = db
@@ -94,7 +95,7 @@ export function getSynsetsV3Query(
       return qb
         .leftJoin('senses', 'senses.synset_id', 'synsets.id')
         .leftJoin('words', 'words.id', 'senses.word_id')
-        .where('words.lemma', fuzzy ? 'like' : '=', fuzzy ? `%${form.toLowerCase()}%` : form.toLowerCase())
+        .where('words.lemma' as any, fuzzy ? 'like' : '=', fuzzy ? `%${form.toLowerCase()}%` : form.toLowerCase())
         .distinct();
     })
     .$if(!!pos, qb => {
@@ -131,17 +132,17 @@ export function getSynsetsV3Query(
 
 export function getSynsetsV4Query(
   db: Kysely<Database>,
-  options: SynsetQuery = {}
+  options: SynsetQuery = { language: undefined }
 ) {
   const {
     form,
     pos,
     lexicon,
     language,
-    ili,
     fuzzy = false,
     maxResults
   } = options;
+  const ili = (options as any).ili;
 
   // V4 Optimization: Single massive JOIN query to get everything at once
   let query = db
@@ -176,7 +177,7 @@ export function getSynsetsV4Query(
     .$if(!!form, qb => {
       if (!form) return qb;
       return qb
-        .where('words.lemma', fuzzy ? 'like' : '=', fuzzy ? `%${form.toLowerCase()}%` : form.toLowerCase());
+        .where('words.lemma' as any, fuzzy ? 'like' : '=', fuzzy ? `%${form.toLowerCase()}%` : form.toLowerCase());
     })
     .$if(!!pos, qb => {
       // Always ensure words table is joined when filtering by POS
@@ -200,17 +201,17 @@ export function getSynsetsV4Query(
 
 export function getSynsetsV5Query(
   db: Kysely<Database>,
-  options: SynsetQuery = {}
+  options: SynsetQuery = { language: undefined }
 ) {
   const {
     form,
     pos,
     lexicon,
     language,
-    ili,
     fuzzy = false,
     maxResults
   } = options;
+  const ili = (options as any).ili;
 
   // V5 Optimization: Use optimized query with proper indexes
   let query = db
@@ -246,7 +247,7 @@ export function getSynsetsV5Query(
       if (!form) return qb;
       // V5 Optimization: Use indexed column directly
       return qb
-        .where('words.lemma', fuzzy ? 'like' : '=', fuzzy ? `%${form.toLowerCase()}%` : form.toLowerCase());
+        .where('words.lemma' as any, fuzzy ? 'like' : '=', fuzzy ? `%${form.toLowerCase()}%` : form.toLowerCase());
     })
     .$if(!!pos, qb => {
       // Always ensure words table is joined when filtering by POS
@@ -270,17 +271,17 @@ export function getSynsetsV5Query(
 
 export function getSynsetsV6Query(
   db: Kysely<Database>,
-  options: SynsetQuery = {}
+  options: SynsetQuery = { language: undefined }
 ) {
   const {
     form,
     pos,
     lexicon,
     language,
-    ili,
     fuzzy = false,
     maxResults
   } = options;
+  const ili = (options as any).ili;
 
   // V6 Optimization: Use the most efficient query possible
   let query = db
@@ -291,7 +292,7 @@ export function getSynsetsV6Query(
       return qb
         .innerJoin('senses', 'senses.synset_id', 'synsets.id')
         .innerJoin('words', 'words.id', 'senses.word_id')
-        .where('words.lemma', fuzzy ? 'like' : '=', fuzzy ? `%${form.toLowerCase()}%` : form.toLowerCase())
+        .where('words.lemma' as any, fuzzy ? 'like' : '=', fuzzy ? `%${form.toLowerCase()}%` : form.toLowerCase())
         .distinct();
     })
     .$if(!!pos, qb => {
@@ -319,17 +320,17 @@ export function getSynsetsV6Query(
 
 export function getSynsetsFastQuery(
   db: Kysely<Database>,
-  options: SynsetQuery = {}
+  options: SynsetQuery = { language: undefined }
 ) {
   const {
     form,
     pos,
     lexicon,
     language,
-    ili,
     fuzzy = false,
     maxResults
   } = options;
+  const ili = (options as any).ili;
 
   // Use the V2 query approach but with minimal data transformation
   let query = db
@@ -340,7 +341,7 @@ export function getSynsetsFastQuery(
       return qb
         .innerJoin('senses', 'senses.synset_id', 'synsets.id')
         .innerJoin('words', 'words.id', 'senses.word_id')
-        .where('words.lemma', fuzzy ? 'like' : '=', fuzzy ? `%${form.toLowerCase()}%` : form.toLowerCase())
+        .where('words.lemma' as any, fuzzy ? 'like' : '=', fuzzy ? `%${form.toLowerCase()}%` : form.toLowerCase())
         .distinct();
     })
     .$if(!!pos, qb => {

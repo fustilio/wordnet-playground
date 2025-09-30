@@ -58,8 +58,8 @@ createIntegrationTestSuite('Words Queries Integration Tests', (getContext: () =>
     it('should find words by form', async () => {
       const options: WordQuery = {
         form: 'computer',
-        fuzzy: false,
-        language: undefined
+        language: 'en',
+        fuzzy: false
       };
       
       const query = getWordsQuery(getContext().kyselyDb, options);
@@ -67,16 +67,20 @@ createIntegrationTestSuite('Words Queries Integration Tests', (getContext: () =>
       
       expect(Array.isArray(results)).toBe(true);
       expect(results.length).toBeGreaterThan(0);
-      if (results.length > 0 && results[0]) {
-        expect(results[0].lemma).toBe('computer');
+      
+      if (results.length === 0 || !results[0]) {
+        expect(results[0]).toBeDefined();
+        return;
       }
+      
+      expect(results[0].lemma).toBe('computer');
     });
 
     it('should find words with fuzzy search', async () => {
       const options: WordQuery = {
         form: 'comp',
-        fuzzy: true,
-        language: undefined
+        language: 'en',
+        fuzzy: true
       };
       
       const query = getWordsQuery(getContext().kyselyDb, options);
@@ -88,8 +92,8 @@ createIntegrationTestSuite('Words Queries Integration Tests', (getContext: () =>
 
     it('should find words by POS', async () => {
       const options: WordQuery = {
-        pos: 'n' as PartOfSpeech,
-        language: undefined
+        pos: 'n',
+        language: 'en'
       };
       
       const query = getWordsQuery(getContext().kyselyDb, options);
@@ -97,9 +101,13 @@ createIntegrationTestSuite('Words Queries Integration Tests', (getContext: () =>
       
       expect(Array.isArray(results)).toBe(true);
       expect(results.length).toBeGreaterThan(0);
-      if (results.length > 0 && results[0]) {
-        expect(results[0].pos).toBe('n');
+      
+      if (results.length === 0 || !results[0]) {
+        expect(results[0]).toBeDefined();
+        return;
       }
+      
+      expect(results[0].pos).toBe('n');
     });
 
     it('should find words by lexicon', async () => {
@@ -113,9 +121,13 @@ createIntegrationTestSuite('Words Queries Integration Tests', (getContext: () =>
       
       expect(Array.isArray(results)).toBe(true);
       expect(results.length).toBeGreaterThan(0);
-      if (results.length > 0 && results[0]) {
-        expect(results[0].lexicon).toBe('test-lexicon');
+      
+      if (results.length === 0 || !results[0]) {
+        expect(results[0]).toBeDefined();
+        return;
       }
+      
+      expect(results[0].lexicon).toBe('test-lexicon');
     });
 
     it('should find words by language', async () => {
@@ -128,17 +140,21 @@ createIntegrationTestSuite('Words Queries Integration Tests', (getContext: () =>
       
       expect(Array.isArray(results)).toBe(true);
       expect(results.length).toBeGreaterThan(0);
-      if (results.length > 0 && results[0]) {
-        expect(results[0].language).toBe('en');
+      
+      if (results.length === 0 || !results[0]) {
+        expect(results[0]).toBeDefined();
+        return;
       }
+      
+      expect(results[0].language).toBe('en');
     });
 
     it('should handle complex filtering', async () => {
       const options: WordQuery = {
         form: 'computer',
-        pos: 'n' as PartOfSpeech,
-        lexicon: 'test-lexicon',
         language: 'en',
+        pos: 'n',
+        lexicon: 'test-lexicon',
         fuzzy: false,
         maxResults: 10
       };
@@ -160,9 +176,13 @@ createIntegrationTestSuite('Words Queries Integration Tests', (getContext: () =>
       
       expect(Array.isArray(results)).toBe(true);
       expect(results.length).toBeGreaterThan(0);
-      if (results.length > 0 && results[0]) {
-        expect(results[0].id).toBe(wordId);
+      
+      if (results.length === 0 || !results[0]) {
+        expect(results[0]).toBeDefined();
+        return;
       }
+      
+      expect(results[0].id).toBe(wordId);
     });
   });
 
@@ -175,9 +195,13 @@ createIntegrationTestSuite('Words Queries Integration Tests', (getContext: () =>
       
       expect(Array.isArray(results)).toBe(true);
       expect(results.length).toBeGreaterThan(0);
-      if (results.length > 0 && results[0]) {
-        expect(results[0].lemma).toBe('computer');
+      
+      if (results.length === 0 || !results[0]) {
+        expect(results[0]).toBeDefined();
+        return;
       }
+      
+      expect(results[0].lemma).toBe('computer');
     });
 
     it('should find words with POS filter', async () => {
@@ -189,9 +213,13 @@ createIntegrationTestSuite('Words Queries Integration Tests', (getContext: () =>
       
       expect(Array.isArray(results)).toBe(true);
       expect(results.length).toBeGreaterThan(0);
-      if (results.length > 0 && results[0]) {
-        expect(results[0].pos).toBe('v');
+      
+      if (results.length === 0 || !results[0]) {
+        expect(results[0]).toBeDefined();
+        return;
       }
+      
+      expect(results[0].pos).toBe('v');
     });
   });
 
@@ -215,9 +243,13 @@ createIntegrationTestSuite('Words Queries Integration Tests', (getContext: () =>
       
       expect(Array.isArray(results)).toBe(true);
       expect(results.length).toBeGreaterThan(0);
-      if (results.length > 0 && results[0]) {
-        expect(results[0].lexicon).toBe(lexiconId);
+      
+      if (results.length === 0 || !results[0]) {
+        expect(results[0]).toBeDefined();
+        return;
       }
+      
+      expect(results[0].lexicon).toBe(lexiconId);
     });
   });
 
@@ -281,19 +313,31 @@ createIntegrationTestSuite('Words Queries Integration Tests', (getContext: () =>
       const lexicons = await getContext().mockCore.lexicons();
       expect(Array.isArray(lexicons)).toBe(true);
       
-      if (lexicons.length > 0) {
-        const lexicon = lexicons[0];
-        expect(lexicon).toBeDefined();
-        const words = await getContext().mockCore.words({ lexicon: lexicon?.id, language: undefined });
-        expect(Array.isArray(words)).toBe(true);
-        
-        if (words.length > 0) {
-          const word = words[0];
-          expect(word).toBeDefined();
-          const senses = await getContext().mockCore.senses({ form: word?.id, language: 'en' });
-          expect(Array.isArray(senses)).toBe(true);
-        }
+      if (lexicons.length === 0) {
+        return;
       }
+      
+      const lexicon = lexicons[0];
+      if (!lexicon) {
+        expect(lexicon).toBeDefined();
+        return;
+      }
+      
+      const words = await getContext().mockCore.words({ lexicon: lexicon.id, language: undefined });
+      expect(Array.isArray(words)).toBe(true);
+      
+      if (words.length === 0) {
+        return;
+      }
+      
+      const word = words[0];
+      if (!word) {
+        expect(word).toBeDefined();
+        return;
+      }
+      
+      const senses = await getContext().mockCore.senses({ form: word.id, language: 'en' });
+      expect(Array.isArray(senses)).toBe(true);
     });
 
     it('should handle database constraints correctly', async () => {
