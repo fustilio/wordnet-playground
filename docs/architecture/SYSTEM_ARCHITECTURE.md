@@ -315,8 +315,8 @@ const synsets = await kernel.synsets('computer', 'n');
 ## 📚 **Related Documentation**
 
 - **[Web Architecture](./WEB_ARCHITECTURE.md)** - Browser-specific architecture details
-- **[Web API](../api/WEB_API.md)** - Complete web API reference
-- **[Web Usage](../guides/WEB_USAGE.md)** - Web usage patterns and examples
+- **[Web API](../api/web/)** - Complete web API reference
+- **[Web Usage](../guides/web-usage.md)** - Web usage patterns and examples
 - **[Development Standards](../standards/DEVELOPMENT_CONVENTIONS.md)** - Coding standards and patterns
 
 ---

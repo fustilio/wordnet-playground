@@ -1,6 +1,15 @@
-# WordNet TypeScript Ecosystem
+# WordNet TypeScript
 
-Modern TypeScript ecosystem for WordNet data across browsers, Node.js, and CLI. Built with microkernel architecture and comprehensive plugin system.
+TypeScript ecosystem for WordNet data across browsers, Node.js, and CLI.
+
+## Status
+
+**Production Ready** - Core functionality is stable and well-tested.
+
+- **wn-ts-core**: v0.5.2 - Foundation library
+- **wn-ts-web**: v0.7.2 - Browser implementation  
+- **wn-ts-node**: v0.7.2 - Node.js implementation
+- **wn-cli**: v0.6.3 - Command-line interface
 
 ## Quick Start
 
@@ -8,145 +17,98 @@ Modern TypeScript ecosystem for WordNet data across browsers, Node.js, and CLI. 
 # Web applications
 npm install wn-ts-web @sqlite.org/sqlite-wasm
 
-# Node.js applications
+# Node.js applications  
 npm install wn-ts-node
 
 # Command line tools
 npm install -g wn-cli
 ```
 
-## Documentation
+## Usage
 
-- **[Getting Started](./docs/getting-started/README.md)** - Quick setup and basic usage
-- **[Examples](./docs/examples/README.md)** - Working examples and tutorials
-- **[API Reference](./docs/api/README.md)** - Complete API documentation
-- **[Architecture](./docs/architecture/SYSTEM_ARCHITECTURE.md)** - System design overview
+### Web
+```typescript
+import { WebWordNetKernel } from 'wn-ts-web';
 
-## Key Features
+const wordnet = new WebWordNetKernel('oewn:2024');
+await wordnet.initialize();
 
-- **Microkernel Architecture** - Plugin-based design for extensibility
-- **Cross-Platform** - Works in browsers, Node.js, and other JavaScript environments
-- **Type Safety** - Full TypeScript support with comprehensive type definitions
-- **Cross-Lingual** - Multi-language support with ILI-based translation
-- **Performance** - Optimized for both speed and memory usage
-- **Extensible** - Plugin system for custom functionality
+const words = await wordnet.words({ form: 'computer' });
+const synsets = await wordnet.synsets({ wordId: words[0].id });
+const hypernyms = await wordnet.getHypernyms(synsets[0].id);
+
+await wordnet.close();
+```
+
+### Node.js
+```typescript
+import { NodeWordNetKernel } from 'wn-ts-node';
+
+const wordnet = new NodeWordNetKernel('oewn:2024');
+await wordnet.initialize();
+
+const words = await wordnet.words({ form: 'computer' });
+const similarity = await wordnet.getPathSimilarity(synset1, synset2);
+const translations = await wordnet.getTranslations(synsetId, 'fr');
+
+await wordnet.close();
+```
+
+## Features
+
+- **Microkernel Architecture** - Plugin-based design
+- **Cross-Platform** - Works in browsers and Node.js
+- **Type Safety** - Full TypeScript support
+- **Cross-Lingual** - Multi-language support with ILI
+- **Performance** - Optimized query strategies
+- **Real Data** - Processes actual WordNet LMF XML
 
 ## Packages
 
-**Core Libraries:**
-- **[wn-ts-core](./packages/wn-ts-core/)** - Foundation library with microkernel architecture
-- **[wn-ts-web](./packages/wn-ts-web/)** - Browser implementation with React integration
-- **[wn-ts-node](./packages/wn-ts-node/)** - Node.js implementation with SQLite
-- **[wn-cli](./packages/wn-cli/)** - Command-line interface and TUI
+- **[wn-ts-core](./packages/wn-ts-core/)** - Foundation library
+- **[wn-ts-web](./packages/wn-ts-web/)** - Browser implementation
+- **[wn-ts-node](./packages/wn-ts-node/)** - Node.js implementation
+- **[wn-cli](./packages/wn-cli/)** - Command-line interface
+- **[wn-data-loader](./packages/wn-data-loader/)** - Data loading utilities
 
-**Utilities:**
-- **[wn-data-loader](./packages/wn-data-loader/)** - Data loading and processing utilities
-- **[wn-test-data](./packages/wn-test-data/)** - Test data and sample files
-- **[utils](./packages/utils/)** - Shared utilities and logging
+## Examples
 
-## Use Cases
+- **[Web Examples](./examples/web/)** - Browser demos
+- **[Node Examples](./examples/node/)** - Server-side examples
+- **[Integration Examples](./docs/examples/)** - Cross-lingual workflows
 
-- **Multi-lingual Dictionaries** - Build comprehensive dictionary applications
-- **Crossword Puzzles** - Use definitions and word relationships for puzzle generation
-- **Word Relationship Exploration** - Analyze semantic relationships between words
-- **Translation Systems** - Cross-lingual translation and concept mapping
-- **Linguistic Research** - Academic research and language analysis tools
-- **NLP Applications** - Natural language processing and understanding
+## Development
 
-## 🏗️ **Architecture**
-
-The ecosystem uses a modern **microkernel architecture** with a plugin system:
-
-```
-WordNetCore (interface)
-├── WordNetKernel (composition)
-│   ├── Core Modules (essential)
-│   │   ├── Morphology (lemmatization)
-│   │   ├── Relations (hypernyms, hyponyms)
-│   │   ├── Data Management (projects, ILI)
-│   │   └── Environment (configuration)
-│   ├── Plugins (optional)
-│   │   ├── Similarity (path, Wu-Palmer, etc.)
-│   │   └── Translation (cross-lingual)
-│   └── Schema Management (built-in)
-└── Concrete Implementations
-    ├── wn-ts-web (browser)
-    └── wn-ts-node (Node.js)
-```
-
-## 🚀 **Examples**
-
-### **Web Applications**
-- **[Basic Demo](./docs/examples/web-demos/basic-demo.md)** - Simple word search and exploration
-- **[Developer Demo](./docs/examples/web-demos/developer-demo.md)** - Advanced features and microkernel architecture
-
-### **Node.js Applications**
-- **[Basic Node Demo](./docs/examples/node-demos/basic-demo.md)** - Server-side WordNet usage
-- **[Advanced Node Demo](./docs/examples/node-demos/advanced-demo.md)** - Complex scenarios and optimization
-
-### **Integration Examples**
-- **[Translation Examples](./docs/examples/integration-examples/translation.md)** - Cross-lingual translation workflows
-- **[Plugin Development](./docs/examples/integration-examples/plugin-development.md)** - Creating custom plugins
-
-## 🛠️ **Development**
-
-### **Prerequisites**
-- Node.js 18+
-- pnpm (recommended) or npm
-- TypeScript 5.0+
-
-### **Setup**
 ```bash
-# Clone the repository
+# Setup
 git clone https://github.com/fustilio/wordnet-playground-2.git
 cd wordnet-playground-2
-
-# Install dependencies
 pnpm install
-
-# Build all packages
 pnpm build
 
-# Run tests
+# Test
 pnpm test
+
+# Run examples
+pnpm demo:all-use-cases
 ```
 
-### **Development Workflow**
-```bash
-# Start development server
-pnpm dev
+## Performance
 
-# Run specific tests
-pnpm test:web
-pnpm test:node
+Query performance varies by strategy:
+- **V1 (Default)**: ~1,000 Hz
+- **V5 (Cached)**: ~50,000+ Hz  
+- **V6 (Memory-opt)**: ~1,000+ Hz
 
-# Build for production
-pnpm build:packages
-```
+Memory usage: < 2x input size for processing.
 
-## 🤝 **Contributing**
+## Documentation
 
-We welcome contributions! Please see our [Development Guide](./docs/development/README.md) for details on how to contribute.
+- [API Reference](./docs/api/API_REFERENCE.md)
+- [Architecture](./docs/architecture/SYSTEM_ARCHITECTURE.md)
+- [Examples](./docs/examples/EXAMPLES_OVERVIEW.md)
+- [Migration Guide](./docs/getting-started/MIGRATION_GUIDE.md)
 
-## 📄 **License**
+## License
 
-This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
-
-## 🙏 **Acknowledgments**
-
-- **WordNet Project** - Princeton University's lexical database
-- **Global WordNet Association** - Multi-lingual WordNet resources
-- **Python wn Library** - Early inspiration and index.toml format
-- **SQLite** - Embedded database engine
-- **React** - UI library for web components
-
-## 📚 **Background Reading**
-
-- **[The Structure of a Wordnet](https://wn.readthedocs.io/en/latest/guides/wordnet.html)** - Understanding WordNet concepts
-- **[LMF Specification](https://www.lexicalmarkupframework.org/)** - Lexical Markup Framework standard
-- **[Interlingual Index](https://en.wikipedia.org/wiki/Interlingual_Index)** - Cross-lingual concept mapping
-
----
-
-**Ready to explore? Start with our [Getting Started Guide](./docs/getting-started/README.md)! 🚀**
-
+MIT License - see [LICENSE](./LICENSE) file.

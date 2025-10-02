@@ -372,7 +372,7 @@ const wordnet = new WordNet()
 await wordnet.loadLexicon('en', '1.0.0')
 ```
 
-For detailed usage, see [API Documentation](./docs/API.md).
+For detailed usage, see [API Documentation](../api/).
 ```
 
 ## 🚀 **Performance Guidelines**
@@ -514,8 +514,7 @@ Before implementing any feature, ensure:
 
 - [Database Schema Standards](./DATABASE_SCHEMA_STANDARDS.md)
 - [Testing Strategy](./TESTING_STRATEGY.md)
-- [API Design Guidelines](./API_DESIGN_GUIDELINES.md)
-- [Performance Guidelines](./PERFORMANCE_GUIDELINES.md)
+- [Performance Guidelines](./PERFORMANCE.md)
 
 ---
 

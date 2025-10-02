@@ -4,26 +4,26 @@ Comprehensive guide to the development tools and utilities available in the Word
 
 ## 🛠️ **Available Tools**
 
-### **Benchmarking Tools** (`development/benchmark/`)
-Performance testing and library comparison tools.
+### **Benchmarking Tools**
+Performance testing and library comparison tools available in the `development/benchmark/` directory of the repository.
 
-- **[Performance Benchmarks](./benchmark/README.md)** - Comprehensive performance testing
-- **[Library Comparisons](./benchmark/alternatives/README.md)** - Comparison with other WordNet libraries
-- **[Cross-Platform Testing](./benchmark/cross/README.md)** - Cross-platform performance validation
+- Performance Benchmarks - Comprehensive performance testing
+- Library Comparisons - Comparison with other WordNet libraries
+- Cross-Platform Testing - Cross-platform performance validation
 
-### **Experimental Features** (`development/experimental/`)
-Cutting-edge features and experimental implementations.
+### **Experimental Features**
+Cutting-edge features and experimental implementations available in the `development/` directory.
 
-- **[SQLite OPFS Demo](./experimental/sqlite-opfs-demo/README.md)** - Browser SQLite with OPFS
-- **[Python Bridge](./experimental/wn-pybridge/README.md)** - Python integration and testing
-- **[Alternative Implementations](./experimental/alternatives/README.md)** - Different implementation approaches
+- SQLite OPFS Demo - Browser SQLite with OPFS
+- Python Bridge - Python integration and testing
+- Alternative Implementations - Different implementation approaches
 
-### **Build Tools** (`development/build/`)
-Build and packaging utilities.
+### **Build Tools**
+Build and packaging utilities available in the `packages/` directory.
 
-- **[Package Builders](./build/package-builders/README.md)** - Automated package building
-- **[Distribution Tools](./build/distribution/README.md)** - Package distribution and publishing
-- **[Version Management](./build/versioning/README.md)** - Version bumping and changelog generation
+- Package Builders - Automated package building
+- Distribution Tools - Package distribution and publishing
+- Version Management - Version bumping and changelog generation
 
 ## 🚀 **Quick Start with Development Tools**
 
@@ -396,9 +396,9 @@ pnpm test:debug
 ## 📖 **Further Reading**
 
 - **[Development Guide](../README.md)** - Main development documentation
-- **[Testing Strategy](../TESTING_STRATEGY.md)** - Testing approach and coverage
-- **[Performance Guidelines](./PERFORMANCE.md)** - Performance optimization
-- **[Contributing Guidelines](../CONTRIBUTING.md)** - How to contribute
+- **[Testing Strategy](../../standards/TESTING_STRATEGY.md)** - Testing approach and coverage
+- **[Performance Guidelines](../PERFORMANCE.md)** - Performance optimization
+- **[Contributing Guidelines](https://github.com/fustilio/wordnet-playground-2/blob/main/CONTRIBUTING.md)** - How to contribute
 
 ---
 

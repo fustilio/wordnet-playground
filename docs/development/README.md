@@ -1,3 +1,8 @@
+---
+title: Development Guide
+description: Comprehensive guide for contributing to the WordNet TypeScript ecosystem
+---
+
 # Development Guide
 
 Comprehensive guide for contributing to the WordNet TypeScript ecosystem.
@@ -383,9 +388,9 @@ git push origin feature/your-feature-name
 - **GitHub Issues**: [Bug reports and feature requests](https://github.com/fustilio/wordnet-playground-2/issues)
 
 ### **Documentation**
-- **[API Reference](../api/README.md)** - Complete API documentation
-- **[Examples](../examples/README.md)** - Working code examples
-- **[Architecture Guide](../architecture/README.md)** - System design details
+- **[API Reference](../api/)** - Complete API documentation
+- **[Examples](../examples/)** - Working code examples
+- **[Architecture Guide](../architecture/)** - System design details
 
 ## 📄 **License**
 

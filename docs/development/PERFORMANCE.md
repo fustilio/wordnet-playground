@@ -1,3 +1,8 @@
+---
+title: Performance Guidelines
+description: Performance optimization techniques and best practices for the WordNet TypeScript ecosystem
+---
+
 # Performance Guidelines
 
 This guide covers performance optimization techniques and best practices for the WordNet TypeScript ecosystem.
@@ -315,5 +320,5 @@ class MonitoredWordNet {
 ## Further Reading
 
 - [Architecture Guide](../architecture/SYSTEM_ARCHITECTURE.md) - System design details
-- [API Reference](../api/README.md) - Complete API documentation
-- [Examples](../examples/README.md) - Performance examples
+- [API Reference](../api/) - Complete API documentation
+- [Examples](../examples/) - Performance examples

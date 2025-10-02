@@ -11,6 +11,7 @@
   "author": "fustilio",
   "type": "module",
   "scripts": {
+    "docs:build": "pnpm --filter docs docs:build",
     "autotest": "pnpm --filter wn-ts-node vitest quarantine",
     "benchmark": "pnpm --filter benchmark test:bench",
     "benchmark:cross": "pnpm --filter benchmark test:bench:cross",
@@ -49,7 +50,7 @@
     "evaluate-duplicates": "pnpx jscpd --ignore \"node_modules,dist\" packages/wn-ts-core/src"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.27.7"
+    "@changesets/cli": "^2.29.7"
   },
   "engines": {
     "node": ">=18.0.0"

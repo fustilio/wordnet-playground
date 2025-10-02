@@ -1,42 +1,35 @@
+---
+title: Documentation Overview
+description: Comprehensive documentation for the WordNet TypeScript ecosystem
+---
+
 # WordNet TypeScript Ecosystem Documentation
 
 Welcome to the comprehensive documentation for the WordNet TypeScript ecosystem. This documentation covers everything from quick start guides to advanced API references.
 
 ## Quick Start
 
-- **[Getting Started Guide](./getting-started/README.md)** - Set up and run your first WordNet application
-- **[Development Guide](./development/README.md)** - Install dependencies and configure your environment
+- **[Getting Started Guide](./getting-started/)** - Set up and run your first WordNet application
 
-## Documentation Sections
+## What You'll Find Here
 
-### Architecture & Design
-- **[System Architecture](./architecture/SYSTEM_ARCHITECTURE.md)** - High-level system design and microkernel architecture
-- **[Web Architecture](./architecture/WEB_ARCHITECTURE.md)** - Browser-specific implementation details
+### Learn WordNet
+- **[What is WordNet?](./what-is-wordnet)** - Understand the basics of WordNet
+- **[Project Overview](./project-overview.md)** - What this ecosystem offers
 
-### Package Documentation
-- **[wn-ts-core](./packages/wn-ts-core/README.md)** - Foundation library with microkernel architecture
-- **[wn-ts-web](./packages/wn-ts-web/README.md)** - Browser implementation with React integration
-- **[wn-ts-node](./packages/wn-ts-node/README.md)** - Node.js implementation with SQLite
-- **[wn-cli](./packages/wn-cli/README.md)** - Command-line interface and TUI
-- **[wn-data-loader](./packages/wn-data-loader/README.md)** - Data loading and processing utilities
+### Getting Started
+- **[Quick Start Guide](./getting-started/)** - Get up and running in minutes
+- **[Choose Your Platform](/platforms/)** - Pick the right platform for your needs
 
 ### Examples & Tutorials
-- **[Web Examples](./examples/web-demos/README.md)** - Interactive browser demos
-- **[Node.js Examples](./examples/node-demos/README.md)** - Server-side usage examples
-- **[Integration Examples](./examples/integration-examples/README.md)** - Cross-platform scenarios
+- **[Web Examples](/examples/web/)** - Interactive browser demos
+- **[Node.js Examples](/examples/node/)** - Server-side usage
+- **[Translation Examples](/examples/translation/)** - Cross-language features
 
 ### API Reference
-- **[Unified API](./api/UNIFIED_API.md)** - Complete API documentation
+- **[API Overview](./api/)** - Complete API documentation
+- **[Platform Documentation](/platforms/)** - Platform-specific guides
 
-### Development
-- **[Development Guide](./development/README.md)** - Contributing and development setup
-- **[Testing Strategy](./standards/TESTING_STRATEGY.md)** - Testing approach and coverage
-- **[Performance Guidelines](./development/PERFORMANCE.md)** - Optimization and benchmarking
-
-### Standards & Conventions
-- **[Development Conventions](./standards/DEVELOPMENT_CONVENTIONS.md)** - Coding standards and patterns
-- **[Database Schema Standards](./standards/DATABASE_SCHEMA_STANDARDS.md)** - Database design guidelines
-- **[Cross-Lingual Dependencies](./standards/CROSS_LINGUAL_DEPENDENCIES.md)** - Multi-language support
 
 ## Common Use Cases
 
@@ -64,33 +57,30 @@ wn-cli search "computer" --lexicon oewn:2024
 wn-cli translate "computer" --from en --to fr
 ```
 
-## Finding What You Need
+## What Should I Read?
 
-### By Experience Level
-- **Beginner**: Start with [Getting Started](./getting-started/README.md)
-- **Intermediate**: Check out [Examples](./examples/README.md) and [API Reference](./api/README.md)
-- **Advanced**: Explore [Architecture](./architecture/README.md) and [Development](./development/README.md)
+### New to WordNet?
+Start with the [Getting Started Guide](./getting-started/) to learn the basics.
 
-### By Platform
-- **Web/Browser**: [Web Documentation](./packages/wn-ts-web/README.md) + [Web Examples](./examples/web-demos/README.md)
-- **Node.js**: [Node Documentation](./packages/wn-ts-node/README.md) + [Node Examples](./examples/node-demos/README.md)
-- **CLI**: [CLI Documentation](./packages/wn-cli/README.md)
+### Building a Web App?
+Check out [Web Examples](/examples/web/) and the [Web Platform Guide](/platforms/web/).
 
-### By Task
-- **Search Words**: [Getting Started Guide](./getting-started/README.md)
-- **Cross-Lingual Translation**: [Translation Examples](./examples/integration-examples/translation.md)
-- **Plugin Development**: [Unified API Guide](./api/UNIFIED_API.md)
-- **Performance Optimization**: [Performance Guidelines](./development/PERFORMANCE.md)
+### Building a Node.js App?
+See [Node.js Examples](/examples/node/) and the [Node.js Platform Guide](/platforms/node/).
+
+### Need Translation Features?
+Explore [Translation Examples](/examples/translation/) to see cross-language capabilities.
+
 
 ## Contributing to Documentation
 
-We welcome contributions to improve this documentation! See our [Development Guide](./development/README.md) for details on how to contribute.
+We welcome contributions to improve this documentation! Please open an issue or pull request on GitHub.
 
 ## Getting Help
 
 - **Issues**: [GitHub Issues](https://github.com/fustilio/wordnet-playground-2/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/fustilio/wordnet-playground-2/discussions)
-- **Examples**: Check the [Examples section](./examples/README.md) for working code
+- **Examples**: Check the [Examples section](./examples/) for working code
 
 ---
 
