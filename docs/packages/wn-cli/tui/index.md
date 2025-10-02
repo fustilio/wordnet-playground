@@ -78,9 +78,9 @@ wn-cli --tui --verbose
 
 ## Further Reading
 
-- **[CLI Platform Guide](/platforms/cli/)** - Complete CLI documentation
-- **[CLI API Reference](/api/cli/)** - Complete API reference
-- **[CLI Examples](/examples/cli/)** - Working examples
+- **[Node.js Platform Guide](/platforms/node/)** - Node.js platform documentation
+- **[Node.js API Reference](/api/node/)** - Node.js API reference
+- **[Node.js Examples](/examples/node/)** - Working examples
 
 ---
 

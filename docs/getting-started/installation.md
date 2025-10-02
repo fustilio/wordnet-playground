@@ -146,8 +146,8 @@ npx wn-cli --version
 
 ```bash
 # Clone the repository
-git clone https://github.com/fustilio/wordnet-playground-2.git
-cd wordnet-playground-2
+git clone https://github.com/fustilio/wordnet-playground.git
+cd wordnet-playground
 
 # Install dependencies
 pnpm install
@@ -262,8 +262,8 @@ export PATH="$PATH:$(npm config get prefix)/bin"
 
 ### **Getting Help**
 
-- **[GitHub Issues](https://github.com/fustilio/wordnet-playground-2/issues)** - Report bugs and ask questions
-- **[Discussions](https://github.com/fustilio/wordnet-playground-2/discussions)** - Community support
+- **[GitHub Issues](https://github.com/fustilio/wordnet-playground/issues)** - Report bugs and ask questions
+- **[Discussions](https://github.com/fustilio/wordnet-playground/discussions)** - Community support
 - **[Documentation](/)** - Complete documentation
 
 ## Next Steps

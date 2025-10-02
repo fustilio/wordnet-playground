@@ -118,8 +118,8 @@ The ecosystem supports multiple languages through the ILI (Interlingual Index) s
 
 ## 🆘 Need Help?
 
-- **GitHub Issues**: [Report bugs or request features](https://github.com/fustilio/wordnet-playground-2/issues)
-- **GitHub Discussions**: [Ask questions](https://github.com/fustilio/wordnet-playground-2/discussions)
+- **GitHub Issues**: [Report bugs or request features](https://github.com/fustilio/wordnet-playground/issues)
+- **GitHub Discussions**: [Ask questions](https://github.com/fustilio/wordnet-playground/discussions)
 - **Documentation**: Browse the comprehensive guides in this documentation
 
 ---

@@ -188,7 +188,7 @@ program.parse();
 
 - **[Platform Guide](/platforms/node/)** - Learn about the Node.js platform
 - **[API Reference](/api/node/)** - Complete API documentation
-- **[CLI Tools](/platforms/cli/)** - Command-line interface
+- **[CLI Package](/packages/wn-cli/tui/)** - Command-line interface
 
 ---
 

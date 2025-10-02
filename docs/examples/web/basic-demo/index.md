@@ -25,21 +25,22 @@ pnpm dev
 ## Code Example
 
 ```typescript
-import { useWordNet } from 'wn-ts-web';
+import { useWordnet } from './hooks/useWordnet';
 
 function BasicDemo() {
-  const { wordnet, loading, error, queryWords } = useWordNet();
+  const { getDefinitions, loading, error, ready } = useWordnet({ lang: 'en-US' });
   
   const handleSearch = async (term: string) => {
-    const words = await queryWords(term);
-    console.log('Found words:', words);
+    const definitions = await getDefinitions(term);
+    console.log('Found definitions:', definitions);
   };
   
   return (
     <div>
       <input onChange={(e) => handleSearch(e.target.value)} />
-      {loading && <div>Searching...</div>}
+      {loading && <div>Loading...</div>}
       {error && <div>Error: {error}</div>}
+      {ready && <div>Ready to search!</div>}
     </div>
   );
 }

@@ -10,10 +10,10 @@ Complete API reference for the WordNet TypeScript web platform, including React 
 ## Quick Start
 
 ```typescript
-import { useWordNet } from 'wn-ts-web';
+import { useWordNetContext } from 'wn-ts-web/react';
 
 function MyApp() {
-  const { wordnet, loading, error, queryWords } = useWordNet();
+  const { queryWords, loading, error, loadedPackages } = useWordNetContext();
   
   const handleSearch = async (term: string) => {
     const words = await queryWords(term);
@@ -25,6 +25,7 @@ function MyApp() {
       <button onClick={() => handleSearch('computer')}>
         Search for "computer"
       </button>
+      <div>Loaded packages: {loadedPackages.length}</div>
     </div>
   );
 }

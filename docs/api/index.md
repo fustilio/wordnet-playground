@@ -32,9 +32,7 @@ Node.js implementation with SQLite integration and server-side processing.
 ### CLI Package (`wn-cli`)
 Command-line interface and Terminal UI for WordNet operations.
 
-- **[CLI API](/api/cli/)** - CLI package documentation
-- **[CLI Platform Guide](/platforms/cli/)** - Complete platform guide
-- **[TUI Guide](/packages/wn-cli/tui/)** - Terminal UI documentation
+- **[CLI Package](/packages/wn-cli/tui/)** - CLI package documentation
 
 ## 🔌 Plugin System
 

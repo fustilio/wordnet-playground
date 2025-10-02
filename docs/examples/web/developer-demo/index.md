@@ -26,25 +26,32 @@ pnpm dev
 ## Code Example
 
 ```typescript
-import { useWordNetKernel } from 'wn-ts-web';
+import { useWordNetContext } from 'wn-ts-web/react';
 
 function DeveloperDemo() {
   const { 
-    getHypernyms, 
-    getTranslations, 
-    getPathSimilarity 
-  } = useWordNetKernel();
+    querySynsets,
+    queryWords,
+    loadedPackages,
+    statistics,
+    loading,
+    error
+  } = useWordNetContext();
   
   const handleAdvancedSearch = async (term: string) => {
     // Use advanced features
-    const hypernyms = await getHypernyms(synsetId);
-    const translations = await getTranslations(synsetId, 'fr');
-    const similarity = await getPathSimilarity(synset1, synset2);
+    const synsets = await querySynsets(term);
+    const words = await queryWords(term);
+    console.log('Found synsets:', synsets);
+    console.log('Found words:', words);
   };
   
   return (
     <div>
-      {/* Advanced UI components */}
+      <div>Loaded packages: {loadedPackages.length}</div>
+      <div>Statistics: {JSON.stringify(statistics)}</div>
+      {loading && <div>Loading...</div>}
+      {error && <div>Error: {error}</div>}
     </div>
   );
 }

@@ -78,8 +78,8 @@ We welcome contributions to improve this documentation! Please open an issue or 
 
 ## Getting Help
 
-- **Issues**: [GitHub Issues](https://github.com/fustilio/wordnet-playground-2/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/fustilio/wordnet-playground-2/discussions)
+- **Issues**: [GitHub Issues](https://github.com/fustilio/wordnet-playground/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/fustilio/wordnet-playground/discussions)
 - **Examples**: Check the [Examples section](./examples/) for working code
 
 ---

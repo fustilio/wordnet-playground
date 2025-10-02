@@ -22,8 +22,8 @@ This guide covers everything you need to know to contribute to the WordNet TypeS
 ### **Setup Development Environment**
 ```bash
 # Clone the repository
-git clone https://github.com/fustilio/wordnet-playground-2.git
-cd wordnet-playground-2
+git clone https://github.com/fustilio/wordnet-playground.git
+cd wordnet-playground
 
 # Install dependencies
 pnpm install
@@ -38,7 +38,7 @@ pnpm test
 ## 🏗️ **Project Structure**
 
 ```
-wordnet-playground-2/
+wordnet-playground/
 ├── docs/                          # 📚 All documentation
 │   ├── getting-started/           # Quick start guides
 │   ├── examples/                  # Working examples
@@ -317,11 +317,11 @@ logger.error('Error message', error);
 ```bash
 # Fork the repository on GitHub
 # Clone your fork
-git clone https://github.com/your-username/wordnet-playground-2.git
-cd wordnet-playground-2
+git clone https://github.com/your-username/wordnet-playground.git
+cd wordnet-playground
 
 # Add upstream remote
-git remote add upstream https://github.com/fustilio/wordnet-playground-2.git
+git remote add upstream https://github.com/fustilio/wordnet-playground.git
 ```
 
 ### **2. Create Feature Branch**
@@ -384,8 +384,8 @@ git push origin feature/your-feature-name
 ## 📞 **Getting Help**
 
 ### **Community**
-- **GitHub Discussions**: [Community discussions](https://github.com/fustilio/wordnet-playground-2/discussions)
-- **GitHub Issues**: [Bug reports and feature requests](https://github.com/fustilio/wordnet-playground-2/issues)
+- **GitHub Discussions**: [Community discussions](https://github.com/fustilio/wordnet-playground/discussions)
+- **GitHub Issues**: [Bug reports and feature requests](https://github.com/fustilio/wordnet-playground/issues)
 
 ### **Documentation**
 - **[API Reference](../api/)** - Complete API documentation

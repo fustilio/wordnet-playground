@@ -20,8 +20,8 @@ Comprehensive development workflow for the WordNet TypeScript ecosystem, coverin
 ### **Initial Setup**
 ```bash
 # Clone the repository
-git clone https://github.com/fustilio/wordnet-playground-2.git
-cd wordnet-playground-2
+git clone https://github.com/fustilio/wordnet-playground.git
+cd wordnet-playground
 
 # Install dependencies
 pnpm install
@@ -37,7 +37,7 @@ pnpm test
 
 ### **Monorepo Organization**
 ```
-wordnet-playground-2/
+wordnet-playground/
 ├── packages/                 # Core packages
 │   ├── wn-ts-core/          # Foundation library
 │   ├── wn-ts-web/           # Browser implementation

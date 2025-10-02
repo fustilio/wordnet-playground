@@ -81,8 +81,8 @@ await wordnet.close();
 
 ```bash
 # Setup
-git clone https://github.com/fustilio/wordnet-playground-2.git
-cd wordnet-playground-2
+git clone https://github.com/fustilio/wordnet-playground.git
+cd wordnet-playground
 pnpm install
 pnpm build
 

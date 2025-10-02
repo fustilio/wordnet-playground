@@ -17,8 +17,8 @@ Welcome to the WordNet TypeScript ecosystem development guide! This section cont
 
 ```bash
 # Clone the repository
-git clone https://github.com/fustilio/wordnet-playground-2.git
-cd wordnet-playground-2
+git clone https://github.com/fustilio/wordnet-playground.git
+cd wordnet-playground
 
 # Install dependencies
 pnpm install

@@ -58,7 +58,7 @@ Select the right platform for your WordNet TypeScript application based on your 
 - Batch processing
 - Scripting support
 
-**[Get Started with CLI →](/platforms/cli/)**
+**[Get Started with CLI →](/packages/wn-cli/tui/)**
 
 ## Platform Comparison
 
@@ -138,7 +138,7 @@ wn-cli search "computer" --lexicon oewn:2024
 - Performance optimization
 - CLI integration
 
-### **[CLI Platform Guide](/platforms/cli/)**
+### **[CLI Package Guide](/packages/wn-cli/tui/)**
 - Command-line tools
 - Interactive TUI
 - Batch processing
@@ -168,8 +168,8 @@ wn-cli search "computer" --lexicon oewn:2024
 
 ### **Ask the Community**
 
-- **[GitHub Discussions](https://github.com/fustilio/wordnet-playground-2/discussions)** - Ask questions
-- **[GitHub Issues](https://github.com/fustilio/wordnet-playground-2/issues)** - Report problems
+- **[GitHub Discussions](https://github.com/fustilio/wordnet-playground/discussions)** - Ask questions
+- **[GitHub Issues](https://github.com/fustilio/wordnet-playground/issues)** - Report problems
 - **[Documentation](/)** - Browse complete docs
 
 ## Next Steps

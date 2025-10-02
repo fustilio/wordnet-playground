@@ -5,6 +5,9 @@ export default defineConfig({
   title: 'WordNet TypeScript Ecosystem',
   description: 'A production-ready TypeScript ecosystem for working with WordNet data, built on a microkernel architecture with plugin system, cross-lingual support, and optimized database operations.',
   
+  // Base URL for GitHub Pages deployment
+  base: '/wordnet-playground/',
+  
   // VitePress theme configuration
   themeConfig: {
     // Site title in nav
@@ -42,7 +45,7 @@ export default defineConfig({
           items: [
             { text: 'Web Applications', link: '/platforms/web/' },
             { text: 'Node.js Applications', link: '/platforms/node/' },
-            { text: 'Command Line', link: '/platforms/cli/' }
+            { text: 'CLI Package', link: '/packages/wn-cli/tui/' }
           ]
         },
         {
@@ -85,7 +88,7 @@ export default defineConfig({
           items: [
             { text: 'Web Applications', link: '/platforms/web/' },
             { text: 'Node.js Applications', link: '/platforms/node/' },
-            { text: 'Command Line', link: '/platforms/cli/' }
+            { text: 'CLI Package', link: '/packages/wn-cli/tui/' }
           ]
         },
         {
@@ -121,11 +124,9 @@ export default defineConfig({
           ]
         },
         {
-          text: 'Command Line',
+          text: 'CLI Package',
           items: [
-            { text: 'Getting Started', link: '/platforms/cli/' },
-            { text: 'API Reference', link: '/api/cli/' },
-            { text: 'TUI Guide', link: '/packages/wn-cli/tui/' }
+            { text: 'CLI Package', link: '/packages/wn-cli/tui/' }
           ]
         }
       ],
@@ -202,13 +203,13 @@ export default defineConfig({
 
     // Social links
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/fustilio/wordnet-playground-2' }
+      { icon: 'github', link: 'https://github.com/fustilio/wordnet-playground' }
     ],
 
     // Footer
     footer: {
       message: 'Released under the MIT License.',
-      copyright: 'Copyright © 2024 WordNet TypeScript Ecosystem'
+      copyright: 'Copyright © 2025 WordNet TypeScript Ecosystem'
     },
 
     // Search
@@ -218,7 +219,7 @@ export default defineConfig({
 
     // Edit link
     editLink: {
-      pattern: 'https://github.com/fustilio/wordnet-playground-2/edit/main/docs/:path',
+      pattern: 'https://github.com/fustilio/wordnet-playground/edit/main/docs/:path',
       text: 'Edit this page on GitHub'
     },
 

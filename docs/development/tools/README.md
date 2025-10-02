@@ -398,7 +398,7 @@ pnpm test:debug
 - **[Development Guide](../README.md)** - Main development documentation
 - **[Testing Strategy](../../standards/TESTING_STRATEGY.md)** - Testing approach and coverage
 - **[Performance Guidelines](../PERFORMANCE.md)** - Performance optimization
-- **[Contributing Guidelines](https://github.com/fustilio/wordnet-playground-2/blob/main/CONTRIBUTING.md)** - How to contribute
+- **[Contributing Guidelines](https://github.com/fustilio/wordnet-playground/blob/main/CONTRIBUTING.md)** - How to contribute
 
 ---
 

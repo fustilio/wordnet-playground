@@ -21,7 +21,7 @@ Choose the platform that best fits your needs:
 
 - **Web Applications**: Start with the [Web Platform Guide](/platforms/web/)
 - **Node.js Applications**: Start with the [Node.js Platform Guide](/platforms/node/)
-- **Command Line Tools**: Start with the [CLI Platform Guide](/platforms/cli/)
+- **Command Line Tools**: Start with the [CLI Package Guide](/packages/wn-cli/tui/)
 
 ## API Reference
 

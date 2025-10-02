@@ -24,7 +24,7 @@ Ideal for server-side processing, APIs, and backend services.
 
 - **SQLite Integration**: Local database management
 - **File System**: Direct file operations
-- **CLI Tools**: Command-line utilities
+- **CLI Package**: Command-line utilities
 - **High Performance**: Optimized for server environments
 
 **[Get Started with Node.js →](/platforms/node/)**
@@ -38,7 +38,7 @@ Perfect for data exploration, scripting, and quick lookups.
 - **Data Management**: Download and manage lexicons
 - **Scripting**: Integrate with shell scripts
 
-**[Get Started with CLI →](/platforms/cli/)**
+**[Get Started with CLI →](/packages/wn-cli/tui/)**
 
 ## Which Platform Should I Choose?
 
@@ -57,7 +57,7 @@ Choose **Node.js** if you're building:
 - Backend services
 
 ### **Need Command Line Tools?**
-Choose **CLI** if you need:
+Choose **CLI Package** if you need:
 - Quick word lookups
 - Data exploration
 - Batch processing
