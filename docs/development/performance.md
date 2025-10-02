@@ -319,6 +319,6 @@ class MonitoredWordNet {
 
 ## Further Reading
 
-- [Architecture Guide](../architecture/SYSTEM_ARCHITECTURE.md) - System design details
+- [Architecture Guide](../architecture/system-architecture.md) - System design details
 - [API Reference](../api/) - Complete API documentation
 - [Examples](../examples/) - Performance examples

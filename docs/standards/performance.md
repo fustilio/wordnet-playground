@@ -175,10 +175,10 @@ node --inspect your-app.js
 
 ## Related Documentation
 
-- [Development Conventions](./DEVELOPMENT_CONVENTIONS.md)
-- [Testing Strategy](./TESTING_STRATEGY.md)
-- [Database Schema Standards](./DATABASE_SCHEMA_STANDARDS.md)
-- [Performance Benchmarks](../development/PERFORMANCE_BENCHMARKS.md)
+- [Development Conventions](./development-conventions.md)
+- [Testing Strategy](./testing-strategy.md)
+- [Database Schema Standards](./database-schema-standards.md)
+- [Performance Benchmarks](../development/performance-benchmarks.md)
 
 ---
 

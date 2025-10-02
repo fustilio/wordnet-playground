@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitepress'
+import llmstxt from 'vitepress-plugin-llms'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -239,8 +240,36 @@ export default defineConfig({
     lineNumbers: true,
     
     // Configure markdown-it plugins
-    config: (md) => {
-      // Add any custom markdown-it plugins here
+    config: async (md) => {
+      // Add LLM plugin for copy/download buttons
+      const { copyOrDownloadAsMarkdownButtons } = await import('vitepress-plugin-llms')
+      copyOrDownloadAsMarkdownButtons(md)
     }
+  },
+
+  // VitePress plugins
+  vite: {
+    plugins: [
+      ...llmstxt({
+        // Generate LLMs.txt file for AI consumption
+        generateLLMsTxt: true,
+        // Generate full text version for LLMs
+        generateLLMsFullTxt: true,
+        // Domain for absolute URLs in LLMs.txt
+        domain: 'https://fustilio.github.io/wordnet-playground',
+        // Inject LLM hints on each page
+        injectLLMHint: true,
+        // Strip HTML tags from markdown
+        stripHTML: true,
+        // Exclude unnecessary files to save tokens
+        excludeUnnecessaryFiles: true,
+        // Custom template variables
+        customTemplateVariables: {
+          title: 'WordNet TypeScript Ecosystem',
+          description: 'Production-ready TypeScript ecosystem for WordNet data with microkernel architecture, plugin system, and cross-lingual support.',
+          details: 'A comprehensive TypeScript implementation of WordNet with support for multiple languages, semantic similarity, and cross-lingual translation. Built with a microkernel architecture that allows for extensible functionality through plugins.'
+        }
+      })
+    ]
   }
 })
