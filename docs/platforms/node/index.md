@@ -120,7 +120,7 @@ const wordnet = new NodeWordNetKernel('oewn:2024', {
 
 - **[Node.js API Reference](/api/node/)** - Complete API documentation
 - **[Examples](/examples/node/)** - Working code samples
-- **[Performance Guide](/development/PERFORMANCE.md)** - Optimization tips
+- **[Performance Guide](/development/performance.md)** - Optimization tips
 
 ---
 

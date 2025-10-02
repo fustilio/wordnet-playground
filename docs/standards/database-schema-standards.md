@@ -1,10 +1,10 @@
 # Database Schema Standards
 
-## 🎯 **Overview**
+## **Overview**
 
 This document defines the standard database schema structure, naming conventions, and data integrity requirements for all `wn-ts` modules. The schema is designed to support cross-lingual WordNet operations with optimal performance and data integrity.
 
-## 🏗️ **Microkernel Architecture Integration**
+## **Microkernel Architecture Integration**
 
 The database schema is designed to work with the microkernel architecture:
 
@@ -18,7 +18,7 @@ The database schema is designed to work with the microkernel architecture:
 - **Browser**: SQLite WASM with OPFS for persistence
 - **Unified Interface**: Same schema across all platforms
 
-## 📝 **Naming Conventions**
+## **Naming Conventions**
 
 ### **ID Properties & References**
 
@@ -58,7 +58,7 @@ CREATE TABLE senses (
 );
 ```
 
-## 📊 **Core Tables Schema**
+## **Core Tables Schema**
 
 ### **1. Lexicons Table**
 ```sql
@@ -197,7 +197,7 @@ CREATE TABLE forms (
 );
 ```
 
-## 🔗 **Foreign Key Relationships**
+## **Foreign Key Relationships**
 
 ### **Core Dependencies**
 ```
@@ -216,7 +216,7 @@ words (1) ←→ (N) forms
 synsets (N) ←→ (N) synsets (via synset_relations)
 ```
 
-## 📈 **Indexing Strategy**
+## **Indexing Strategy**
 
 ### **Primary Indexes**
 - All `id` columns (PRIMARY KEY)
@@ -241,7 +241,7 @@ CREATE INDEX idx_synset_relations_source ON synset_relations(source_synset_id);
 CREATE INDEX idx_synset_relations_target ON synset_relations(target_synset_id);
 ```
 
-## ✅ **Data Integrity Constraints**
+## **Data Integrity Constraints**
 
 ### **NOT NULL Constraints**
 - All ID fields
@@ -280,7 +280,7 @@ CHECK (status IN ('active', 'inactive', 'deprecated'))
 - Check data types and constraints
 - Verify ILI mappings for cross-lingual operations
 
-## 📊 **Performance Considerations**
+## **Performance Considerations**
 
 ### **Query Optimization**
 - Use prepared statements for repeated queries
@@ -292,7 +292,7 @@ CHECK (status IN ('active', 'inactive', 'deprecated'))
 - Consider compression for large text fields
 - Implement archiving for historical data
 
-## 🧪 **Testing Requirements**
+## **Testing Requirements**
 
 ### **Schema Validation Tests**
 - Verify all tables can be created

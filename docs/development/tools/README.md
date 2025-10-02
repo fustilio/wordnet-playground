@@ -2,7 +2,7 @@
 
 Comprehensive guide to the development tools and utilities available in the WordNet TypeScript ecosystem.
 
-## 🛠️ **Available Tools**
+## **Available Tools**
 
 ### **Benchmarking Tools**
 Performance testing and library comparison tools available in the `development/benchmark/` directory of the repository.
@@ -25,7 +25,7 @@ Build and packaging utilities available in the `packages/` directory.
 - Distribution Tools - Package distribution and publishing
 - Version Management - Version bumping and changelog generation
 
-## 🚀 **Quick Start with Development Tools**
+## **Quick Start with Development Tools**
 
 ### **Run Benchmarks**
 ```bash
@@ -68,7 +68,7 @@ pnpm build:web
 pnpm build:node
 ```
 
-## 📊 **Benchmarking Tools**
+## **Benchmarking Tools**
 
 ### **Performance Benchmarks**
 Comprehensive performance testing across all packages:
@@ -102,7 +102,7 @@ Compare performance with other WordNet libraries:
 - **Memory Usage**: Memory consumption and garbage collection
 - **Startup Time**: Initialization and first query performance
 
-## 🧪 **Experimental Features**
+## **Experimental Features**
 
 ### **SQLite OPFS Demo**
 Browser-based SQLite with Origin Private File System:
@@ -141,7 +141,7 @@ Different approaches to WordNet implementation:
 - **Native Parser**: Ultra-fast regex-based parsing
 - **Hybrid Approach**: Combining multiple parsing strategies
 
-## 🔧 **Build Tools**
+## **Build Tools**
 
 ### **Package Builders**
 Automated building and packaging:
@@ -191,7 +191,7 @@ pnpm changelog:generate
 pnpm deps:update
 ```
 
-## 📈 **Performance Monitoring**
+## **Performance Monitoring**
 
 ### **Real-time Monitoring**
 Monitor performance during development:
@@ -215,7 +215,7 @@ Track key performance indicators:
 - **Bundle Size**: JavaScript bundle size analysis
 - **Load Time**: Initialization and startup performance
 
-## 🧪 **Testing Tools**
+## **Testing Tools**
 
 ### **Test Runners**
 Comprehensive testing across all packages:
@@ -242,7 +242,7 @@ Helper tools for testing:
 - **Cross-Platform Test Framework**: Test across different environments
 - **Visual Regression Testing**: UI component testing
 
-## 🔍 **Debugging Tools**
+## **Debugging Tools**
 
 ### **Debug Console**
 Interactive debugging interface:
@@ -283,7 +283,7 @@ pnpm profile:parse
 pnpm profile:build
 ```
 
-## 📚 **Documentation Tools**
+## **Documentation Tools**
 
 ### **API Documentation Generator**
 Automated API documentation:
@@ -309,7 +309,7 @@ pnpm types:generate
 pnpm types:check
 ```
 
-## 🚀 **Development Workflow**
+## **Development Workflow**
 
 ### **Daily Development**
 ```bash
@@ -352,7 +352,7 @@ pnpm changelog:generate
 pnpm build:production
 ```
 
-## 🆘 **Troubleshooting**
+## **Troubleshooting**
 
 ### **Common Issues**
 
@@ -393,11 +393,11 @@ pnpm test:unit --grep "specific test"
 pnpm test:debug
 ```
 
-## 📖 **Further Reading**
+## **Further Reading**
 
 - **[Development Guide](../README.md)** - Main development documentation
-- **[Testing Strategy](../../standards/TESTING_STRATEGY.md)** - Testing approach and coverage
-- **[Performance Guidelines](../PERFORMANCE.md)** - Performance optimization
+- **[Testing Strategy](../../standards/testing-strategy.md)** - Testing approach and coverage
+- **[Performance Guidelines](../performance.md)** - Performance optimization
 - **[Contributing Guidelines](https://github.com/fustilio/wordnet-playground/blob/main/CONTRIBUTING.md)** - How to contribute
 
 ---

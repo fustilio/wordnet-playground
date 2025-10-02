@@ -1,10 +1,10 @@
 # Web Implementation Architecture
 
-## 🏗️ **System Overview**
+## **System Overview**
 
 The `wn-ts-web` implementation uses a **worker-first architecture** with React integration, providing high-performance WordNet operations while maintaining UI responsiveness through Web Workers and persistent storage via SQLite WASM with OPFS.
 
-## 📊 **Architecture Diagram**
+## **Architecture Diagram**
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -37,7 +37,7 @@ The `wn-ts-web` implementation uses a **worker-first architecture** with React i
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## 🏛️ **Layer Responsibilities**
+## **Layer Responsibilities**
 
 ### **1. React Integration Layer**
 
@@ -168,7 +168,7 @@ async downloadAndLoad(packageId: string) {
 }
 ```
 
-## 🚀 **Key Design Patterns**
+## **Key Design Patterns**
 
 ### **Worker-First Architecture**
 - All heavy operations default to worker threads
@@ -190,7 +190,7 @@ async downloadAndLoad(packageId: string) {
 - State updates trigger UI re-renders
 - Clean separation of concerns
 
-## 🔧 **Worker Architecture**
+## **Worker Architecture**
 
 ### **Worker-First Principles**
 
@@ -231,7 +231,7 @@ The architecture uses events for real-time updates:
 - `statusUpdated` - When statistics are updated
 - `error` - When operations fail
 
-## 🗄️ **Storage Architecture**
+## **Storage Architecture**
 
 ### **SQLite with OPFS**
 
@@ -267,7 +267,7 @@ interface Database {
 }
 ```
 
-## 🌐 **Cross-Lingual Architecture**
+## **Cross-Lingual Architecture**
 
 ### **ILI-Based Linking**
 
@@ -297,7 +297,7 @@ console.log('Languages:', info.supportedLanguages);
 console.log('ILI Coverage:', info.iliCoverage);
 ```
 
-## 🚀 **Performance Optimizations**
+## **Performance Optimizations**
 
 ### **Worker Isolation**
 - Heavy operations don't block main thread
@@ -331,7 +331,7 @@ console.log('ILI Coverage:', info.iliCoverage);
 - Progress indicators for long operations
 - Clear feedback for user actions
 
-## 🧪 **Testing Strategy**
+## **Testing Strategy**
 
 ### **Multi-Layered Testing**
 - **Node.js Tests**: Unit and integration tests with jsdom

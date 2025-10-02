@@ -1,10 +1,10 @@
 # Web Usage Guide
 
-## 📖 **Overview**
+## **Overview**
 
 This guide provides comprehensive patterns and examples for using `wn-ts-web` in browser applications, including React integration, worker patterns, and advanced usage scenarios.
 
-## 🚀 **Quick Start**
+## **Quick Start**
 
 ### Installation
 
@@ -47,7 +47,7 @@ function WordNetApp() {
 }
 ```
 
-## ⚛️ **React Integration Patterns**
+## **React Integration Patterns**
 
 ### Basic Hook Usage
 
@@ -136,7 +136,7 @@ export function useWordNetWithCache() {
 }
 ```
 
-## 🔧 **Worker Architecture**
+## **Worker Architecture**
 
 ### Worker-First Principles
 
@@ -186,7 +186,7 @@ if (hasPendingLoads()) {
 // The queued request will be automatically processed when worker becomes ready
 ```
 
-## 🗄️ **Storage & Persistence**
+## **Storage & Persistence**
 
 ### OPFS Integration
 
@@ -274,7 +274,7 @@ server {
 }
 ```
 
-## 🌐 **Cross-Lingual Operations**
+## **Cross-Lingual Operations**
 
 ### Resource Introspection
 
@@ -421,7 +421,7 @@ function ResourceTypeIndicator({ lexiconId }: { lexiconId: string }) {
 }
 ```
 
-## 🔍 **Advanced Query Patterns**
+## **Advanced Query Patterns**
 
 ### Multi-Lexicon Queries
 
@@ -518,7 +518,7 @@ function SimilaritySearch() {
 }
 ```
 
-## 🚨 **Error Handling & Loading States**
+## **Error Handling & Loading States**
 
 ### Comprehensive Error Handling
 
@@ -675,7 +675,7 @@ function WordNetWithProgress() {
 }
 ```
 
-## 🧪 **Testing Patterns**
+## **Testing Patterns**
 
 ### Component Testing
 
@@ -726,7 +726,7 @@ test('loads and queries data', async () => {
 });
 ```
 
-## 🔧 **Performance Optimization**
+## **Performance Optimization**
 
 ### Lazy Loading
 
@@ -767,14 +767,14 @@ const WordNetResults = memo(({ results }: { results: any[] }) => {
 });
 ```
 
-## 🌐 **Browser Compatibility**
+## **Browser Compatibility**
 
 - **Modern Browsers**: Chrome 88+, Firefox 85+, Safari 14+, Edge 88+
 - **OPFS Support**: Chrome 86+, Firefox 111+, Safari 16.4+, Edge 86+
 - **WebAssembly**: All modern browsers support WebAssembly
 - **Fallback**: The library gracefully falls back to in-memory storage when OPFS is not available
 
-## 📚 **Best Practices**
+## **Best Practices**
 
 1. **Always handle loading states** - Users need feedback during initialization
 2. **Implement proper error boundaries** - React error boundaries for component-level error handling

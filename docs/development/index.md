@@ -4,12 +4,12 @@ Welcome to the WordNet TypeScript ecosystem development guide! This section cont
 
 ## Documentation Overview
 
-- **[Development Workflow](./DEVELOPMENT_WORKFLOW.md)** - Complete development workflow, setup, and best practices
-- **[Performance Guide](./PERFORMANCE.md)** - Performance optimization techniques and benchmarks
-- **[Test Coverage](./TEST_COVERAGE.md)** - Testing strategy and coverage requirements
+- **[Development Workflow](./development-workflow.md)** - Complete development workflow, setup, and best practices
+- **[Performance Guide](./performance.md)** - Performance optimization techniques and benchmarks
+- **[Test Coverage](./test-coverage.md)** - Testing strategy and coverage requirements
 - **[Development Tools](./tools/README.md)** - Available development tools and utilities
-- **[Incomplete Implementations](./INCOMPLETE_IMPLEMENTATIONS.md)** - Known incomplete features and TODOs
-- **[Performance Benchmarks](./PERFORMANCE_BENCHMARKS.md)** - Detailed performance benchmarking results
+- **[Incomplete Implementations](./incomplete-implementations.md)** - Known incomplete features and TODOs
+- **[Performance Benchmarks](./performance-benchmarks.md)** - Detailed performance benchmarking results
 
 ## Quick Start
 
@@ -38,7 +38,7 @@ pnpm test
    ```
 
 2. **Make Changes**
-   - Follow the [Development Conventions](../standards/DEVELOPMENT_CONVENTIONS.md)
+   - Follow the [Development Conventions](../standards/development-conventions.md)
    - Write tests for new functionality
    - Update documentation as needed
 
@@ -56,10 +56,10 @@ pnpm test
 
 ## Development Standards
 
-- **[Development Conventions](../standards/DEVELOPMENT_CONVENTIONS.md)** - Coding standards and naming conventions
-- **[Testing Strategy](../standards/TESTING_STRATEGY.md)** - Testing approach and coverage requirements
-- **[Database Schema Standards](../standards/DATABASE_SCHEMA_STANDARDS.md)** - Database design guidelines
-- **[Performance Guidelines](../standards/PERFORMANCE.md)** - Performance optimization standards
+- **[Development Conventions](../standards/development-conventions.md)** - Coding standards and naming conventions
+- **[Testing Strategy](../standards/testing-strategy.md)** - Testing approach and coverage requirements
+- **[Database Schema Standards](../standards/database-schema-standards.md)** - Database design guidelines
+- **[Performance Guidelines](../standards/performance.md)** - Performance optimization standards
 
 ## Package Development
 
@@ -226,5 +226,5 @@ node --inspect your-app.js
 
 ---
 
-**Ready to contribute? Check out the [Development Workflow](./DEVELOPMENT_WORKFLOW.md) for complete details!**
+**Ready to contribute? Check out the [Development Workflow](./development-workflow.md) for complete details!**
 

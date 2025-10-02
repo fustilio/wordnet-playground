@@ -4,9 +4,9 @@ This section contains comprehensive documentation about the WordNet TypeScript e
 
 ## Architecture Documents
 
-- **[System Architecture](./SYSTEM_ARCHITECTURE.md)** - Complete system architecture including microkernel design, plugin system, and cross-platform support
-- **[Web Architecture](./WEB_ARCHITECTURE.md)** - Browser-specific architecture details, Web Workers, and OPFS integration
-- **[Future Vision](./FUTURE_VISION.md)** - Planned features and future development roadmap
+- **[System Architecture](./system-architecture.md)** - Complete system architecture including microkernel design, plugin system, and cross-platform support
+- **[Web Architecture](./web-architecture.md)** - Browser-specific architecture details, Web Workers, and OPFS integration
+- **[Future Vision](./future-vision.md)** - Planned features and future development roadmap
 
 ## Core Concepts
 
@@ -50,5 +50,5 @@ The architecture supports multiple platforms:
 
 ---
 
-**Ready to dive deeper? Check out the [System Architecture](./SYSTEM_ARCHITECTURE.md) for complete details!**
+**Ready to dive deeper? Check out the [System Architecture](./system-architecture.md) for complete details!**
 

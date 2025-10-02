@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide helps users migrate from older versions of the WordNet TypeScript ecosystem to the current version (v0.6.3), covering breaking changes, new features, and best practices.
+This guide helps users migrate from older versions of the WordNet TypeScript ecosystem to the current version (v0.7.2), covering breaking changes, new features, and best practices.
 
 ## Version History
 
@@ -10,14 +10,14 @@ This guide helps users migrate from older versions of the WordNet TypeScript eco
 
 | Version | Release Date | Major Changes | Breaking Changes |
 |---------|--------------|---------------|------------------|
-| **v0.6.3** | Dec 2024 | Production ready, comprehensive testing | Minor API changes |
+| **v0.7.2** | Dec 2024 | Production ready, comprehensive testing | Minor API changes |
 | **v0.5.x** | Nov 2024 | Microkernel architecture, plugin system | Major API restructuring |
 | **v0.4.x** | Oct 2024 | Cross-lingual support, ILI integration | Database schema changes |
 | **v0.3.x** | Sep 2024 | Web implementation, React integration | Platform-specific APIs |
 | **v0.2.x** | Aug 2024 | Node.js implementation, SQLite integration | Core API changes |
 | **v0.1.x** | Jul 2024 | Initial release, basic functionality | N/A |
 
-## Migration from v0.5.x to v0.6.3
+## Migration from v0.5.x to v0.7.2
 
 ### **Breaking Changes**
 
@@ -30,7 +30,7 @@ import { relationsPlugin } from 'wn-ts-core/plugins';
 const wordnet = new WordNetKernel(core);
 wordnet.use(relationsPlugin);
 
-// NEW (v0.6.3)
+// NEW (v0.7.2)
 import { createWordNet } from 'wn-ts-core';
 import { relationsPlugin } from 'wn-ts-core/plugins';
 
@@ -46,7 +46,7 @@ const wordnet = createWordNet({
 const words = await wordnet.words('computer', 'n');
 const synsets = await wordnet.synsets('computer', 'n');
 
-// NEW (v0.6.3)
+// NEW (v0.7.2)
 const words = await wordnet.words({ form: 'computer', pos: 'n' });
 const synsets = await wordnet.synsets({ form: 'computer', pos: 'n' });
 ```
@@ -60,7 +60,7 @@ try {
   console.error('Error:', error.message);
 }
 
-// NEW (v0.6.3)
+// NEW (v0.7.2)
 try {
   const words = await wordnet.words({ form: 'computer' });
 } catch (error) {
@@ -118,7 +118,7 @@ try {
 }
 ```
 
-## Migration from v0.4.x to v0.6.3
+## Migration from v0.4.x to v0.7.2
 
 ### **Major Changes**
 
@@ -128,7 +128,7 @@ try {
 const db = new Database('wordnet.db');
 const words = await db.query('SELECT * FROM words WHERE form = ?', ['computer']);
 
-// NEW (v0.6.3): Abstracted API
+// NEW (v0.7.2): Abstracted API
 const wordnet = new NodeWordNetKernel('oewn:2024');
 await wordnet.initialize();
 const words = await wordnet.words({ form: 'computer' });
@@ -140,7 +140,7 @@ const words = await wordnet.words({ form: 'computer' });
 const ili = await db.query('SELECT * FROM ilis WHERE id = ?', [iliId]);
 const synsets = await db.query('SELECT * FROM synsets WHERE ili = ?', [iliId]);
 
-// NEW (v0.6.3): Integrated translation
+// NEW (v0.7.2): Integrated translation
 const translations = await wordnet.getTranslations(synsetId, 'fr');
 const ili = await wordnet.ili(iliId);
 const synsets = await wordnet.synsetsByILI(iliId);
@@ -197,7 +197,7 @@ const words = await wordnet.words({ form: 'computer', pos: 'n' });
 const synsets = await wordnet.synsets({ form: 'computer', pos: 'n' });
 ```
 
-## Migration from v0.3.x to v0.6.3
+## Migration from v0.3.x to v0.7.2
 
 ### **Web-Specific Changes**
 
@@ -214,7 +214,7 @@ function App() {
   );
 }
 
-// NEW (v0.6.3): Enhanced React integration
+// NEW (v0.7.2): Enhanced React integration
 import { WordNetProvider, useWordNet } from 'wn-ts-web/react';
 
 function App() {
@@ -247,7 +247,7 @@ function MyComponent() {
 const worker = new Worker('./wordnet-worker.js');
 const wordnet = Comlink.wrap(worker);
 
-// NEW (v0.6.3): Integrated worker management
+// NEW (v0.7.2): Integrated worker management
 const wordnet = new WebWordNetKernel('oewn:2024', {
   workerOptions: {
     maxWorkers: 4,
@@ -256,7 +256,7 @@ const wordnet = new WebWordNetKernel('oewn:2024', {
 });
 ```
 
-## Migration from v0.2.x to v0.6.3
+## Migration from v0.2.x to v0.7.2
 
 ### **Node.js-Specific Changes**
 
@@ -266,7 +266,7 @@ const wordnet = new WebWordNetKernel('oewn:2024', {
 wn-ts words computer
 wn-ts synsets computer
 
-# NEW (v0.6.3)
+# NEW (v0.7.2)
 wn-ts words --form computer
 wn-ts synsets --form computer
 wn-ts relations --synset-id synset-1
@@ -279,7 +279,7 @@ wn-ts similarity --synset1 synset-1 --synset2 synset-2
 const db = new Database('wordnet.db');
 await db.initialize();
 
-// NEW (v0.6.3): Integrated database management
+// NEW (v0.7.2): Integrated database management
 const wordnet = new NodeWordNetKernel('oewn:2024', {
   filename: 'wordnet.db',
   autoLoad: true
@@ -292,7 +292,7 @@ await wordnet.initialize();
 ### **Automated Migration Script**
 ```bash
 # Run migration script
-npx wn-ts-migrate --from v0.5.x --to v0.6.3
+npx wn-ts-migrate --from v0.5.x --to v0.7.2
 
 # Interactive migration
 npx wn-ts-migrate --interactive
@@ -374,13 +374,13 @@ try {
 ### **Documentation**
 - [API Reference](/api/)** - Complete API documentation
 - [Examples](/examples/)** - Working examples and demos
-- [Performance Guide](/development/PERFORMANCE.md)** - Performance optimization
-- [Testing Guide](/development/TEST_COVERAGE.md)** - Testing best practices
+- [Performance Guide](/development/performance.md)** - Performance optimization
+- [Testing Guide](/development/test-coverage.md)** - Testing best practices
 
 ### **Support**
 - [GitHub Issues](https://github.com/fustilio/wordnet-playground/issues) - Bug reports and feature requests
 - [Discussions](https://github.com/fustilio/wordnet-playground/discussions) - Community support
-- [Documentation](https://github.com/fustilio/wordnet-playground/tree/main/docs) - Complete documentation
+- [Documentation](../) - Complete documentation
 
 ### **Migration Examples**
 - [Migration Examples](/examples/)** - Migration examples and guides
@@ -405,7 +405,7 @@ try {
 ---
 
 **Last Updated**: December 2024
-**Migration Version**: v0.6.3
-**Supported Versions**: v0.2.x → v0.6.3
+**Migration Version**: v0.7.2
+**Supported Versions**: v0.2.x → v0.7.2
 **Migration Tools**: Available
 

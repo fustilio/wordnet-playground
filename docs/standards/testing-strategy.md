@@ -1,10 +1,10 @@
 # Testing Strategy & Standards
 
-## 🎯 **Overview**
+## **Overview**
 
 This document establishes the comprehensive testing strategy and standards that all `wn-ts` modules must follow. Our testing approach ensures code quality, reliability, and maintainability across the entire WordNet TypeScript ecosystem.
 
-## 🏗️ **Microkernel Architecture Testing**
+## **Microkernel Architecture Testing**
 
 The WordNet TypeScript ecosystem uses a microkernel architecture with plugin system:
 
@@ -18,7 +18,7 @@ The WordNet TypeScript ecosystem uses a microkernel architecture with plugin sys
 - **Similarity Plugin**: Test semantic similarity metrics and algorithms
 - **Translation Plugin**: Test cross-lingual mapping and translation features
 
-## 🏗️ **Testing Pyramid**
+## **Testing Pyramid**
 
 ### **Test Distribution**
 
@@ -41,7 +41,7 @@ The WordNet TypeScript ecosystem uses a microkernel architecture with plugin sys
 - **E2E Tests**: 70%+ coverage of user workflows
 - **Performance Tests**: Required for all data processing modules
 
-## 🧪 **Unit Testing Standards**
+## **Unit Testing Standards**
 
 ### **Test Structure**
 
@@ -116,7 +116,7 @@ it('should parse valid LMF XML', async () => {
 });
 ```
 
-## 🔗 **Integration Testing Standards**
+## **Integration Testing Standards**
 
 ### **Database Integration Tests**
 
@@ -185,7 +185,7 @@ describe('API Integration', () => {
 });
 ```
 
-## 🌐 **End-to-End Testing Standards**
+## **End-to-End Testing Standards**
 
 ### **Browser E2E Tests**
 
@@ -251,7 +251,7 @@ describe('CLI E2E', () => {
 });
 ```
 
-## 📊 **Performance Testing Standards**
+## **Performance Testing Standards**
 
 ### **Load Testing**
 
@@ -356,7 +356,7 @@ describe('Security Tests', () => {
 });
 ```
 
-## 📋 **Test Organization Standards**
+## **Test Organization Standards**
 
 ### **File Structure**
 
@@ -410,7 +410,7 @@ describe('LmfParser', () => {
 });
 ```
 
-## 🚀 **Test Execution Standards**
+## **Test Execution Standards**
 
 ### **Test Scripts**
 
@@ -456,7 +456,7 @@ export default defineConfig({
 });
 ```
 
-## 📊 **Test Reporting Standards**
+## **Test Reporting Standards**
 
 ### **Coverage Reports**
 
@@ -564,7 +564,7 @@ it('should handle duplicate synset IDs', async () => {
 - **`['id', 'lemma']`**: Deduplicate based on ID and lemma combination
 - **`['lemma', 'pos']`**: Deduplicate based on lemma and part-of-speech
 
-## 🔍 **Common Testing Anti-Patterns to Avoid**
+## **Common Testing Anti-Patterns to Avoid**
 
 1. **Testing implementation details**
    ```typescript
@@ -602,11 +602,11 @@ it('should handle duplicate synset IDs', async () => {
    });
    ```
 
-## 📚 **Related Documentation**
+## **Related Documentation**
 
-- [Development Conventions](./DEVELOPMENT_CONVENTIONS.md)
-- [Database Schema Standards](./DATABASE_SCHEMA_STANDARDS.md)
-- [Performance Guidelines](./PERFORMANCE.md)
+- [Development Conventions](./development-conventions.md)
+- [Database Schema Standards](./database-schema-standards.md)
+- [Performance Guidelines](./performance.md)
 
 ---
 

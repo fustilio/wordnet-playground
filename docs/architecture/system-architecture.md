@@ -1,6 +1,6 @@
 # System Architecture
 
-## 🏗️ **Microkernel Architecture Overview**
+## **Microkernel Architecture Overview**
 
 The WordNet TypeScript ecosystem uses a **microkernel architecture** with a plugin system, providing a modular, extensible, and type-safe foundation for WordNet operations across different environments.
 
@@ -10,7 +10,7 @@ The WordNet TypeScript ecosystem uses a **microkernel architecture** with a plug
 - **Cross-Platform**: Works in Node.js, browsers, and other JavaScript environments
 - **Modularity**: Core functionality separated from environment-specific implementations
 
-## 📊 **Architecture Diagram**
+## **Architecture Diagram**
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -39,7 +39,7 @@ The WordNet TypeScript ecosystem uses a **microkernel architecture** with a plug
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## 🏛️ **Core Components**
+## **Core Components**
 
 ### **1. WordNetCore Interface**
 
@@ -160,7 +160,7 @@ class TranslationPlugin implements Plugin {
 }
 ```
 
-## 🔧 **Environment-Specific Implementations**
+## **Environment-Specific Implementations**
 
 ### **Web Implementation (wn-ts-web)**
 
@@ -228,7 +228,7 @@ class NodeWordNetCore implements WordNetCore {
 }
 ```
 
-## 🚀 **Key Architectural Benefits**
+## **Key Architectural Benefits**
 
 ### **1. Modularity**
 - **Plugin System**: Add functionality without modifying core
@@ -278,7 +278,7 @@ const words = await kernel.words('computer');
 const synsets = await kernel.synsets('computer', 'n');
 ```
 
-## 🧪 **Testing Strategy**
+## **Testing Strategy**
 
 ### **Unit Testing**
 - **Core Interface**: Test WordNetCore implementations
@@ -312,12 +312,12 @@ const synsets = await kernel.synsets('computer', 'n');
 - **Desktop Apps**: Electron integration
 - **Cloud Integration**: Serverless and cloud deployment
 
-## 📚 **Related Documentation**
+## **Related Documentation**
 
-- **[Web Architecture](./WEB_ARCHITECTURE.md)** - Browser-specific architecture details
+- **[Web Architecture](./web-architecture.md)** - Browser-specific architecture details
 - **[Web API](../api/web/)** - Complete web API reference
 - **[Web Usage](../guides/web-usage.md)** - Web usage patterns and examples
-- **[Development Standards](../standards/DEVELOPMENT_CONVENTIONS.md)** - Coding standards and patterns
+- **[Development Standards](../standards/development-conventions.md)** - Coding standards and patterns
 
 ---
 

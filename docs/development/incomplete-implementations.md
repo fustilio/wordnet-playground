@@ -7,7 +7,7 @@ description: Catalog of incomplete implementations and placeholders in the WordN
 
 This document catalogs all incomplete implementations, placeholders, and hardcoded values found in the WordNet TypeScript ecosystem that need to be completed.
 
-## Current Status (v0.6.3)
+## Current Status (v0.7.2)
 
 **✅ Core Functionality Working**: Most critical functionality is implemented and working.
 

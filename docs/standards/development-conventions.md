@@ -1,10 +1,10 @@
 # Development Conventions & Standards
 
-## 🎯 **Overview**
+## **Overview**
 
 This document establishes shared development conventions, architectural patterns, and coding standards for all `wn-ts` modules. Following these conventions ensures consistency, maintainability, and interoperability across the ecosystem.
 
-## 🏗️ **Microkernel Architecture**
+## **Microkernel Architecture**
 
 The WordNet TypeScript ecosystem is built on a microkernel architecture:
 
@@ -18,7 +18,7 @@ The WordNet TypeScript ecosystem is built on a microkernel architecture:
 - **Similarity Plugin**: Semantic similarity metrics
 - **Translation Plugin**: Cross-lingual mapping and translation
 
-## 📝 **Naming Conventions**
+## **Naming Conventions**
 
 ### **ID Properties & References**
 
@@ -127,7 +127,7 @@ const wordnet_instance = new WordNet()                   // Should be wordNetIns
 const is_lexicon_loaded = await check_lexicon_status()   // Should be isLexiconLoaded
 ```
 
-## 🏗️ **Architectural Patterns**
+## **Architectural Patterns**
 
 ### **Layered Architecture**
 
@@ -212,7 +212,7 @@ class LexiconProcessor {
 }
 ```
 
-## 🔧 **Error Handling**
+## **Error Handling**
 
 ### **Error Types and Messages**
 
@@ -255,7 +255,7 @@ try {
 }
 ```
 
-## ⚙️ **Configuration Management**
+## **Configuration Management**
 
 ### **Environment-Specific Configuration**
 
@@ -280,7 +280,7 @@ const config: WordNetConfig = {
 }
 ```
 
-## 🧪 **Testing Standards**
+## **Testing Standards**
 
 ### **Test Structure and Naming**
 
@@ -326,7 +326,7 @@ const testWord: Word = {
 }
 ```
 
-## 📚 **Documentation Standards**
+## **Documentation Standards**
 
 ### **Code Documentation**
 
@@ -375,7 +375,7 @@ await wordnet.loadLexicon('en', '1.0.0')
 For detailed usage, see [API Documentation](../api/).
 ```
 
-## 🚀 **Performance Guidelines**
+## **Performance Guidelines**
 
 ### **Memory Management**
 
@@ -455,7 +455,7 @@ function sanitizeXmlContent(content: string): string {
 }
 ```
 
-## 📋 **Implementation Checklist**
+## **Implementation Checklist**
 
 Before implementing any feature, ensure:
 
@@ -470,7 +470,7 @@ Before implementing any feature, ensure:
 - [ ] Uses async patterns appropriately
 - [ ] Includes performance considerations
 
-## 🔍 **Common Anti-Patterns to Avoid**
+## **Common Anti-Patterns to Avoid**
 
 1. **Global state usage**
    ```typescript
@@ -510,11 +510,11 @@ Before implementing any feature, ensure:
    }
    ```
 
-## 📚 **Related Documentation**
+## **Related Documentation**
 
-- [Database Schema Standards](./DATABASE_SCHEMA_STANDARDS.md)
-- [Testing Strategy](./TESTING_STRATEGY.md)
-- [Performance Guidelines](./PERFORMANCE.md)
+- [Database Schema Standards](./database-schema-standards.md)
+- [Testing Strategy](./testing-strategy.md)
+- [Performance Guidelines](./performance.md)
 
 ---
 

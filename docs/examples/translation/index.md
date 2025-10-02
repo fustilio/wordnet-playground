@@ -317,8 +317,8 @@ const highConfidence = results.filter(r => r.confidence > 0.8);
 ## Further Reading
 
 - **[Translation Plugin API](/api/plugins/translation)** - Learn about the translation plugin
-- **[Cross-Lingual Dependencies](/standards/CROSS_LINGUAL_DEPENDENCIES.md)** - Understanding multi-language support
-- **[Performance Guide](/development/PERFORMANCE.md)** - Optimization techniques
+- **[Cross-Lingual Dependencies](/standards/cross-lingual-dependencies.md)** - Understanding multi-language support
+- **[Performance Guide](/development/performance.md)** - Optimization techniques
 
 ---
 

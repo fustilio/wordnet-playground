@@ -9,7 +9,7 @@ Select the right platform for your WordNet TypeScript application based on your 
 
 ## Which Platform Should I Choose?
 
-### **🌐 Web Applications**
+### **Web Applications**
 
 **Choose Web if you're building:**
 - Interactive dictionary applications
@@ -26,7 +26,7 @@ Select the right platform for your WordNet TypeScript application based on your 
 
 **[Get Started with Web →](/platforms/web/)**
 
-### **🖥️ Node.js Applications**
+### **Node.js Applications**
 
 **Choose Node.js if you're building:**
 - REST APIs and backend services
@@ -43,7 +43,7 @@ Select the right platform for your WordNet TypeScript application based on your 
 
 **[Get Started with Node.js →](/platforms/node/)**
 
-### **⌨️ Command Line Interface**
+### **Command Line Interface**
 
 **Choose CLI if you need:**
 - Quick word lookups

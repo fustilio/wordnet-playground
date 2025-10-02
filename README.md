@@ -9,7 +9,7 @@ TypeScript ecosystem for WordNet data across browsers, Node.js, and CLI.
 - **wn-ts-core**: v0.5.2 - Foundation library
 - **wn-ts-web**: v0.7.2 - Browser implementation  
 - **wn-ts-node**: v0.7.2 - Node.js implementation
-- **wn-cli**: v0.6.3 - Command-line interface
+- **wn-cli**: v0.7.2 - Command-line interface
 
 ## Quick Start
 

@@ -143,4 +143,4 @@ const options = {
 
 - [Getting Started Guide](../getting-started/) - Quick setup and basic usage
 - [Examples](../examples/) - Working code examples
-- [Architecture Guide](../architecture/SYSTEM_ARCHITECTURE.md) - System design details
+- [Architecture Guide](../architecture/system-architecture.md) - System design details
