@@ -10,12 +10,14 @@ Complete API reference for the WordNet similarity plugin, providing semantic sim
 ## Quick Start
 
 ```typescript
+import { NodeWordNetKernel } from 'wn-ts-node';
 import { similarity } from 'wn-ts-core/plugins';
 
-const wordnet = new WordNetKernel(core, [similarity]);
+const wordnet = new NodeWordNetKernel('oewn:2024');
+await wordnet.loadPlugin(similarity);
 
 // Calculate path similarity
-const sim = await wordnet.getPathSimilarity(synset1, synset2);
+const sim = await wordnet.getPathSimilarity('synset-1', 'synset-2');
 ```
 
 ## API Reference
@@ -23,82 +25,71 @@ const sim = await wordnet.getPathSimilarity(synset1, synset2);
 ### **Path Similarity**
 
 ```typescript
-// Calculate path similarity
-const similarity = await wordnet.getPathSimilarity(synset1, synset2);
+// Calculate path similarity (0-1 range)
+const sim = await wordnet.getPathSimilarity(synset1, synset2);
+// Returns: 1 = identical, 0 = no similarity
 
-// Path similarity returns a value between 0 and 1
-// 1 = identical, 0 = no similarity
+// Also available as shorthand:
+const sim = await wordnet.path(synset1, synset2);
 ```
 
 ### **Wu-Palmer Similarity**
 
 ```typescript
-// Calculate Wu-Palmer similarity
-const similarity = await wordnet.getWuPalmerSimilarity(synset1, synset2);
+// Calculate Wu-Palmer similarity (0-1 range)
+const sim = await wordnet.getWuPalmerSimilarity(synset1, synset2);
+// Considers depth of LCS and depth of both synsets
 
-// Wu-Palmer similarity considers the depth of the LCS
-// and the depth of the two synsets
+// Also available as shorthand:
+const sim = await wordnet.wup(synset1, synset2);
 ```
 
 ### **Leacock-Chodorow Similarity**
 
 ```typescript
-// Calculate Leacock-Chodorow similarity
-const similarity = await wordnet.getLeacockChodorowSimilarity(synset1, synset2);
+// Calculate Leacock-Chodorow similarity (0-∞ range)
+const sim = await wordnet.getLeacockChodorowSimilarity(synset1, synset2);
+// Uses shortest path and maximum taxonomy depth
 
-// Leacock-Chodorow similarity uses the shortest path
-// and the maximum depth in the taxonomy
+// Also available as shorthand:
+const sim = await wordnet.lch(synset1, synset2, maxDepth);
 ```
 
-### **Jaccard Similarity**
+### **Best Similarity**
 
 ```typescript
-// Calculate Jaccard similarity
-const similarity = await wordnet.getJaccardSimilarity(synset1, synset2);
-
-// Jaccard similarity measures the overlap between
-// the sets of hypernyms of the two synsets
+// Get the best similarity across multiple metrics
+const sim = await wordnet.getBestSimilarity(synset1, synset2);
+// Automatically tries path and Wu-Palmer, returns the highest
 ```
 
-### **Lin Similarity**
+### **Cross-Lingual Similarity**
 
 ```typescript
-// Calculate Lin similarity
-const similarity = await wordnet.getLinSimilarity(synset1, synset2);
-
-// Lin similarity uses information content
-// and the LCS (Lowest Common Subsumer)
+// Compare synsets from different languages using ILI
+const sim = await wordnet.getCrossLingualSimilarity(
+  'oewn-computer-n', 
+  'omw-fr-ordinateur-n'
+);
+// Requires ILI (Interlingual Index) mappings
 ```
 
-### **Resnik Similarity**
+### **Information Content-Based Metrics**
 
 ```typescript
-// Calculate Resnik similarity
-const similarity = await wordnet.getResnikSimilarity(synset1, synset2);
+// These require frequency data (ic parameter)
+import { loadFrequency } from 'wn-ts-core/plugins';
 
-// Resnik similarity is based on the information content
-// of the LCS (Lowest Common Subsumer)
-```
+const ic = await loadFrequency('brown-corpus');
 
-### **Jiang-Conrath Similarity**
+// Resnik similarity
+const resSim = await wordnet.res(synset1, synset2, ic);
 
-```typescript
-// Calculate Jiang-Conrath similarity
-const similarity = await wordnet.getJiangConrathSimilarity(synset1, synset2);
+// Lin similarity  
+const linSim = await wordnet.lin(synset1, synset2, ic);
 
-// Jiang-Conrath similarity combines information content
-// of the LCS and the two synsets
-```
-
-## Configuration Options
-
-```typescript
-const similarityPlugin = similarity({
-  cacheResults: true,     // Cache similarity calculations
-  maxCacheSize: 1000,     // Maximum cache size
-  defaultSimilarity: 'path', // Default similarity method
-  enableVerbose: false    // Enable verbose logging
-});
+// Jiang-Conrath similarity
+const jcnSim = await wordnet.jcn(synset1, synset2, ic);
 ```
 
 ## Similarity Metrics Comparison
@@ -108,10 +99,9 @@ const similarityPlugin = similarity({
 | Path | 0-1 | Shortest path between synsets | General similarity |
 | Wu-Palmer | 0-1 | Depth of LCS relative to synsets | Hierarchical similarity |
 | Leacock-Chodorow | 0-∞ | Log of shortest path | Taxonomy-based similarity |
-| Jaccard | 0-1 | Overlap of hypernym sets | Set-based similarity |
-| Lin | 0-1 | Information content of LCS | Information-theoretic |
-| Resnik | 0-∞ | Information content of LCS | Information-theoretic |
-| Jiang-Conrath | 0-∞ | Combined information content | Information-theoretic |
+| Lin | 0-1 | Information content of LCS | Information-theoretic (requires IC) |
+| Resnik | 0-∞ | Information content of LCS | Information-theoretic (requires IC) |
+| Jiang-Conrath | 0-∞ | Combined information content | Information-theoretic (requires IC) |
 
 ## Usage Examples
 

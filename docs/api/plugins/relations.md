@@ -10,9 +10,11 @@ Complete API reference for the WordNet relations plugin, providing word relation
 ## Quick Start
 
 ```typescript
+import { NodeWordNetKernel } from 'wn-ts-node';
 import { relations } from 'wn-ts-core/plugins';
 
-const wordnet = new WordNetKernel(core, [relations]);
+const wordnet = new NodeWordNetKernel('oewn:2024');
+await wordnet.loadPlugin(relations);
 
 // Get hypernyms
 const hypernyms = await wordnet.getHypernyms(synsetId);
@@ -29,11 +31,8 @@ const hyponyms = await wordnet.getHyponyms(synsetId);
 // Get direct hypernyms
 const hypernyms = await wordnet.getHypernyms(synsetId);
 
-// Get hypernyms with depth
-const hypernyms = await wordnet.getHypernyms(synsetId, { depth: 3 });
-
-// Get all hypernyms (transitive closure)
-const allHypernyms = await wordnet.getHypernyms(synsetId, { depth: -1 });
+// Get hypernyms for specific lexicon
+const hypernyms = await wordnet.getHypernyms(synsetId, 'oewn:2024');
 ```
 
 ### **Hyponyms (More Specific Concepts)**
@@ -42,45 +41,52 @@ const allHypernyms = await wordnet.getHypernyms(synsetId, { depth: -1 });
 // Get direct hyponyms
 const hyponyms = await wordnet.getHyponyms(synsetId);
 
-// Get hyponyms with depth
-const hyponyms = await wordnet.getHyponyms(synsetId, { depth: 2 });
-
-// Get all hyponyms (transitive closure)
-const allHyponyms = await wordnet.getHyponyms(synsetId, { depth: -1 });
+// Get hyponyms for specific lexicon
+const hyponyms = await wordnet.getHyponyms(synsetId, 'oewn:2024');
 ```
 
 ### **Meronyms (Part-of Relationships)**
 
 ```typescript
-// Get meronyms
+// Get meronyms (all types: part, member, substance)
 const meronyms = await wordnet.getMeronyms(synsetId);
 
-// Get specific meronym types
-const memberMeronyms = await wordnet.getMeronyms(synsetId, { type: 'member' });
-const partMeronyms = await wordnet.getMeronyms(synsetId, { type: 'part' });
-const substanceMeronyms = await wordnet.getMeronyms(synsetId, { type: 'substance' });
+// Get meronyms for specific lexicon
+const meronyms = await wordnet.getMeronyms(synsetId, 'oewn:2024');
 ```
 
 ### **Holonyms (Contains Relationships)**
 
 ```typescript
-// Get holonyms
+// Get holonyms (all types: part, member, substance)
 const holonyms = await wordnet.getHolonyms(synsetId);
 
-// Get specific holonym types
-const memberHolonyms = await wordnet.getHolonyms(synsetId, { type: 'member' });
-const partHolonyms = await wordnet.getHolonyms(synsetId, { type: 'part' });
-const substanceHolonyms = await wordnet.getHolonyms(synsetId, { type: 'substance' });
+// Get holonyms for specific lexicon
+const holonyms = await wordnet.getHolonyms(synsetId, 'oewn:2024');
 ```
 
-### **Antonyms (Opposite Meanings)**
+### **Similar-To Relationships**
 
 ```typescript
-// Get antonyms
-const antonyms = await wordnet.getAntonyms(synsetId);
+// Get similar-to relations (adjectives)
+const similar = await wordnet.getSimilarTos(synsetId);
+const similar = await wordnet.getSimilarTos(synsetId, 'oewn:2024');
+```
 
-// Get antonyms for specific word
-const wordAntonyms = await wordnet.getAntonyms(synsetId, { wordId: wordId });
+### **Entailments**
+
+```typescript
+// Get entailments (verbs)
+const entailments = await wordnet.getEntailments(synsetId);
+const entailments = await wordnet.getEntailments(synsetId, 'oewn:2024');
+```
+
+### **Custom Relation Types**
+
+```typescript
+// Get relations by type
+const relations = await wordnet.getRelationsByType(synsetId, 'hypernym');
+const relations = await wordnet.getRelationsByType(synsetId, 'hypernym', 'oewn:2024');
 ```
 
 ### **All Relations**
@@ -88,23 +94,13 @@ const wordAntonyms = await wordnet.getAntonyms(synsetId, { wordId: wordId });
 ```typescript
 // Get all relations
 const allRelations = await wordnet.getAllRelations(synsetId);
+const allRelations = await wordnet.getAllRelations(synsetId, 'oewn:2024');
 
-// Get relations by type
-const relations = await wordnet.getRelations(synsetId, 'hypernym');
+// Get relation types available for a synset
+const types = await wordnet.getRelationTypes(synsetId);
 
-// Get multiple relation types
-const relations = await wordnet.getRelations(synsetId, ['hypernym', 'hyponym']);
-```
-
-## Configuration Options
-
-```typescript
-const relationsPlugin = relations({
-  maxDepth: 10,           // Maximum traversal depth
-  includeIndirect: true,  // Include indirect relations
-  cacheResults: true,     // Cache query results
-  maxCacheSize: 1000      // Maximum cache size
-});
+// Get relation statistics
+const stats = await wordnet.getRelationStats(synsetId);
 ```
 
 ## Relation Types

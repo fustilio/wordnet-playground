@@ -10,9 +10,11 @@ Complete API reference for the WordNet translation plugin, providing cross-lingu
 ## Quick Start
 
 ```typescript
+import { NodeWordNetKernel } from 'wn-ts-node';
 import { translation } from 'wn-ts-core/plugins';
 
-const wordnet = new WordNetKernel(core, [translation]);
+const wordnet = new NodeWordNetKernel('oewn:2024');
+await wordnet.loadPlugin(translation);
 
 // Translate synset
 const translations = await wordnet.getTranslations(synsetId, 'fr');
@@ -23,83 +25,49 @@ const translations = await wordnet.getTranslations(synsetId, 'fr');
 ### **Synset Translation**
 
 ```typescript
-// Get translations for a synset
+// Get translations for a synset via ILI (Interlingual Index)
 const translations = await wordnet.getTranslations(synsetId, 'fr');
+// Returns synsets in French with the same ILI
 
-// Get translations with confidence scores
-const translations = await wordnet.getTranslations(synsetId, 'fr', { 
-  includeConfidence: true 
-});
-
-// Get translations with filters
-const translations = await wordnet.getTranslations(synsetId, 'fr', {
-  minConfidence: 0.5,
-  maxResults: 10
-});
+// Get translations for all available languages
+const translations = await wordnet.getTranslations(synsetId);
+// Returns synsets in all languages with the same ILI
 ```
 
 ### **Word Translation**
 
 ```typescript
-// Get translations by word
-const translations = await wordnet.getTranslationsByWord(wordId, 'fr');
-
-// Get translations with confidence
-const translations = await wordnet.getTranslationsByWord(wordId, 'fr', {
-  includeConfidence: true
-});
+// Get translations by word form
+const translations = await wordnet.getTranslationsByWord(
+  'computer',  // word form
+  'en',        // source language
+  'fr'         // target language
+);
+// Returns French words linked via ILI
 ```
 
 ### **Available Languages**
 
 ```typescript
-// Get all available languages
-const languages = await wordnet.getAvailableLanguages();
-
-// Get languages for specific synset
+// Get all available languages for a synset
 const languages = await wordnet.getAvailableLanguages(synsetId);
+// Returns array of language codes with translations
 
-// Get languages with statistics
-const languages = await wordnet.getAvailableLanguages(synsetId, {
-  includeStats: true
-});
+// Get global available languages
+const allLanguages = await wordnet.getAvailableLanguages();
+// Returns all language codes in the loaded lexicons
 ```
 
-### **Translation Confidence**
+### **Language Statistics**
 
 ```typescript
-// Get translation confidence
-const confidence = await wordnet.getTranslationConfidence(synsetId, 'fr');
+// Get statistics about available translations
+const stats = await wordnet.getLanguageStatistics(synsetId);
+// Returns translation coverage by language
 
-// Get confidence for multiple languages
-const confidences = await wordnet.getTranslationConfidence(synsetId, ['fr', 'es', 'de']);
-```
-
-### **Translation Suggestions**
-
-```typescript
-// Get translation suggestions
-const suggestions = await wordnet.getTranslationSuggestions(word, 'en', 'fr');
-
-// Get suggestions with options
-const suggestions = await wordnet.getTranslationSuggestions(word, 'en', 'fr', {
-  maxSuggestions: 5,
-  minConfidence: 0.3
-});
-```
-
-## Configuration Options
-
-```typescript
-const translationPlugin = translation({
-  enableConfidence: true,     // Enable confidence scoring
-  minConfidence: 0.5,         // Minimum confidence threshold
-  maxSuggestions: 10,         // Maximum suggestions
-  cacheTranslations: true,    // Cache translation results
-  maxCacheSize: 1000,         // Maximum cache size
-  enableFuzzy: true,          // Enable fuzzy matching
-  fuzzyThreshold: 0.8         // Fuzzy matching threshold
-});
+// Get overall language coverage
+const coverage = await wordnet.getLanguageCoverage();
+// Returns global translation coverage statistics
 ```
 
 ## Supported Languages

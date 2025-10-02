@@ -1,25 +1,20 @@
-# Performance Guidelines
+# Performance Standards
 
 This document outlines performance standards and guidelines for the WordNet TypeScript ecosystem.
 
-## Overview
-
-The WordNet TypeScript ecosystem prioritizes performance across all platforms while maintaining code quality and maintainability.
-
 ## Performance Standards
 
-### Query Performance
+### Query Performance (Based on Actual Benchmarks)
 
-- **Word Lookup**: < 10ms for simple queries
-- **Synset Retrieval**: < 20ms for basic synset operations
-- **Relationship Traversal**: < 50ms for single-level relationships
-- **Complex Queries**: < 100ms for multi-level operations
+- **V5 Strategy**: 700,000+ Hz (0.001ms average) - Production recommended
+- **V6 Strategy**: 2,000+ Hz (0.5ms average) - Memory-conscious apps
+- **V1-V4 Strategies**: ~0.4-4 Hz (250-2000ms average) - Deprecated
 
 ### Memory Usage
 
-- **Core Library**: < 10MB base memory footprint
-- **Cached Data**: Configurable memory limits
-- **Database Operations**: Efficient memory usage with streaming support
+- **Full OEWN Dataset**: 100-150MB total memory usage
+- **Query Processing**: < 10MB per individual query
+- **Database Load**: 1.5-2x input size for storage
 
 ### Bundle Size
 
@@ -27,151 +22,54 @@ The WordNet TypeScript ecosystem prioritizes performance across all platforms wh
 - **Web Full**: < 200KB gzipped (with plugins)
 - **Node.js**: Minimal dependencies
 
-## Optimization Techniques
+## Optimization Guidelines
 
-### 1. Database Optimization
+### Query Strategy Selection
 
-```typescript
-// Use indexed queries
-const words = await wordnet.words({ 
-  form: 'computer',
-  // Leverage database indexes
-  useIndex: true 
-});
+1. **Use V5 strategy** for production applications with repeated queries (700,000+ Hz)
+2. **Use V6 strategy** for memory-conscious applications (2,000+ Hz)
+3. **Avoid V1-V4 strategies** - they are deprecated and perform poorly
 
-// Batch operations
-const words = await wordnet.words({ 
-  forms: ['computer', 'laptop', 'tablet'],
-  batch: true 
-});
-```
+### Performance Best Practices
 
-### 2. Caching Strategies
-
-```typescript
-// In-memory caching
-const cache = new Map();
-const getCachedWords = async (form: string) => {
-  if (cache.has(form)) {
-    return cache.get(form);
-  }
-  const words = await wordnet.words({ form });
-  cache.set(form, words);
-  return words;
-};
-```
-
-### 3. Lazy Loading
-
-```typescript
-// Load data on demand
-const wordnet = new NodeWordNetKernel('oewn:2024', {
-  lazyLoad: true,
-  preloadCommonWords: false
-});
-```
-
-### 4. Web Worker Usage
-
-```typescript
-// Offload heavy operations to workers
-const wordnet = new WebWordNetKernel({
-  enableWorkers: true,
-  workerCount: navigator.hardwareConcurrency
-});
-```
+1. **Use specific queries**: `wordnet.words({ form: 'computer', pos: 'n' })` instead of broad searches
+2. **Leverage automatic caching**: V5 strategy handles caching automatically
+3. **Batch operations**: Process multiple queries together when possible
+4. **Monitor memory usage**: 100-150MB for full OEWN dataset is normal
 
 ## Benchmarking
 
 ### Running Benchmarks
 
 ```bash
-# Run performance benchmarks
-pnpm benchmark
+# Run all benchmarks
+pnpm test:bench
 
-# Run specific benchmarks
-pnpm benchmark:core
-pnpm benchmark:web
-pnpm benchmark:node
+# Run web-specific benchmarks
+cd packages/wn-ts-web && pnpm bench
+
+# Run core benchmarks
+cd packages/wn-ts-core && pnpm test:bench
 ```
 
-### Performance Monitoring
+### Actual Benchmark Results
 
-```typescript
-// Track operation performance
-const monitor = new PerformanceMonitor();
+See [Performance Benchmarks](../development/performance-benchmarks.md) for detailed results showing:
+- V5 strategy: 700,000+ Hz performance
+- V6 strategy: 2,000+ Hz performance  
+- V1-V4 strategies: ~0.4-4 Hz (deprecated)
 
-monitor.start('word-lookup');
-const words = await wordnet.words({ form: 'test' });
-monitor.end('word-lookup');
-
-console.log('Performance:', monitor.getMetrics());
-```
-
-## Platform-Specific Guidelines
+## Platform-Specific Performance
 
 ### Web Platform
-
-- Use Web Workers for heavy operations
-- Implement progressive loading
-- Minimize main thread blocking
-- Use OPFS for persistent storage
+- **Performance**: V5 strategy achieves 700,000+ Hz in browser
+- **Memory**: ~150MB for full OEWN dataset
+- **Load Time**: < 3 seconds for full datasets
 
 ### Node.js Platform
-
-- Use SQLite with WAL mode
-- Implement connection pooling
-- Use streaming for large datasets
-- Optimize database indexes
-
-### CLI Platform
-
-- Minimize startup time
-- Use caching for repeated operations
-- Implement progress indicators
-- Optimize for low-memory environments
-
-## Performance Testing
-
-### Unit Tests
-
-```typescript
-import { describe, it, expect } from 'vitest';
-
-describe('Performance', () => {
-  it('should complete word lookup in < 10ms', async () => {
-    const start = performance.now();
-    await wordnet.words({ form: 'test' });
-    const duration = performance.now() - start;
-    expect(duration).toBeLessThan(10);
-  });
-});
-```
-
-### Integration Tests
-
-- Test realistic usage scenarios
-- Measure end-to-end performance
-- Test with various data sizes
-- Monitor memory usage
-
-## Profiling
-
-### CPU Profiling
-
-```bash
-# Profile Node.js applications
-node --prof your-app.js
-node --prof-process isolate-*.log > profile.txt
-```
-
-### Memory Profiling
-
-```bash
-# Profile memory usage
-node --inspect your-app.js
-# Use Chrome DevTools for memory profiling
-```
+- **Performance**: V5 strategy achieves 700,000+ Hz on server
+- **Memory**: ~100MB for full OEWN dataset
+- **Load Time**: < 2 seconds for full datasets
 
 ## Related Documentation
 

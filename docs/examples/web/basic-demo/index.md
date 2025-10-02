@@ -25,14 +25,16 @@ pnpm dev
 ## Code Example
 
 ```typescript
-import { useWordnet } from './hooks/useWordnet';
+import { useWordNetKernel } from 'wn-ts-web/react';
 
 function BasicDemo() {
-  const { getDefinitions, loading, error, ready } = useWordnet({ lang: 'en-US' });
+  const { words, synsets, loading, error, ready } = useWordNetKernel();
   
   const handleSearch = async (term: string) => {
-    const definitions = await getDefinitions(term);
-    console.log('Found definitions:', definitions);
+    const wordResults = await words({ form: term });
+    const synsetResults = await synsets({ form: term });
+    console.log('Found words:', wordResults);
+    console.log('Found synsets:', synsetResults);
   };
   
   return (

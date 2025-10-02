@@ -25,18 +25,20 @@ pnpm run all-use-cases
 ## Code Example
 
 ```typescript
-import { createWordnet } from './shared/helpers.js';
+import { NodeWordNetKernel } from 'wn-ts-node';
 
 async function basicDemo() {
-  const wordnet = await createWordnet('basic_demo');
+  const wordnet = new NodeWordNetKernel('oewn:2024');
   
   try {
+    await wordnet.initialize();
+    
     // Search for words
     const words = await wordnet.words({ form: 'computer' });
     console.log('Found words:', words);
     
     // Get synsets
-    const synsets = await wordnet.synsets({ wordId: words[0].id });
+    const synsets = await wordnet.synsets({ form: 'computer' });
     console.log('Found synsets:', synsets);
   } finally {
     await wordnet.close();

@@ -34,13 +34,15 @@ interface Sense {
 
 ### Web (React)
 ```typescript
-import { useWordNet, useWordNetKernel } from 'wn-ts-web';
+import { useWordNetKernel, WebWordNetKernel } from 'wn-ts-web';
 
-// Worker-based hook
-const { queryWords, loading, error } = useWordNet();
-
-// Kernel-based hook
+// React hook (recommended)
 const { words, synsets, getHypernyms, getPathSimilarity } = useWordNetKernel();
+
+// Direct kernel usage
+const wordnet = new WebWordNetKernel('oewn:2024');
+await wordnet.initialize();
+const words = await wordnet.words({ form: 'computer' });
 ```
 
 ### Node.js

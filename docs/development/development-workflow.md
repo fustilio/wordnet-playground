@@ -5,66 +5,33 @@ description: Comprehensive development workflow for the WordNet TypeScript ecosy
 
 # Development Workflow
 
-## **Overview**
+## Overview
 
-Comprehensive development workflow for the WordNet TypeScript ecosystem, covering setup, development, testing, and deployment processes.
+Development workflow for the WordNet TypeScript ecosystem.
 
-## **Quick Start**
+## Quick Start
 
-### **Prerequisites**
+### Prerequisites
 - Node.js 18+ (LTS recommended)
 - pnpm 8+ (package manager)
 - TypeScript 5.0+
-- Git (version control)
 
-### **Initial Setup**
+### Setup
 ```bash
-# Clone the repository
 git clone https://github.com/fustilio/wordnet-playground.git
 cd wordnet-playground
-
-# Install dependencies
 pnpm install
-
-# Build all packages
 pnpm build
-
-# Run tests
 pnpm test
 ```
 
-## **Project Structure**
+## Project Structure
 
-### **Monorepo Organization**
-```
-wordnet-playground/
-├── packages/                 # Core packages
-│   ├── wn-ts-core/          # Foundation library
-│   ├── wn-ts-web/           # Browser implementation
-│   ├── wn-ts-node/          # Node.js implementation
-│   ├── wn-cli/              # Command-line interface
-│   ├── wn-data-loader/      # Data loading utilities
-│   ├── wn-test-data/        # Test data and samples
-│   └── utils/               # Shared utilities
-├── examples/                # Example applications
-│   ├── web/                 # Web examples
-│   └── node/                # Node.js examples
-├── development/             # Development tools
-│   ├── benchmark/           # Performance benchmarks
-│   ├── sqlite-opfs-demo/    # SQLite OPFS demo
-│   └── wn-pybridge/         # Python bridge
-├── docs/                    # Documentation
-└── tests/                   # Cross-package tests
-```
-
-### **Package Dependencies**
-```
-wn-ts-core (foundation)
-├── wn-ts-web (browser)
-├── wn-ts-node (node.js)
-├── wn-cli (command-line)
-└── wn-data-loader (utilities)
-```
+The project is organized as a monorepo with:
+- **packages/**: Core packages (wn-ts-core, wn-ts-web, wn-ts-node, wn-cli)
+- **examples/**: Example applications for web, node, and translation
+- **docs/**: Comprehensive documentation
+- **development/**: Development tools and benchmarks
 
 ## **Development Environment**
 

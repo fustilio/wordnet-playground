@@ -35,10 +35,10 @@ Welcome to the comprehensive documentation for the WordNet TypeScript ecosystem.
 
 ### Web Applications
 ```typescript
-import { useWordNet } from 'wn-ts-web';
+import { useWordNetKernel } from 'wn-ts-web';
 
 const MyComponent = () => {
-  const { wordnet, loading } = useWordNet();
+  const { words, synsets, loading } = useWordNetKernel();
   // Your WordNet-powered React component
 };
 ```
@@ -49,6 +49,7 @@ import { NodeWordNetKernel } from 'wn-ts-node';
 
 const wordnet = new NodeWordNetKernel('oewn:2024');
 await wordnet.initialize();
+const words = await wordnet.words({ form: 'computer' });
 ```
 
 ### Command Line Tools
