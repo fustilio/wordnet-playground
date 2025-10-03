@@ -56,6 +56,7 @@ export class NodeKyselyDatabase implements NodeKyselyDatabaseInterface {
 
     // Create tables and indexes using shared SchemaBuilder
     await SchemaBuilder.createTables(this.db);
+    await SchemaBuilder.migrateSchema(this.db);
     await SchemaBuilder.createIndexes(this.db);
   }
 

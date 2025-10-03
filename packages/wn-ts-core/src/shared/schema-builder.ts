@@ -9,7 +9,8 @@ import type { Kysely } from 'kysely';
 import type { Database } from '../types/database.js';
 import {
   createTables as createTablesMutation,
-  createIndexes as createIndexesMutation
+  createIndexes as createIndexesMutation,
+  migrateSchema as migrateSchemaMutation
 } from '../modules/database-operations/mutations/schema-mutations.js';
 
 /**
@@ -28,5 +29,12 @@ export class SchemaBuilder {
    */
   static async createIndexes(db: Kysely<Database>): Promise<void> {
     return createIndexesMutation(db);
+  }
+
+  /**
+   * Migrate existing database schema to add missing columns
+   */
+  static async migrateSchema(db: Kysely<Database>): Promise<void> {
+    return migrateSchemaMutation(db);
   }
 }

@@ -159,7 +159,7 @@ export class KyselyWordnet extends LocalBaseWordnet {
 
   async synsets(query?: SynsetQuery): Promise<Synset[]> {
     if (query && Object.keys(query).length > 0) {
-      const { strategy, includeDefinitions, includeExamples, includeRelations, ...otherQuery } = query;
+      const { strategy, includeDefinitions, includeExamples, includeRelations, ...otherQuery } = query as any;
       return this.queryService.getSynsets({
         ...otherQuery,
         strategy: strategy ?? 'default',

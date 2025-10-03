@@ -560,7 +560,7 @@ export class WordNetOrchestrator {
 
     // Use the single instance to query across all loaded lexicons
     // The WebWordnet instance can handle cross-lexicon queries more efficiently
-    const query: WordQuery = { form: term };
+    const query: WordQuery = { form: term, language: undefined };
     if (pos) query.pos = pos;
     if (options.lexicons && options.lexicons.length > 0)
       query.lexicon = options.lexicons[0];
@@ -576,7 +576,7 @@ export class WordNetOrchestrator {
       throw new Error("Orchestrator not initialized");
     }
 
-    const query: SynsetQuery = { form: term };
+    const query: SynsetQuery = { form: term, language: undefined };
     if (pos) query.pos = pos;
     if (options.lexicons && options.lexicons.length > 0)
       query.lexicon = options.lexicons[0];
@@ -592,7 +592,8 @@ export class WordNetOrchestrator {
       throw new Error("Orchestrator not initialized");
     }
 
-    const query: SenseQuery = { wordIdOrForm: term };
+    // Use wordIdOrForm for sense queries (can be word ID or form)
+    const query: SenseQuery & { wordIdOrForm?: string } = { wordIdOrForm: term, language: undefined };
     if (pos) query.pos = pos;
     if (options.lexicons && options.lexicons.length > 0)
       query.lexicon = options.lexicons[0];
@@ -652,6 +653,7 @@ export class WordNetOrchestrator {
               const ciliSynsets = await queryService.getSynsets({
                 form: word.lemma,
                 lexicon: "cili:1.0",
+                language: undefined,
               });
 
               if (ciliSynsets && ciliSynsets.length > 0) {

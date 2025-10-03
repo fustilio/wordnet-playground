@@ -616,7 +616,7 @@ export abstract class BaseKyselyQueryService {
 
 
   // Sense queries
-  async getSenses(options: SenseQuery & QueryOptions = { language: undefined }): Promise<Sense[]> {
+  async getSenses(options: SenseQuery & QueryOptions & { wordIdOrForm?: string } = { language: undefined }): Promise<Sense[]> {
     // Use V5 strategy by default (fastest with caching)
     return this.getSensesV5(options);
   }
@@ -624,7 +624,7 @@ export abstract class BaseKyselyQueryService {
   // V1 Strategy - DEPRECATED: Use V5 or V6 for better performance
   // Performance: ~4-39 Hz (slow)
   // This strategy is kept for backward compatibility only
-  async getSensesV1(options: SenseQuery & QueryOptions = { language: undefined }): Promise<Sense[]> {
+  async getSensesV1(options: SenseQuery & QueryOptions & { wordIdOrForm?: string } = { language: undefined }): Promise<Sense[]> {
     const query = getSensesQuery(this.db, options);
     const results = await query.execute();
     return await Promise.all(results.map(this.transformSenseRecord.bind(this)));

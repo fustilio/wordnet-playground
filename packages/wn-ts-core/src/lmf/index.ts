@@ -11,4 +11,4 @@
 
 export * from './shared-parser.js';
 export * from './version-utils.js';
-export * from '../lmf.js';
+export type { Lexicon } from '../core/types.js';

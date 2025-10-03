@@ -7,13 +7,13 @@ import { SenseQueryBuilder } from './base-query-builder.js';
 
 export function getSensesQuery(
   db: Kysely<Database>,
-  options: SenseQuery = { language: undefined }
+  options: SenseQuery & { wordIdOrForm?: string } = { language: undefined }
 ) {
   let query = db.selectFrom('senses').selectAll('senses');
   let hasWordsJoin = false;
   
   // Handle wordIdOrForm - this is specific to senses
-  const wordIdOrForm = (options as any).wordIdOrForm;
+  const wordIdOrForm = options.wordIdOrForm;
   if (wordIdOrForm) {
     // Check if it's a word ID (contains lexicon prefix and part of speech)
     // Word IDs typically have format: word-pos-number (e.g., computer-n-1)

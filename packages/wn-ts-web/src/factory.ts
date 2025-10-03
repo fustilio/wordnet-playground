@@ -21,7 +21,7 @@ export interface CreateWebWordnetOptions {
  * Uses @sqlite.org/sqlite-wasm for modern browser optimization
  */
 export async function createWebWordnet(options: CreateWebWordnetOptions = {}): Promise<WebWordnet> {
-  const { sqliteWasmModule, lexicon = '*', options: wordnetOptions = {} } = options;
+  const { sqliteWasmModule, lexicon = '*', options: wordnetOptions = { language: undefined } } = options;
 
   // Create database and wordnet instances
   const wordnet = new WebWordnet(lexicon, wordnetOptions);
@@ -54,7 +54,7 @@ export async function createDataLoader(wordnet: WebWordnet): Promise<DataLoader>
  */
 export async function createWordNetInstance(
   lexicon: string = 'oewn:2024',
-  options: WordnetOptions = {}
+  options: WordnetOptions = { language: undefined }
 ): Promise<{ wordnet: WebWordnet; dataLoader: DataLoader }> {
   // I'm guessing that we should allow the user when they create the wordnet instance to bring their own sqlite3 module
   // Use @sqlite.org/sqlite-wasm for modern browser optimization

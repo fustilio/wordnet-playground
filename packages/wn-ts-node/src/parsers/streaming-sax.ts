@@ -88,7 +88,7 @@ export class StreamingSaxParser implements LMFXMLParser {
               url: getAttr('url') || '',
               citation: getAttr('citation') || '',
               logo: getAttr('logo') || '',
-            };
+            } as Lexicon;
             lexicons.push(currentLexicon);
             break;
             
@@ -241,7 +241,10 @@ export class StreamingSaxParser implements LMFXMLParser {
         
         resolve({
           lmfVersion: '1.0', // Default version for SAX parser
-          lexicons,
+          lexicons: lexicons.map(lex => ({
+            ...lex,
+            language: (lex.language || 'en') as string
+          } as Lexicon)),
           synsets,
           words,
           senses,

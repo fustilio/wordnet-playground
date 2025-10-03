@@ -56,6 +56,11 @@ export type Project = z.infer<typeof ProjectSchema>;
 export type WordQuery = z.infer<typeof WordQuerySchema>;
 export type SynsetQuery = z.infer<typeof SynsetQuerySchema>;
 export type SenseQuery = z.infer<typeof SenseQuerySchema>;
+
+// Extended types for queries with additional runtime-checked properties
+// Note: These properties are defined in the schemas but TypeScript may need explicit help
+export type SynsetQueryWithIli = SynsetQuery & { ili?: string };
+export type SenseQueryWithWordId = SenseQuery & { wordIdOrForm?: string };
 export type WordnetConfig = z.infer<typeof WordnetConfigSchema>;
 export type WordnetOptions = z.infer<typeof WordnetOptionsSchema>;
 export type DownloadOptions = z.infer<typeof DownloadOptionsSchema>;

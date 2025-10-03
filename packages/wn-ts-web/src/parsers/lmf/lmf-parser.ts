@@ -737,7 +737,7 @@ export class LmfParser implements LMFXMLParser {
 
     // Add results to the document
     if (lexicons.length > 0) {
-      result.lexicons = lexicons;
+      result.lexicons = lexicons as Lexicon[];
     }
     if (words.length > 0) {
       result.words = words;
@@ -1076,6 +1076,7 @@ export class LmfParser implements LMFXMLParser {
 
   /**
    * Process a Lexicon element
+   * Returns a properly typed Lexicon with required fields filled
    */
   private processLexicon(element: ParsedXMLStructure): Lexicon | null {
     // Log potential issues with element structure
@@ -1150,18 +1151,26 @@ export class LmfParser implements LMFXMLParser {
       return null;
     }
 
-    return {
+    // Build lexicon object with proper types
+    // Ensure language is never undefined
+    const lexiconLanguage: string = language || "en";
+    
+    const lexicon: Lexicon = {
       id,
       label: label || "Unknown Lexicon",
-      language: language || "en",
-      version: version || "1.0",
-      email: email || "",
-      license: license || "",
-      url: url || "",
-      citation: citation || "",
-      logo: logo || "",
-      requires,
+      language: lexiconLanguage,
+      url: url,
     };
+    
+    // Add optional properties if present
+    if (version) lexicon.version = version;
+    if (email) lexicon.email = email;
+    if (license) lexicon.license = license;
+    if (citation) lexicon.citation = citation;
+    if (logo) lexicon.logo = logo;
+    if (requires && requires.length > 0) lexicon.requires = requires;
+    
+    return lexicon;
   }
 
   /**
@@ -1602,17 +1611,18 @@ export class LmfParser implements LMFXMLParser {
       if (options.debug && this.options.verbose) {
         this.logger.debug(`Found lexicon:`, a);
       }
-      result.lexicons.push({
+      const lexicon: Lexicon = {
         id: a.id || "unknown",
         label: a.label || "Unknown Lexicon",
         language: a.language || "en",
-        version: a.version || "1.0",
-        email: a.email || "",
-        license: a.license || "",
-        url: a.url,
-        citation: a.citation,
-        logo: a.logo,
-      });
+        url: a.url || undefined,
+      };
+      if (a.version) lexicon.version = a.version;
+      if (a.email) lexicon.email = a.email;
+      if (a.license) lexicon.license = a.license;
+      if (a.citation) lexicon.citation = a.citation;
+      if (a.logo) lexicon.logo = a.logo;
+      result.lexicons.push(lexicon);
     }
 
     // Words (LexicalEntry + Lemma)

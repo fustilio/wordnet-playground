@@ -114,7 +114,7 @@ export class NodeWordNetCore implements WordNetCore {
   }
 
   async getSenses(wordId: string): Promise<Sense[]> {
-    return this.kyselyWordnet.senses({ wordIdOrForm: wordId });
+    return this.kyselyWordnet.senses({ wordIdOrForm: wordId } as any);
   }
 
   async getDefinitions(synsetId: string): Promise<any[]> {

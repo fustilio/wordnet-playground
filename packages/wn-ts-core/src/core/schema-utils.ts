@@ -195,7 +195,7 @@ export function createEntitySchema(fields: Record<string, z.ZodTypeAny>) {
       form: z.string().optional(),
       pos: z.enum(PARTS_OF_SPEECH).optional(),
       lexicon: ObjectValidators.stringOrStringArray(),
-      language: StringValidators.languageCode(false),
+      language: StringValidators.languageCode(false).optional(),
       searchAllForms: z.boolean().optional(),
       fuzzy: z.boolean().optional(),
       maxResults: NumberValidators.optionalPositiveInt('Max results'),

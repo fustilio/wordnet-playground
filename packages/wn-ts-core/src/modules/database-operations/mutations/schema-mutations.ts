@@ -20,6 +20,40 @@ export async function createTables(db: Kysely<Database>): Promise<void> {
 }
 
 /**
+ * Migrate existing database schema to add missing columns
+ */
+export async function migrateSchema(db: Kysely<Database>): Promise<void> {
+  try {
+    // Check if requires column exists in lexicons table
+    const tableInfo = await db.introspection.getTables();
+    const lexiconsTable = tableInfo.find((table: any) => table.name === 'lexicons');
+    
+    if (lexiconsTable) {
+      const hasRequiresColumn = lexiconsTable.columns.some((col: any) => col.name === 'requires');
+      if (!hasRequiresColumn) {
+        // Add requires column as JSON
+        await db.schema.alterTable('lexicons')
+          .addColumn('requires', 'json')
+          .execute();
+      }
+      
+      // Check if metadata column exists and is JSON type
+      const hasMetadataColumn = lexiconsTable.columns.some((col: any) => col.name === 'metadata');
+      if (!hasMetadataColumn) {
+        // Add metadata column as JSON
+        await db.schema.alterTable('lexicons')
+          .addColumn('metadata', 'json')
+          .execute();
+      }
+    }
+  } catch (error) {
+    // If migration fails, it might be because the table doesn't exist yet
+    // This is fine, the createTables function will handle it
+    console.warn('Schema migration skipped:', error);
+  }
+}
+
+/**
  * Create all database indexes
  */
 export async function createIndexes(db: Kysely<Database>): Promise<void> {
@@ -159,8 +193,8 @@ async function createLexiconsTable(schema: any): Promise<void> {
     .addColumn('url', 'text')
     .addColumn('citation', 'text')
     .addColumn('logo', 'text')
-    .addColumn('requires', 'text')
-    .addColumn('metadata', 'text')
+    .addColumn('requires', 'json')
+    .addColumn('metadata', 'json')
     .execute();
 }
 

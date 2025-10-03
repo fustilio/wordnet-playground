@@ -80,8 +80,18 @@ export default defineConfig({
         "**/test/**",
         "**/tests/**",
         "**/e2e/**",
-        "**/bench/**"
+        "**/bench/**",
+        "**/node_modules/**"
       ],
+      skipDiagnostics: false,
+      logDiagnostics: true,
+      beforeWriteFile: (filePath, content) => {
+        // Skip declaration files for node_modules
+        if (filePath.includes('node_modules')) {
+          return false;
+        }
+        return { filePath, content };
+      },
     }),
   ],
   worker: {

@@ -299,13 +299,14 @@ export function useWordNet(config?: {
     logger.debug("Initializing package discovery on mount");
 
     // Start with a minimal set of essential packages
-    const essentialPackages = [
+    const essentialPackages: PackageInfo[] = [
       {
         id: "oewn:2024",
         label: "Open English WordNet",
         language: "en",
         versions: ["2024"],
         description: "Open English WordNet 2024",
+        url: undefined,
       },
     ];
 

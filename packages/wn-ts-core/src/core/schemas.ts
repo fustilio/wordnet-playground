@@ -199,7 +199,7 @@ export const ILISchema = z.object({
 export const LexiconSchema = z.object({
   id: CommonFields.id,
   label: CommonFields.label,
-  language: CommonFields.language,
+  language: StringValidators.languageCode(false).optional(),
   email: z.string().email("Invalid email format").optional(),
   license: CommonFields.license,
   version: z.string().optional(),
@@ -214,7 +214,7 @@ export const ProjectSchema = z.object({
   id: CommonFields.id,
   label: CommonFields.label,
   description: CommonFields.description,
-  url: CommonFields.url,
+  url: z.string().url("Invalid URL format").optional(),
   license: CommonFields.license,
   citation: CommonFields.citation,
   metadata: CommonFields.metadata,
@@ -250,7 +250,7 @@ export const WordnetOptionsSchema = z.object({
   normalizer: z.any().optional(), // Function type
   lemmatizer: z.any().optional(), // Function type
   searchAllForms: z.boolean().optional(),
-  language: StringValidators.languageCode(false),
+  language: StringValidators.languageCode(false).optional(),
   strategy: z.string().optional(),
 });
 

@@ -3,7 +3,7 @@
  * This module provides common parsing logic that can be used across all packages
  */
 
-import type { Synset, Word, Sense } from '../core/types.js';
+import type { Synset, Word, Sense, Lexicon } from '../core/types.js';
 
 /**
  * LMF Document structure
@@ -26,23 +26,6 @@ export interface LMFLoadOptions {
   duplicateHandling?: DuplicateHandlingConfig;
 }
 
-/**
- * Lexicon interface
- */
-export interface Lexicon {
-  id: string;
-  label: string;
-  language: string;
-  email?: string | undefined;
-  license?: string | undefined;
-  version?: string | undefined;
-  url?: string | undefined;
-  citation?: string | undefined;
-  logo?: string | undefined;
-  requires?: string[] | undefined;
-  confidence?: number | undefined;
-  metadata?: Record<string, any> | undefined;
-}
 
 /**
  * Common LMF parsing error types

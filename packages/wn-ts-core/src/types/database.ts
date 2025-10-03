@@ -32,7 +32,7 @@ export interface LexiconTable {
   url: string | null;
   citation: string | null;
   logo: string | null;
-  requires: string | null;
+  requires: JSONColumnType<string[]> | null;
   metadata: JSONColumnType<Record<string, any>> | null;
 }
 

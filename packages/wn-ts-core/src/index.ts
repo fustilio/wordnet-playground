@@ -294,7 +294,7 @@ export { StreamingSaxParser } from './parsers/index.js';
 // LMF utilities
 export type { 
   Lexicon as LMFlexicon
-} from './lmf.js';
+} from './lmf/index.js';
 export { 
   analyzeXMLContent,
   parseLMFXML,

@@ -43,7 +43,9 @@ export class WebWordNetKernel {
   private core: WebWordnet;
 
   constructor(lexicon: string | string[] = '*', options: WordNetKernelOptions = {}) {
-    this.core = new WebWordnet(lexicon, options);
+    // Ensure language property is present for WebWordnet compatibility
+    const webWordnetOptions = { ...options, language: options.language || undefined };
+    this.core = new WebWordnet(lexicon, webWordnetOptions);
     this.wordnet = createWordNet({
       core: this.core,
       plugins: [relations, similarity, translation, enhancedRelations] as const

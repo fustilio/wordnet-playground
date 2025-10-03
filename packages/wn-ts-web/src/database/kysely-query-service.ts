@@ -18,6 +18,7 @@ export class KyselyQueryService extends BaseKyselyQueryService {
   async createTables(): Promise<void> {
     try {
       await SchemaBuilder.createTables(this.db);
+      await SchemaBuilder.migrateSchema(this.db);
       await SchemaBuilder.createIndexes(this.db);
     } catch (error) {
       throw error;

@@ -306,7 +306,7 @@ async function parseLMFStreaming(
           currentLexicon = {
             id: attributes.id || '',
             label: attributes.label || '',
-            language: attributes.language || 'en',
+            language: (attributes.language || 'en') as string,
             version: attributes.version || '1.0',
             email: attributes.email || '',
             license: attributes.license || '',
@@ -323,7 +323,7 @@ async function parseLMFStreaming(
           currentLexicon = {
             id: attributes.id || '',
             label: attributes.label || '',
-            language: attributes.language || 'en',
+            language: (attributes.language || 'en') as string,
             version: attributes.version || '1.0',
             email: attributes.email || '',
             license: attributes.license || '',
@@ -594,14 +594,20 @@ async function parseLMFStreaming(
           break;
         case 'lexicon':
           if (currentLexicon) {
-            lexicons.push(currentLexicon);
+            lexicons.push({
+              ...currentLexicon,
+              language: (currentLexicon.language || 'en') as string
+            } as Lexicon);
             if (debug) console.log(`[DEBUG] Added lexicon: ${currentLexicon.id}`);
             currentLexicon = null;
           }
           break;
         case 'lexiconextension':
           if (currentLexicon) {
-            lexicons.push(currentLexicon);
+            lexicons.push({
+              ...currentLexicon,
+              language: (currentLexicon.language || 'en') as string
+            } as Lexicon);
             if (debug) console.log(`[DEBUG] Added lexicon extension: ${currentLexicon.id}`);
             currentLexicon = null;
           }
@@ -651,7 +657,7 @@ async function parseLMFStreaming(
         lexicons: lexicons.map(lex => ({
           id: lex.id,
           label: lex.label,
-          language: lex.language,
+          language: (lex.language || 'en') as string,
           email: lex.email,
           license: lex.license,
           version: lex.version,
@@ -660,7 +666,7 @@ async function parseLMFStreaming(
           logo: lex.logo,
           requires: lex.requires,
           metadata: lex.metadata,
-        })) as Lexicon[],
+        } as Lexicon)),
         synsets,
         words,
         senses,

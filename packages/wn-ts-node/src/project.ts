@@ -73,10 +73,9 @@ export function getProjects(): Project[] {
     const projectData: Project = {
       id,
       label: project.label,
+      description: project.description || '',
+      ...(project.url && { url: project.url }),
     };
-    
-    if (project.description) projectData.description = project.description;
-    if (project.url) projectData.url = project.url;
     if (project.license) projectData.license = project.license;
     if (project.citation) projectData.citation = project.citation;
     if (project.metadata) projectData.metadata = project.metadata;

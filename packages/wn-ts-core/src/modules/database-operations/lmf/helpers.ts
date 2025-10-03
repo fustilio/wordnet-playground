@@ -20,8 +20,8 @@ export function prepareLexiconData(
     url: lexicon.url ?? null, // Use nullish coalescing to ensure we always have a value
     citation: lexicon.citation || null,
     logo: lexicon.logo || null,
-    requires: null, // Add missing requires field
-    metadata: null,
+    requires: lexicon.requires || null, // Store as JSON array directly
+    metadata: lexicon.metadata || null, // Store as JSON object directly
   }));
 }
 

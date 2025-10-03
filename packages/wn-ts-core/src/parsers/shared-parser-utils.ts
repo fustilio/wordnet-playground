@@ -14,12 +14,20 @@ export const browserReadFile = async (_path: string, _encoding?: string): Promis
   throw new Error('File system operations not available in browser environment');
 };
 
+// Simple SAX parser stub interface for browser
+interface SaxParserStub {
+  onopentag: () => void;
+  onend: () => void;
+  onerror: (_error: Error) => void;
+  write: (_content: string) => { close: () => void };
+}
+
 export const browserSax = {
-  parser: (_strict: boolean, _options?: any) => {
+  parser: (_strict: boolean, _options?: Record<string, unknown>): SaxParserStub => {
     return {
       onopentag: () => {},
       onend: () => {},
-      onerror: (_error: any) => {},
+      onerror: (_error: Error) => {},
       write: (_content: string) => ({ close: () => {} })
     };
   }
@@ -40,7 +48,11 @@ export async function getReadFile(): Promise<typeof browserReadFile> {
   if (isNode) {
     try {
       const fsPromises = await import('fs/promises');
-      _readFile = fsPromises.readFile;
+      // Wrap Node.js readFile to match browser stub signature
+      _readFile = async (path: string, encoding?: string): Promise<string> => {
+        const result = await fsPromises.readFile(path, { encoding: (encoding || 'utf-8') as BufferEncoding });
+        return result as string;
+      };
       return _readFile;
     } catch (e) {
       console.warn('Failed to load Node.js fs/promises, using browser stub');
@@ -64,7 +76,16 @@ export async function getSax(): Promise<typeof browserSax> {
   if (isNode) {
     try {
       const saxModule = await import('sax');
-      _sax = saxModule;
+      // Wrap Node.js sax to match browser stub signature
+      // The Node.js sax parser has compatible interface, we just need to wrap it properly
+      _sax = {
+        parser: (strict: boolean, options?: Record<string, unknown>) => {
+          const parser = saxModule.parser(strict, options);
+          // Return as-is since Node.js sax has compatible interface
+          // We know the interface is compatible even if TypeScript can't verify it
+          return parser as unknown as SaxParserStub;
+        }
+      };
       return _sax;
     } catch (e) {
       console.warn('Failed to load Node.js sax module, using browser stub');
@@ -270,7 +291,7 @@ export function createParserResult(
     stats: {
       elementsProcessed,
       parseTime,
-      memoryUsage
+      ...(memoryUsage !== undefined && { memoryUsage })
     }
   };
 }

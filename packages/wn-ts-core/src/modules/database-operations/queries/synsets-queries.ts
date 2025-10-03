@@ -59,7 +59,7 @@ export function getSynsetsV2Query(
   }
 
   // Handle ILI filtering (specific to synsets)
-  const ili = (options as any).ili;
+  const ili = (options as SynsetQuery & { ili?: string }).ili;
   if (ili) {
     query = query.where('synsets.ili', '=', ili);
   }
@@ -84,7 +84,7 @@ export function getSynsetsV3Query(
     fuzzy = false,
     maxResults
   } = options;
-  const ili = (options as any).ili;
+  const ili = (options as SynsetQuery & { ili?: string }).ili;
 
   // Use direct joins instead of subqueries for better performance
   let query = db
@@ -142,7 +142,7 @@ export function getSynsetsV4Query(
     fuzzy = false,
     maxResults
   } = options;
-  const ili = (options as any).ili;
+  const ili = (options as SynsetQuery & { ili?: string }).ili;
 
   // V4 Optimization: Single massive JOIN query to get everything at once
   let query = db
@@ -211,7 +211,7 @@ export function getSynsetsV5Query(
     fuzzy = false,
     maxResults
   } = options;
-  const ili = (options as any).ili;
+  const ili = (options as SynsetQuery & { ili?: string }).ili;
 
   // V5 Optimization: Use optimized query with proper indexes
   let query = db
@@ -281,7 +281,7 @@ export function getSynsetsV6Query(
     fuzzy = false,
     maxResults
   } = options;
-  const ili = (options as any).ili;
+  const ili = (options as SynsetQuery & { ili?: string }).ili;
 
   // V6 Optimization: Use the most efficient query possible
   let query = db
@@ -330,7 +330,7 @@ export function getSynsetsFastQuery(
     fuzzy = false,
     maxResults
   } = options;
-  const ili = (options as any).ili;
+  const ili = (options as SynsetQuery & { ili?: string }).ili;
 
   // Use the V2 query approach but with minimal data transformation
   let query = db

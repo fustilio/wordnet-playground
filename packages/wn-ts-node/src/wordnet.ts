@@ -151,7 +151,7 @@ export class Wordnet implements WordNetCore {
     if (typeof formOrQuery === 'string') {
       // Called as senses(form, pos?, options?)
       const form = formOrQuery;
-      const query: SenseQuery = { 
+      const query: any = { 
         wordIdOrForm: form, 
         pos, 
         lexicon: Array.isArray(options?.lexicon) ? options.lexicon[0] : options?.lexicon 
@@ -204,7 +204,7 @@ export class Wordnet implements WordNetCore {
   async getSenses(form: string, pos?: PartOfSpeech, options?: { lexicon?: string | string[] }): Promise<Sense[]> {
     await this.ensureInitialized();
     const lexicon = Array.isArray(options?.lexicon) ? options.lexicon[0] : options?.lexicon;
-    return this.kyselyWordnet.senses({ wordIdOrForm: form, pos, lexicon });
+    return this.kyselyWordnet.senses({ wordIdOrForm: form, pos, lexicon } as any);
   }
 
   async getRelations(_synsetId: string, _relationType?: string): Promise<any[]> {

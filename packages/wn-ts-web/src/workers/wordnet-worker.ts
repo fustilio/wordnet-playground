@@ -451,7 +451,7 @@ export async function getSensesByWordIdOrForm(wordIdOrForm: string) {
     if (!orchestrator) return { success: false, error: 'WordNet not initialized' };
     const qs = orchestrator.getWordNetInstance().getQueryService?.();
     if (!qs) return { success: false, error: 'Query service unavailable' };
-    const senses = await qs.getSenses({ wordIdOrForm });
+    const senses = await qs.getSenses({ wordIdOrForm, language: undefined });
     logger.end('Getting senses by word ID or form', { success: true });
     return { success: true, data: senses };
   } catch (error) {
