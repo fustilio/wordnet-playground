@@ -48,7 +48,7 @@
     "prebuild": "pnpm run clean",
     "build": "vite build && pnpm run copy-assets",
     "clean": "rimraf dist",
-    "copy-assets": "copy ..\\wn-ts-core\\src\\index.toml dist\\",
+    "copy-assets": "cp ../wn-ts-core/src/index.toml dist/",
     "dev": "pnpm run copy-assets && tsc --watch",
     "format": "prettier --write src/**/*.ts",
     "generate-test-data": "cd ../wn-ts-core && pnpm run generate-test-data",

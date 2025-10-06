@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { config as wnTsConfig } from "wn-ts";
+import { config as wnTsConfig } from "wn-ts-core";
 import conf, { resetConfig } from "../config-manager.js";
 import { colors } from "./utils/colors.js";
 import { join, dirname } from "path";

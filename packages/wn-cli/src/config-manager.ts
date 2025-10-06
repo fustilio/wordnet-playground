@@ -1,5 +1,5 @@
 import Conf from 'conf';
-import { config as wnTsConfig } from 'wn-ts';
+import { config as wnTsConfig } from 'wn-ts-core';
 import { homedir } from 'os';
 import { join } from 'path';
 

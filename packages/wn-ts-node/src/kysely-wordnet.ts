@@ -19,7 +19,7 @@ import type {
   QueryStrategy,
   Definition,
 } from 'wn-ts-core';
-import { TranslationHelper } from 'wn-ts-core';
+// TranslationHelper is not used in this file
 import { Kysely } from 'kysely';
 import type { NodeDatabaseConfig } from 'wn-ts-core';
 import { NodeKyselyDatabase } from './database/node-kysely-database.js';
@@ -109,6 +109,7 @@ export class KyselyWordnet extends LocalBaseWordnet {
   private strategy: QueryStrategy;
   private plugins: Map<string, Plugin> = new Map();
   private pluginMethods: Record<string, Function> = {};
+  private options: Partial<NodeWordnetConfig>;
 
   constructor(
     lexicon: string | string[] = '*',
@@ -124,6 +125,7 @@ export class KyselyWordnet extends LocalBaseWordnet {
     } = options;
     super(lexicon, wordnetOptions);
     this.strategy = strategy;
+    this.options = options;
 
     // Set default filename for persistent mode if not provided
     const finalFilename = filename || (mode === 'persistent' ? join(homedir(), '.wn_ts_data', 'wn.db') : undefined);
@@ -711,7 +713,7 @@ export class KyselyWordnet extends LocalBaseWordnet {
    * // Returns: ['eau']
    * ```
    */
-  async translate(term: string, fromLang: string, toLang: string): Promise<string[]> {
+  async translate(term: string, fromLang: string, _toLang: string): Promise<string[]> {
     await this.ensureInitialized();
     // Note: TranslationHelper implementation pending - stubbed for now
     // TODO: Implement translation using ILI mapping
@@ -742,7 +744,7 @@ export class KyselyWordnet extends LocalBaseWordnet {
    */
   async related(term: string, relationType: 'hypernym' | 'hyponym'): Promise<Synset[]> {
     const synsets = await this.search(term, { limit: 1 });
-    if (synsets.length === 0) return [];
+    if (synsets.length === 0 || !synsets[0]) return [];
     
     // Only hypernyms and hyponyms are currently implemented
     const method = relationType === 'hypernym' ? this.getHypernyms : this.getHyponyms;
@@ -771,7 +773,7 @@ export class KyselyWordnet extends LocalBaseWordnet {
    * NOTE: Similarity methods require the similarity plugin
    * This is a placeholder that will be implemented when similarity plugin is integrated
    */
-  async similar(word1: string, word2: string, algorithm: 'path' | 'wup' = 'path'): Promise<number> {
+  async similar(_word1: string, _word2: string, _algorithm: 'path' | 'wup' = 'path'): Promise<number> {
     // TODO: Integrate similarity plugin methods
     // For now, return 0 (not implemented)
     return 0;

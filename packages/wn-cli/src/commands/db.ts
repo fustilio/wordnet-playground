@@ -12,7 +12,7 @@ import {
 import { colors } from "./utils/colors.js";
 import conf from "../config-manager.js";
 import { getLogPath } from "../utils/user-logger.js";
-import { isDatabaseLocked } from "wn-ts";
+import { isDatabaseLocked } from "wn-ts-core";
 
 class DatabaseCLI {
   private cacheDir = join(homedir(), ".wn_ts_data");

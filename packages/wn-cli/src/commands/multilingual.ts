@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { lexicons as getInstalledLexicons } from "wn-ts";
+import { lexicons as getInstalledLexicons } from "wn-ts-core";
 import { colors } from "./utils/colors.js";
 import { resolveLexicon } from "../utils/lexicon-helpers.js";
 import { getBestDefinition } from "../utils/wordnet-helpers.js";

@@ -1,4 +1,5 @@
-import { Wordnet, config } from "wn-ts";
+import { KyselyWordnet as Wordnet } from "wn-ts-node";
+import { config } from "wn-ts-core";
 
 let wn: Wordnet | null = null;
 let currentLexicon: string | undefined;

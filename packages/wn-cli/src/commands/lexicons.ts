@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { lexicons as getInstalledLexicons } from "wn-ts";
+import { lexicons as getInstalledLexicons } from "wn-ts-core";
 import { colors } from "./utils/colors.js";
 import { LexiconHelper } from "../utils/lexicon-helpers.js";
 import { getWordnetInstance } from "../wordnet-singleton.js";

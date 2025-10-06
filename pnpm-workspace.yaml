@@ -25,7 +25,7 @@ catalog:
   pythonia: ^1.2.2
   react: ^19.1.0
   react-dom: ^19.1.0
-  rimraf: ^5.0.0
+  rimraf: 5.0.10
   smol-toml: ^1.4.1
   sql.js: ^1.10.2
   typescript: 5.8.3

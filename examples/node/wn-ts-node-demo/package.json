@@ -33,6 +33,10 @@
     "cache:clear": "wn-ts db clean"
   },
   "dependencies": {
+    "wn-ts-core": "workspace:*",
     "wn-ts-node": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.6"
   }
 }

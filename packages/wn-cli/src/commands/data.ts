@@ -7,7 +7,7 @@ import {
   getProjects,
   lexicons as getInstalledLexicons,
   isDatabaseLocked,
-} from "wn-ts";
+} from "wn-ts-core";
 import { colors } from "./utils/colors.js";
 import {
   getWordnetInstance,

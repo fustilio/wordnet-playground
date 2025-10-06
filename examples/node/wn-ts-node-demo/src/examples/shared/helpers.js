@@ -6,7 +6,8 @@
 
 import { join } from 'path';
 import { homedir } from 'os';
-import { createWordnet as createWordnetAPI, download, add, config, ili } from 'wn-ts-node';
+import { createWordnet as createWordnetAPI, download, ILI as ili } from 'wn-ts-node';
+import { config } from 'wn-ts-core';
 
 /**
  * Initialize Wordnet with common configuration

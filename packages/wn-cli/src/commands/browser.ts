@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { lexicons, makeBrowserData } from 'wn-ts';
+import { lexicons, makeBrowserData } from 'wn-ts-core';
 
 export default function registerBrowserCommands(program: Command) {
   const browser = program

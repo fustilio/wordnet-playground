@@ -84,21 +84,17 @@ export {
 export type {
   // Database types
   NodeDatabaseConfig,
-  DatabaseConfig,
+  WebDatabaseConfig as DatabaseConfig,
   QueryStrategy,
   
   // Query types
   WordQuery,
   SynsetQuery,
   SenseQuery,
-  ILIQuery,
   
   // Plugin types
   Plugin,
-  PluginContext,
-  RelationsPlugin as RelationsPluginType,
-  SimilarityPlugin as SimilarityPluginType,
-  TranslationPlugin as TranslationPluginType,
+  // Plugin types - these are not exported from core yet
   
   // Core types
   Word,
@@ -112,7 +108,7 @@ export type {
   Relation,
   
   // Configuration
-  NodeWordnetConfig,
+  NodeDatabaseConfig as NodeWordnetConfig,
   WordnetConfig,
   WordnetOptions,
 } from 'wn-ts-core';

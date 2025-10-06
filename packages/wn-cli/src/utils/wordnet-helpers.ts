@@ -1,4 +1,4 @@
-import { Wordnet, ili, synset as wnSynset } from "wn-ts-node";
+import { KyselyWordnet as Wordnet, ILI as ili, Synset as wnSynset } from "wn-ts-node";
 import type { PartOfSpeech } from "wn-ts-core";
 import { colors } from "../commands/utils/colors.js";
 

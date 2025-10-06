@@ -283,6 +283,24 @@ export class NodeDataManager extends SharedDataManager {
   }
 
   /**
+   * Get available lexicons from the database
+   */
+  async getAvailableLexicons(): Promise<string[]> {
+    try {
+      const queryService = this.adapter.getQueryService();
+      if (queryService && queryService.getLexicons) {
+        const lexicons = await queryService.getLexicons();
+        return lexicons.map((lexicon: any) => lexicon.id || lexicon.label || 'unknown');
+      }
+      // Fallback: return empty array if no query service
+      return [];
+    } catch (error) {
+      this.logger.warn('Failed to get available lexicons:', error);
+      return [];
+    }
+  }
+
+  /**
    * Get project information from the centralized configuration
    */
   protected async getProjectInfo(projectId: string): Promise<DataManagerProjectInfo> {

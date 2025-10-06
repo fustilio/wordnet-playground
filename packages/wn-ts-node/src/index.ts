@@ -56,7 +56,7 @@ export { createWordnet as default } from './kysely-wordnet.js';
 /**
  * Main WordNet class (for advanced users who need direct access)
  */
-export { KyselyWordnet, type NodeWordnetConfig } from './kysely-wordnet.js';
+export { KyselyWordnet } from './kysely-wordnet.js';
 
 // ============================================================================
 // TYPES - Essential types only
@@ -72,13 +72,34 @@ export type {
   PartOfSpeech,
   
   // Configuration
-  NodeWordnetConfig,
+  NodeDatabaseConfig as NodeWordnetConfig,
   
-  // Results
-  SearchResult,
-  DefinitionResult,
-  TranslationResult,
+  // Results - these types don't exist in core, so we'll define them locally
 } from 'wn-ts-core';
+
+// Import types for local definitions
+import type { Synset, Sense, PartOfSpeech } from 'wn-ts-core';
+
+// Define missing result types locally
+export type SearchResult = {
+  word: string;
+  synsets: Synset[];
+  senses: Sense[];
+};
+
+export type DefinitionResult = {
+  word: string;
+  definition: string;
+  partOfSpeech: PartOfSpeech;
+  examples: string[];
+};
+
+export type TranslationResult = {
+  word: string;
+  translations: string[];
+  sourceLanguage: string;
+  targetLanguage: string;
+};
 
 // ============================================================================
 // ERRORS - User-friendly error classes

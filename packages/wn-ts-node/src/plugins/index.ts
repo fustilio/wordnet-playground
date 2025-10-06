@@ -59,32 +59,32 @@ export class RelationsPlugin implements Plugin {
     };
   }
 
-  private async getHypernyms(database: any, queryService: any, synsetId: string) {
+  private async getHypernyms(_database: any, _queryService: any, _synsetId: string) {
     // Implementation would go here
     return [];
   }
 
-  private async getHyponyms(database: any, queryService: any, synsetId: string) {
+  private async getHyponyms(_database: any, _queryService: any, _synsetId: string) {
     // Implementation would go here
     return [];
   }
 
-  private async getMeronyms(database: any, queryService: any, synsetId: string) {
+  private async getMeronyms(_database: any, _queryService: any, _synsetId: string) {
     // Implementation would go here
     return [];
   }
 
-  private async getHolonyms(database: any, queryService: any, synsetId: string) {
+  private async getHolonyms(_database: any, _queryService: any, _synsetId: string) {
     // Implementation would go here
     return [];
   }
 
-  private async getAntonyms(database: any, queryService: any, synsetId: string) {
+  private async getAntonyms(_database: any, _queryService: any, _synsetId: string) {
     // Implementation would go here
     return [];
   }
 
-  private async getSynonyms(database: any, queryService: any, synsetId: string) {
+  private async getSynonyms(_database: any, _queryService: any, _synsetId: string) {
     // Implementation would go here
     return [];
   }
@@ -113,17 +113,17 @@ export class SimilarityPlugin implements Plugin {
     };
   }
 
-  private async getPathSimilarity(database: any, queryService: any, synset1: string, synset2: string) {
+  private async getPathSimilarity(_database: any, _queryService: any, _synset1: string, _synset2: string) {
     // Implementation would go here
     return 0;
   }
 
-  private async getWuPalmerSimilarity(database: any, queryService: any, synset1: string, synset2: string) {
+  private async getWuPalmerSimilarity(_database: any, _queryService: any, _synset1: string, _synset2: string) {
     // Implementation would go here
     return 0;
   }
 
-  private async getLeacockChodorowSimilarity(database: any, queryService: any, synset1: string, synset2: string) {
+  private async getLeacockChodorowSimilarity(_database: any, _queryService: any, _synset1: string, _synset2: string) {
     // Implementation would go here
     return 0;
   }
@@ -152,17 +152,17 @@ export class TranslationPlugin implements Plugin {
     };
   }
 
-  private async translate(database: any, queryService: any, term: string, fromLang: string, toLang: string) {
+  private async translate(_database: any, _queryService: any, _term: string, _fromLang: string, _toLang: string) {
     // Implementation would go here
     return [];
   }
 
-  private async getTranslations(database: any, queryService: any, synsetId: string, targetLang: string) {
+  private async getTranslations(_database: any, _queryService: any, _synsetId: string, _targetLang: string) {
     // Implementation would go here
     return [];
   }
 
-  private async getCrossLingualMapping(database: any, queryService: any, synsetId: string) {
+  private async getCrossLingualMapping(_database: any, _queryService: any, _synsetId: string) {
     // Implementation would go here
     return [];
   }
