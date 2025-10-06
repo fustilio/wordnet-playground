@@ -1,0 +1,27 @@
+{
+  "name": "hello-world-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "wn-react": "workspace:*",
+    "wn-ts-web": "workspace:*",
+    "@sqlite.org/sqlite-wasm": "catalog:"
+  },
+  "devDependencies": {
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "^4.6.0",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-comlink": "catalog:"
+  }
+}
+

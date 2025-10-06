@@ -606,7 +606,6 @@ it('should handle duplicate synset IDs', async () => {
 
 - [Development Conventions](./development-conventions.md)
 - [Database Schema Standards](./database-schema-standards.md)
-- [Performance Guidelines](./performance.md)
 
 ---
 

@@ -62,7 +62,7 @@ import {
   getSensesBySynsetIdQuery,
   getWordsBySynsetAndLanguageQuery,
   getSynsetsByIliQuery
-} from "wn-ts-core/queries";
+} from "wn-ts-core";
 
 export interface LexiconState {
   id: string;

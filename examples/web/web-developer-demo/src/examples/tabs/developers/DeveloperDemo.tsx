@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card } from '../../../components/shared/Card';
-import { useWordNetContext } from "wn-ts-web/react";
+import { useWordNetContext } from "wn-react";
 import { LexiconRequirements } from '../../../components/shared/LexiconRequirements';
 import { createScopedLogger } from 'utils/logger';
 import { SequentialRunner } from '../../SequentialRunner';

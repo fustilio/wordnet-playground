@@ -1,14 +1,23 @@
-import { Wordnet, config } from 'wn-ts-node';
+import { createWordnet, config } from 'wn-ts-node';
+import { join } from 'path';
+import { homedir, tmpdir } from 'os';
 
 async function frenchCrosswordDemo() {
-  const dataDirectory = 'C:\\\\Users\\\\Francis\\\\.wn_crossword_demo_demo';
+  // Use a portable directory path that works on all platforms
+  const dataDirectory = join(tmpdir(), '.wn_french_crossword_demo');
   
   console.log('🇫🇷 French Crossword Demo');
   console.log('========================');
+  console.log(`📁 Data directory: ${dataDirectory}\n`);
   
   try {
     config.dataDirectory = dataDirectory;
-    const wn = new Wordnet();
+    const wn = createWordnet('*', {
+      filename: join(dataDirectory, 'wn.db'),
+      mode: 'persistent',
+      migrations: { enabled: true, backup: false }
+    });
+    await wn.initialize();
     
     // Step 1: Requirement Verification - Check what's available in the lexicons
     console.log('\\n🔍 Requirement Verification:');

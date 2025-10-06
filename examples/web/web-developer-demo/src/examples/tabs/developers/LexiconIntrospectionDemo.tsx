@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useWordNetContext } from "wn-ts-web/react";
+import { useWordNetContext } from "wn-react";
 import { Card } from '../../../components/shared/Card';
 import { createScopedLogger } from 'utils/logger';
 import type {

@@ -4,18 +4,21 @@ TypeScript ecosystem for WordNet data across browsers, Node.js, and CLI.
 
 ## Status
 
-**Production Ready** - Core functionality is stable and well-tested.
+**Current Versions** - Independent package evolution with Changesets.
 
-- **wn-ts-core**: v0.5.2 - Foundation library
-- **wn-ts-web**: v0.7.2 - Browser implementation  
-- **wn-ts-node**: v0.7.2 - Node.js implementation
-- **wn-cli**: v0.7.2 - Command-line interface
+- **wn-ts-core**: v0.5.2 - Foundation library (types and interfaces)
+- **wn-ts-web**: v1.0.0 - Browser implementation  
+- **wn-ts-node**: v1.0.0 - Node.js implementation
+- **wn-react**: v1.0.0 - React hooks and components
+- **wn-cli**: v0.5.7 - Command-line interface
+- **wn-data-loader**: v0.1.0 - Data loading utilities
+- **utils**: v0.5.0 - Shared utilities
 
 ## Quick Start
 
 ```bash
-# Web applications
-npm install wn-ts-web @sqlite.org/sqlite-wasm
+# Web applications (React)
+npm install wn-react wn-ts-web @sqlite.org/sqlite-wasm
 
 # Node.js applications  
 npm install wn-ts-node
@@ -26,37 +29,55 @@ npm install -g wn-cli
 
 ## Usage
 
-### Web
+### Web (React - Recommended)
 ```typescript
-import { WebWordNetKernel } from 'wn-ts-web';
+import { useWordNet } from 'wn-react';
 
-const wordnet = new WebWordNetKernel('oewn:2024');
-await wordnet.initialize();
-
-const words = await wordnet.words({ form: 'computer' });
-const synsets = await wordnet.synsets({ wordId: words[0].id });
-const hypernyms = await wordnet.getHypernyms(synsets[0].id);
-
-await wordnet.close();
+function App() {
+  const { search, loading, error } = useWordNet({ 
+    lexicon: 'oewn:2024',
+    autoInitialize: true 
+  });
+  
+  const handleSearch = async () => {
+    const results = await search('computer');
+    console.log(results);
+  };
+  
+  return (
+    <div>
+      <button onClick={handleSearch} disabled={loading}>
+        {loading ? 'Searching...' : 'Search'}
+      </button>
+      {error && <div>Error: {error}</div>}
+    </div>
+  );
+}
 ```
 
-### Node.js
+### Node.js (Recommended)
 ```typescript
-import { NodeWordNetKernel } from 'wn-ts-node';
+import { createWordnet } from 'wn-ts-node';
 
-const wordnet = new NodeWordNetKernel('oewn:2024');
-await wordnet.initialize();
+// Auto-initializes on first use
+const wn = createWordnet('oewn:2024');
 
-const words = await wordnet.words({ form: 'computer' });
-const similarity = await wordnet.getPathSimilarity(synset1, synset2);
-const translations = await wordnet.getTranslations(synsetId, 'fr');
+// Simple search
+const results = await wn.search('computer');
+console.log(results);
 
-await wordnet.close();
+// Advanced operations
+const synsets = await wn.synsets('computer');
+const hypernyms = await wn.getHypernyms(synsets[0].id);
+
+// Auto-closes on process exit
 ```
 
 ## Features
 
-- **Microkernel Architecture** - Plugin-based design
+- **Simplified APIs** - One clear way to use each package
+- **Auto-Initialization** - Works out of the box, no setup required
+- **Plugin System** - Optional plugins for advanced functionality
 - **Cross-Platform** - Works in browsers and Node.js
 - **Type Safety** - Full TypeScript support
 - **Cross-Lingual** - Multi-language support with ILI
@@ -65,17 +86,21 @@ await wordnet.close();
 
 ## Packages
 
-- **[wn-ts-core](./packages/wn-ts-core/)** - Foundation library
+- **[wn-ts-core](./packages/wn-ts-core/)** - Foundation library (types and interfaces)
 - **[wn-ts-web](./packages/wn-ts-web/)** - Browser implementation
 - **[wn-ts-node](./packages/wn-ts-node/)** - Node.js implementation
+- **[wn-react](./packages/wn-react/)** - React hooks and components
 - **[wn-cli](./packages/wn-cli/)** - Command-line interface
 - **[wn-data-loader](./packages/wn-data-loader/)** - Data loading utilities
 
 ## Examples
 
-- **[Web Examples](./examples/web/)** - Browser demos
-- **[Node Examples](./examples/node/)** - Server-side examples
-- **[Integration Examples](./docs/examples/)** - Cross-lingual workflows
+Start here → **[Hello World](./examples/hello-world/)** - Minimal working examples
+
+Then explore:
+- **[Web Examples](./examples/web/)** - Browser demos (React)
+- **[Node Examples](./examples/node/wn-ts-node-demo/)** - Server-side examples
+- **[Translation Examples](./docs/examples/translation/)** - Cross-lingual workflows
 
 ## Development
 
@@ -104,10 +129,12 @@ Memory usage: < 2x input size for processing.
 
 ## Documentation
 
-- [API Reference](./docs/api/API_REFERENCE.md)
-- [Architecture](./docs/architecture/SYSTEM_ARCHITECTURE.md)
-- [Examples](./docs/examples/EXAMPLES_OVERVIEW.md)
-- [Migration Guide](./docs/getting-started/MIGRATION_GUIDE.md)
+- [Quick Start](./docs/quick-start.md) - Get started in 5 minutes
+- [API Reference](./docs/api/api-reference.md) - Complete API documentation
+- [Version Management](./docs/version-management.md) - Understanding package versions
+- [Architecture](./docs/architecture/system-architecture.md) - System design
+- [Examples](./examples/hello-world/) - Working code examples
+- [Migration Guide](./docs/getting-started/migration-guide.md) - Upgrade guide
 
 ## License
 

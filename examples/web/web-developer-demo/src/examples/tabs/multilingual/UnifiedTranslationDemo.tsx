@@ -13,7 +13,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Card } from '../../../components/shared/Card';
-import { useWordNetContext } from "wn-ts-web/react";
+import { useWordNetContext } from "wn-react";
 import { LexiconRequirements } from '../../../components/shared/LexiconRequirements';
 import { createScopedLogger } from 'utils/logger';
 import type { WordInfo } from '../../../types';

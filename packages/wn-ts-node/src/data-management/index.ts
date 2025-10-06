@@ -97,3 +97,11 @@ export async function exportData(
 // Export aliases for backward compatibility
 export const addLexicalResource = add;
 export const removeLexicalResource = remove;
+
+/**
+ * Get available lexicons
+ */
+export async function getLexicons(): Promise<string[]> {
+  const manager = await getDataManager();
+  return await manager.getAvailableLexicons();
+}

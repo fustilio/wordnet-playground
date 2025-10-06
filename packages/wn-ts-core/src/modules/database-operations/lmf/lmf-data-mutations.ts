@@ -186,9 +186,7 @@ export async function insertLMFDataInTransaction(
       try {
         logger?.debug(`About to insert lexicon ${i + 1}/${lexicons.length}: ${lexicon.id}`);
         const query = db.insertInto('lexicons').values(lexicon as any);
-        const compiledQuery = query.compile();
-        logger?.debug(`Lexicon SQL: ${compiledQuery.sql}`);
-        logger?.debug(`Lexicon Parameters: ${JSON.stringify(compiledQuery.parameters)}`);
+        logger?.debug(`Inserting lexicon: ${lexicon.id}`);
         await query.execute();
         logger?.debug(`Successfully inserted lexicon ${i + 1}/${lexicons.length}: ${lexicon.id}`);
       } catch (error) {

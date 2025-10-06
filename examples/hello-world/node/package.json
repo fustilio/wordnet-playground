@@ -1,0 +1,19 @@
+{
+  "name": "hello-world-node",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx index.ts",
+    "dev": "tsx watch index.ts"
+  },
+  "dependencies": {
+    "wn-ts-node": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}
+

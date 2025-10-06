@@ -3,19 +3,19 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { KyselyWordnet } from '../../src/kysely-wordnet.js';
+import { createWordnet } from '../../src/kysely-wordnet.js';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { unlinkSync } from 'fs';
 
 describe('KyselyWordnet', () => {
   let tempDbPath: string;
-  let wordnet: KyselyWordnet;
+  let wordnet: any;
 
   beforeEach(() => {
     // Create a temporary database file
     tempDbPath = join(tmpdir(), `test-kysely-${Date.now()}.db`);
-    wordnet = new KyselyWordnet('*', { filename: tempDbPath });
+    wordnet = createWordnet('*', { filename: tempDbPath });
   });
 
   afterEach(async () => {

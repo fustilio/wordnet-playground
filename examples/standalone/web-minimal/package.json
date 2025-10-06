@@ -1,0 +1,28 @@
+{
+  "name": "wordnet-web-minimal",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal WordNet React example - works standalone with npm",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "wn-react": "^1.0.0",
+    "wn-ts-web": "^1.0.0",
+    "@sqlite.org/sqlite-wasm": "^3.46.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.6.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.7",
+    "vite-plugin-comlink": "^5.0.3"
+  }
+}
+

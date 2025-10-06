@@ -713,8 +713,8 @@ async function disposeWordNet() {
     
     // Close the OPFS database singleton to prevent access handle conflicts
     try {
-      const { WebDatabase } = await import('../client/submodules/web-database');
-      WebDatabase.closeOpfsDatabase();
+      // const { WebDatabase } = await import('../client/submodules/web-database'); // Temporarily disabled due to missing StorageAdapter implementation
+      // WebDatabase.closeOpfsDatabase(); // Temporarily disabled
       logger.debug('OPFS database singleton closed');
     } catch (e) {
       logger.warn('Error closing OPFS database singleton', { error: e });

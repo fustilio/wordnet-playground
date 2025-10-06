@@ -1,6 +1,6 @@
 {
   "name": "wn-ts-core",
-  "version": "0.5.2",
+  "version": "1.0.0",
   "description": "Wordnet interface library - TypeScript port",
   "keywords": [
     "wordnet",

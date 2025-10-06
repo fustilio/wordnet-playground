@@ -103,8 +103,12 @@ pnpm use-cases
 All demos use the clean API approach:
 
 ```javascript
-// ✅ Good: Use Wordnet instance methods
-const wordnet = new Wordnet('*');
+// ✅ Good: Use createWordnet function
+const wordnet = createWordnet('*', {
+  mode: 'persistent',
+  migrations: { enabled: true, backup: false }
+});
+await wordnet.initialize();
 const stats = await wordnet.getStatistics();
 const quality = await wordnet.getDataQualityMetrics();
 
@@ -122,12 +126,12 @@ The demos use dedicated data directories to avoid conflicts:
 
 ```javascript
 const dataDirectory = join(homedir(), '.wn_demo');
-const wordnet = new Wordnet('*', {
-  dataDirectory,
-  downloadDirectory: join(dataDirectory, 'downloads'),
-  extractDirectory: join(dataDirectory, 'extracted'),
-  databasePath: join(dataDirectory, 'wordnet.db')
+const wordnet = createWordnet('*', {
+  filename: join(dataDirectory, 'wordnet.db'),
+  mode: 'persistent',
+  migrations: { enabled: true, backup: false }
 });
+await wordnet.initialize();
 ```
 
 ## 📊 Statistics & Analysis

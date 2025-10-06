@@ -1,16 +1,17 @@
 # wn-ts-web
 
-Browser-compatible WordNet implementation with SQLite WASM and microkernel architecture.
+Browser-compatible WordNet implementation with simplified APIs and auto-initialization.
 
 ## Features
 
-- **Microkernel Architecture** - Plugin-based design with comprehensive relations, similarity, and translation plugins
-- **Comprehensive Relations** - Complete support for all 70+ WordNet relation types
+- **Simplified API** - One clear way to use the library with `createWebWordnet()`
+- **Auto-Initialization** - Works out of the box, no setup required
+- **Plugin System** - Optional plugins for advanced functionality
 - **SQLite WASM** - High-performance database operations in the browser
 - **OPFS Support** - Persistent storage using Origin Private File System
 - **Worker-First** - Designed to run in Web Workers for optimal performance
-- **React Integration** - Custom hooks and context providers
 - **TypeScript** - Full type safety and IntelliSense
+- **Better Errors** - User-friendly error messages with solutions
 
 ## Installation
 
@@ -20,24 +21,50 @@ npm install wn-ts-web @sqlite.org/sqlite-wasm
 
 ## Usage
 
-### React Hooks (Recommended)
+### Direct API (Recommended)
 ```typescript
-import { useWordNet, useWordNetKernel } from 'wn-ts-web';
+import { createWebWordnet } from 'wn-ts-web';
 
-// Worker-based hook
-const { queryWords, loading, error } = useWordNet();
+// Auto-initializes on first use
+const wn = createWebWordnet('oewn:2024');
 
-// Kernel-based hook  
-const { words, synsets, getHypernyms } = useWordNetKernel();
+// Simple search - returns synsets
+const results = await wn.search('computer');
+console.log(results);
+
+// Advanced operations
+const words = await wn.words({ form: 'computer' });
+const synsets = await wn.synsets('computer');
+const hypernyms = await wn.getHypernyms(synsets[0].id);
+
+// Auto-closes on page unload
 ```
 
-### Direct API
+### With Plugins
 ```typescript
-import { WebWordNetKernel } from 'wn-ts-web';
+import { createWebWordnet } from 'wn-ts-web';
+import { relationsPlugin, similarityPlugin } from 'wn-ts-web/plugins';
 
-const wordnet = new WebWordNetKernel('oewn:2024');
-await wordnet.initialize();
-const words = await wordnet.words({ form: 'computer' });
+const wn = createWebWordnet('oewn:2024', {
+  plugins: [relationsPlugin, similarityPlugin]
+});
+
+// Now you have access to plugin methods
+const hypernyms = await wn.getHypernyms(synsetId);
+const similarity = await wn.getPathSimilarity(synset1, synset2);
+```
+
+### Advanced Usage
+```typescript
+import { WebWordNetKernel } from 'wn-ts-web/low-level';
+
+const wn = new WebWordNetKernel('oewn:2024', {
+  storage: 'opfs',
+  enableWorkers: true
+});
+await wn.initialize();
+// ... use wn
+await wn.close();
 ```
 
 ## Examples

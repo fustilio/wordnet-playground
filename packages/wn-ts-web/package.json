@@ -1,6 +1,6 @@
 {
   "name": "wn-ts-web",
-  "version": "0.7.2",
+  "version": "1.0.0",
   "description": "Browser/web distribution and interactive demo for wn-ts. Implements the node-to-browser strategy for WordNet access in the browser, following the approach of wordpos/wordpos-web.",
   "keywords": [
     "wordnet",
@@ -24,14 +24,24 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/wn-ts-web.d.ts",
-      "import": "./dist/wn-ts-web.mjs",
-      "default": "./dist/wn-ts-web.mjs"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "default": "./dist/index.mjs"
     },
-    "./react": {
-      "types": "./dist/wn-ts-web-react.d.ts",
-      "import": "./dist/wn-ts-web-react.mjs",
-      "default": "./dist/wn-ts-web-react.mjs"
+    "./low-level": {
+      "types": "./dist/low-level/index.d.ts",
+      "import": "./dist/low-level/index.mjs",
+      "default": "./dist/low-level/index.mjs"
+    },
+    "./plugins": {
+      "types": "./dist/plugins/index.d.ts",
+      "import": "./dist/plugins/index.mjs",
+      "default": "./dist/plugins/index.mjs"
+    },
+    "./legacy": {
+      "types": "./dist/legacy/index.d.ts",
+      "import": "./dist/legacy/index.mjs",
+      "default": "./dist/legacy/index.mjs"
     },
     "./worker": {
       "types": "./dist/wordnet-worker.d.ts",
@@ -91,8 +101,6 @@
     "@sqlite.org/sqlite-wasm": "catalog:",
     "@types/lzma": "^2.3.0",
     "@types/node": "catalog:",
-    "@types/react": "catalog:",
-    "@types/react-dom": "catalog:",
     "@typescript-eslint/eslint-plugin": "catalog:",
     "@typescript-eslint/parser": "catalog:",
     "@vitest/browser": "catalog:",
@@ -102,8 +110,6 @@
     "eslint": "catalog:",
     "playwright": "^1.54.1",
     "prettier": "catalog:",
-    "react": "catalog:",
-    "react-dom": "catalog:",
     "rimraf": "catalog:",
     "typescript": "catalog:",
     "utils": "workspace:*",

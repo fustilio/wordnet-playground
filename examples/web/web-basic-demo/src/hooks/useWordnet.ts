@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useWordNetContext } from 'wn-ts-web/react';
+import { useWordNet } from 'wn-react';
 
 export interface WordnetConfig {
   lang?: string;
@@ -44,58 +43,54 @@ export interface UseWordnetReturn {
 export function useWordnet(config: WordnetConfig = {}): UseWordnetReturn {
   const { lang = 'en-US', autoLoad = true } = config;
   
-  // Use the full WordNet context
+  // Use the main WordNet hook
   const {
+    search,
+    results,
     loading,
     error,
-    isInitializing,
-    loadedPackages,
-    loadPackageData,
-    querySynsets
-  } = useWordNetContext();
+    initialized
+  } = useWordNet({
+    lexicon: 'oewn:2024',
+    autoInitialize: autoLoad
+  });
 
-  const [ready, setReady] = useState(false);
-  const [initializationError, setInitializationError] = useState<string | null>(null);
+  const isReady = () => {
+    return initialized && !loading && !error;
+  };
 
-  // Auto-load English WordNet on mount
-  useEffect(() => {
-    if (autoLoad && !loading && !isInitializing && loadedPackages.length === 0) {
-      loadPackageData('oewn:2024').catch((err) => {
-        setInitializationError(err.message || 'Failed to load WordNet data');
-      });
-    }
-  }, [autoLoad, loading, isInitializing, loadedPackages.length, loadPackageData]);
-
-  // Update ready state
-  useEffect(() => {
-    const isReady = !loading && !isInitializing && loadedPackages.length > 0 && !error;
-    setReady(isReady);
-  }, [loading, isInitializing, loadedPackages.length, error]);
-
-  const isReady = useCallback(() => {
-    return ready && !error && !initializationError;
-  }, [ready, error, initializationError]);
-
-  const getDefinitions = useCallback(async (word: string): Promise<any[]> => {
+  const getDefinitions = async (word: string): Promise<any[]> => {
     if (!isReady()) {
       throw new Error('WordNet is not ready. Please wait for initialization to complete.');
     }
 
     try {
-      // Use querySynsets to get definitions and examples
-      const synsets = await querySynsets(word);
-      return synsets || [];
+      await search(word);
+      return results || [];
     } catch (err) {
       throw new Error(`Failed to get definitions for "${word}": ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
-  }, [isReady, querySynsets]);
+  };
 
+  const searchWords = async (term: string): Promise<any[]> => {
+    if (!isReady()) {
+      throw new Error('WordNet is not ready. Please wait for initialization to complete.');
+    }
+
+    try {
+      await search(term);
+      return results || [];
+    } catch (err) {
+      throw new Error(`Failed to search for "${term}": ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+  };
 
   return {
-    loading: loading || isInitializing,
-    error: error || initializationError,
+    loading,
+    error: error?.message || null,
     ready: isReady(),
     getDefinitions,
+    searchWords,
     isReady
   };
 }

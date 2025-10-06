@@ -26,13 +26,30 @@ export interface BaseDatabaseConfig {
 }
 
 /**
+ * Database storage mode
+ */
+export type DatabaseMode = 
+  | 'persistent'    // Store in file system (default)
+  | 'memory'        // In-memory only
+  | 'temp';         // Temporary file (deleted on exit)
+
+/**
  * Node.js specific database configuration
  */
 export interface NodeDatabaseConfig extends BaseDatabaseConfig {
   /**
-   * Database file path
+   * Database file path (required for 'persistent' and 'temp' modes)
+   * For 'memory' mode, this is ignored
    */
-  filename: string;
+  filename?: string;
+  
+  /**
+   * Database storage mode
+   * - 'persistent': Store in file system (default)
+   * - 'memory': In-memory only, data lost on exit
+   * - 'temp': Temporary file, deleted on exit
+   */
+  mode?: DatabaseMode;
   
   /**
    * Whether the file must exist
@@ -43,6 +60,20 @@ export interface NodeDatabaseConfig extends BaseDatabaseConfig {
    * Database timeout in milliseconds
    */
   timeout?: number;
+  
+  /**
+   * Migration and backup options
+   */
+  migrations?: {
+    /**
+     * Enable automatic schema migrations (default: true)
+     */
+    enabled?: boolean;
+    /**
+     * Create backup before migrations (default: false)
+     */
+    backup?: boolean;
+  };
 }
 
 /**

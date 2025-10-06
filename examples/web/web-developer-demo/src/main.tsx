@@ -2,7 +2,7 @@
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './app/App.tsx'
-import { WordNetConfigProvider, WordNetProvider } from 'wn-ts-web/react'
+import { WordNetConfigProvider, WordNetProvider } from 'wn-react'
 
 createRoot(document.getElementById('root')!).render(
   // <StrictMode>

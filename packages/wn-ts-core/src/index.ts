@@ -156,6 +156,9 @@ export {
   insertLMFDataInTransaction
 } from './modules/database-operations/mutations/index.js';
 
+// Database queries
+export * from './modules/database-operations/queries/index.js';
+
 // Query strategy types
 export type { 
   QueryStrategy, 
@@ -376,4 +379,4 @@ export {
 // VERSION
 // ============================================================================
 
-export const __version__ = '0.1.1';
+export const __version__ = '0.5.2';

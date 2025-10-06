@@ -99,29 +99,41 @@ Select the right platform for your WordNet TypeScript application based on your 
 
 ## Quick Start Examples
 
-### **Web Platform**
+### Web Platform (React)
 ```typescript
-import { useWordNet } from 'wn-ts-web';
+import { useWordNetContext } from 'wn-ts-web/react';
 
 function MyApp() {
-  const { queryWords } = useWordNet();
-  // Start building your web app
+  const { querySynsets, loading } = useWordNetContext();
+  
+  if (loading) return <div>Loading...</div>;
+  
+  const search = async () => {
+    const results = await querySynsets('computer');
+    console.log(results);
+  };
+  
+  return <button onClick={search}>Search</button>;
 }
 ```
 
-### **Node.js Platform**
+### Node.js Platform
 ```typescript
-import { NodeWordNetKernel } from 'wn-ts-node';
+import { createWordnet } from 'wn-ts-node';
 
-const wordnet = new NodeWordNetKernel('oewn:2024');
-await wordnet.initialize();
-// Start building your server app
+const wn = createWordnet('oewn:2024');
+await wn.initialize();
+
+const synsets = await wn.synsets('computer');
+console.log(synsets);
+
+await wn.close();
 ```
 
-### **CLI Platform**
+### CLI Platform
 ```bash
-wn-cli search "computer" --lexicon oewn:2024
-# Start using command-line tools
+wn-cli search "computer"
+wn-cli define "happy"
 ```
 
 ## Platform-Specific Guides
@@ -162,8 +174,8 @@ wn-cli search "computer" --lexicon oewn:2024
 
 3. **Try Node.js Demo** - Understand server usage
    ```bash
-   cd examples/node/basic-demo
-   pnpm install && pnpm run all-use-cases
+   cd examples/node/wn-ts-node-demo
+   pnpm install && pnpm test
    ```
 
 ### **Ask the Community**

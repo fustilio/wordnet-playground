@@ -121,3 +121,59 @@ export class DataLoader extends WebDataManager {
 
 // Export the WebDataManager as the default export for new code
 export { WebDataManager } from './adapters/web-data-manager.js';
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+/**
+ * Download WordNet data
+ * 
+ * @param lexicon - Lexicon to download
+ * @param options - Download options
+ * 
+ * @example
+ * ```typescript
+ * import { download } from 'wn-ts-web';
+ * 
+ * await download('oewn:2024', { storage: 'opfs' });
+ * ```
+ */
+export async function download(
+  lexicon: string,
+  options: { storage?: 'opfs' | 'indexeddb' | 'memory'; force?: boolean } = {}
+): Promise<void> {
+  const { storage = 'opfs', force = false } = options;
+  
+  // Create a temporary WebDataManager instance for downloading
+  const manager = new WebDataManager({
+    storage,
+    // Other config options would go here
+  } as any);
+  
+  await manager.downloadAndLoad(lexicon, { force });
+}
+
+/**
+ * Get available lexicons
+ * 
+ * @returns List of available lexicons
+ * 
+ * @example
+ * ```typescript
+ * import { getLexicons } from 'wn-ts-web';
+ * 
+ * const lexicons = await getLexicons();
+ * console.log(lexicons); // ['oewn:2024', 'oewn:2023', ...]
+ * ```
+ */
+export async function getLexicons(): Promise<string[]> {
+  // This would typically come from a catalog or API
+  // For now, return a hardcoded list
+  return [
+    'oewn:2024',
+    'oewn:2023',
+    'cili:2024',
+    'ewn:2024',
+  ];
+}

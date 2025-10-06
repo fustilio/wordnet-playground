@@ -1,0 +1,20 @@
+{
+  "name": "wordnet-node-minimal",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Minimal WordNet Node.js example - works standalone with npm",
+  "scripts": {
+    "start": "tsx index.ts",
+    "dev": "tsx watch index.ts"
+  },
+  "dependencies": {
+    "wn-ts-node": "^0.7.2"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.7.0"
+  }
+}
+

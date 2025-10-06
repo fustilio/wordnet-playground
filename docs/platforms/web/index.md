@@ -12,23 +12,30 @@ Build powerful web applications with the WordNet TypeScript ecosystem's web plat
 ### Installation
 
 ```bash
+# React applications (recommended)
+npm install wn-react wn-ts-web @sqlite.org/sqlite-wasm
+
+# Direct usage (no React)
 npm install wn-ts-web @sqlite.org/sqlite-wasm
 ```
 
-### Basic Usage
+### Basic Usage (React - Recommended)
 
 ```typescript
-import { useWordNet } from 'wn-ts-web';
+import { useWordNet } from 'wn-react';
 
 function MyApp() {
-  const { wordnet, loading, error, queryWords } = useWordNet();
+  const { search, loading, error } = useWordNet({ 
+    lexicon: 'oewn:2024',
+    autoInitialize: true 
+  });
   
   const handleSearch = async (term: string) => {
-    const words = await queryWords(term);
-    console.log('Found words:', words);
+    const results = await search(term);
+    console.log('Found synsets:', results);
   };
   
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div>Loading WordNet...</div>;
   if (error) return <div>Error: {error}</div>;
   
   return (
@@ -39,6 +46,22 @@ function MyApp() {
     </div>
   );
 }
+```
+
+### Direct Usage (No React)
+
+```typescript
+import { createWebWordnet } from 'wn-ts-web';
+
+// Auto-initializes on first use
+const wn = createWebWordnet('oewn:2024');
+
+// Simple search
+const results = await wn.search('computer');
+
+// Advanced operations
+const synsets = await wn.synsets('computer');
+const hypernyms = await wn.getHypernyms(synsets[0].id);
 ```
 
 ## Architecture
@@ -53,7 +76,8 @@ The web platform uses a worker-first architecture:
 ## Features
 
 ### React Integration
-- `useWordNet()` hook for easy component integration
+- `useWordNet()` hook for easy component integration (v1.0.0)
+- `useWordNetContext()` hook for advanced usage
 - Context providers for global state management
 - Type-safe props and return values
 
@@ -97,15 +121,17 @@ function App() {
 
 ### Hooks
 
-- `useWordNet()` - Main hook for WordNet operations
-- `useWordNetContext()` - Access WordNet context
-- `useWordNetWithCache()` - Cached operations
+- `useWordNet()` - **Recommended** - Main hook for WordNet operations (v1.0.0)
+- `useWordNetContext()` - Advanced hook with full API access
+- `useWordNetKernelContext()` - Kernel-level access for power users
 
 ### Core Methods
 
-- `queryWords()` - Search for words
-- `getSynsets()` - Get concept groupings
-- `getRelations()` - Find word relationships
+- `search()` - Simple search that returns synsets (NEW in v1.0.0)
+- `words()` - Search for words
+- `synsets()` - Get concept groupings
+- `senses()` - Get word-synset relationships
+- `getHypernyms()` - Find broader concepts
 - `getTranslations()` - Cross-lingual operations
 
 ## Examples

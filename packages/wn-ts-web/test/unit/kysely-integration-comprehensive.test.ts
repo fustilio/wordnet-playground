@@ -44,7 +44,13 @@ function createMockSqliteWasm() {
     },
     oo1: {
       DB: class MockDB {
-        constructor(path: string, mode: string) {}
+        constructor(path: string, mode: string) {
+          this.path = path;
+          this.mode = mode;
+        }
+        
+        path: string;
+        mode: string;
         
         exec(sqlOrOptions: string | { sql: string; bind?: any[]; returnValue?: string; rowMode?: string; columnNames?: any[] }): void | any[] {
           const sql = typeof sqlOrOptions === 'string' ? sqlOrOptions : sqlOrOptions.sql;
@@ -179,6 +185,15 @@ describe('Comprehensive Kysely Integration', () => {
     const db = (wordnet as any).database;
     if (db) {
       db.config.preferredAdapter = 'memory';
+      // Initialize the database first
+      await db.initializeWithModule(mockSqliteWasm as unknown as Sqlite3Static);
+      await db.createDatabase();
+      
+      // Ensure the database is available
+      const databaseInstance = db.getDatabase();
+      if (!databaseInstance) {
+        throw new Error('Failed to initialize database');
+      }
     }
     
     await wordnet.initialize(mockSqliteWasm as unknown as Sqlite3Static);

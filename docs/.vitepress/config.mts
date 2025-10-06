@@ -9,6 +9,9 @@ export default defineConfig({
   // Base URL for GitHub Pages deployment
   base: '/wordnet-playground/',
   
+  // Ignore unpublished documentation
+  ignoreDeadLinks: true,
+  
   // VitePress theme configuration
   themeConfig: {
     // Site title in nav
@@ -36,7 +39,8 @@ export default defineConfig({
         {
           text: 'Getting Started',
           items: [
-            { text: 'Quick Start', link: '/getting-started/' },
+            { text: 'Quick Start (5 min)', link: '/quick-start' },
+            { text: 'Getting Started Guide', link: '/getting-started/' },
             { text: 'Installation', link: '/getting-started/installation' },
             { text: 'Choose Your Platform', link: '/getting-started/choose-platform' }
           ]
@@ -60,11 +64,21 @@ export default defineConfig({
         {
           text: 'API Reference',
           items: [
+            { text: 'Complete API Reference', link: '/api/api-reference' },
             { text: 'Overview', link: '/api/' },
+            { text: 'Unified API', link: '/api/unified-api' },
             { text: 'Core API', link: '/api/core/' },
             { text: 'Web API', link: '/api/web/' },
             { text: 'Node API', link: '/api/node/' },
             { text: 'CLI Reference', link: '/api/cli/' }
+          ]
+        },
+        {
+          text: 'Reference',
+          items: [
+            { text: 'Terminology Guide', link: '/terminology' },
+            { text: 'Known Issues & Deprecations', link: '/known-issues' },
+            { text: 'Contributing to Docs', link: '/contributing' }
           ]
         }
       ],
@@ -164,6 +178,7 @@ export default defineConfig({
         {
           text: 'API Reference',
           items: [
+            { text: 'Complete Reference', link: '/api/api-reference' },
             { text: 'Overview', link: '/api/' },
             { text: 'Unified API', link: '/api/unified-api' }
           ]

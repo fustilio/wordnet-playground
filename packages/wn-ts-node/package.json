@@ -1,6 +1,6 @@
 {
   "name": "wn-ts-node",
-  "version": "0.7.2",
+  "version": "1.0.0",
   "description": "Wordnet interface library - TypeScript port",
   "keywords": [
     "wordnet",
@@ -23,37 +23,17 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./config": {
-      "types": "./dist/config.d.ts",
-      "default": "./dist/config.js"
+    "./low-level": {
+      "types": "./dist/low-level/index.d.ts",
+      "default": "./dist/low-level/index.js"
     },
-    "./database": {
-      "types": "./dist/database.d.ts",
-      "default": "./dist/database.js"
+    "./plugins": {
+      "types": "./dist/plugins/index.d.ts",
+      "default": "./dist/plugins/index.js"
     },
-    "./lmf": {
-      "types": "./dist/lmf.d.ts",
-      "default": "./dist/lmf.js"
-    },
-    "./taxonomy": {
-      "types": "./dist/taxonomy.d.ts",
-      "default": "./dist/taxonomy.js"
-    },
-    "./validation": {
-      "types": "./dist/validation.d.ts",
-      "default": "./dist/validation.js"
-    },
-    "./wordnet": {
-      "types": "./dist/wordnet.d.ts",
-      "default": "./dist/wordnet.js"
-    },
-    "./wordnet-core": {
-      "types": "./dist/wordnet-core.d.ts",
-      "default": "./dist/wordnet-core.js"
-    },
-    "./wordnet-kernel": {
-      "types": "./dist/wordnet-kernel.d.ts",
-      "default": "./dist/wordnet-kernel.js"
+    "./legacy": {
+      "types": "./dist/legacy/index.d.ts",
+      "default": "./dist/legacy/index.js"
     }
   },
   "bin": {

@@ -1,19 +1,29 @@
 # Examples
 
-This section contains practical examples demonstrating how to use the WordNet TypeScript ecosystem across different platforms.
+Practical examples demonstrating WordNet TypeScript across all platforms.
+
+## Start Here
+
+**[Hello World Examples](../../examples/hello-world/)** - The simplest possible examples (< 20 lines each)
+- Web (React) - Browser application
+- Node.js - Server-side application  
+- CLI - Command-line usage
 
 ## Web Examples
 
-- [Basic Demo](/examples/web/basic-demo/) - Simple web application showing basic WordNet functionality
-- [Developer Demo](/examples/web/developer-demo/) - Advanced web application with comprehensive features
+- [Basic Demo](../../examples/web/web-basic-demo/) - Clean, simple web application
+- [Developer Demo](../../examples/web/web-developer-demo/) - Advanced features and plugins
+- [Showcase](../../examples/web/web-showcase/) - Multiple demo pages
 
 ## Node.js Examples
 
-- [Basic Demo](/examples/node/basic-demo/) - Simple Node.js application demonstrating core functionality
+- [All Examples](../../examples/node/wn-ts-node-demo/) - Comprehensive Node.js examples
+  - Basic: Simple word search, database stats, multilingual
+  - Advanced: Kitchen sink, crossword puzzles, live demo
 
 ## Translation Examples
 
-- [Translation Demo](/examples/translation/) - Cross-lingual WordNet usage examples
+- [Translation Guide](/examples/translation/) - Cross-lingual WordNet usage
 
 ## Getting Started
 

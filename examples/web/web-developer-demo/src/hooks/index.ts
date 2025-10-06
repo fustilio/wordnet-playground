@@ -1,2 +1,2 @@
-export { useWordNet } from 'wn-ts-web/react';
+export { useWordNet } from 'wn-react';
 export { useSearch } from './useSearch';

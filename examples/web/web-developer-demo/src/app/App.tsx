@@ -14,7 +14,7 @@ import {
   TranslationShowcase,
   KernelDemo
 } from '../examples/tabs';
-import { useWordNetContext } from 'wn-ts-web/react';
+import { useWordNetContext } from 'wn-react';
 import { createScopedLogger, setGlobalLogLevel } from 'utils/logger';
 
 const logger = createScopedLogger('App');

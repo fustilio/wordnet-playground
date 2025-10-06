@@ -1,16 +1,17 @@
 # wn-ts-node
 
-Node.js implementation of the WordNet TypeScript ecosystem with SQLite integration and microkernel architecture.
+Node.js implementation of the WordNet TypeScript ecosystem with simplified APIs and auto-initialization.
 
 ## Features
 
-- **Microkernel Architecture** - Plugin-based design with relations, similarity, and translation plugins
+- **Simplified API** - One clear way to use the library with `createWordnet()`
+- **Auto-Initialization** - Works out of the box, no setup required
+- **Plugin System** - Optional plugins for advanced functionality
 - **Native SQLite** - High-performance database operations with native SQLite3
 - **Performance** - Optimized for server-side processing and large datasets
 - **Type Safety** - Full TypeScript support with comprehensive type definitions
 - **Cross-Lingual** - Multi-language support with ILI-based translation
-- **CLI Tools** - Built-in command-line interface for data management
-- **Data Export** - Export WordNet data in multiple formats (JSON, XML, CSV)
+- **Better Errors** - User-friendly error messages with solutions
 
 ## Installation
 
@@ -20,34 +21,50 @@ npm install wn-ts-node
 
 ## Usage
 
-### Basic Usage
+### Basic Usage (Recommended)
 ```typescript
-import { NodeWordNetKernel } from 'wn-ts-node';
+import { createWordnet } from 'wn-ts-node';
 
-const wordnet = new NodeWordNetKernel('oewn:2024');
-await wordnet.initialize();
-const words = await wordnet.words({ form: 'computer' });
-await wordnet.close();
+// Auto-initializes on first use
+const wn = createWordnet('oewn:2024');
+
+// Simple search - returns synsets
+const results = await wn.search('computer');
+console.log(results);
+
+// Advanced operations
+const words = await wn.words({ form: 'computer' });
+const synsets = await wn.synsets('computer');
+const hypernyms = await wn.getHypernyms(synsets[0].id);
+
+// Auto-closes on process exit
 ```
 
-### Module Functions
+### With Plugins
 ```typescript
-import { words, synsets, download, add } from 'wn-ts-node';
+import { createWordnet } from 'wn-ts-node';
+import { relationsPlugin, similarityPlugin } from 'wn-ts-node/plugins';
 
-// Query functions
-const wordList = await words('computer');
-const synsetList = await synsets('computer');
+const wn = createWordnet('oewn:2024', {
+  plugins: [relationsPlugin, similarityPlugin]
+});
 
-// Data management
-await download('oewn:2024');
-await add('oewn:2024');
+// Now you have access to plugin methods
+const hypernyms = await wn.getHypernyms(synsetId);
+const similarity = await wn.getPathSimilarity(synset1, synset2);
 ```
 
-### Plugin Usage
+### Advanced Usage
 ```typescript
-const hypernyms = await wordnet.getHypernyms(synsetId);
-const similarity = await wordnet.getPathSimilarity(synset1, synset2);
-const translations = await wordnet.getTranslations(synsetId, 'fr');
+import { NodeWordNetKernel } from 'wn-ts-node/low-level';
+
+const wn = new NodeWordNetKernel('oewn:2024', {
+  filename: 'custom.db',
+  enableWAL: true
+});
+await wn.initialize();
+// ... use wn
+await wn.close();
 ```
 
 ## Configuration

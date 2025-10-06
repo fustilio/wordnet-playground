@@ -6,7 +6,7 @@
 
 import { join } from 'path';
 import { homedir } from 'os';
-import { Wordnet, download, add, config, ili } from 'wn-ts-node';
+import { createWordnet as createWordnetAPI, download, add, config, ili } from 'wn-ts-node';
 
 /**
  * Initialize Wordnet with common configuration
@@ -25,8 +25,15 @@ export async function createWordnet(demoName, { multilingual = false } = {}) {
   const fs = await import('fs');
   const dbExists = fs.existsSync(dbPath);
 
-  // Ensure OEWN is present
-  const wn = new Wordnet('*');
+  // Create WordNet instance with persistent database
+  const wn = createWordnetAPI('*', {
+    filename: dbPath,
+    mode: 'persistent',
+    migrations: { enabled: true, backup: false }
+  });
+
+  // Initialize the database
+  await wn.initialize();
 
   try {
     const lexicons = await wn.lexicons();

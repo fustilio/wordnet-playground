@@ -514,7 +514,6 @@ Before implementing any feature, ensure:
 
 - [Database Schema Standards](./database-schema-standards.md)
 - [Testing Strategy](./testing-strategy.md)
-- [Performance Guidelines](./performance.md)
 
 ---
 

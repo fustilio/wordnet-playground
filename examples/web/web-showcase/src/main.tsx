@@ -2,7 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
-import { WordNetConfigProvider, WordNetProvider } from 'wn-ts-web/react'
+import { WordNetConfigProvider, WordNetProvider } from 'wn-react'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <WordNetConfigProvider config={{ 

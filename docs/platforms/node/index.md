@@ -15,30 +15,57 @@ Build powerful server-side applications with the WordNet TypeScript ecosystem's 
 npm install wn-ts-node better-sqlite3
 ```
 
-### Basic Usage
+### Basic Usage (Recommended)
 
 ```typescript
-import { NodeWordNetKernel } from 'wn-ts-node';
+import { createWordnet } from 'wn-ts-node';
 
 async function main() {
-  const wordnet = new NodeWordNetKernel('oewn:2024', {
-    filename: 'wordnet.db'
-  });
+  // Auto-initializes on first use
+  const wn = createWordnet('oewn:2024');
   
-  await wordnet.initialize();
+  // Simple search - returns synsets
+  const results = await wn.search('computer');
+  console.log('Found synsets:', results);
   
-  // Search for words
-  const words = await wordnet.words({ form: 'computer' });
-  console.log('Found words:', words);
+  // Advanced operations
+  const words = await wn.words({ form: 'computer' });
+  const synsets = await wn.synsets({ wordId: words[0].id });
+  const hypernyms = await wn.getHypernyms(synsets[0].id);
   
-  // Get synsets
-  const synsets = await wordnet.synsets({ wordId: words[0].id });
-  console.log('Found synsets:', synsets);
-  
-  await wordnet.close();
+  // Auto-closes on process exit
 }
 
 main().catch(console.error);
+```
+
+### Advanced Usage (Direct Kernel)
+
+```typescript
+import { NodeWordNetKernel } from 'wn-ts-node/low-level';
+
+const wn = new NodeWordNetKernel('oewn:2024', {
+  filename: 'wordnet.db',
+  enableWAL: true
+});
+await wn.initialize();
+// ... use wn
+await wn.close();
+```
+
+### With Plugins
+
+```typescript
+import { createWordnet } from 'wn-ts-node';
+import { relationsPlugin, similarityPlugin } from 'wn-ts-node/plugins';
+
+const wn = createWordnet('oewn:2024', {
+  plugins: [relationsPlugin, similarityPlugin]
+});
+
+// Now you have access to plugin methods
+const hypernyms = await wn.getHypernyms(synsetId);
+const similarity = await wn.getPathSimilarity(synset1, synset2);
 ```
 
 ## Architecture

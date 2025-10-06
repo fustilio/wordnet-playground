@@ -8,7 +8,6 @@ export default defineConfig({
     lib: {
       entry: {
         "wn-ts-web": path.resolve(process.cwd(), "src/index.ts"),
-        "wn-ts-web-react": path.resolve(process.cwd(), "src/react/index.ts"),
         "wordnet-worker": path.resolve(process.cwd(), "src/workers/wordnet-worker.ts"),
         "proxy-config": path.resolve(process.cwd(), "config/proxy-config.ts"),
       },
@@ -23,20 +22,12 @@ export default defineConfig({
       external: [
         "@sqlite.org/sqlite-wasm", 
         "lzma",
-        "react",
-        "react-dom",
-        "react/jsx-runtime",
-        "react/jsx-dev-runtime",
         "fast-xml-parser",
         "sax"
       ],
       output: {
         globals: {
           "@sqlite.org/sqlite-wasm": "SqliteWasm",
-          "react": "React",
-          "react-dom": "ReactDOM",
-          "react/jsx-runtime": "React",
-          "react/jsx-dev-runtime": "React",
           "fast-xml-parser": "FastXmlParser",
           "sax": "sax"
         },

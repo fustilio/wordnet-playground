@@ -9,7 +9,7 @@
  * Real-world application: System setup, data management, workflow demonstration
  */
 
-import { config, download, add, Wordnet, words, synsets, projects } from 'wn-ts-node';
+import { config, download, add, createWordnet, words, synsets, projects } from 'wn-ts-node';
 import { join } from 'path';
 import { homedir } from 'os';
 import { safeClose, runDemo } from '../shared/helpers.js';
@@ -113,7 +113,11 @@ async function runLiveDemo() {
     
     try {
       // Create Wordnet instance
-      wordnet = new Wordnet('oewn:2024');
+      wordnet = createWordnet('oewn:2024', {
+        mode: 'persistent',
+        migrations: { enabled: true, backup: false }
+      });
+      await wordnet.initialize();
       
       // Search for words
       console.log('\n📝 Searching for words containing "information":');

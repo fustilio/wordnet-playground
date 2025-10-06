@@ -22,28 +22,33 @@ Simple server-side WordNet operations and CLI tools.
 
 ## Quick Start
 
-### **Run Basic Demo**
+### **Run All Examples**
 
 ```bash
-cd examples/node/basic-demo
+cd examples/node/wn-ts-node-demo
 pnpm install
-pnpm run all-use-cases
+pnpm test
 ```
 
 ### **Run Specific Examples**
 
 ```bash
-# Basic word search
-pnpm run basic:word-search
+# Python-style API
+pnpm example:python-style
 
-# Database statistics
-pnpm run basic:database-stats
+# Word sense disambiguation (basic)
+pnpm example:word-sense-disambiguation
+
+# Database statistics (basic)
+pnpm example:database-statistics
 
 # Multilingual definitions
-pnpm run basic:multilingual-definitions
+pnpm example:multilingual-definitions
 
-# Word sense disambiguation
-pnpm run basic:word-sense-disambiguation
+# Advanced examples
+pnpm example:multilingual-linking
+pnpm example:lexical-exploration
+pnpm kitchen-sink
 ```
 
 ## Example Architecture
@@ -65,9 +70,41 @@ The examples demonstrate:
 
 ## Configuration
 
-### **Database Setup**
+### **Database Setup (New Simplified API)**
 
 ```typescript
+import { createWordnet } from 'wn-ts-node';
+
+// 🎯 Default persistent storage (recommended)
+const wordnet = createWordnet('oewn:2024');
+
+// 🧠 In-memory database (perfect for testing)
+const wordnet = createWordnet('oewn:2024', { mode: 'memory' });
+
+// 📁 Custom database location
+const wordnet = createWordnet('oewn:2024', { 
+  filename: '/path/to/my/wordnet.db' 
+});
+
+// 🔄 With automatic backups
+const wordnet = createWordnet('oewn:2024', {
+  migrations: { backup: true }
+});
+```
+
+### **Database Modes**
+
+| Mode | Description | Use Case |
+|------|-------------|----------|
+| `'persistent'` | Store in file system (default) | Production, development |
+| `'memory'` | In-memory only | Testing, temporary data |
+| `'temp'` | Temporary file (deleted on exit) | One-time processing |
+
+### **Legacy API (Still Supported)**
+
+```typescript
+import { NodeWordNetKernel } from 'wn-ts-node';
+
 const wordnet = new NodeWordNetKernel('oewn:2024', {
   filename: 'wordnet.db',
   createIfNotExists: true,
@@ -79,15 +116,33 @@ const wordnet = new NodeWordNetKernel('oewn:2024', {
 ### **Plugin Configuration**
 
 ```typescript
-const wordnetWithPlugins = wordnet
-  .use(relationsPlugin)
-  .use(similarityPlugin)
-  .use(translationPlugin);
+import { relations, similarity, translation } from 'wn-ts-core/plugins';
+
+const wordnetWithPlugins = createWordnet('oewn:2024')
+  .use(relations)
+  .use(similarity)
+  .use(translation);
 ```
 
 ## Code Examples
 
-### **Basic Word Search**
+### **Basic Word Search (New API)**
+
+```typescript
+import { createWordnet } from 'wn-ts-node';
+
+async function searchWords(term: string) {
+  const wordnet = createWordnet('oewn:2024');
+  await wordnet.initialize();
+  
+  const words = await wordnet.words({ form: term });
+  console.log('Found words:', words);
+  
+  await wordnet.close();
+}
+```
+
+### **Basic Word Search (Legacy API)**
 
 ```typescript
 import { NodeWordNetKernel } from 'wn-ts-node';
@@ -106,8 +161,10 @@ async function searchWords(term: string) {
 ### **Database Statistics**
 
 ```typescript
+import { createWordnet } from 'wn-ts-node';
+
 async function getStats() {
-  const wordnet = new NodeWordNetKernel('oewn:2024');
+  const wordnet = createWordnet('oewn:2024');
   await wordnet.initialize();
   
   const stats = await wordnet.getStatistics();
@@ -120,10 +177,11 @@ async function getStats() {
 ### **Advanced Features**
 
 ```typescript
+import { createWordnet } from 'wn-ts-node';
 import { relations, similarity, translation } from 'wn-ts-core/plugins';
 
 async function advancedFeatures() {
-  const wordnet = new NodeWordNetKernel('oewn:2024')
+  const wordnet = createWordnet('oewn:2024')
     .use(relations)
     .use(similarity)
     .use(translation);
@@ -149,10 +207,10 @@ async function advancedFeatures() {
 
 ```typescript
 import express from 'express';
-import { NodeWordNetKernel } from 'wn-ts-node';
+import { createWordnet } from 'wn-ts-node';
 
 const app = express();
-const wordnet = new NodeWordNetKernel('oewn:2024');
+const wordnet = createWordnet('oewn:2024');
 await wordnet.initialize();
 
 app.get('/api/words/:term', async (req, res) => {
@@ -167,10 +225,10 @@ app.listen(3000);
 
 ```typescript
 import { Command } from 'commander';
-import { NodeWordNetKernel } from 'wn-ts-node';
+import { createWordnet } from 'wn-ts-node';
 
 const program = new Command();
-const wordnet = new NodeWordNetKernel('oewn:2024');
+const wordnet = createWordnet('oewn:2024');
 
 program
   .command('search <term>')

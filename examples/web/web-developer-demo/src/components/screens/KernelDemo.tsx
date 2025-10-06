@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   useWordNetKernelContext,
   WordNetKernelProvider 
-} from 'wn-ts-web/react';
+} from 'wn-react';
 import { Card } from '../shared/Card';
 import { SearchForm } from '../shared/SearchForm';
 

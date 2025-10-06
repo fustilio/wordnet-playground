@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { useWordnet } from './hooks/useWordnet';
+import { useWordNet } from 'wn-react';
 import './index.css';
 
 function App() {
-  const { getDefinitions, loading, error, ready } = useWordnet({ lang: 'en-US' });
+  const { search, results, loading, error, initialized } = useWordNet({ 
+    lexicon: 'oewn:2024',
+    autoInitialize: true 
+  });
   const [searchTerm, setSearchTerm] = useState('water');
-  const [results, setResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
 
@@ -14,11 +16,9 @@ function App() {
     
     setIsSearching(true);
     setSearchError(null);
-    setResults([]);
 
     try {
-      const synsets = await getDefinitions(searchTerm);
-      setResults(synsets);
+      await search(searchTerm);
     } catch (err) {
       setSearchError(err instanceof Error ? err.message : 'Search failed');
     } finally {
@@ -33,16 +33,16 @@ function App() {
   };
 
   const getStatusMessage = () => {
-    if (loading) return 'Loading WordNet data...';
-    if (error) return `Error: ${error}`;
-    if (!ready) return 'Initializing...';
+    if (loading || isSearching) return 'Loading WordNet data...';
+    if (error) return `Error: ${error.message}`;
+    if (!initialized) return 'Initializing...';
     return 'Ready to search!';
   };
 
   const getStatusClass = () => {
-    if (loading) return 'loading';
+    if (loading || isSearching) return 'loading';
     if (error) return 'error';
-    if (ready) return 'ready';
+    if (initialized) return 'ready';
     return 'loading';
   };
 
@@ -66,20 +66,20 @@ function App() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyPress={handleKeyPress}
-            disabled={!ready || isSearching}
+            disabled={!initialized || loading || isSearching}
           />
           <button
             className="search-button"
             onClick={handleSearch}
-            disabled={!ready || isSearching || !searchTerm.trim()}
+            disabled={!initialized || loading || isSearching || !searchTerm.trim()}
           >
             {isSearching ? 'Searching...' : 'Search'}
           </button>
         </div>
 
-        {searchError && (
+        {(searchError || error) && (
           <div className="error">
-            {searchError}
+            {searchError || error?.message}
           </div>
         )}
 
@@ -117,7 +117,7 @@ function App() {
                       </tbody>
                     </table>
                   </div>
-                ) : !isSearching && searchTerm && ready ? (
+                ) : !isSearching && searchTerm && initialized ? (
                   <div className="no-results">
                     No definitions found for "{searchTerm}"
                   </div>

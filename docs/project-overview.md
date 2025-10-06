@@ -9,10 +9,12 @@ Production-ready TypeScript ecosystem for WordNet data with microkernel architec
 
 ## Status
 
-- **Core Library**: v0.6.3 - Microkernel architecture with plugin system
-- **Web Package**: v0.6.3 - Browser implementation with React integration
-- **Node Package**: v0.6.3 - Node.js implementation with SQLite
-- **CLI Package**: v0.6.3 - Command-line interface and TUI
+- **Core Library**: v0.5.2 - Microkernel architecture with plugin system
+- **Web Package**: v1.0.0 - Browser implementation with React integration
+- **Node Package**: v1.0.0 - Node.js implementation with SQLite
+- **CLI Package**: v0.5.7 - Command-line interface and TUI
+- **Data Loader**: v0.1.0 - Data loading utilities
+- **Utils**: v0.5.0 - Shared utilities
 
 ## Architecture
 
@@ -25,38 +27,54 @@ Microkernel design with plugin system:
 
 ## Quick Start
 
+**Fastest way**: [Quick Start Guide](./quick-start.md) (5 minutes)
+
+**Copy-paste code**: [Hello World Examples](../examples/hello-world/)
+
+**Try examples**:
 ```bash
-pnpm install
-pnpm test
-pnpm demo:all-use-cases
+# Web example
+cd examples/hello-world/web && pnpm install && pnpm dev
+
+# Node.js example  
+cd examples/hello-world/node && pnpm install && pnpm start
+
+# CLI example
+npm install -g wn-cli && wn-cli search "computer"
 ```
 
 ## Usage
 
-**Node.js**
+**Node.js** (Recommended API)
 ```typescript
-import { NodeWordNetKernel } from 'wn-ts-node';
+import { createWordnet } from 'wn-ts-node';
 
-const wordnet = new NodeWordNetKernel('oewn:2024');
-await wordnet.initialize();
-const words = await wordnet.words({ form: 'computer' });
-await wordnet.close();
+const wn = createWordnet('oewn:2024');
+await wn.initialize();
+const synsets = await wn.synsets('computer');
+await wn.close();
 ```
 
-**Web**
+**Web** (React Hook - Recommended)
 ```typescript
-import { WebWordNetKernel } from 'wn-ts-web';
+import { useWordNetContext } from 'wn-ts-web/react';
 
-const wordnet = new WebWordNetKernel('oewn:2024');
-await wordnet.initialize();
-const words = await wordnet.words({ form: 'computer' });
-await wordnet.close();
+function App() {
+  const { querySynsets, loading } = useWordNetContext();
+  const search = async () => {
+    const results = await querySynsets('computer');
+    console.log(results);
+  };
+  if (loading) return <div>Loading...</div>;
+  return <button onClick={search}>Search</button>;
+}
 ```
 
 **CLI**
 ```bash
 wn-cli search "computer"
-wn-cli define "computer"
+wn-cli define "happy"
+wn-cli translate "water" --from en --to fr
 ```
 
 ## Features

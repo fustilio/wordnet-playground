@@ -65,11 +65,6 @@ describe('Visual Feedback Functionality', () => {
         { synset: { id: 'transportation-1' }, relationType: 'hypernym', direction: 'to', timestamp: 3000 }
       ];
 
-      const expectedPath = [
-        'vehicle (hypernym)',
-        'transportation (hypernym)',
-        'system (hypernym)'
-      ];
 
       // Simulate path building
       const buildPath = (chain: any[]) => {

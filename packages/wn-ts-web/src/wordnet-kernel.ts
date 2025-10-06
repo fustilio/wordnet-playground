@@ -443,4 +443,43 @@ export class WebWordNetKernel {
   }
 }
 
+// ============================================================================
+// FACTORY FUNCTION - The main way to create WordNet instances
+// ============================================================================
+
+/**
+ * Create a WordNet instance for web browsers
+ * 
+ * @param lexicon - Lexicon identifier (e.g., 'oewn:2024')
+ * @param options - Configuration options
+ * @returns WordNet instance
+ * 
+ * @example
+ * ```typescript
+ * import { createWebWordnet } from 'wn-ts-web';
+ * 
+ * // Simple usage
+ * const wn = createWebWordnet('oewn:2024');
+ * const results = await wn.search('computer');
+ * 
+ * // With options
+ * const wn = createWebWordnet('oewn:2024', {
+ *   storage: 'opfs',
+ *   cache: true
+ * });
+ * ```
+ */
+export function createWebWordnet(
+  lexicon: string | string[] = 'oewn:2024',
+  options: WordNetKernelOptions = {}
+): WebWordNetKernel {
+  return new WebWordNetKernel(lexicon, options);
+}
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+export type { WordNetKernelOptions } from './types/index.js';
+
 

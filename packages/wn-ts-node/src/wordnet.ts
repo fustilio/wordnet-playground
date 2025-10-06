@@ -36,12 +36,14 @@ export class Wordnet implements WordNetCore {
     
 
 
-    // Initialize the KyselyWordnet instance
+    // Initialize the KyselyWordnet instance with simplified API
     const { strategy, ...otherOptions } = options;
     this.kyselyWordnet = new KyselyWordnet(lexicon, {
       filename: config.databasePath,
+      mode: 'persistent', // Use persistent mode by default
       normalizer: this.defaultNormalizer,
       strategy: strategy ?? 'default',
+      migrations: { enabled: true, backup: false }, // Enable migrations by default
       ...otherOptions
     });
   }

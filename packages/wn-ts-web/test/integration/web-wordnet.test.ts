@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
-import { WebWordnet } from '../../src/client/submodules/web-wordnet.js';
+import { createWebWordnet } from '../../src/wordnet-kernel.js';
 import { WordNetEvents } from '../../src/event-emitter.js';
 import type { Sqlite3Static } from '@sqlite.org/sqlite-wasm';
 import type { KyselyQueryService } from '../../src/database/kysely-query-service.js';
@@ -7,7 +7,7 @@ import type { KyselyQueryService } from '../../src/database/kysely-query-service
 const isNode = typeof process !== 'undefined';
 
 describe('WebWordnet with Real Browser DB', () => {
-  let wordnet: WebWordnet;
+  let wordnet: any;
   let sqlModule: Sqlite3Static;
   let queryService: KyselyQueryService;
 
@@ -25,7 +25,7 @@ describe('WebWordnet with Real Browser DB', () => {
       throw new Error("SQLite WASM module not loaded");
     }
 
-    wordnet = new WebWordnet('oewn');
+    wordnet = createWebWordnet('oewn');
     await wordnet.initialize(sqlModule);
     queryService = wordnet.getQueryService()!;
 

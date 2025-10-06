@@ -437,3 +437,6 @@ export function applyDuplicateHandling(
     senses: handler.handleDuplicates(document.senses, 'senses'),
   };
 }
+
+// Export version utilities
+export * from './version-utils.js';

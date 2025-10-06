@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useWordNetContext } from "wn-ts-web/react";
+import { useWordNetContext } from "wn-react";
 import { createScopedLogger } from 'utils/logger';
 import { 
   isRequirementSatisfied, 

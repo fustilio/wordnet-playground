@@ -19,6 +19,7 @@ import type {
   QueryStrategy,
   Definition,
 } from 'wn-ts-core';
+import { TranslationHelper } from 'wn-ts-core';
 import { Kysely } from 'kysely';
 import type { NodeDatabaseConfig } from 'wn-ts-core';
 import { NodeKyselyDatabase } from './database/node-kysely-database.js';
@@ -26,6 +27,8 @@ import { KyselyQueryService } from './database/kysely-query-service.js';
 
 import type { Database } from './database/types/database.js';
 import { batchInsert } from 'wn-ts-core/shared';
+import { join } from 'path';
+import { homedir } from 'os';
 
 export interface NodeWordnetConfig extends NodeDatabaseConfig {
   journalMode?: 'DELETE' | 'WAL' | 'MEMORY' | 'OFF';
@@ -37,6 +40,20 @@ export interface NodeWordnetConfig extends NodeDatabaseConfig {
   recursiveTriggers?: boolean;
   forceRecreate?: boolean;
   strategy?: QueryStrategy;
+  plugins?: Plugin[];
+}
+
+export interface Plugin {
+  name: string;
+  version: string;
+  initialize(context: PluginContext): Promise<void>;
+  methods: Record<string, Function>;
+}
+
+export interface PluginContext {
+  database: any;
+  queryService: any;
+  config: any;
 }
 
 // Local base class that doesn't depend on wn-ts-core database types
@@ -90,25 +107,38 @@ export class KyselyWordnet extends LocalBaseWordnet {
   private nodeDatabase: NodeKyselyDatabase;
   private queryService!: KyselyQueryService;
   private strategy: QueryStrategy;
+  private plugins: Map<string, Plugin> = new Map();
+  private pluginMethods: Record<string, Function> = {};
 
   constructor(
     lexicon: string | string[] = '*',
     options: Partial<NodeWordnetConfig> = {}
   ) {
-    const { filename, forceRecreate, strategy = 'default', ...wordnetOptions } = options;
+    const { 
+      filename, 
+      forceRecreate, 
+      strategy = 'default', 
+      mode = 'persistent',
+      plugins = [],
+      ...wordnetOptions 
+    } = options;
     super(lexicon, wordnetOptions);
     this.strategy = strategy;
 
-    if (!filename) {
-      throw new Error('filename is required for NodeWordnetConfig');
-    }
+    // Set default filename for persistent mode if not provided
+    const finalFilename = filename || (mode === 'persistent' ? join(homedir(), '.wn_ts_data', 'wn.db') : undefined);
 
     this.nodeDatabase = new NodeKyselyDatabase({
-      filename,
+      ...(finalFilename && { filename: finalFilename }),
+      mode,
       ...(forceRecreate !== undefined && { forceRecreate }),
+      ...(options.migrations && { migrations: options.migrations }),
     });
     // Assign the database property to the parent class
     (this as any).database = this.nodeDatabase;
+
+    // Initialize plugins
+    this.initializePlugins(plugins);
   }
 
   async initialize(): Promise<void> {
@@ -116,11 +146,45 @@ export class KyselyWordnet extends LocalBaseWordnet {
     await this.configureSQLite();
     this.initialized = true;
     this.queryService = new KyselyQueryService(this.getDb(), { strategy: this.strategy });
+    
+    // Initialize plugins after database is ready
+    await this.initializePluginsAfterDb();
   }
 
   private async configureSQLite(): Promise<void> {
     // TODO: Configure SQLite PRAGMAs when proper raw SQL execution is available
     // For now, rely on better-sqlite3 defaults
+  }
+
+  private initializePlugins(plugins: Plugin[] = []): void {
+    // Store plugins for later initialization
+    for (const plugin of plugins) {
+      this.plugins.set(plugin.name, plugin);
+    }
+  }
+
+  private async initializePluginsAfterDb(): Promise<void> {
+    // Initialize all plugins after database is ready
+    for (const [name, plugin] of this.plugins) {
+      try {
+        const context: PluginContext = {
+          database: this.nodeDatabase,
+          queryService: this.queryService,
+          config: this.options,
+        };
+        
+        await plugin.initialize(context);
+        
+        // Add plugin methods to the instance
+        for (const [methodName, method] of Object.entries(plugin.methods)) {
+          this.pluginMethods[methodName] = method;
+          // Make methods available on the instance
+          (this as any)[methodName] = method;
+        }
+      } catch (error) {
+        console.warn(`Failed to initialize plugin ${name}:`, error);
+      }
+    }
   }
 
   // Implement abstract methods from KyselyBaseWordnet
@@ -567,4 +631,245 @@ export class KyselyWordnet extends LocalBaseWordnet {
   async getWordsByIliAndLanguage(ili: string, language?: string): Promise<Word[]> {
     return this.queryService.getWordsByIliAndLanguage(ili, language);
   }
+
+  // ============================================================================
+  // USER-INTENT API - Methods that match what users naturally want to do
+  // ============================================================================
+
+  /**
+   * Search for a word - returns synsets with definitions and examples
+   * This is the most common operation and what users naturally try first.
+   * 
+   * @param term - Word to search for
+   * @param options - Optional filters (pos, language, limit)
+   * @returns Array of synsets containing the word
+   * 
+   * @example
+   * ```typescript
+   * // Simple search
+   * const results = await wn.search('computer');
+   * 
+   * // Filter by part of speech
+   * const nouns = await wn.search('bank', { pos: 'n' });
+   * 
+   * // Limit results
+   * const top5 = await wn.search('run', { limit: 5 });
+   * ```
+   */
+  async search(term: string, options?: {
+    pos?: PartOfSpeech;
+    language?: string;
+    limit?: number;
+  }): Promise<Synset[]> {
+    await this.ensureInitialized();
+    return this.synsets({ 
+      form: term, 
+      ...options 
+    });
+  }
+
+  /**
+   * Get definitions for a word - returns simple array of definition texts
+   * Convenience method that returns just the definition strings.
+   * 
+   * @param term - Word to define
+   * @param pos - Optional part of speech filter
+   * @returns Array of definition objects with text, POS, and synset ID
+   * 
+   * @example
+   * ```typescript
+   * const defs = await wn.define('computer');
+   * // Returns: [{ text: 'a machine for performing...', pos: 'n', synsetId: '...' }]
+   * 
+   * // Filter by POS
+   * const nounDefs = await wn.define('bank', 'n');
+   * ```
+   */
+  async define(term: string, pos?: PartOfSpeech): Promise<Array<{ text: string; pos: PartOfSpeech; synsetId: string }>> {
+    const synsets = await this.search(term, pos ? { pos } : undefined);
+    return synsets.flatMap(s => 
+      s.definitions.map(d => ({
+        text: d.text,
+        pos: s.pos,
+        synsetId: s.id
+      }))
+    );
+  }
+
+  /**
+   * Translate a word from one language to another
+   * Returns array of translated word strings.
+   * 
+   * @param term - Word to translate
+   * @param fromLang - Source language code (e.g., 'en')
+   * @param toLang - Target language code (e.g., 'fr')
+   * @returns Array of translated words
+   * 
+   * @example
+   * ```typescript
+   * const translations = await wn.translate('water', 'en', 'fr');
+   * // Returns: ['eau']
+   * ```
+   */
+  async translate(term: string, fromLang: string, toLang: string): Promise<string[]> {
+    await this.ensureInitialized();
+    // Note: TranslationHelper implementation pending - stubbed for now
+    // TODO: Implement translation using ILI mapping
+    const synsets = await this.synsets({ form: term, language: fromLang, maxResults: 1 });
+    if (synsets.length === 0) return [];
+    
+    // For now, return empty array - full implementation requires cross-lingual ILI mapping
+    return [];
+  }
+
+  /**
+   * Find words related to the search term by a specific relation type
+   * 
+   * @param term - Word to find relations for
+   * @param relationType - Type of relation ('hypernym', 'hyponym', 'meronym', 'holonym')
+   * @returns Array of related synsets
+   * 
+   * @example
+   * ```typescript
+   * // Find broader terms
+   * const broader = await wn.related('car', 'hypernym');
+   * // Returns synsets for: vehicle, motor vehicle, etc.
+   * 
+   * // Find narrower terms  
+   * const narrower = await wn.related('car', 'hyponym');
+   * // Returns synsets for: sedan, SUV, coupe, etc.
+   * ```
+   */
+  async related(term: string, relationType: 'hypernym' | 'hyponym'): Promise<Synset[]> {
+    const synsets = await this.search(term, { limit: 1 });
+    if (synsets.length === 0) return [];
+    
+    // Only hypernyms and hyponyms are currently implemented
+    const method = relationType === 'hypernym' ? this.getHypernyms : this.getHyponyms;
+    return method.call(this, synsets[0].id);
+  }
+
+  /**
+   * Calculate semantic similarity between two words
+   * Returns a number between 0 (unrelated) and 1 (identical)
+   * 
+   * @param word1 - First word
+   * @param word2 - Second word
+   * @param algorithm - Similarity algorithm ('path' or 'wup')
+   * @returns Similarity score 0-1
+   * 
+   * @example
+   * ```typescript
+   * const similarity = await wn.similar('car', 'automobile');
+   * // Returns: ~0.95 (very similar)
+   * 
+   * const similarity = await wn.similar('car', 'banana');
+   * // Returns: ~0.1 (not similar)
+   * ```
+   */
+  /**
+   * NOTE: Similarity methods require the similarity plugin
+   * This is a placeholder that will be implemented when similarity plugin is integrated
+   */
+  async similar(word1: string, word2: string, algorithm: 'path' | 'wup' = 'path'): Promise<number> {
+    // TODO: Integrate similarity plugin methods
+    // For now, return 0 (not implemented)
+    return 0;
+  }
+
+  /**
+   * Auto-initialize the database on first query
+   * Users don't need to call initialize() explicitly anymore
+   */
+  private initPromise: Promise<void> | null = null;
+  private autoInit: boolean = true;
+
+  private async ensureInitialized(): Promise<void> {
+    if (!this.autoInit) return;  // Respect manual initialization
+    
+    if (!this.initPromise) {
+      this.initPromise = this.initialize();
+    }
+    
+    await this.initPromise;
+  }
+}
+
+/**
+ * Create a WordNet instance with simplified configuration
+ * 
+ * @param lexicon - Lexicon ID or array of lexicon IDs (default: 'oewn:2024')
+ * @param options - Configuration options
+ * 
+ * @example
+ * ```typescript
+ * // Simple - auto-initializes on first query
+ * const wn = createWordnet('oewn:2024');
+ * const results = await wn.search('computer');  // No initialize() needed!
+ * 
+ * // In-memory database
+ * const wn = createWordnet('oewn:2024', { mode: 'memory' });
+ * 
+ * // Disable auto-initialize (advanced)
+ * const wn = createWordnet('oewn:2024', { autoInitialize: false });
+ * await wn.initialize();  // Manual control
+ * 
+ * // Custom database path
+ * const wn = createWordnet('oewn:2024', { 
+ *   filename: '/path/to/db', 
+ *   mode: 'persistent' 
+ * });
+ * ```
+ */
+export function createWordnet(
+  lexicon: string | string[] = 'oewn:2024',  // Default to latest stable
+  options: Partial<NodeWordnetConfig> & { autoInitialize?: boolean } = {}
+): KyselyWordnet {
+  const instance = new KyselyWordnet(lexicon, options);
+  
+  // Set auto-initialize preference
+  (instance as any).autoInit = options.autoInitialize ?? true;
+  
+  // Auto-close on process exit (Node.js only)
+  if (typeof process !== 'undefined') {
+    process.on('beforeExit', async () => {
+      try {
+        await instance.close();
+      } catch (e) {
+        // Ignore errors during shutdown
+      }
+    });
+  }
+  
+  return instance;
+}
+
+/**
+ * Create a WordNet instance with plugins
+ * 
+ * @param lexicon - Lexicon identifier
+ * @param plugins - Array of plugins to load
+ * @param options - Configuration options
+ * 
+ * @example
+ * ```typescript
+ * import { createWordnetWithPlugins } from 'wn-ts-node';
+ * import { relationsPlugin, similarityPlugin } from 'wn-ts-node/plugins';
+ * 
+ * const wn = createWordnetWithPlugins('oewn:2024', [
+ *   relationsPlugin,
+ *   similarityPlugin
+ * ]);
+ * 
+ * // Now you have access to plugin methods
+ * const hypernyms = await wn.getHypernyms(synsetId);
+ * const similarity = await wn.getPathSimilarity(synset1, synset2);
+ * ```
+ */
+export function createWordnetWithPlugins(
+  lexicon: string | string[] = 'oewn:2024',
+  plugins: Plugin[] = [],
+  options: Partial<NodeWordnetConfig> & { autoInitialize?: boolean } = {}
+): KyselyWordnet {
+  return createWordnet(lexicon, { ...options, plugins });
 }

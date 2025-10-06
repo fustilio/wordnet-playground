@@ -28,19 +28,55 @@ export class NodeKyselyDatabase implements NodeKyselyDatabaseInterface {
     // Dynamically import better-sqlite3 to avoid bundling issues
     const Database = (await import('better-sqlite3')).default;
     
+    // Determine database filename based on mode
+    const mode = this.config.mode || 'persistent';
+    let filename: string;
+    
+    switch (mode) {
+      case 'memory':
+        filename = ':memory:';
+        break;
+      case 'temp':
+        filename = this.config.filename || ':memory:';
+        break;
+      case 'persistent':
+      default:
+        if (!this.config.filename) {
+          throw new Error('filename is required for persistent mode');
+        }
+        filename = this.config.filename;
+        break;
+    }
+    
     // If forceRecreate is true, delete the existing database file
-    if (this.config.forceRecreate) {
+    if (this.config.forceRecreate && filename !== ':memory:') {
       try {
         const fs = await import('fs');
-        if (fs.existsSync(this.config.filename)) {
-          fs.unlinkSync(this.config.filename);
+        if (fs.existsSync(filename)) {
+          fs.unlinkSync(filename);
         }
       } catch (error) {
         // Ignore errors if file doesn't exist
       }
     }
     
-    this.sqliteDb = new Database(this.config.filename, {
+    // Create backup before migration if requested
+    const migrations = this.config.migrations || {};
+    if (migrations.backup && filename !== ':memory:' && migrations.enabled !== false) {
+      try {
+        const fs = await import('fs');
+        if (fs.existsSync(filename)) {
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+          const backupPath = `${filename}.backup.${timestamp}`;
+          fs.copyFileSync(filename, backupPath);
+          console.log(`Database backed up to: ${backupPath}`);
+        }
+      } catch (error) {
+        console.warn('Failed to create database backup:', error);
+      }
+    }
+    
+    this.sqliteDb = new Database(filename, {
       readonly: this.config.readonly || false,
       fileMustExist: this.config.fileMustExist || false,
       timeout: this.config.timeout || 5000,
@@ -56,7 +92,12 @@ export class NodeKyselyDatabase implements NodeKyselyDatabaseInterface {
 
     // Create tables and indexes using shared SchemaBuilder
     await SchemaBuilder.createTables(this.db);
-    await SchemaBuilder.migrateSchema(this.db);
+    
+    // Run migrations only if enabled (default: true)
+    if (migrations.enabled !== false) {
+      await SchemaBuilder.migrateSchema(this.db);
+    }
+    
     await SchemaBuilder.createIndexes(this.db);
   }
 

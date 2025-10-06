@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { useWordNetContext } from 'wn-ts-web/react';
+import { useWordNetContext } from 'wn-react';
 import type { 
   SynsetQueryResult, 
   WordQueryResult, 

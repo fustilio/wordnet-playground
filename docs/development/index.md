@@ -9,7 +9,6 @@ Welcome to the WordNet TypeScript ecosystem development guide! This section cont
 - **[Test Coverage](./test-coverage.md)** - Testing strategy and coverage requirements
 - **[Development Tools](./tools/README.md)** - Available development tools and utilities
 - **[Incomplete Implementations](./incomplete-implementations.md)** - Known incomplete features and TODOs
-- **[Performance Benchmarks](./performance-benchmarks.md)** - Detailed performance benchmarking results
 
 ## Quick Start
 
@@ -59,7 +58,6 @@ pnpm test
 - **[Development Conventions](../standards/development-conventions.md)** - Coding standards and naming conventions
 - **[Testing Strategy](../standards/testing-strategy.md)** - Testing approach and coverage requirements
 - **[Database Schema Standards](../standards/database-schema-standards.md)** - Database design guidelines
-- **[Performance Guidelines](../standards/performance.md)** - Performance optimization standards
 
 ## Package Development
 
