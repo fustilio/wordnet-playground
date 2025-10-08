@@ -129,7 +129,7 @@ describe('Improved Search Functionality', () => {
 
       const suggestion = getRandomSuggestion();
       expect(suggestions).toContain(suggestion);
-      expect(suggestion.length).toBeGreaterThan(0);
+      expect(suggestion?.length).toBeGreaterThan(0);
     });
   });
 

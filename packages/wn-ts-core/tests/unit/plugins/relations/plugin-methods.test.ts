@@ -7,10 +7,9 @@
 
 import { describe, it, expect } from 'vitest';
 import { enhancedRelations } from '../../../../src/plugins/relations/enhanced-relations.js';
-import type { WordNetKernel } from '../../../../src/wordnet-kernel.js';
 
 describe('Enhanced Relations Plugin Methods', () => {
-  // Mock kernel for testing
+  // Mock kernel for testing - using any for simplicity in tests
   const mockKernel = {
     core: {
       synset: async (id: string) => {
@@ -54,7 +53,7 @@ describe('Enhanced Relations Plugin Methods', () => {
         })
       }
     }
-  } as WordNetKernel;
+  } as any;
 
   describe('Plugin Structure', () => {
     it('should have correct plugin name', () => {
@@ -208,7 +207,7 @@ describe('Enhanced Relations Plugin Methods', () => {
 
     it('should handle missing core gracefully', async () => {
       // Test with undefined core - should return empty array
-      const result = await enhancedRelations.methods.getHypernyms?.('test-id');
+      const result = await enhancedRelations.methods.getHypernyms?.(mockKernel, 'test-id');
       expect(Array.isArray(result)).toBe(true);
       expect(result).toHaveLength(0);
     });
@@ -217,14 +216,14 @@ describe('Enhanced Relations Plugin Methods', () => {
   describe('Error Handling', () => {
     it('should handle invalid synset IDs gracefully', async () => {
       // Should return empty array for invalid synset ID
-      const relations = await enhancedRelations.methods.getHypernyms?.('invalid-id');
+      const relations = await enhancedRelations.methods.getHypernyms?.(mockKernel, 'invalid-id');
       expect(Array.isArray(relations)).toBe(true);
       expect(relations).toHaveLength(0);
     });
 
     it('should handle database errors gracefully', async () => {
       // With valid synset ID, should return empty array (no relations found)
-      const relations = await enhancedRelations.methods.getHypernyms?.('test-id');
+      const relations = await enhancedRelations.methods.getHypernyms?.(mockKernel, 'test-id');
       expect(Array.isArray(relations)).toBe(true);
       expect(relations).toHaveLength(0);
     });

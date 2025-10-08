@@ -12,6 +12,32 @@ import { tmpdir } from 'os';
 // import { TestDataManager, getTestContext, cleanupTestContext } from 'wn-ts-core/test/test-data-manager.js';
 import { isLMF } from '../../src/lmf.js';
 
+// Robust cleanup function for Windows file system issues
+async function cleanupDirectory(dirPath: string): Promise<void> {
+  if (!existsSync(dirPath)) return;
+  
+  let attempts = 0;
+  const maxAttempts = 5;
+  
+  while (attempts < maxAttempts) {
+    try {
+      // Force close any open handles and remove recursively
+      rmSync(dirPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 1000 });
+      break; // Success, exit the loop
+    } catch (error) {
+      attempts++;
+      if (attempts < maxAttempts) {
+        // Wait longer between attempts (exponential backoff)
+        const delay = 1000 * Math.pow(2, attempts - 1);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        console.warn(`Cleanup attempt ${attempts} failed, retrying in ${delay}ms:`, error);
+      } else {
+        console.warn(`Failed to clean up directory after ${maxAttempts} attempts:`, error);
+      }
+    }
+  }
+}
+
 // Helper functions for test data using TestDataManager
 const createComprehensiveTestDataset = async () => {
   // Return actual test data paths from wn-test-data package
@@ -123,13 +149,9 @@ describe('Data Loading and Database Integration Tests', () => {
     // Restore original data directory
     config.dataDirectory = originalDataDirectory;
     
-    // Clean up temp directory
+    // Clean up temp directory with robust retry logic
     if (tempDataDir && existsSync(tempDataDir)) {
-      try {
-        rmSync(tempDataDir, { recursive: true, force: true });
-      } catch (error) {
-        console.warn('Failed to clean up temp directory:', error);
-      }
+      await cleanupDirectory(tempDataDir);
     }
   });
 

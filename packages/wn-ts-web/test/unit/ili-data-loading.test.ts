@@ -45,10 +45,14 @@ describe('ILI Data Loading', () => {
       orderBy: vi.fn().mockReturnThis(),
       limit: vi.fn().mockReturnThis(),
       offset: vi.fn().mockReturnThis(),
+      values: vi.fn().mockReturnThis(),
+      compile: vi.fn().mockReturnValue({
+        sql: 'SELECT 1',
+        parameters: []
+      }),
       execute: vi.fn().mockResolvedValue([]),
       executeTakeFirst: vi.fn().mockResolvedValue(undefined),
       executeTakeFirstOrThrow: vi.fn().mockRejectedValue(new Error('No rows found')),
-      values: vi.fn().mockReturnThis(),
       set: vi.fn().mockReturnThis(),
       returning: vi.fn().mockReturnThis(),
       returningAll: vi.fn().mockReturnThis()

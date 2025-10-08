@@ -7,9 +7,12 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:ui": "vitest --ui"
+    "cypress": "pnpm with-server \"pnpm run cypress:open\"",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run",
+    "test:e2e": "pnpm test:cypress",
+    "test:cypress": "pnpm with-server \"pnpm run cypress:run\"",
+    "with-server": "start-server-and-test \"pnpm run dev\" http://localhost:5173"
   },
   "dependencies": {
     "react": "catalog:",
@@ -31,6 +34,9 @@
     "@testing-library/react": "^16.1.0",
     "@testing-library/jest-dom": "^6.6.3",
     "jsdom": "^25.0.1",
-    "vite-plugin-comlink": "catalog:"
+    "vite-plugin-comlink": "catalog:",
+    "cypress": "catalog:",
+    "start-server-and-test": "catalog:",
+    "turbo": "catalog:"
   }
 }

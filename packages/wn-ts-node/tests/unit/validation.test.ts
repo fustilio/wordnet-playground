@@ -125,4 +125,18 @@ describe('LMF Data Integrity Validation - Real Data Test', () => {
     expect(result.summary.extraElements).toBeGreaterThanOrEqual(0);
     expect(result.summary.attributeMismatches).toBeGreaterThanOrEqual(0);
   });
+
+  afterAll(async () => {
+    // Restore original data directory
+    config.dataDirectory = originalDataDirectory;
+    
+    // Clean up temporary directory
+    const tempDataDir = path.join(__dirname, '../temp-validation-data');
+    try {
+      await fs.rm(tempDataDir, { recursive: true, force: true });
+    } catch (error) {
+      // Ignore cleanup errors
+      console.warn('Failed to clean up temp-validation-data directory:', error);
+    }
+  });
 });

@@ -153,11 +153,23 @@ Object.entries(posDist).forEach(([pos, count]) => {
 
 ## 🧪 Testing
 
-The demos are integrated with the workspace CI pipeline:
+The demos are integrated with the workspace CI pipeline and use Vitest for testing:
 
 ```bash
-# Run all demos as part of CI
-pnpm ci:demo
+# Run all tests (unit + e2e)
+pnpm test:all
+
+# Run unit tests only
+pnpm test
+
+# Run e2e tests only
+pnpm test:e2e
+
+# Run specific e2e test suites
+pnpm test:e2e:basic
+pnpm test:e2e:advanced
+pnpm test:e2e:live
+pnpm test:e2e:performance
 
 # Run individual demos
 pnpm demo

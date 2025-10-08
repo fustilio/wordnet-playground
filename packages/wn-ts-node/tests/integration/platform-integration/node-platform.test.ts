@@ -16,7 +16,32 @@ import * as BetterSqlite3Database from 'better-sqlite3';
 import { SqliteDialect } from 'kysely';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { unlinkSync } from 'fs';
+import { unlinkSync, existsSync } from 'fs';
+
+// Robust cleanup function for Windows file system issues
+async function cleanupFile(filePath: string): Promise<void> {
+  if (!existsSync(filePath)) return;
+  
+  let attempts = 0;
+  const maxAttempts = 5;
+  
+  while (attempts < maxAttempts) {
+    try {
+      unlinkSync(filePath);
+      break; // Success, exit the loop
+    } catch (error) {
+      attempts++;
+      if (attempts < maxAttempts) {
+        // Wait longer between attempts (exponential backoff)
+        const delay = 1000 * Math.pow(2, attempts - 1);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        console.warn(`Cleanup attempt ${attempts} failed, retrying in ${delay}ms:`, error);
+      } else {
+        console.warn(`Failed to clean up file after ${maxAttempts} attempts:`, error);
+      }
+    }
+  }
+}
 
 // Extend the core test with node-specific platform context
 export const test = coreTest.extend<{
@@ -85,12 +110,8 @@ export const test = coreTest.extend<{
       await (wordnet as any).close();
     }
     
-    // Remove temporary database file
-    try {
-      unlinkSync(dbPath);
-    } catch (error) {
-      console.warn('Failed to remove temporary database file:', error);
-    }
+    // Remove temporary database file with retry logic
+    await cleanupFile(dbPath);
   }
 });
 

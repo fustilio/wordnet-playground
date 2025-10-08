@@ -1,0 +1,58 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["**/.env.*local"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**", "test-results.json", "**/coverage/**"]
+    },
+    "test:watch": {
+      "cache": false,
+      "persistent": true
+    },
+    "test:ui": {
+      "cache": false,
+      "persistent": true
+    },
+    "test:all": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**", "test-results.json", "cypress/videos/**", "cypress/screenshots/**"]
+    },
+    "test:e2e": {
+      "dependsOn": ["^build"],
+      "outputs": ["cypress/videos/**", "cypress/screenshots/**"]
+    },
+    "test:cypress": {
+      "dependsOn": ["^build"],
+      "outputs": ["cypress/videos/**", "cypress/screenshots/**"]
+    },
+    "cypress": {
+      "cache": false,
+      "persistent": true
+    },
+    "cypress:open": {
+      "cache": false,
+      "persistent": true
+    },
+    "cypress:run": {
+      "dependsOn": ["^build"],
+      "outputs": ["cypress/videos/**", "cypress/screenshots/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    }
+  }
+}

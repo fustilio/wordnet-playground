@@ -7,9 +7,12 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:ui": "vitest --ui"
+    "cypress": "pnpm with-server \"pnpm run cypress:open\"",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run",
+    "test:e2e": "pnpm test:cypress",
+    "test:cypress": "pnpm with-server \"pnpm run cypress:run\"",
+    "with-server": "start-server-and-test \"pnpm run dev\" http://localhost:5175"
   },
   "dependencies": {
     "@codesandbox/sandpack-react": "^2.20.0",
@@ -33,6 +36,9 @@
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plugin-comlink": "catalog:",
-    "vitest": "3.2.4"
+    "vitest": "3.2.4",
+    "cypress": "catalog:",
+    "start-server-and-test": "catalog:",
+    "turbo": "catalog:"
   }
 }

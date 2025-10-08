@@ -5,6 +5,32 @@ import { tmpdir } from 'os';
 import { config } from '../../src/config';
 import { fileURLToPath } from 'url';
 
+// Robust cleanup function for Windows file system issues
+async function cleanupDirectory(dirPath: string): Promise<void> {
+  if (!existsSync(dirPath)) return;
+  
+  let attempts = 0;
+  const maxAttempts = 5;
+  
+  while (attempts < maxAttempts) {
+    try {
+      // Force close any open handles and remove recursively
+      rmSync(dirPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 1000 });
+      break; // Success, exit the loop
+    } catch (error) {
+      attempts++;
+      if (attempts < maxAttempts) {
+        // Wait longer between attempts (exponential backoff)
+        const delay = 1000 * Math.pow(2, attempts - 1);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        console.warn(`Cleanup attempt ${attempts} failed, retrying in ${delay}ms:`, error);
+      } else {
+        console.warn(`Failed to clean up directory after ${maxAttempts} attempts:`, error);
+      }
+    }
+  }
+}
+
 let testDataDir: string;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -21,31 +47,9 @@ afterEach(async () => {
   // Add a longer delay to allow file handles to be released on Windows
   await new Promise(resolve => setTimeout(resolve, 500));
   
-  // Clean up test directory after each test
+  // Clean up test directory after each test with robust retry logic
   if (testDataDir && existsSync(testDataDir)) {
-    try {
-      // On Windows, try multiple times with increasing delays
-      let attempts = 0;
-      const maxAttempts = 3;
-      
-      while (attempts < maxAttempts) {
-        try {
-          rmSync(testDataDir, { recursive: true, force: true });
-          break; // Success, exit the loop
-        } catch (error) {
-          attempts++;
-          if (attempts < maxAttempts) {
-            // Wait longer between attempts
-            await new Promise(resolve => setTimeout(resolve, 1000 * attempts));
-          } else {
-            // Final attempt failed, just warn
-            console.warn('Failed to clean up test directory after multiple attempts:', error);
-          }
-        }
-      }
-    } catch (error) {
-      console.warn('Failed to clean up test directory:', error);
-    }
+    await cleanupDirectory(testDataDir);
   }
 });
 

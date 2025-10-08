@@ -23,7 +23,7 @@ export const AdvancedSearchDemo: React.FC = () => {
       
       // Filter by part of speech if not 'all'
       if (selectedPos !== 'all') {
-        filteredResults = synsets.filter(synset => synset.pos === selectedPos);
+        filteredResults = synsets.filter(synset => (synset as any).pos === selectedPos);
       }
       
       setResults(filteredResults);

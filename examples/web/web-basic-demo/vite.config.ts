@@ -36,6 +36,8 @@ export default defineConfig({
   plugins: [comlink(), react(), makeExternalProxyPlugin()],
   server: {
     ...getWordNetServerConfig(),
+    port: 5173,
+    host: '0.0.0.0',
     // Add development optimizations
     hmr: {
       overlay: false // Reduce overlay noise during development

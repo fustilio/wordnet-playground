@@ -122,7 +122,7 @@ createIntegrationTestSuite('Lexicons Queries Integration Tests', (getContext: ()
     }
     
     if (lexicon.metadata) {
-      expect(() => JSON.parse(lexicon.metadata as string)).not.toThrow();
+      expect(() => JSON.parse(lexicon.metadata as unknown as string)).not.toThrow();
     }
   });
 

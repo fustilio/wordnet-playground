@@ -93,6 +93,7 @@ function App() {
               <p className="text-sm text-gray-700">WASM: {isReady ? 'ready' : 'loading...'}</p>
               <p className="text-sm text-gray-700">DB: {db ? `${dbFilename} (${storage})` : 'not open'}</p>
               <p className="text-xs text-gray-500">Storage: {storage === 'opfs' ? 'OPFS' : storage === 'jsstorage' ? 'localStorage' : 'In-memory'}.</p>
+              <p className="text-xs text-gray-500">Persistence: {persistent ? 'enabled' : 'disabled'} (useful for tests)</p>
               {error && <p className="text-sm text-red-600">{error}</p>}
               <div className="mt-3 flex gap-2">
                 <button className="px-3 py-1 bg-blue-600 text-white rounded disabled:opacity-50" disabled={!isReady} onClick={() => openDatabase(dbFilename)}>Open</button>

@@ -5,18 +5,18 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "tsc -b && vite build",
+    "build": "tsc -b tsconfig.app.json && vite build",
     "cypress": "pnpm with-server \"pnpm run cypress:open\"",
     "cypress:open": "cypress open",
     "cypress:run": "cypress run",
-    "dev": "vite",
+    "dev": "vite --host",
     "dev:e2e": "vite --port 5174 --strictPort",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "pnpm test:cypress",
     "test:debug": "cross-env LOG_LEVEL=debug pnpm test",
-    "test:cypress": "pnpm with-server \"pnpm run cypress:run\"",
-    "with-server": "start-server-and-test \"pnpm run dev:e2e\" http://localhost:5174"
+    "test:cypress": "concurrently --kill-others --success first \"pnpm run dev\" \"wait-on http://localhost:5174 && cypress run\"",
+    "with-server": "start-server-and-test \"pnpm run dev\" http://localhost:5174 \"pnpm run cypress:run\""
   },
   "dependencies": {
     "@sqlite.org/sqlite-wasm": "catalog:",
@@ -32,6 +32,7 @@
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
+    "concurrently": "^9.2.1",
     "cross-env": "catalog:",
     "cypress": "^14.5.3",
     "eslint": "catalog:",
@@ -41,6 +42,7 @@
     "start-server-and-test": "^2.0.13",
     "ts-node": "^10.9.2",
     "typescript": "catalog:",
-    "vite": "catalog:"
+    "vite": "catalog:",
+    "wait-on": "^9.0.1"
   }
 }

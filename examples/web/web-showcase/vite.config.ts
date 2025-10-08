@@ -34,7 +34,11 @@ function makeExternalProxyPlugin() {
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [comlink(), react(), makeExternalProxyPlugin()],
-  server: getWordNetServerConfig(),
+  server: {
+    ...getWordNetServerConfig(),
+    port: 5175,
+    host: '0.0.0.0'
+  },
   optimizeDeps: getWordNetOptimizeDeps(),
   worker: {
     ...getWordNetWorkerConfig(),

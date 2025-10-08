@@ -164,8 +164,8 @@ function parseXMLToFixture(xmlContent: string, fixtureName: string): TestFixture
     if (synsets[i] && synsets[i + 1]) {
       relations.push({
         id: `rel-${i + 1}`,
-        source_id: synsets[i].id,
-        target_id: synsets[i + 1].id,
+        source_id: synsets[i]!.id,
+        target_id: synsets[i + 1]!.id,
         type: 'related_to',
         source: 'test'
       });

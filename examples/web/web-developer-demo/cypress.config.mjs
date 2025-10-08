@@ -4,10 +4,10 @@ import customViteConfig from "./vite.config.mjs";
 // Log level control for task-based logging
 // Levels: silent < error < warn < info < debug
 const LOG_LEVEL = process.env.LOG_LEVEL || "info";
-const LOG_LEVEL_WEIGHT = { silent: 0, error: 1, warn: 2, info: 3, debug: 4 };
+const LOG_LEVEL_WEIGHT: Record<string, number> = { silent: 0, error: 1, warn: 2, info: 3, debug: 4 };
 const currentWeight = LOG_LEVEL_WEIGHT[LOG_LEVEL] ?? LOG_LEVEL_WEIGHT.info;
 
-function shouldLog(minLevel) {
+function shouldLog(minLevel: string): boolean {
   return currentWeight >= (LOG_LEVEL_WEIGHT[minLevel] ?? LOG_LEVEL_WEIGHT.info);
 }
 
@@ -41,19 +41,19 @@ export default defineConfig({
     setupNodeEvents(on, config) {
       // Task/status logging - gated by LOG_LEVEL
       on("task", {
-        log(message) {
+        log(message: string) {
           if (shouldLog("debug")) {
             console.log("🧪 [task:log]", message);
           }
           return null;
         },
-        section(message) {
+        section(message: string) {
           if (shouldLog("info")) {
             console.log("\n=== " + message + " ===");
           }
           return null;
         },
-        progress(payload) {
+        progress(payload: any) {
           if (shouldLog("debug")) {
             console.log("🧪 [progress]", payload);
           }
@@ -88,5 +88,20 @@ export default defineConfig({
     // Ensure TypeScript support files are used
     supportFile: "cypress/support/e2e.ts",
     baseUrl: "http://localhost:5174",
+    viewportWidth: 1280,
+    viewportHeight: 720,
+    video: false,
+    screenshotOnRunFailure: true,
+    defaultCommandTimeout: 10000,
+    requestTimeout: 10000,
+    responseTimeout: 10000,
+    pageLoadTimeout: 30000,
+    // Following Cypress Real World App best practices
+    experimentalStudio: true,
+    experimentalRunAllSpecs: true,
+    retries: {
+      runMode: 2,
+      openMode: 0,
+    },
   },
 });

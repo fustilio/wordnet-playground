@@ -107,6 +107,7 @@ describe('Plugin Lifecycle Management', () => {
       const mockLexicon: Lexicon = {
         id: 'test-lexicon',
         label: 'Test Lexicon',
+        url: 'https://example.com',
         language: 'en',
         version: '1.0'
       };

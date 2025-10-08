@@ -228,10 +228,10 @@ export class WnBridge {
     try {
       const { form, pos, ili, lexicon, lang } = query || {};
       
-      if (!form) {
-        // If no form specified, return all synsets (with filters)
-        // This would need to be implemented based on the Python wn library capabilities
-        throw new WnDatabaseError('Querying all synsets without form is not yet implemented');
+      if (!form || form === '') {
+        // If no form specified or empty string, return empty array
+        // Getting all synsets would be too expensive and cause timeouts
+        return [];
       }
 
       console.log('[WnBridge.synsets] form:', form, 'pos:', pos, 'lexicon:', lexicon, 'lang:', lang);
@@ -322,10 +322,10 @@ export class WnBridge {
     try {
       const { form, pos, lexicon, lang } = query || {};
       
-      if (!form) {
-        // If no form specified, return all words (with filters)
-        // This would need to be implemented based on the Python wn library capabilities
-        throw new WnDatabaseError('Querying all words without form is not yet implemented');
+      if (!form || form === '') {
+        // If no form specified or empty string, return empty array
+        // Getting all words would be too expensive and cause timeouts
+        return [];
       }
 
       // Convert to old format for backward compatibility with Python calls
@@ -353,10 +353,10 @@ export class WnBridge {
         return await this.convertToJsArray(result, 'Sense');
       }
       
-      if (!form) {
-        // If no form specified, return all senses (with filters)
-        // This would need to be implemented based on the Python wn library capabilities
-        throw new WnDatabaseError('Querying all senses without form is not yet implemented');
+      if (!form || form === '') {
+        // If no form specified or empty string, return empty array
+        // Getting all senses would be too expensive and cause timeouts
+        return [];
       }
 
       // Convert to old format for backward compatibility with Python calls

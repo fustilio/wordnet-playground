@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { WordNetCore } from '../wordnet-kernel.js';
 import { Kysely, SqliteDialect } from 'kysely';
-import type { JSONColumnType } from 'kysely';
+// import type { JSONColumnType } from 'kysely';
 import type Database from 'better-sqlite3';
 import type { Database as DatabaseSchema } from '../types/database.js';
 import { createTables, createIndexes } from '../modules/database-operations/mutations/schema-mutations.js';
@@ -268,7 +268,7 @@ export async function setupIntegrationTest(): Promise<IntegrationTestContext> {
     status: 'standard' as const,
     superseded_by: null,
     note: null,
-    meta: JSON.stringify({}) // Convert to JSON string for SQLite
+    meta: JSON.stringify({}) as any // Convert to JSON string for SQLite
   }));
   
   await insertRecords(kyselyDb, 'words', wordsForDb);

@@ -7,8 +7,8 @@ import { SharedDataManager } from '../shared-data-manager.js';
 import type { DataManagerAdapter, DataManagerLogger, DataManagerProjectInfo } from '../shared-data-manager.js';
 
 // Mock adapter
-const createMockAdapter = (): DataManagerAdapter => ({
-  getQueryService: vi.fn().mockReturnValue({
+const createMockAdapter = (): DataManagerAdapter => {
+  const mockQueryService = {
     database: {} as any,
     getLexicons: vi.fn().mockResolvedValue([]),
     getLexiconById: vi.fn().mockResolvedValue(null),
@@ -20,8 +20,11 @@ const createMockAdapter = (): DataManagerAdapter => ({
       totalILIs: 0,
       totalLexicons: 0,
     }),
-  }),
-  getDatabase: vi.fn().mockReturnValue({} as any),
+  };
+  
+  return {
+    getQueryService: vi.fn().mockReturnValue(mockQueryService),
+    getDatabase: vi.fn().mockReturnValue({} as any),
   downloadFile: vi.fn().mockResolvedValue(new ArrayBuffer(0)),
   loadFile: vi.fn().mockResolvedValue(''),
   saveFile: vi.fn().mockResolvedValue(undefined),
@@ -41,7 +44,8 @@ const createMockAdapter = (): DataManagerAdapter => ({
     end: vi.fn(),
     fail: vi.fn(),
   } as DataManagerLogger),
-});
+  };
+};
 
 // Test implementation of SharedDataManager
 class TestDataManager extends SharedDataManager {
@@ -224,7 +228,7 @@ describe('SharedDataManager', () => {
     });
 
     it('should throw error when query service is not available', async () => {
-      mockAdapter.getQueryService.mockReturnValue(null);
+      (mockAdapter.getQueryService as any).mockReturnValue(null);
 
       await expect(dataManager.getStatistics()).rejects.toThrow('Query service not available for statistics');
     });

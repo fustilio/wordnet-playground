@@ -6,14 +6,16 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { WordNetKernel } from '../../src/wordnet-kernel.js';
 import { similarity } from '../../src/plugins/similarity/index.js';
 import { translation } from '../../src/plugins/translation.js';
+import type { WordNetCore } from '../../src/wordnet-kernel.js';
+import type { Word, Synset, Sense, ILI, Lexicon, Definition, Relation, WordQuery, SynsetQuery, SenseQuery } from '../../src/core/types.js';
 
 // Mock core implementation for testing
-class MockWordNetCore {
-  private synsets = new Map<string, any>();
+class MockWordNetCore implements WordNetCore {
+  private synsetData = new Map<string, any>();
 
   constructor() {
     // Add test synsets with different lexicons
-    this.synsets.set('en-n-0001', {
+    this.synsetData.set('en-n-0001', {
       id: 'en-n-0001',
       pos: 'n',
       lexicon: 'omw-en',
@@ -26,7 +28,7 @@ class MockWordNetCore {
       senseIds: []
     });
 
-    this.synsets.set('en-n-0002', {
+    this.synsetData.set('en-n-0002', {
       id: 'en-n-0002',
       pos: 'n',
       lexicon: 'omw-en',
@@ -39,7 +41,7 @@ class MockWordNetCore {
       senseIds: []
     });
 
-    this.synsets.set('fr-n-0001', {
+    this.synsetData.set('fr-n-0001', {
       id: 'fr-n-0001',
       pos: 'n',
       lexicon: 'omw-fr',
@@ -52,7 +54,7 @@ class MockWordNetCore {
       senseIds: []
     });
 
-    this.synsets.set('fr-n-0002', {
+    this.synsetData.set('fr-n-0002', {
       id: 'fr-n-0002',
       pos: 'n',
       lexicon: 'omw-fr',
@@ -66,30 +68,34 @@ class MockWordNetCore {
     });
   }
 
-  async synset(id: string) {
-    return this.synsets.get(id) || null;
+  async query(): Promise<unknown[]> { return []; }
+  async words(_query?: WordQuery): Promise<Word[]> { return []; }
+  async word(_wordId: string): Promise<Word> { 
+    throw new Error('Not implemented'); 
   }
-
-  async synsetsByILI(ili: string) {
-    return Array.from(this.synsets.values()).filter(s => s.ili === ili);
+  async synsets(_query?: SynsetQuery): Promise<Synset[]> { return []; }
+  async synset(synsetId: string): Promise<Synset> { 
+    return this.synsetData.get(synsetId) || null;
   }
-
-  async query() {
-    return [];
+  async senses(_query?: SenseQuery): Promise<Sense[]> { return []; }
+  async sense(_senseId: string): Promise<Sense> { 
+    throw new Error('Not implemented'); 
   }
-
-  async words() { return []; }
-  async word() { return null; }
-  async senses() { return []; }
-  async sense() { return null; }
-  async ili() { return null; }
-  async ilis() { return []; }
-  async lexicons() { return []; }
-  async getWord() { return []; }
-  async getSynset() { return null; }
-  async getSenses() { return []; }
-  async getDefinitions() { return []; }
-  async getRelations() { return []; }
+  async ili(_iliId: string): Promise<ILI> { 
+    throw new Error('Not implemented'); 
+  }
+  async ilis(_status?: string): Promise<ILI[]> { return []; }
+  async synsetsByILI(iliId: string): Promise<Synset[]> { 
+    return Array.from(this.synsetData.values()).filter(s => s.ili === iliId);
+  }
+  async lexicons(): Promise<Lexicon[]> { return []; }
+  async getWord(_form: string): Promise<Word[]> { return []; }
+  async getSynset(id: string): Promise<Synset | null> { 
+    return this.synsetData.get(id) || null;
+  }
+  async getSenses(_wordId: string): Promise<Sense[]> { return []; }
+  async getDefinitions(_synsetId: string): Promise<Definition[]> { return []; }
+  async getRelations(_synsetId: string, _type?: string): Promise<Relation[]> { return []; }
 }
 
 describe('Similarity Methods Lexicon Context Fix', () => {

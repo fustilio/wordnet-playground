@@ -1,7 +1,7 @@
 // wn-ts WordNet library implementation
 import { MultilingualWordNetLibraryBase, WordNetLibraryTester, QueryOptions } from '../WordNetLibraryBase.ts';
 // Import from the main wn-ts package - no more deep imports needed
-import { Wordnet as TSWordnet, download, add } from 'wn-ts';
+import { Wordnet as TSWordnet, download, add } from 'wn-ts-node';
 
 export class WnTsLibrary extends MultilingualWordNetLibraryBase {
   name = 'wn-ts';
