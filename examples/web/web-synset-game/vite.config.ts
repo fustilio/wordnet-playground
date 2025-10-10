@@ -7,13 +7,12 @@ import {
 	getWordNetServerConfig,
 	getWordNetOptimizeDeps,
 	getWordNetWorkerConfig,
-} from "../shared-proxy-config";
-import tailwindcss from '@tailwindcss/vite'
-
+} from "wn-ts-web/proxy-config";
+import tailwindcss from "@tailwindcss/vite";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-	plugins: [comlink(), react(), tailwindcss(),],
+	plugins: [comlink(), react(), tailwindcss()],
 	server: getWordNetServerConfig(),
 	optimizeDeps: getWordNetOptimizeDeps(),
 	worker: {
