@@ -12,7 +12,8 @@ import {
 import { colors } from "./utils/colors.js";
 import conf from "../config-manager.js";
 import { getLogPath } from "../utils/user-logger.js";
-import { isDatabaseLocked } from "wn-ts";
+// TODO: isDatabaseLocked function needs to be implemented
+// import { isDatabaseLocked } from "wn-ts-node";
 
 class DatabaseCLI {
   private cacheDir = join(homedir(), ".wn_ts_data");
@@ -257,15 +258,8 @@ function registerDbCommands(program: Command) {
     .option("--verbose", "Show detailed status information")
     .action(async (options) => {
       await cli.status(options);
-      // Add lock status check here
-      const isLocked = isDatabaseLocked();
-      if (isLocked) {
-        console.log("  • Locked: Yes (another process may be using the database)");
-        console.log("    - Tip: Close other CLI/TUI windows or wait a few seconds.");
-        console.log("    - On Windows, file handles may take longer to release.");
-      } else {
-        console.log("  • Locked: No");
-      }
+      // TODO: Add lock status check here when isDatabaseLocked is implemented
+      console.log("  • Locked: Unknown (lock checking not yet implemented)");
     });
   db.command("cache")
     .description("Show cache contents and file sizes")

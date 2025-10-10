@@ -1,5 +1,5 @@
 import { Wordnet, ili, synset as wnSynset } from "wn-ts-node";
-import type { PartOfSpeech } from "wn-ts-core";
+import type { PartOfSpeech } from "wn-ts-node";
 import { colors } from "../commands/utils/colors.js";
 
 export interface WordResult {
@@ -79,16 +79,16 @@ export class WordNetHelper {
 
   async getSynset(id: string): Promise<SynsetResult | null> {
     try {
-      const synset = await wnSynset(id, { lexicon: this.lexicon });
+      const synset = await wnSynset(id);
       if (!synset) return null;
 
       return {
         id: synset.id,
         definitions: synset.definitions || [],
-        members: synset.members || [],
+        members: synset.memberIds || [],
         relations: synset.relations || [],
         ili: synset.ili,
-        partOfSpeech: synset.partOfSpeech,
+        partOfSpeech: synset.pos,
       };
     } catch (error) {
       console.error("WordNet getSynset error:", error);

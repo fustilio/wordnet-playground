@@ -820,23 +820,60 @@ export class NodeDataManager extends SharedDataManager {
         lexicons = lexicons.filter((l: any) => !exclude.includes(l.id));
       }
       
+      // For each lexicon, get detailed data
+      const detailedLexicons = await Promise.all(lexicons.map(async (lexicon: any) => {
+        try {
+          const words = await queryService.getWords(lexicon.id);
+          const synsets = await queryService.getSynsets(lexicon.id);
+          return {
+            ...lexicon,
+            entries: words,
+            synsets: synsets
+          };
+        } catch (error) {
+          this.logger.warn(`Failed to get detailed data for lexicon ${lexicon.id}:`, error);
+          return lexicon;
+        }
+      }));
+      
       if (format === 'json') {
         const data = {
-          lexicons,
+          lexicons: detailedLexicons,
           exportDate: new Date().toISOString(),
           format: 'json'
         };
-        this.logger.info(JSON.stringify(data, null, 2));
+        
+        // Write to file if output path is provided
+        if (options.output) {
+          writeFileSync(options.output, JSON.stringify(data, null, 2));
+          this.logger.info(`✅ Exported data to ${options.output}`);
+        } else {
+          this.logger.info(JSON.stringify(data, null, 2));
+        }
         return data;
       } else if (format === 'xml') {
         // TODO: Implement XML export with actual data
         const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<lexical-resources>\n</lexical-resources>`;
-        this.logger.info(xml);
+        
+        // Write to file if output path is provided
+        if (options.output) {
+          writeFileSync(options.output, xml);
+          this.logger.info(`✅ Exported data to ${options.output}`);
+        } else {
+          this.logger.info(xml);
+        }
         return xml;
       } else if (format === 'csv') {
         // TODO: Implement CSV export with actual data
         const csv = 'Type,ID,Lemma,PartOfSpeech,Language,Lexicon,Definition,Example\nword,test-word-1,test,noun,en,test-lexicon,A test word,This is an example';
-        this.logger.info(csv);
+        
+        // Write to file if output path is provided
+        if (options.output) {
+          writeFileSync(options.output, csv);
+          this.logger.info(`✅ Exported data to ${options.output}`);
+        } else {
+          this.logger.info(csv);
+        }
         return csv;
       } else {
         return { lexicons };

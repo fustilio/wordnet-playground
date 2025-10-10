@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { runCommand } from "./test-helper.js";
 import { writeFileSync } from 'fs';
 import { join } from 'path';
-import { add, config } from "wn-ts";
+import { add, config } from "wn-ts-node";
 
 // Minimal LMF XML for testing stats
 const testLexicon = `

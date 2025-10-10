@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { lexicons as getInstalledLexicons } from "wn-ts";
+import { lexicons as getInstalledLexicons } from "wn-ts-node";
 import { colors } from "./utils/colors.js";
 import { resolveLexicon } from "../utils/lexicon-helpers.js";
 import { getBestDefinition } from "../utils/wordnet-helpers.js";
@@ -68,7 +68,7 @@ function registerMultilingualCommands(program: Command) {
         
         // Get synsets for the word
         const senses = await wn.senses(word, options.pos);
-        const synsetIds = [...new Set(senses.map(s => s.synset))];
+        const synsetIds = [...new Set(senses.map(s => s.synsetId))];
         const synsetResults = await Promise.all(synsetIds.map(id => wn.synset(id)));
         const synsets = synsetResults.filter(s => !!s);
         
@@ -98,8 +98,8 @@ function registerMultilingualCommands(program: Command) {
           
           for (let i = 0; i < synsets.length; i++) {
             const synset = synsets[i];
-            const members = synset.members?.length ? synset.members.map((m: string) => m.replace(new RegExp(`^${synset.lexicon}-`), '').replace(/^w_/, '').replace(/-[a-z]$/, '')).join(', ') : word;
-            const pos = synset.partOfSpeech || options.pos || "?";
+            const members = synset.memberIds?.length ? synset.memberIds.map((m: string) => m.replace(new RegExp(`^${synset.lexicon}-`), '').replace(/^w_/, '').replace(/-[a-z]$/, '')).join(', ') : word;
+            const pos = synset.pos || options.pos || "?";
             
             let displayMembers = members;
             if (options.target && targetLexiconId && synset.ili) {
@@ -121,8 +121,8 @@ function registerMultilingualCommands(program: Command) {
                 const lemmas = new Set<string>();
                 for (const ts of targetSynsets) {
                   const fullTargetSynset = await wn.synset(ts.id);
-                  if (fullTargetSynset && fullTargetSynset.members) {
-                    fullTargetSynset.members.forEach((m: string) =>
+                  if (fullTargetSynset && fullTargetSynset.memberIds) {
+                    fullTargetSynset.memberIds.forEach((m: string) =>
                       lemmas.add(
                         m
                           .replace(

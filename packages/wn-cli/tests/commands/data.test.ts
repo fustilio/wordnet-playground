@@ -2,10 +2,10 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { runCommand } from "./test-helper.js";
 import { writeFileSync, readFileSync } from "fs";
 import { join } from "path";
-import { add, config } from "wn-ts";
+import { add, config } from "wn-ts-node";
 
 beforeEach(async () => {
-  const { config } = await import("wn-ts");
+  const { config } = await import("wn-ts-node");
   const fs = await import('fs');
   // Debug: print config.dataDirectory and CLI config path
   // eslint-disable-next-line no-console
@@ -18,7 +18,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
-  const { config } = await import("wn-ts");
+  const { config } = await import("wn-ts-node");
   const fs = await import('fs');
   const dbPath = require('path').join(config.dataDirectory, 'wn.db');
   // eslint-disable-next-line no-console
@@ -155,7 +155,7 @@ describe("data command tests", () => {
     // Verify that entries and synsets ARE in the export.
     expect(exportedLexicon.entries).toHaveLength(2);
     expect(exportedLexicon.synsets).toHaveLength(1);
-    expect(exportedLexicon.entries[0].lemma.writtenForm).toBe("export");
-    expect(exportedLexicon.synsets[0].definition).toBe("a test definition");
+    expect(exportedLexicon.entries[0].lemma).toBe("export");
+    expect(exportedLexicon.synsets[0].definitions[0].text).toBe("a test definition");
   });
 });

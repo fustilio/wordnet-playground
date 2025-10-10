@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { runCommand } from "./test-helper.js";
 import { writeFileSync } from 'fs';
 import { join } from 'path';
-import { add, config } from "wn-ts";
+import { add, config } from "wn-ts-node";
 
 describe("lexicons command tests", () => {
   it("lexicons command runs successfully and lists all lexicons", async () => {

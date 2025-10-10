@@ -94,6 +94,7 @@
     "ink": "^4.1.0",
     "react": "^18.2.0",
     "vite-tsconfig-paths": "^5.1.4",
+    "wn-ts-core": "workspace:*",
     "wn-ts-node": "workspace:*"
   },
   "devDependencies": {
@@ -110,6 +111,7 @@
     "typescript": "~5.8.3",
     "vite": "catalog:",
     "vitest": "catalog:",
+    "wn-test-data": "workspace:*",
     "xo": "^0.53.1"
   },
   "engines": {

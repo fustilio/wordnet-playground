@@ -4,24 +4,29 @@ import {
   capturedCommandPath,
   capturedArgs,
 } from "../../src/cli.js";
-import { config } from "wn-ts";
-import conf from "../../src/config-manager.js";
+import { config, clearDataManagementSingletons } from "wn-ts-node";
+import conf, { applyStoredConfig } from "../../src/config-manager.js";
 import { closeWordnetInstance } from "../../src/wordnet-singleton.js";
 import { logUserInteraction } from "../../src/utils/user-logger.js";
-import { rmSync, mkdirSync, existsSync } from "fs";
-import { join } from "path";
+import { rmSync, mkdirSync, existsSync, copyFileSync } from "fs";
+import { join, dirname } from "path";
 import { tmpdir } from "os";
+import { fileURLToPath } from "url";
 import { format } from "util";
 
 // Set a global timeout for all tests in this suite, as file operations can be slow.
 vi.setConfig({
   testTimeout: 120000,
+  hookTimeout: 120000,
 });
 
 let currentTestDir: string;
 
 // This setup runs before each test in every file
 beforeEach(() => {
+  // Clear singletons to ensure fresh instances for each test
+  clearDataManagementSingletons();
+  
   // Each test gets its own data directory and config to prevent test interference
   currentTestDir = join(tmpdir(), `wn-cli-test-${Date.now()}-${Math.random()}`);
   mkdirSync(currentTestDir, { recursive: true });
@@ -36,6 +41,17 @@ beforeEach(() => {
   (conf as any).path = join(currentTestDir, "config.json");
   conf.clear();
   conf.set("dataDirectory", currentTestDir);
+  
+  // Apply the stored configuration to ensure wn-ts-node uses the test directory
+  applyStoredConfig();
+  
+  // Copy the index.toml file to the test directory so getProjects() can find it
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const sourceIndexPath = join(__dirname, "..", "..", "..", "..", "packages", "wn-ts-node", "src", "index.toml");
+  const targetIndexPath = join(currentTestDir, "index.toml");
+  if (existsSync(sourceIndexPath)) {
+    copyFileSync(sourceIndexPath, targetIndexPath);
+  }
 });
 
 // This teardown runs after each test in every file

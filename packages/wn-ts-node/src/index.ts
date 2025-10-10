@@ -29,6 +29,7 @@ export {
   addLexicalResource,
   remove,
   exportData as export,
+  clearDataManagementSingletons,
 } from './data-management/index.js';
 
 // Module functions - matching Python wn API exactly
@@ -48,12 +49,14 @@ export {
 // Project management functions
 export {
   getProjects,
+  loadProjectIndex,
+  clearProjectIndexCache,
+} from './project.js';
+export {
   getProject,
   getProjectVersions,
   getProjectVersionUrls,
   getProjectVersionError,
-  loadProjectIndex,
-  clearProjectIndexCache,
 } from 'wn-ts-core';
 export type { ProjectIndex, ProjectVersion } from 'wn-ts-core';
 

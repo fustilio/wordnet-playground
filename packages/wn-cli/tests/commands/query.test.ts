@@ -26,8 +26,8 @@ describe('query command tests', () => {
   let config: any;
   let add: any;
   beforeEach(async () => {
-    // Dynamically import wn-ts after config.dataDirectory is set by test-helper
-    ({ config, add } = await import("wn-ts"));
+    // Dynamically import wn-ts-node after config.dataDirectory is set by test-helper
+    ({ config, add } = await import("wn-ts-node"));
     // Ensure the temp data directory exists
     const fs = await import('fs');
     if (!fs.existsSync(config.dataDirectory)) {
@@ -60,7 +60,7 @@ describe('query command tests', () => {
     }
     // Check isLMF and loadLMF
     try {
-      const { isLMF, loadLMF } = await import('wn-ts');
+      const { isLMF, loadLMF } = await import('wn-ts-node');
       const isLmf = await isLMF(testFile);
       // eslint-disable-next-line no-console
       console.log('DEBUG isLMF result:', isLmf);
@@ -104,7 +104,7 @@ describe('query command tests', () => {
       console.log('DEBUG wn.db exists:', true, 'size:', stat.size);
     }
     // Debug: print all definitions for ss_car using wn-ts API
-    const { synset } = await import("wn-ts");
+    const { synset } = await import("wn-ts-node");
     let ssCar;
     try {
       ssCar = await synset("ss_car", { lexicon: "test-query" });
@@ -117,7 +117,7 @@ describe('query command tests', () => {
     
     // Debug: check what's actually in the database
     try {
-      const { db } = await import("wn-ts");
+      const { db } = await import("wn-ts-node");
       db.initialize();
       const synsets = db.all('SELECT * FROM synsets WHERE lexicon = ?', ['test-query']);
       // eslint-disable-next-line no-console

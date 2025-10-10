@@ -56,7 +56,7 @@ function registerDisambiguationCommands(program: Command) {
         }
         
         const senses = await wn.senses(word, options.pos);
-        const synsetIds = [...new Set(senses.map(s => s.synset))];
+        const synsetIds = [...new Set(senses.map(s => s.synsetId))];
         const synsetResults = await Promise.all(synsetIds.map(id => wn.synset(id)));
         const synsets = synsetResults.filter(s => !!s);
         
@@ -85,8 +85,8 @@ function registerDisambiguationCommands(program: Command) {
           
           for (let i = 0; i < synsets.length; i++) {
             const synset = synsets[i];
-            const members = synset.members?.length ? synset.members.map((m: string) => m.replace(new RegExp(`^${synset.lexicon}-`), '').replace(/^w_/, '').replace(/-[a-z]$/, '')).join(', ') : word;
-            const pos = synset.partOfSpeech || options.pos || "?";
+            const members = synset.memberIds?.length ? synset.memberIds.map((m: string) => m.replace(new RegExp(`^${synset.lexicon}-`), '').replace(/^w_/, '').replace(/-[a-z]$/, '')).join(', ') : word;
+            const pos = synset.pos || options.pos || "?";
             
             console.log(`\n${colors.cyan(`Sense ${i + 1}:`)} ${colors.bold(members)} (${pos})`);
             console.log(`   ${colors.bold("ID:")} ${synset.id}`);

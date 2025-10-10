@@ -1,5 +1,5 @@
 import { Command } from "commander";
-import { ili } from "wn-ts";
+import { ili } from "wn-ts-node";
 import { colors } from "./utils/colors.js";
 import { resolveLexicon } from "../utils/lexicon-helpers.js";
 import { getBestDefinition } from "../utils/wordnet-helpers.js";
@@ -140,12 +140,12 @@ function registerQueryCommands(program: Command) {
             for (let i = 0; i < words.length; i++) {
               const w = words[i];
               const prefix = options.verbose ? `${i + 1}. ` : "• ";
-              console.log(`   ${prefix}${colors.cyan(w.lemma)} (${w.partOfSpeech})`);
+              console.log(`   ${prefix}${colors.cyan(w.lemma)} (${w.pos})`);
               
               // Always show definition by fetching synset
               try {
-                const senses = await wn.senses(w.lemma, w.partOfSpeech);
-                const synsetIds = [...new Set(senses.map(s => s.synset))];
+                const senses = await wn.senses(w.lemma, w.pos);
+                const synsetIds = [...new Set(senses.map(s => s.synsetId))];
                 const synsetResults = await Promise.all(synsetIds.map(id => wn.synset(id)));
                 const synsets = synsetResults.filter(s => !!s);
                 if (synsets.length > 0) {
@@ -238,7 +238,7 @@ function registerQueryCommands(program: Command) {
         
         // Get synsets for the word
         const senses = await wn.senses(word, options.pos);
-        const synsetIds = [...new Set(senses.map(s => s.synset))];
+        const synsetIds = [...new Set(senses.map(s => s.synsetId))];
         const synsetResults = await Promise.all(synsetIds.map(id => wn.synset(id)));
         const synsets = synsetResults.filter(s => !!s);
         
@@ -266,9 +266,9 @@ function registerQueryCommands(program: Command) {
           
           for (let i = 0; i < synsets.length; i++) {
             const synset = synsets[i];
-            const members = synset.members?.length ? synset.members.map((m: string) => m.replace(new RegExp(`^${synset.lexicon}-`), '').replace(/^w_/, '').replace(/-[a-z]$/, '')).join(', ') : word;
+            const members = synset.memberIds?.length ? synset.memberIds.map((m: string) => m.replace(new RegExp(`^${synset.lexicon}-`), '').replace(/^w_/, '').replace(/-[a-z]$/, '')).join(', ') : word;
             const definition = await getBestDefinition(synset);
-            const pos = synset.partOfSpeech || options.pos || "?";
+            const pos = synset.pos || options.pos || "?";
             
             console.log(`\n${colors.cyan(`Meaning ${i + 1}:`)} ${colors.bold(members)} (${pos})`);
             console.log(`   Definition: ${definition}`);
@@ -344,7 +344,7 @@ function registerQueryCommands(program: Command) {
           console.log(colors.bold(`🔍 Querying synsets for "${word}" in ${options.lexicon}...`));
         }
         const senses = await wn.senses(word, options.pos);
-        const synsetIds = [...new Set(senses.map(s => s.synset))];
+        const synsetIds = [...new Set(senses.map(s => s.synsetId))];
         const synsetResults = await Promise.all(synsetIds.map(id => wn.synset(id)));
         const synsets = synsetResults.filter(s => !!s);
         
@@ -378,7 +378,7 @@ function registerQueryCommands(program: Command) {
             if (definition.startsWith("No definition")) {
               console.log(`     ${colors.yellow("💡 Tip: Install 'cili' for more definitions. Run: wn-cli data download cili:1.0")}`);
             }
-            console.log(`     Members: ${s.members.join(", ")}`);
+            console.log(`     Members: ${s.memberIds.join(", ")}`);
             
             if (options.verbose && s.relations && s.relations.length > 0) {
               console.log(`     Relations: ${s.relations.length} found`);
@@ -436,7 +436,7 @@ function registerQueryCommands(program: Command) {
         
         const wn = getWordnetInstance(options.lexicon);
         const senses = await wn.senses(word, options.pos);
-        const synsetIds = [...new Set(senses.map(s => s.synset))];
+        const synsetIds = [...new Set(senses.map(s => s.synsetId))];
         const synsetResults = await Promise.all(synsetIds.map(id => wn.synset(id)));
         const synsets = synsetResults.filter(s => !!s);
 
@@ -444,7 +444,7 @@ function registerQueryCommands(program: Command) {
           const results = await Promise.all(synsets.map(async (s) => ({
             id: s.id,
             definition: await getBestDefinition(s),
-            members: s.members,
+            members: s.memberIds,
           })));
           const output = {
               word: word,
@@ -465,7 +465,7 @@ function registerQueryCommands(program: Command) {
         }
 
         for (const synset of synsets) {
-          const members = synset.members
+          const members = synset.memberIds
             .map((m: string) => m.replace(new RegExp(`^${synset.lexicon}-`), '').replace(/^w_/, '').replace(/-[a-z]$/, ''))
             .filter(m => m.toLowerCase() !== word.toLowerCase());
           

@@ -1,7 +1,7 @@
 import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { createRequire } from 'node:module';
-import { getProjects, lexicons as getInstalledLexicons } from 'wn-ts';
+import { getProjects, lexicons as getInstalledLexicons } from 'wn-ts-node';
 
 interface LexiconInfo {
 	label: string;

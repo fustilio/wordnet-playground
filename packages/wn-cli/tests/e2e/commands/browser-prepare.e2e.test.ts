@@ -7,7 +7,7 @@ import {
   writeFileSync,
 } from "fs";
 import { join } from "path";
-import { add, config } from "wn-ts";
+import { add, config } from "wn-ts-node";
 
 // This E2E test validates the 'browser prep' command in an isolated environment
 // provided by the test-helper. No custom setup/teardown is needed.

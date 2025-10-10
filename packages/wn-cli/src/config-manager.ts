@@ -1,5 +1,5 @@
 import Conf from 'conf';
-import { config as wnTsConfig } from 'wn-ts';
+import { config as wnTsConfig } from 'wn-ts-node';
 import { homedir } from 'os';
 import { join } from 'path';
 
@@ -30,10 +30,10 @@ const conf = new Conf({
 
 // Function to apply the stored config to the wn-ts config object
 export function applyStoredConfig() {
-  // During tests, config.dataDirectory is managed by the test-helper.
-  // We should not override it with a persisted value from a previous test run.
-  if (process.env.NODE_ENV !== 'test') {
-    wnTsConfig.dataDirectory = conf.get('dataDirectory') as string;
+  // Apply dataDirectory from config file
+  const dataDir = conf.get('dataDirectory') as string;
+  if (dataDir) {
+    wnTsConfig.dataDirectory = dataDir;
   }
   wnTsConfig.allowMultithreading = conf.get('allowMultithreading') as boolean;
 }

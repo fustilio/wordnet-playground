@@ -1,4 +1,4 @@
-import { Wordnet, config } from "wn-ts";
+import { Wordnet, config } from "wn-ts-node";
 
 let wn: Wordnet | null = null;
 let currentLexicon: string | undefined;

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { runCommand } from "./test-helper.js";
-import { add, config } from "wn-ts";
+import { add, config } from "wn-ts-node";
 import { writeFileSync } from "fs";
 import { join } from "path";
 

@@ -96,6 +96,7 @@ export function useWordnet(config: WordnetConfig = {}): UseWordnetReturn {
     error: error || initializationError,
     ready: isReady(),
     getDefinitions,
+    searchWords: getDefinitions, // Alias for getDefinitions
     isReady
   };
 }

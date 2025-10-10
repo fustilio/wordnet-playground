@@ -25,6 +25,14 @@ export function setDataManagementDb(db: KyselyWordnet): void {
 }
 
 /**
+ * Clear the data management singletons (for testing)
+ */
+export function clearDataManagementSingletons(): void {
+  _dataManagementDb = null;
+  _dataManager = null;
+}
+
+/**
  * Get the data management database instance
  */
 export async function getDataManagementDb(): Promise<KyselyWordnet> {

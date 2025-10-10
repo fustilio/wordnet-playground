@@ -13,7 +13,6 @@ import registerDbCommands from "./commands/db.js";
 import registerConfigCommand from "./commands/config.js";
 import registerLayoutTestCommand from "./commands/layout-test.js";
 import registerLexiconsCommand from "./commands/lexicons.js";
-import registerBrowserCommands from "./commands/browser.js";
 import { applyStoredConfig } from "./config-manager.js";
 import {
   logUserInteraction,
@@ -176,7 +175,6 @@ For more information, visit: https://github.com/your-repo/wn-cli
   registerConfigCommand(program);
   registerLayoutTestCommand(program);
   registerLexiconsCommand(program);
-  registerBrowserCommands(program);
 
 
   return { program, hasTuiFlag, chain, snapshotEnabled };

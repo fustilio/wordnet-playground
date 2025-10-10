@@ -6,8 +6,8 @@ import {
   export as exportData,
   getProjects,
   lexicons as getInstalledLexicons,
-  isDatabaseLocked,
-} from "wn-ts";
+  // isDatabaseLocked, // TODO: Function needs to be implemented
+} from "wn-ts-node";
 import { colors } from "./utils/colors.js";
 import {
   getWordnetInstance,
@@ -20,16 +20,8 @@ function registerDbUnlockCommand(program: Command) {
     .command('db:unlock')
     .description('Check if the database is locked and suggest remedies if so')
     .action(() => {
-      if (isDatabaseLocked()) {
-        console.error(colors.red('❌ Database is locked.'));
-        console.log(colors.yellow('• Wait a few seconds and try again.'));
-        console.log(colors.yellow('• Ensure no other CLI, GUI, or test is using the database.'));
-        if (process.platform === 'win32') {
-          console.log(colors.yellow('• If the problem persists, try restarting your computer (Windows file locks can be sticky).'));
-        }
-      } else {
-        console.log(colors.green('✅ Database is not locked.'));
-      }
+      // TODO: Implement database lock checking
+      console.log(colors.yellow('⚠️ Database lock checking not yet implemented.'));
     });
 }
 
@@ -288,15 +280,8 @@ function registerDataCommands(program: Command) {
           }
 
           // --- DB LOCK CHECK ---
-          if (!options.dryRun && isDatabaseLocked()) {
-            console.error(colors.red('❌ Database is locked. Please close any other process using the database and try again.'));
-            console.log(colors.yellow('• Wait a few seconds and try again.'));
-            console.log(colors.yellow('• Ensure no other CLI, GUI, or test is using the database.'));
-            if (process.platform === 'win32') {
-              console.log(colors.yellow('• If the problem persists, try restarting your computer (Windows file locks can be sticky).'));
-            }
-            process.exit(1);
-          }
+          // TODO: Implement database lock checking
+          // if (!options.dryRun && isDatabaseLocked()) { ... }
           // --- END DB LOCK CHECK ---
 
           const addOptions: any = {
@@ -388,15 +373,8 @@ function registerDataCommands(program: Command) {
         }
 
         // --- DB LOCK CHECK ---
-        if (!options.dryRun && isDatabaseLocked()) {
-          console.error(colors.red('❌ Database is locked. Please close any other process using the database and try again.'));
-          console.log(colors.yellow('• Wait a few seconds and try again.'));
-          console.log(colors.yellow('• Ensure no other CLI, GUI, or test is using the database.'));
-          if (process.platform === 'win32') {
-            console.log(colors.yellow('• If the problem persists, try restarting your computer (Windows file locks can be sticky).'));
-          }
-          process.exit(1);
-        }
+        // TODO: Implement database lock checking
+        // if (!options.dryRun && isDatabaseLocked()) { ... }
         // --- END DB LOCK CHECK ---
 
         const addOptions: any = {
