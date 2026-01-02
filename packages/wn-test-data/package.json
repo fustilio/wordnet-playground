@@ -1,0 +1,11 @@
+{
+  "name": "wn-test-data",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Test data fixtures for WordNet packages",
+  "type": "module",
+  "main": "./data/index.js",
+  "files": [
+    "data"
+  ]
+}

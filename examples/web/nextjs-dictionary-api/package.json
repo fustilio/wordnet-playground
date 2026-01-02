@@ -1,0 +1,36 @@
+{
+  "name": "nextjs-dictionary-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Next.js Dictionary API Demo using WordNet serverless dictionary",
+  "scripts": {
+    "prebuild": "pnpm run generate-dict",
+    "build": "next build",
+    "predev": "pnpm run generate-dict",
+    "dev": "next dev --turbo",
+    "start": "next start",
+    "lint": "next lint",
+    "pregenerate-dict": "pnpm --filter wn-serverless-dict build",
+    "generate-dict": "wn-dict-export mini serverless-dict"
+  },
+  "dependencies": {
+    "next": "^15.1.6",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "wn-serverless-dict": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "autoprefixer": "^10.4.20",
+    "eslint": "catalog:",
+    "eslint-config-next": "15.1.6",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "catalog:"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

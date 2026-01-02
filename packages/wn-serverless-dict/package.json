@@ -1,0 +1,69 @@
+{
+  "name": "wn-serverless-dict",
+  "version": "0.1.0",
+  "description": "Serverless-optimized dictionary generation and runtime utilities for WordNet",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./generators": {
+      "types": "./dist/generators/index.d.ts",
+      "import": "./dist/generators/index.js"
+    },
+    "./utils": {
+      "types": "./dist/utils/index.d.ts",
+      "import": "./dist/utils/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js"
+    }
+  },
+  "bin": {
+    "wn-dict-export": "./dist/cli/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rimraf dist",
+    "prebuild": "pnpm run clean",
+    "postbuild": "node scripts/make-executable.cjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "wordnet",
+    "dictionary",
+    "serverless",
+    "lambda",
+    "edge-functions",
+    "nlp",
+    "linguistics",
+    "translation"
+  ],
+  "dependencies": {
+    "wn-ts-node": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "rimraf": "catalog:",
+    "typescript": "catalog:"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fustilio/wordnet-playground.git",
+    "directory": "packages/wn-serverless-dict"
+  },
+  "license": "MIT"
+}
