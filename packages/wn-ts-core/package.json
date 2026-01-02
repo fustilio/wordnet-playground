@@ -49,6 +49,10 @@
       "types": "./src/lmf/index.ts",
       "default": "./src/lmf/index.ts"
     },
+    "./parsers": {
+      "types": "./src/parsers/index.ts",
+      "default": "./src/parsers/index.ts"
+    },
     "./tests/integration/platform-integration/platform-test-framework": {
       "types": "./tests/integration/platform-integration/platform-test-framework.ts",
       "default": "./tests/integration/platform-integration/platform-test-framework.ts"

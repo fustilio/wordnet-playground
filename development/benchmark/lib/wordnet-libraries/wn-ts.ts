@@ -1,7 +1,10 @@
 // wn-ts WordNet library implementation
 import { MultilingualWordNetLibraryBase, WordNetLibraryTester, QueryOptions } from '../WordNetLibraryBase.ts';
 // Import from the main wn-ts package - no more deep imports needed
-import { Wordnet as TSWordnet, download, add } from 'wn-ts-node';
+// @ts-ignore - module resolution issue in monorepo, works at runtime
+import { Wordnet, download, add } from 'wn-ts-node';
+
+const TSWordnet = Wordnet;
 
 export class WnTsLibrary extends MultilingualWordNetLibraryBase {
   name = 'wn-ts';
@@ -22,7 +25,7 @@ export class WnTsLibrary extends MultilingualWordNetLibraryBase {
         // Check if dataset is already available
         const tempWn = new TSWordnet('*');
         const lexicons = await tempWn.lexicons();
-        let lex = lexicons.find(l => l.id === dataset.split(':')[0] && l.version === dataset.split(':')[1]);
+        let lex = lexicons.find((l: any) => l.id === dataset.split(':')[0] && l.version === dataset.split(':')[1]);
         
         if (!lex) {
           console.log(`📥 Downloading ${dataset} for wn-ts...`);

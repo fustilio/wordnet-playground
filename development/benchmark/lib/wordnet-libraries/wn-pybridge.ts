@@ -50,15 +50,15 @@ export class WnPybridgeLibrary extends MultilingualWordNetLibraryBase {
         // For wn-pybridge, we need to initialize with the specific language
         const langBridge = new WnBridge();
         await langBridge.init(`omw-${options.lang}31:1.4`);
-        return await langBridge.synsets(word, options);
+        return await langBridge.synsets({ form: word, ...options });
       } catch (error) {
         console.warn(`wn-pybridge multilingual synset lookup error for "${word}" in ${options.lang}:`, error);
         return [];
       }
     }
-    
+
     try {
-      return await this.lib.synsets(word, options);
+      return await this.lib.synsets({ form: word, ...options });
     } catch (error) {
       console.warn('wn-pybridge synsetLookup failed:', error);
       return [];
@@ -74,15 +74,15 @@ export class WnPybridgeLibrary extends MultilingualWordNetLibraryBase {
         // For wn-pybridge, we need to initialize with the specific language
         const langBridge = new WnBridge();
         await langBridge.init(`omw-${options.lang}31:1.4`);
-        return await langBridge.words(word, options);
+        return await langBridge.words({ form: word, ...options });
       } catch (error) {
         console.warn(`wn-pybridge multilingual word lookup error for "${word}" in ${options.lang}:`, error);
         return [];
       }
     }
-    
+
     try {
-      return await this.lib.words(word, options);
+      return await this.lib.words({ form: word, ...options });
     } catch (error) {
       console.warn('wn-pybridge wordLookup failed:', error);
       return [];
@@ -98,15 +98,15 @@ export class WnPybridgeLibrary extends MultilingualWordNetLibraryBase {
         // For wn-pybridge, we need to initialize with the specific language
         const langBridge = new WnBridge();
         await langBridge.init(`omw-${options.lang}31:1.4`);
-        return await langBridge.senses(word, options);
+        return await langBridge.senses({ form: word, ...options });
       } catch (error) {
         console.warn(`wn-pybridge multilingual sense lookup error for "${word}" in ${options.lang}:`, error);
         return [];
       }
     }
-    
+
     try {
-      return await this.lib.senses(word, options);
+      return await this.lib.senses({ form: word, ...options });
     } catch (error) {
       console.warn('wn-pybridge senseLookup failed:', error);
       return [];

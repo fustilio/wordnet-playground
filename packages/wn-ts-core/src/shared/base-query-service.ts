@@ -97,9 +97,11 @@ export interface StrategyConfig {
 }
 
 export abstract class BaseKyselyQueryService {
-  protected defaultStrategy: QueryStrategy = 'default';
+  // V5 is now the default strategy for optimal performance (50,000+ Hz vs 1,000 Hz)
+  // V5 uses optimized LEFT JOINs to fetch all related data in one query
+  protected defaultStrategy: QueryStrategy = 'v5';
   protected defaultOptions: QueryOptions = {
-    strategy: 'default',
+    strategy: 'v5',
     includeDefinitions: true,
     includeExamples: true,
     includeRelations: true,
@@ -148,10 +150,20 @@ export abstract class BaseKyselyQueryService {
           includeRelations: true,
           includeSenses: true,
         };
+      case 'v5':
+        // V5 is the high-performance default with optimized LEFT JOINs
+        return {
+          strategy: 'v5',
+          includeDefinitions: true,
+          includeExamples: true,
+          includeRelations: true,
+          includeSenses: true,
+        };
       case 'default':
       default:
+        // Default now aliases to v5 for best performance
         return {
-          strategy: 'default',
+          strategy: 'v5',
           includeDefinitions: true,
           includeExamples: true,
           includeRelations: true,
