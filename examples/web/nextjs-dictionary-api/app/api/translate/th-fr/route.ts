@@ -55,11 +55,16 @@ export async function GET(request: NextRequest) {
   try {
     const dict = await getDictionary();
 
+    console.log('[TH-FR] Translation request:', { word, from, to });
+    console.log('[TH-FR] Dictionary metadata:', dict.meta);
+
     // Translate word
     const translations = dict.translate(word, from, to);
+    console.log('[TH-FR] Translations found:', translations);
 
     // Get full synset information
     const synsets = dict.lookup(word, from);
+    console.log('[TH-FR] Synsets found:', synsets.length);
 
     return NextResponse.json({
       word,
@@ -74,7 +79,12 @@ export async function GET(request: NextRequest) {
       meta: {
         languages: dict.languages,
         memoryOptimized: true,
-        dictionaryType: 'language-pair'
+        dictionaryType: 'language-pair',
+        dictionaryStats: dict.meta
+      },
+      debug: {
+        synsetsFound: synsets.length,
+        translationsFound: translations.length
       }
     });
   } catch (error) {

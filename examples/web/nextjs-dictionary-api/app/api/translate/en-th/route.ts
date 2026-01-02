@@ -56,11 +56,21 @@ export async function GET(request: NextRequest) {
   try {
     const dict = await getDictionary();
 
+    console.log('[EN-TH] Translation request:', { word, from, to });
+    console.log('[EN-TH] Dictionary metadata:', dict.meta);
+    console.log('[EN-TH] Available languages:', dict.languages);
+
     // Translate word
     const translations = dict.translate(word, from, to);
+    console.log('[EN-TH] Translations found:', translations);
 
     // Get full synset information
     const synsets = dict.lookup(word, from);
+    console.log('[EN-TH] Synsets found:', synsets.length);
+
+    // Debug: Check if word exists in dictionary at all
+    const wordKey = `${word.toLowerCase()}:${from}`;
+    console.log('[EN-TH] Looking up key:', wordKey);
 
     return NextResponse.json({
       word,
@@ -75,7 +85,13 @@ export async function GET(request: NextRequest) {
       meta: {
         languages: dict.languages,
         memoryOptimized: true,
-        dictionaryType: 'language-pair'
+        dictionaryType: 'language-pair',
+        dictionaryStats: dict.meta
+      },
+      debug: {
+        wordKey,
+        synsetsFound: synsets.length,
+        translationsFound: translations.length
       }
     });
   } catch (error) {

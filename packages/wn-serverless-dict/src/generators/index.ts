@@ -94,6 +94,11 @@ export async function extractCoreVocabulary(
   const { limit, pos, languages } = options;
   const vocabulary = new Map();
 
+  console.log(`\n[Generator] Extracting core vocabulary:`);
+  console.log(`  Languages: ${languages.join(', ')}`);
+  console.log(`  POS filter: ${pos ? pos.join(', ') : 'all'}`);
+  console.log(`  Limit: ${limit} synsets`);
+
   // Collect all synsets with ILI values, grouped by ILI
   // ILI is required to link synsets across languages
   const synsetsByIli = new Map<string, any[]>();
@@ -128,6 +133,8 @@ export async function extractCoreVocabulary(
     }
   }
 
+  console.log(`[Generator] Found ${synsetsByIli.size} unique ILI entries`);
+
   // Score ILI groups by total member count across all languages
   const scoredIlis = Array.from(synsetsByIli.entries())
     .map(([ili, synsets]) => {
@@ -146,6 +153,15 @@ export async function extractCoreVocabulary(
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, limit); // Get top N ILI groups
+
+  console.log(`[Generator] After filtering and sorting: ${scoredIlis.length} ILI groups`);
+  if (scoredIlis.length > 0) {
+    console.log(`[Generator] Top 5 ILIs by score:`);
+    scoredIlis.slice(0, 5).forEach((item, idx) => {
+      const firstSynset = item.synsets[0];
+      console.log(`  ${idx + 1}. ILI: ${item.ili}, Score: ${item.score}, POS: ${firstSynset?.pos || 'unknown'}`);
+    });
+  }
 
   // Process each ILI group to build vocabulary
   for (const { ili, synsets } of scoredIlis) {
@@ -191,6 +207,18 @@ export async function extractCoreVocabulary(
       vocabulary.set(ili, entry);
     }
   }
+
+  console.log(`[Generator] Final vocabulary size: ${vocabulary.size} entries`);
+
+  // Debug: Show some sample words
+  const sampleEntries = Array.from(vocabulary.entries()).slice(0, 10);
+  console.log(`[Generator] Sample vocabulary entries:`);
+  sampleEntries.forEach(([ili, entry]) => {
+    const wordSamples = Object.entries(entry.words)
+      .map(([lang, words]) => `${lang}: ${(words as string[]).slice(0, 3).join(', ')}`)
+      .join(' | ');
+    console.log(`  ${ili}: ${wordSamples}`);
+  });
 
   return vocabulary;
 }
