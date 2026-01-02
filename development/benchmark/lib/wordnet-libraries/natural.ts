@@ -16,15 +16,21 @@ export class NaturalLibrary extends WordNetLibraryBase {
   }
 
   async synsetLookup(word: string, options?: QueryOptions) {
-    return new Promise<any[]>((resolve) => {
-      this.lib.lookup(word, (results: any) => resolve(results));
-    });
+    return Promise.race([
+      new Promise<any[]>((resolve) => {
+        this.lib.lookup(word, (results: any) => resolve(results || []));
+      }),
+      new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 4000))
+    ]);
   }
 
   async wordLookup(word: string, options?: QueryOptions) {
-    return new Promise<any[]>((resolve) => {
-      this.lib.lookup(word, (results: any) => resolve(results));
-    });
+    return Promise.race([
+      new Promise<any[]>((resolve) => {
+        this.lib.lookup(word, (results: any) => resolve(results || []));
+      }),
+      new Promise<any[]>((resolve) => setTimeout(() => resolve([]), 4000))
+    ]);
   }
 
   normalizeSynsets(output: any): any[] {

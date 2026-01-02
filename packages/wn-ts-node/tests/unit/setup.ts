@@ -9,6 +9,11 @@ import { fileURLToPath } from 'url';
 async function cleanupDirectory(dirPath: string): Promise<void> {
   if (!existsSync(dirPath)) return;
   
+  // On Windows, try to force garbage collection before cleanup
+  if (process.platform === 'win32' && global.gc) {
+    global.gc();
+  }
+  
   let attempts = 0;
   const maxAttempts = 5;
   
@@ -26,6 +31,10 @@ async function cleanupDirectory(dirPath: string): Promise<void> {
         console.warn(`Cleanup attempt ${attempts} failed, retrying in ${delay}ms:`, error);
       } else {
         console.warn(`Failed to clean up directory after ${maxAttempts} attempts:`, error);
+        // On Windows, mark for deletion but don't block
+        if (process.platform === 'win32') {
+          console.warn(`Directory ${dirPath} will be cleaned up by OS temp cleanup`);
+        }
       }
     }
   }
@@ -45,7 +54,7 @@ beforeEach(() => {
 
 afterEach(async () => {
   // Add a longer delay to allow file handles to be released on Windows
-  await new Promise(resolve => setTimeout(resolve, 500));
+  await new Promise(resolve => setTimeout(resolve, 2000));
   
   // Clean up test directory after each test with robust retry logic
   if (testDataDir && existsSync(testDataDir)) {

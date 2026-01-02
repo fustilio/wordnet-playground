@@ -75,6 +75,19 @@ describe('NodeDataManager', () => {
       database: {
         getQueryService: vi.fn().mockReturnValue({
           database: {
+            selectFrom: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                where: vi.fn().mockReturnValue({
+                  execute: vi.fn().mockResolvedValue([]),
+                }),
+                execute: vi.fn().mockResolvedValue([]),
+              }),
+            }),
+            deleteFrom: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                execute: vi.fn().mockResolvedValue(undefined),
+              }),
+            }),
             insertInto: vi.fn().mockReturnValue({
               values: vi.fn().mockReturnValue({
                 onConflict: vi.fn().mockReturnValue({
@@ -82,6 +95,11 @@ describe('NodeDataManager', () => {
                     execute: vi.fn().mockResolvedValue(undefined),
                   }),
                 }),
+                compile: vi.fn().mockReturnValue({
+                  sql: 'INSERT INTO test_table VALUES (?)',
+                  parameters: ['test-value']
+                }),
+                execute: vi.fn().mockResolvedValue(undefined),
               }),
             }),
           } as any,
@@ -91,6 +109,19 @@ describe('NodeDataManager', () => {
       wordnet: {
         getQueryService: vi.fn().mockReturnValue({
           database: {
+            selectFrom: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                where: vi.fn().mockReturnValue({
+                  execute: vi.fn().mockResolvedValue([]),
+                }),
+                execute: vi.fn().mockResolvedValue([]),
+              }),
+            }),
+            deleteFrom: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnValue({
+                execute: vi.fn().mockResolvedValue(undefined),
+              }),
+            }),
             insertInto: vi.fn().mockReturnValue({
               values: vi.fn().mockReturnValue({
                 onConflict: vi.fn().mockReturnValue({
@@ -98,6 +129,11 @@ describe('NodeDataManager', () => {
                     execute: vi.fn().mockResolvedValue(undefined),
                   }),
                 }),
+                compile: vi.fn().mockReturnValue({
+                  sql: 'INSERT INTO test_table VALUES (?)',
+                  parameters: ['test-value']
+                }),
+                execute: vi.fn().mockResolvedValue(undefined),
               }),
             }),
           } as any,

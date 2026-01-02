@@ -9,7 +9,7 @@ import {
   getParserNames, 
   getAllParserInfo,
   PARSER_REGISTRY 
-} from 'wn-ts';
+} from 'wn-ts-node/lmf';
 import { WnBridge } from 'wn-pybridge';
 
 // File cache to avoid recreating files

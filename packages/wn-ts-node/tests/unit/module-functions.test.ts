@@ -37,6 +37,19 @@ describe('Module Functions', () => {
     }
   });
 
+  afterEach(async () => {
+    // Close the database connection to prevent file handle leaks
+    if (testDb) {
+      try {
+        await testDb.close();
+      } catch (error) {
+        console.warn('Error closing test database:', error);
+      }
+    }
+    // Clear the data management singleton
+    setDataManagementDb(null as any);
+  });
+
   describe('projects', () => {
     it('should return list of known projects', async () => {
       // Use the test database directly for projects test

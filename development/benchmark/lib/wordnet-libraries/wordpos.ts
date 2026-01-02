@@ -11,7 +11,15 @@ export class WordposLibrary extends WordNetLibraryBase {
   name = "wordpos";
 
   async init(options?: { lexicon?: string }) {
-    this.lib = new WordPOS();
+    // Try to use wndb-with-exceptions, but fall back to default if it fails
+    try {
+      const wndb = require('wndb-with-exceptions');
+      this.lib = new WordPOS({ dictPath: wndb.path });
+    } catch (error) {
+      // Fall back to default wordpos initialization
+      console.warn('Failed to use wndb-with-exceptions, using default wordpos:', error);
+      this.lib = new WordPOS();
+    }
   }
 
   async synsetLookup(word: string, options?: QueryOptions) {

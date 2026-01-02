@@ -110,6 +110,11 @@ export const test = coreTest.extend<{
       await (wordnet as any).close();
     }
     
+    // Close database connection
+    if (db && typeof db.close === 'function') {
+      db.close();
+    }
+    
     // Remove temporary database file with retry logic
     await cleanupFile(dbPath);
   }

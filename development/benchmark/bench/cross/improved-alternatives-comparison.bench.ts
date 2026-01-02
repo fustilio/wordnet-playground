@@ -4,7 +4,7 @@ import { writeFile, mkdir } from 'fs/promises';
 import { tmpdir } from 'os';
 import { existsSync } from 'fs';
 // @ts-ignore - wn-ts module resolution issue
-import { Wordnet as TSWordnet } from 'wn-ts';
+import { Wordnet as TSWordnet } from 'wn-ts-node';
 // @ts-ignore - natural doesn't have TypeScript definitions
 import natural from 'natural';
 // @ts-ignore - node-wordnet doesn't have TypeScript definitions

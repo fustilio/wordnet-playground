@@ -146,6 +146,10 @@ describe('Data Loading and Database Integration Tests', () => {
   });
 
   afterEach(async () => {
+    // Clear any database singletons to prevent file handle leaks
+    const { clearDataManagementSingletons } = await import('../../src/data-management/index.js');
+    clearDataManagementSingletons();
+    
     // Restore original data directory
     config.dataDirectory = originalDataDirectory;
     

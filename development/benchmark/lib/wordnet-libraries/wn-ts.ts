@@ -58,24 +58,35 @@ export class WnTsLibrary extends MultilingualWordNetLibraryBase {
     if (options?.lang) {
       try {
         const langWordnet = new TSWordnet(`omw-${options.lang}31:1.4`);
-        const result = await langWordnet.synsets(word, options?.pos as any);
-        return result;
+        // Get words first, then get synsets
+        const words = await langWordnet.words({ form: word, pos: options?.pos as any });
+        if (words.length > 0) {
+          const synsets = await langWordnet.synsets({ id: words[0].synsetId });
+          return synsets;
+        }
+        return [];
       } catch (error) {
         console.warn(`wn-ts multilingual synset lookup error for "${word}" in ${options.lang}:`, error);
         return [];
       }
     }
     
-    // Handle POS parameter mapping
-    let pos = options?.pos;
-    if (pos === 'noun') pos = 'n';
-    if (pos === 'verb') pos = 'v';
-    if (pos === 'adjective') pos = 'a';
-    if (pos === 'adverb') pos = 'r';
-    
+    // Get words first, then synsets for the primary language
     try {
-      const result = await this.lib.synsets(word, pos);
-      return result;
+      // Try different query formats for words
+      let words = await this.lib.words({ form: word, pos: options?.pos });
+      if (!words || words.length === 0) {
+        words = await this.lib.words({ form: word });
+      }
+      if (!words || words.length === 0) {
+        words = await this.lib.words(word);
+      }
+      
+      if (words && words.length > 0) {
+        const synsets = await this.lib.synsets({ id: words[0].synsetId });
+        return synsets || [];
+      }
+      return [];
     } catch (error) {
       console.error(`wn-ts synset lookup error for "${word}":`, error);
       return [];
@@ -89,7 +100,7 @@ export class WnTsLibrary extends MultilingualWordNetLibraryBase {
     if (options?.lang) {
       try {
         const langWordnet = new TSWordnet(`omw-${options.lang}31:1.4`);
-        const result = await langWordnet.words(word, options?.pos as any);
+        const result = await langWordnet.words({ form: word, pos: options?.pos as any });
         return result;
       } catch (error) {
         console.warn(`wn-ts multilingual word lookup error for "${word}" in ${options.lang}:`, error);
@@ -97,16 +108,19 @@ export class WnTsLibrary extends MultilingualWordNetLibraryBase {
       }
     }
     
-    // Handle POS parameter mapping
-    let pos = options?.pos;
-    if (pos === 'noun') pos = 'n';
-    if (pos === 'verb') pos = 'v';
-    if (pos === 'adjective') pos = 'a';
-    if (pos === 'adverb') pos = 'r';
-    
+    // Use query object format for word lookup
     try {
-      const result = await this.lib.words(word, pos);
-      return result;
+      // Try different query formats
+      let result = await this.lib.words({ form: word, pos: options?.pos });
+      if (!result || result.length === 0) {
+        // Fallback to simple form query
+        result = await this.lib.words({ form: word });
+      }
+      if (!result || result.length === 0) {
+        // Try with string format as fallback
+        result = await this.lib.words(word);
+      }
+      return result || [];
     } catch (error) {
       console.error(`wn-ts word lookup error for "${word}":`, error);
       return [];
