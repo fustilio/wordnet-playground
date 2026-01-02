@@ -45,6 +45,42 @@ export const PRESETS: Presets = {
     limit: 500,
     pos: ['n', 'v'],
     languages: ['en', 'fr', 'es', 'de']
+  },
+  'en-th': {
+    description: 'English-Thai dictionary, top 1000',
+    limit: 1000,
+    pos: ['n', 'v', 'a'],
+    languages: ['en', 'th']
+  },
+  'en-fr': {
+    description: 'English-French dictionary, top 1000',
+    limit: 1000,
+    pos: ['n', 'v', 'a'],
+    languages: ['en', 'fr']
+  },
+  'th-fr': {
+    description: 'Thai-French dictionary, top 1000',
+    limit: 1000,
+    pos: ['n', 'v', 'a'],
+    languages: ['th', 'fr']
+  },
+  'en-th-large': {
+    description: 'English-Thai dictionary, top 3000',
+    limit: 3000,
+    pos: null,
+    languages: ['en', 'th']
+  },
+  'en-fr-large': {
+    description: 'English-French dictionary, top 3000',
+    limit: 3000,
+    pos: null,
+    languages: ['en', 'fr']
+  },
+  'th-fr-large': {
+    description: 'Thai-French dictionary, top 3000',
+    limit: 3000,
+    pos: null,
+    languages: ['th', 'fr']
   }
 };
 
@@ -139,7 +175,7 @@ export async function extractCoreVocabulary(
         }
 
         // Add lemmas, avoiding duplicates
-        lemmas.forEach(lemma => {
+        lemmas.forEach((lemma: string) => {
           if (!entry.words[lang].includes(lemma)) {
             entry.words[lang].push(lemma);
           }
@@ -219,18 +255,51 @@ export async function generateDictionary(
 }
 
 /**
+ * Generate language-pair specific dictionary
+ * This creates a dictionary with only two languages for memory efficiency
+ */
+export async function generateLanguagePair(
+  wordnet: Wordnet,
+  lang1: string,
+  lang2: string,
+  options: Partial<GeneratorOptions> = {}
+): Promise<DictionaryData> {
+  const mergedOptions: GeneratorOptions = {
+    languages: [lang1, lang2],
+    pos: options.pos ?? null,
+    limit: options.limit ?? 1000,
+    ...options
+  };
+
+  // Extract vocabulary with only the two specified languages
+  const vocabulary = await extractCoreVocabulary(wordnet, mergedOptions);
+
+  // Build optimized structure
+  const dictionary = buildServerlessStructure(vocabulary);
+
+  // Add language pair metadata
+  dictionary.m.langs = [lang1, lang2];
+
+  return dictionary;
+}
+
+/**
  * Create ES module code from dictionary data
  */
 export function createESModule(data: DictionaryData, moduleName: string = 'dictionary'): string {
+  const langs = data.m.langs || ['en'];
+  const langPair = langs.length === 2 ? `${langs[0]}-${langs[1]}` : 'multilingual';
+
   return `/**
- * Serverless Dictionary Module
+ * Serverless Dictionary Module: ${langPair}
  * Generated: ${new Date().toISOString()}
+ * Languages: ${langs.join(', ')}
  * Synsets: ${data.m.c}
  * Words: ${data.m.w}
  *
  * Usage:
  *   import { lookup, translate, define } from './${moduleName}.js';
- *   const results = lookup('computer', 'en');
+ *   const results = lookup('computer', '${langs[0]}');
  */
 
 const data = ${JSON.stringify(data, null, 0)};
@@ -238,7 +307,7 @@ const data = ${JSON.stringify(data, null, 0)};
 /**
  * Lookup a word and get all matching synsets
  */
-export function lookup(word, lang = 'en') {
+export function lookup(word, lang = '${langs[0]}') {
   const key = \`\${word.toLowerCase()}:\${lang}\`;
   const ilis = data.w[key];
   if (!ilis) return [];
@@ -267,11 +336,12 @@ export function translate(word, fromLang, toLang) {
 /**
  * Get all definitions for a word
  */
-export function define(word, lang = 'en') {
+export function define(word, lang = '${langs[0]}') {
   return lookup(word, lang).map(s => s.definition);
 }
 
 export const meta = data.m;
-export default { lookup, translate, define, meta };
+export const languages = ${JSON.stringify(langs)};
+export default { lookup, translate, define, meta, languages };
 `;
 }

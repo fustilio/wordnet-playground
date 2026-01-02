@@ -53,7 +53,7 @@ async function main() {
     // Ensure required lexicons are loaded
     console.log('📦 Checking required lexicons...');
     const existingLexicons = await lexicons();
-    const lexiconIds = new Set(existingLexicons.map(l => l.id));
+    const lexiconIds = new Set(existingLexicons.map((l: any) => l.id));
     
     // Determine required lexicons based on preset languages
     const requiredLexicons: string[] = [];
@@ -64,6 +64,7 @@ async function main() {
       'fr': 'omw-fr:1.4',
       'es': 'omw-es:1.4',
       'de': 'omw-de:1.4',
+      'th': 'omw-th:1.4',
     };
     
     // Add required lexicons for each language
@@ -100,7 +101,7 @@ async function main() {
         
         // Verify it was loaded by checking lexicons again
         const updatedLexicons = await lexicons();
-        const updatedLexiconIds = new Set(updatedLexicons.map(l => l.id));
+        const updatedLexiconIds = new Set(updatedLexicons.map((l: any) => l.id));
         if (updatedLexiconIds.has(baseId)) {
           console.log(`   ✅ ${baseId} loaded successfully`);
           lexiconIds.add(baseId);
@@ -181,10 +182,31 @@ OPTIONS:
   --presets     Show available presets
   --help, -h    Show this help
 
+PRESETS:
+  Use predefined presets for common use cases:
+  - mini, small, medium (English only)
+  - en-th, en-fr, th-fr (Language pairs, 1000 words)
+  - en-th-large, en-fr-large, th-fr-large (Language pairs, 3000 words)
+  - bilingual, multilingual (Multiple languages)
+
 EXAMPLES:
   wn-dict-export mini             # Generate mini dictionary
   wn-dict-export small my-dict    # Generate small dictionary as 'my-dict'
-  wn-dict-export bilingual        # Generate bilingual EN-FR dictionary
+  wn-dict-export en-th            # Generate English-Thai dictionary
+  wn-dict-export en-fr dict-en-fr # Generate English-French dictionary
+  wn-dict-export th-fr-large      # Generate large Thai-French dictionary
+
+LANGUAGE PAIRS:
+  Each language pair creates a bidirectional dictionary:
+  - en-th: English ↔ Thai translations
+  - en-fr: English ↔ French translations
+  - th-fr: Thai ↔ French translations
+
+  Benefits of language pairs:
+  - Smaller file size (only 2 languages instead of all)
+  - Lower memory usage in serverless environments
+  - Faster imports and cold starts
+  - Optimized for specific translation tasks
 `);
 }
 
