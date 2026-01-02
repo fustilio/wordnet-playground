@@ -11,7 +11,9 @@
     "start": "next start",
     "lint": "next lint",
     "pregenerate-dict": "pnpm --filter wn-serverless-dict build",
-    "generate-dict": "wn-dict-export mini serverless-dict"
+    "generate-dict": "pnpm run generate-dict:base && pnpm run generate-dict:pairs",
+    "generate-dict:base": "wn-dict-export small serverless-dict",
+    "generate-dict:pairs": "wn-dict-export en-th dict-en-th && wn-dict-export en-fr dict-en-fr && wn-dict-export th-fr dict-th-fr"
   },
   "dependencies": {
     "next": "^15.1.6",
