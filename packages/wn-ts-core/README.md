@@ -13,6 +13,7 @@ Core TypeScript library for the WordNet ecosystem with microkernel architecture 
 - **LMF Parsing** - Multiple parser implementations for LMF XML files (1.0-1.4)
 - **Schema Management** - Built-in database schema management and health checking
 - **Cross-Lingual Support** - ILI-based translation and cross-language queries
+- **Query Caching** - Optional, extensible caching for improved performance (LRU, TTL support)
 
 ## Installation
 
@@ -183,3 +184,4 @@ class MyPlugin implements Plugin {
 - [API Reference](../../docs/api/UNIFIED_API.md)
 - [Plugin Development](../../docs/api/PLUGIN_API.md)
 - [Architecture Guide](../../docs/architecture/SYSTEM_ARCHITECTURE.md)
+- [Query Caching Guide](./docs/CACHE.md)
