@@ -11,6 +11,8 @@ import type {
   PresetConfig,
   Presets
 } from '../types/index.js';
+import { processBatch, DEFAULT_BATCH_CONFIG } from '../utils/batch.js';
+import { globalRegistry } from '../plugins/registry.js';
 
 /**
  * Default presets for different use cases
@@ -163,50 +165,66 @@ export async function extractCoreVocabulary(
     });
   }
 
-  // Process each ILI group to build vocabulary
-  for (const { ili, synsets } of scoredIlis) {
-    if (vocabulary.size >= limit) break;
+  // Get batch configuration
+  const batchConfig = { ...DEFAULT_BATCH_CONFIG, ...options.batch };
 
-    // Create vocabulary entry for this ILI
-    const entry: any = {
-      ili,
-      pos: synsets[0]?.pos || 'n', // Use first synset's POS
-      def: synsets[0]?.definitions[0]?.text?.substring(0, 80) || '',
-      words: {}
-    };
+  // Process ILI groups in batches for memory efficiency
+  console.log(`[Generator] Processing ${scoredIlis.length} ILI groups in batches...`);
 
-    // Collect words from all synsets with this ILI across all languages
-    for (const synset of synsets) {
-      const lang = synset.language || 'en';
-      
-      // Only include languages we're interested in
-      if (!languages.includes(lang)) continue;
+  await processBatch(
+    scoredIlis,
+    async (batch, batchIndex) => {
+      const batchResults: Array<[string, any]> = [];
 
-      try {
-        const lemmas = await wordnet.getSynsetLemmas(synset.id);
-        if (lemmas.length === 0) continue;
+      for (const { ili, synsets } of batch) {
+        if (vocabulary.size >= limit) break;
 
-        if (!entry.words[lang]) {
-          entry.words[lang] = [];
+        // Create vocabulary entry for this ILI
+        const entry: any = {
+          ili,
+          pos: synsets[0]?.pos || 'n', // Use first synset's POS
+          def: synsets[0]?.definitions[0]?.text?.substring(0, 80) || '',
+          words: {}
+        };
+
+        // Collect words from all synsets with this ILI across all languages
+        for (const synset of synsets) {
+          const lang = synset.language || 'en';
+
+          // Only include languages we're interested in
+          if (!languages.includes(lang)) continue;
+
+          try {
+            const lemmas = await wordnet.getSynsetLemmas(synset.id);
+            if (lemmas.length === 0) continue;
+
+            if (!entry.words[lang]) {
+              entry.words[lang] = [];
+            }
+
+            // Add lemmas, avoiding duplicates
+            lemmas.forEach((lemma: string) => {
+              if (!entry.words[lang].includes(lemma)) {
+                entry.words[lang].push(lemma);
+              }
+            });
+          } catch (error) {
+            // Skip errors for individual synsets
+            continue;
+          }
         }
 
-        // Add lemmas, avoiding duplicates
-        lemmas.forEach((lemma: string) => {
-          if (!entry.words[lang].includes(lemma)) {
-            entry.words[lang].push(lemma);
-          }
-        });
-      } catch (error) {
-        // Skip errors for individual synsets
-        continue;
+        // Only add entry if it has words in at least one language
+        if (Object.keys(entry.words).length > 0) {
+          batchResults.push([ili, entry]);
+          vocabulary.set(ili, entry);
+        }
       }
-    }
 
-    // Only add entry if it has words in at least one language
-    if (Object.keys(entry.words).length > 0) {
-      vocabulary.set(ili, entry);
-    }
-  }
+      return batchResults;
+    },
+    batchConfig
+  );
 
   console.log(`[Generator] Final vocabulary size: ${vocabulary.size} entries`);
 
@@ -273,11 +291,20 @@ export async function generateDictionary(
   wordnet: Wordnet,
   options: GeneratorOptions
 ): Promise<DictionaryData> {
+  // Execute beforeGenerate hook
+  const modifiedOptions = await globalRegistry.executeHook('beforeGenerate', options);
+
   // Extract vocabulary
-  const vocabulary = await extractCoreVocabulary(wordnet, options);
+  let vocabulary = await extractCoreVocabulary(wordnet, modifiedOptions || options);
+
+  // Execute afterExtract hook
+  vocabulary = await globalRegistry.executeHook('afterExtract', vocabulary) || vocabulary;
 
   // Build optimized structure
-  const dictionary = buildServerlessStructure(vocabulary);
+  let dictionary = buildServerlessStructure(vocabulary);
+
+  // Execute afterBuild hook
+  dictionary = await globalRegistry.executeHook('afterBuild', dictionary) || dictionary;
 
   return dictionary;
 }

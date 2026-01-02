@@ -23,8 +23,16 @@ async function main() {
     process.exit(0);
   }
 
-  const presetName = args[0] || 'small';
-  const outputName = args[1] || 'serverless-dict';
+  // Extract flags
+  const chunkSizeArg = args.find(arg => arg.startsWith('--chunk-size='));
+  const chunkSize = chunkSizeArg ? parseInt(chunkSizeArg.split('=')[1]) : 100;
+
+  const noProgressFlag = args.includes('--no-progress');
+
+  // Filter out flags to get positional arguments
+  const positionalArgs = args.filter(arg => !arg.startsWith('--'));
+  const presetName = positionalArgs[0] || 'small';
+  const outputName = positionalArgs[1] || 'serverless-dict';
 
   const preset = PRESETS[presetName];
   if (!preset) {
@@ -126,9 +134,27 @@ async function main() {
       console.log(''); // Empty line after loading
     }
 
-    // Generate dictionary
+    // Generate dictionary with batch processing
     console.log('📊 Generating dictionary...');
-    const dictionary = await generateDictionary(wordnet, preset);
+    console.log(`   Batch size: ${chunkSize} items per chunk`);
+
+    const dictionary = await generateDictionary(wordnet, {
+      ...preset,
+      batch: {
+        chunkSize,
+        onProgress: noProgressFlag ? undefined : (info) => {
+          // Show progress bar
+          const percentage = info.progress.toString().padStart(3);
+          const bar = '█'.repeat(Math.floor(info.progress / 5)) + '░'.repeat(20 - Math.floor(info.progress / 5));
+          const elapsed = (info.elapsed / 1000).toFixed(1);
+          process.stdout.write(`\r   [${bar}] ${percentage}% - ${info.step} (${elapsed}s)`);
+        }
+      }
+    });
+
+    if (!noProgressFlag) {
+      console.log(''); // New line after progress
+    }
 
     // Calculate sizes
     const jsonStr = JSON.stringify(dictionary);
@@ -176,11 +202,13 @@ function showHelp() {
 wn-dict-export - Generate serverless-optimized dictionaries from WordNet
 
 USAGE:
-  wn-dict-export [preset] [output-name]
+  wn-dict-export [preset] [output-name] [options]
 
 OPTIONS:
-  --presets     Show available presets
-  --help, -h    Show this help
+  --presets              Show available presets
+  --help, -h             Show this help
+  --chunk-size=N         Set batch processing chunk size (default: 100)
+  --no-progress          Disable progress bar
 
 PRESETS:
   Use predefined presets for common use cases:
@@ -190,11 +218,13 @@ PRESETS:
   - bilingual, multilingual (Multiple languages)
 
 EXAMPLES:
-  wn-dict-export mini             # Generate mini dictionary
-  wn-dict-export small my-dict    # Generate small dictionary as 'my-dict'
-  wn-dict-export en-th            # Generate English-Thai dictionary
-  wn-dict-export en-fr dict-en-fr # Generate English-French dictionary
-  wn-dict-export th-fr-large      # Generate large Thai-French dictionary
+  wn-dict-export mini                        # Generate mini dictionary
+  wn-dict-export small my-dict               # Generate small dictionary as 'my-dict'
+  wn-dict-export en-th                       # Generate English-Thai dictionary
+  wn-dict-export en-fr dict-en-fr            # Generate English-French dictionary
+  wn-dict-export th-fr-large                 # Generate large Thai-French dictionary
+  wn-dict-export en-th --chunk-size=50       # Use smaller batches (50 items)
+  wn-dict-export small --no-progress         # Disable progress bar
 
 LANGUAGE PAIRS:
   Each language pair creates a bidirectional dictionary:
@@ -207,6 +237,13 @@ LANGUAGE PAIRS:
   - Lower memory usage in serverless environments
   - Faster imports and cold starts
   - Optimized for specific translation tasks
+
+BATCH PROCESSING:
+  The generator uses batch processing to optimize memory usage:
+  - Default chunk size: 100 items
+  - Each chunk processes synsets in batches to avoid memory spikes
+  - Progress bar shows real-time generation progress
+  - Adjust --chunk-size for different memory constraints
 `);
 }
 

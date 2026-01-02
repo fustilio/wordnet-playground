@@ -18,6 +18,13 @@ export interface DictionaryMetadata {
   langs?: string[];
   /** Parts of speech included */
   pos?: string[];
+  /** Cache configuration (for runtime) */
+  cache?: {
+    enabled: boolean;
+    multiLevel?: boolean;
+    maxSize?: number;
+    ttl?: number;
+  };
 }
 
 /**
@@ -58,6 +65,34 @@ export interface SynsetResult {
 }
 
 /**
+ * Progress information for batch processing
+ */
+export interface ProgressInfo {
+  /** Current step description */
+  step: string;
+  /** Current progress (0-100) */
+  progress: number;
+  /** Items processed */
+  processed: number;
+  /** Total items */
+  total: number;
+  /** Elapsed time in ms */
+  elapsed: number;
+}
+
+/**
+ * Batch processing options
+ */
+export interface BatchProcessingOptions {
+  /** Chunk size for batch processing (default: 100) */
+  chunkSize?: number;
+  /** Maximum timeout per chunk in ms (default: 120000 = 2min) */
+  chunkTimeout?: number;
+  /** Progress callback function */
+  onProgress?: (info: ProgressInfo) => void;
+}
+
+/**
  * Dictionary generation options
  */
 export interface GeneratorOptions {
@@ -73,6 +108,8 @@ export interface GeneratorOptions {
   compress?: boolean;
   /** Output format */
   format?: 'standard' | 'compact' | 'lookup';
+  /** Batch processing options */
+  batch?: BatchProcessingOptions;
 }
 
 /**
