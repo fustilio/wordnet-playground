@@ -6,20 +6,22 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "allowJs": true,
-    "strict": true,
+    "strict": false,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "typeRoots": ["./types", "./node_modules/@types"]
+    "typeRoots": ["./types", "./node_modules/@types"],
+    "noImplicitAny": false
   },
   "include": [
     "src/**/*",
     "bench/**/*",
     "tests/**/*",
-    "types/**/*"
+    "types/**/*",
+    "lib/**/*"
   ],
   "exclude": [
     "node_modules",

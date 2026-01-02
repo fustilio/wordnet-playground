@@ -117,6 +117,7 @@ export class WordNetWorkerClient {
       
       // For production builds, try to use the worker from the package
       // This should work when the library is properly bundled
+      /* @vite-ignore */
       const packageWorkerUrl = new URL('./wordnet-worker.mjs', import.meta.url).href;
       logger.info('Package worker URL resolved to:', packageWorkerUrl);
       return packageWorkerUrl;

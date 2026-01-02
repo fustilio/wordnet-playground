@@ -14,6 +14,7 @@ export class WordposLibrary extends WordNetLibraryBase {
     // Try to use wndb-with-exceptions, but fall back to default if it fails
     try {
       const wndb = require('wndb-with-exceptions');
+      // @ts-ignore - WordPOS types don't include options but it accepts them
       this.lib = new WordPOS({ dictPath: wndb.path });
     } catch (error) {
       // Fall back to default wordpos initialization
