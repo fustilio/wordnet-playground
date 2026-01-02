@@ -11,6 +11,8 @@ import type {
   PresetConfig,
   Presets
 } from '../types/index.js';
+import { processBatch, DEFAULT_BATCH_CONFIG } from '../utils/batch.js';
+import { globalRegistry } from '../plugins/registry.js';
 
 /**
  * Default presets for different use cases
@@ -45,6 +47,42 @@ export const PRESETS: Presets = {
     limit: 500,
     pos: ['n', 'v'],
     languages: ['en', 'fr', 'es', 'de']
+  },
+  'en-th': {
+    description: 'English-Thai dictionary, top 1000',
+    limit: 1000,
+    pos: ['n', 'v', 'a'],
+    languages: ['en', 'th']
+  },
+  'en-fr': {
+    description: 'English-French dictionary, top 1000',
+    limit: 1000,
+    pos: ['n', 'v', 'a'],
+    languages: ['en', 'fr']
+  },
+  'th-fr': {
+    description: 'Thai-French dictionary, top 1000',
+    limit: 1000,
+    pos: ['n', 'v', 'a'],
+    languages: ['th', 'fr']
+  },
+  'en-th-large': {
+    description: 'English-Thai dictionary, top 3000',
+    limit: 3000,
+    pos: null,
+    languages: ['en', 'th']
+  },
+  'en-fr-large': {
+    description: 'English-French dictionary, top 3000',
+    limit: 3000,
+    pos: null,
+    languages: ['en', 'fr']
+  },
+  'th-fr-large': {
+    description: 'Thai-French dictionary, top 3000',
+    limit: 3000,
+    pos: null,
+    languages: ['th', 'fr']
   }
 };
 
@@ -57,6 +95,11 @@ export async function extractCoreVocabulary(
 ): Promise<Map<string, any>> {
   const { limit, pos, languages } = options;
   const vocabulary = new Map();
+
+  console.log(`\n[Generator] Extracting core vocabulary:`);
+  console.log(`  Languages: ${languages.join(', ')}`);
+  console.log(`  POS filter: ${pos ? pos.join(', ') : 'all'}`);
+  console.log(`  Limit: ${limit} synsets`);
 
   // Collect all synsets with ILI values, grouped by ILI
   // ILI is required to link synsets across languages
@@ -92,6 +135,8 @@ export async function extractCoreVocabulary(
     }
   }
 
+  console.log(`[Generator] Found ${synsetsByIli.size} unique ILI entries`);
+
   // Score ILI groups by total member count across all languages
   const scoredIlis = Array.from(synsetsByIli.entries())
     .map(([ili, synsets]) => {
@@ -111,50 +156,87 @@ export async function extractCoreVocabulary(
     .sort((a, b) => b.score - a.score)
     .slice(0, limit); // Get top N ILI groups
 
-  // Process each ILI group to build vocabulary
-  for (const { ili, synsets } of scoredIlis) {
-    if (vocabulary.size >= limit) break;
+  console.log(`[Generator] After filtering and sorting: ${scoredIlis.length} ILI groups`);
+  if (scoredIlis.length > 0) {
+    console.log(`[Generator] Top 5 ILIs by score:`);
+    scoredIlis.slice(0, 5).forEach((item, idx) => {
+      const firstSynset = item.synsets[0];
+      console.log(`  ${idx + 1}. ILI: ${item.ili}, Score: ${item.score}, POS: ${firstSynset?.pos || 'unknown'}`);
+    });
+  }
 
-    // Create vocabulary entry for this ILI
-    const entry: any = {
-      ili,
-      pos: synsets[0]?.pos || 'n', // Use first synset's POS
-      def: synsets[0]?.definitions[0]?.text?.substring(0, 80) || '',
-      words: {}
-    };
+  // Get batch configuration
+  const batchConfig = { ...DEFAULT_BATCH_CONFIG, ...options.batch };
 
-    // Collect words from all synsets with this ILI across all languages
-    for (const synset of synsets) {
-      const lang = synset.language || 'en';
-      
-      // Only include languages we're interested in
-      if (!languages.includes(lang)) continue;
+  // Process ILI groups in batches for memory efficiency
+  console.log(`[Generator] Processing ${scoredIlis.length} ILI groups in batches...`);
 
-      try {
-        const lemmas = await wordnet.getSynsetLemmas(synset.id);
-        if (lemmas.length === 0) continue;
+  await processBatch(
+    scoredIlis,
+    async (batch, batchIndex) => {
+      const batchResults: Array<[string, any]> = [];
 
-        if (!entry.words[lang]) {
-          entry.words[lang] = [];
+      for (const { ili, synsets } of batch) {
+        if (vocabulary.size >= limit) break;
+
+        // Create vocabulary entry for this ILI
+        const entry: any = {
+          ili,
+          pos: synsets[0]?.pos || 'n', // Use first synset's POS
+          def: synsets[0]?.definitions[0]?.text?.substring(0, 80) || '',
+          words: {}
+        };
+
+        // Collect words from all synsets with this ILI across all languages
+        for (const synset of synsets) {
+          const lang = synset.language || 'en';
+
+          // Only include languages we're interested in
+          if (!languages.includes(lang)) continue;
+
+          try {
+            const lemmas = await wordnet.getSynsetLemmas(synset.id);
+            if (lemmas.length === 0) continue;
+
+            if (!entry.words[lang]) {
+              entry.words[lang] = [];
+            }
+
+            // Add lemmas, avoiding duplicates
+            lemmas.forEach((lemma: string) => {
+              if (!entry.words[lang].includes(lemma)) {
+                entry.words[lang].push(lemma);
+              }
+            });
+          } catch (error) {
+            // Skip errors for individual synsets
+            continue;
+          }
         }
 
-        // Add lemmas, avoiding duplicates
-        lemmas.forEach(lemma => {
-          if (!entry.words[lang].includes(lemma)) {
-            entry.words[lang].push(lemma);
-          }
-        });
-      } catch (error) {
-        // Skip errors for individual synsets
-        continue;
+        // Only add entry if it has words in at least one language
+        if (Object.keys(entry.words).length > 0) {
+          batchResults.push([ili, entry]);
+          vocabulary.set(ili, entry);
+        }
       }
-    }
 
-    // Only add entry if it has words in at least one language
-    if (Object.keys(entry.words).length > 0) {
-      vocabulary.set(ili, entry);
-    }
-  }
+      return batchResults;
+    },
+    batchConfig
+  );
+
+  console.log(`[Generator] Final vocabulary size: ${vocabulary.size} entries`);
+
+  // Debug: Show some sample words
+  const sampleEntries = Array.from(vocabulary.entries()).slice(0, 10);
+  console.log(`[Generator] Sample vocabulary entries:`);
+  sampleEntries.forEach(([ili, entry]) => {
+    const wordSamples = Object.entries(entry.words)
+      .map(([lang, words]) => `${lang}: ${(words as string[]).slice(0, 3).join(', ')}`)
+      .join(' | ');
+    console.log(`  ${ili}: ${wordSamples}`);
+  });
 
   return vocabulary;
 }
@@ -209,11 +291,49 @@ export async function generateDictionary(
   wordnet: Wordnet,
   options: GeneratorOptions
 ): Promise<DictionaryData> {
+  // Execute beforeGenerate hook
+  const modifiedOptions = await globalRegistry.executeHook('beforeGenerate', options);
+
   // Extract vocabulary
-  const vocabulary = await extractCoreVocabulary(wordnet, options);
+  let vocabulary = await extractCoreVocabulary(wordnet, modifiedOptions || options);
+
+  // Execute afterExtract hook
+  vocabulary = await globalRegistry.executeHook('afterExtract', vocabulary) || vocabulary;
+
+  // Build optimized structure
+  let dictionary = buildServerlessStructure(vocabulary);
+
+  // Execute afterBuild hook
+  dictionary = await globalRegistry.executeHook('afterBuild', dictionary) || dictionary;
+
+  return dictionary;
+}
+
+/**
+ * Generate language-pair specific dictionary
+ * This creates a dictionary with only two languages for memory efficiency
+ */
+export async function generateLanguagePair(
+  wordnet: Wordnet,
+  lang1: string,
+  lang2: string,
+  options: Partial<GeneratorOptions> = {}
+): Promise<DictionaryData> {
+  const mergedOptions: GeneratorOptions = {
+    languages: [lang1, lang2],
+    pos: options.pos ?? null,
+    limit: options.limit ?? 1000,
+    ...options
+  };
+
+  // Extract vocabulary with only the two specified languages
+  const vocabulary = await extractCoreVocabulary(wordnet, mergedOptions);
 
   // Build optimized structure
   const dictionary = buildServerlessStructure(vocabulary);
+
+  // Add language pair metadata
+  dictionary.m.langs = [lang1, lang2];
 
   return dictionary;
 }
@@ -222,15 +342,19 @@ export async function generateDictionary(
  * Create ES module code from dictionary data
  */
 export function createESModule(data: DictionaryData, moduleName: string = 'dictionary'): string {
+  const langs = data.m.langs || ['en'];
+  const langPair = langs.length === 2 ? `${langs[0]}-${langs[1]}` : 'multilingual';
+
   return `/**
- * Serverless Dictionary Module
+ * Serverless Dictionary Module: ${langPair}
  * Generated: ${new Date().toISOString()}
+ * Languages: ${langs.join(', ')}
  * Synsets: ${data.m.c}
  * Words: ${data.m.w}
  *
  * Usage:
  *   import { lookup, translate, define } from './${moduleName}.js';
- *   const results = lookup('computer', 'en');
+ *   const results = lookup('computer', '${langs[0]}');
  */
 
 const data = ${JSON.stringify(data, null, 0)};
@@ -238,7 +362,7 @@ const data = ${JSON.stringify(data, null, 0)};
 /**
  * Lookup a word and get all matching synsets
  */
-export function lookup(word, lang = 'en') {
+export function lookup(word, lang = '${langs[0]}') {
   const key = \`\${word.toLowerCase()}:\${lang}\`;
   const ilis = data.w[key];
   if (!ilis) return [];
@@ -267,11 +391,12 @@ export function translate(word, fromLang, toLang) {
 /**
  * Get all definitions for a word
  */
-export function define(word, lang = 'en') {
+export function define(word, lang = '${langs[0]}') {
   return lookup(word, lang).map(s => s.definition);
 }
 
 export const meta = data.m;
-export default { lookup, translate, define, meta };
+export const languages = ${JSON.stringify(langs)};
+export default { lookup, translate, define, meta, languages };
 `;
 }
