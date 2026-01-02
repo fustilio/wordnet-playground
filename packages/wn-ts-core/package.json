@@ -103,7 +103,9 @@
     "analyze-wordnet-urls": "tsx scripts/analyze-wordnet-urls.ts"
   },
   "dependencies": {
+    "fast-json-stable-stringify": "^2.1.0",
     "kysely": "catalog:",
+    "lru-cache": "^11.2.4",
     "sax": "^1.4.1",
     "smol-toml": "catalog:",
     "zod": "catalog:"

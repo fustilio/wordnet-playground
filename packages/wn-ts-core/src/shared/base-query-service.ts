@@ -9,6 +9,8 @@ import { Kysely } from 'kysely';
 import type { Database } from '../types/database.js';
 import type { PartOfSpeech, Lexicon, Word, Synset, Sense, ILI, WordQuery, SynsetQuery, SenseQuery } from '../core/types.js';
 import { batchInsert } from './batch-insert.js';
+import type { QueryCache } from './query-cache.js';
+import { createCacheKey, defaultKeySerializer } from './query-cache.js';
 import { 
   getWordsBySynsetAndLanguageQuery,
   getWordsQuery,
@@ -108,10 +110,22 @@ export abstract class BaseKyselyQueryService {
     includeSenses: true,
   };
 
-  constructor(protected db: Kysely<Database>, options?: { strategy?: QueryStrategy }) {
+  /**
+   * Optional cache for query results
+   * When provided, query methods will automatically cache and retrieve results
+   */
+  protected cache?: QueryCache;
+
+  constructor(protected db: Kysely<Database>, options?: {
+    strategy?: QueryStrategy;
+    cache?: QueryCache;
+  }) {
     if (options?.strategy) {
       this.defaultStrategy = options.strategy;
       this.updateDefaultOptions(options.strategy);
+    }
+    if (options?.cache) {
+      this.cache = options.cache;
     }
   }
 
@@ -197,8 +211,10 @@ export abstract class BaseKyselyQueryService {
   }
 
   async getWordById(id: string): Promise<Word | undefined> {
-    const result = await getWordByIdQuery(this.db, id).executeTakeFirst();
-    return result ? await this.transformWordRecord(result) : undefined;
+    return this.getCached('getWordById', { id }, async () => {
+      const result = await getWordByIdQuery(this.db, id).executeTakeFirst();
+      return result ? await this.transformWordRecord(result) : undefined;
+    });
   }
 
   // Optimized word query methods
@@ -611,8 +627,10 @@ export abstract class BaseKyselyQueryService {
   }
 
   async getSynsetById(id: string, options: QueryOptions = { language: undefined }): Promise<Synset | undefined> {
-    const result = await getSynsetByIdQuery(this.db, id).executeTakeFirst();
-    return result ? await this.transformSynsetRecord(result, options) : undefined;
+    return this.getCached('getSynsetById', { id, ...options }, async () => {
+      const result = await getSynsetByIdQuery(this.db, id).executeTakeFirst();
+      return result ? await this.transformSynsetRecord(result, options) : undefined;
+    });
   }
 
   // Optimized synset query methods
@@ -1081,6 +1099,54 @@ export abstract class BaseKyselyQueryService {
    */
   async getFormsByWordId(wordId: string) {
     return getFormsByWordIdQuery(this.db, wordId).execute();
+  }
+
+  // Cache helpers
+
+  /**
+   * Helper to get cached result or execute query function
+   * @param method Method name for cache key generation
+   * @param params Query parameters
+   * @param queryFn Async function that executes the query if cache miss
+   * @returns Cached or fresh query result
+   */
+  protected async getCached<T>(
+    method: string,
+    params: any,
+    queryFn: () => Promise<T>
+  ): Promise<T> {
+    if (!this.cache) {
+      return queryFn();
+    }
+
+    const key = createCacheKey(method, params);
+    const cached = this.cache.get(key);
+
+    if (cached !== undefined) {
+      return cached as T;
+    }
+
+    const result = await queryFn();
+    this.cache.set(key, result);
+    return result;
+  }
+
+  /**
+   * Invalidate cache entries by pattern
+   * Useful when data changes and cached queries should be refreshed
+   */
+  protected invalidateCache(pattern: string | RegExp): number {
+    if (!this.cache?.invalidate) {
+      return 0;
+    }
+    return this.cache.invalidate(pattern);
+  }
+
+  /**
+   * Clear all cached entries
+   */
+  protected clearCache(): void {
+    this.cache?.clear();
   }
 }
 

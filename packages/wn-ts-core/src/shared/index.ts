@@ -53,10 +53,23 @@ export interface QueryService {
 }
 
 // Query strategy types
-export type { 
-  QueryStrategy, 
-  QueryOptions 
+export type {
+  QueryStrategy,
+  QueryOptions
 } from './base-query-service.js';
+
+// Query cache
+export {
+  LRUCache,
+  NullCache,
+  createCacheKey,
+  defaultKeySerializer,
+} from './query-cache.js';
+export type {
+  QueryCache,
+  CacheStats,
+  CacheConfig,
+} from './query-cache.js';
 
 // Translation utilities
 export {
