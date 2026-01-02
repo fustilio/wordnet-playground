@@ -1,6 +1,6 @@
 {
   "name": "wn-ts-web",
-  "version": "0.7.2",
+  "version": "0.8.0",
   "description": "Browser/web distribution and interactive demo for wn-ts. Implements the node-to-browser strategy for WordNet access in the browser, following the approach of wordpos/wordpos-web.",
   "keywords": [
     "wordnet",

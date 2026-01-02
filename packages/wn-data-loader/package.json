@@ -1,6 +1,6 @@
 {
   "name": "wn-data-loader",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "WordNet-specific extension of @fustilio/data-loader with comprehensive testing and optimized lexical data processing",
   "type": "module",
   "private": true,

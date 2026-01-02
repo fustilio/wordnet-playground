@@ -1,7 +1,8 @@
 {
   "name": "wn-ts-node-demo",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
+  "private": true,
   "description": "Comprehensive demonstrations of the wn-ts library capabilities",
   "main": "src/run-all-use-cases.js",
   "scripts": {
