@@ -1,5 +1,12 @@
 # wordnet-benchmark
 
+## 0.5.9
+
+### Patch Changes
+
+- Updated dependencies
+  - wn-ts-node@0.8.1
+
 ## 0.5.8
 
 ### Patch Changes

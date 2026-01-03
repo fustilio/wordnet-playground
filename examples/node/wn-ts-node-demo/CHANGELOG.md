@@ -1,5 +1,12 @@
 # wn-ts-node-demo
 
+## 0.1.2
+
+### Patch Changes
+
+- Updated dependencies
+  - wn-ts-node@0.8.1
+
 ## 0.1.1
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # wn-ts-web-demo
 
+## 0.0.9
+
+### Patch Changes
+
+- Updated dependencies
+  - wn-ts-web@0.8.1
+
 ## 0.0.8
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # wn-ts-node
 
+## 0.8.1
+
+### Patch Changes
+
+- fix form table population issue
+
 ## 0.8.0
 
 ### Minor Changes

@@ -1,6 +1,6 @@
 {
   "name": "wn-serverless-dict",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Serverless-optimized dictionary generation and runtime utilities for WordNet",
   "type": "module",
   "main": "./dist/index.js",

@@ -1,6 +1,6 @@
 {
   "name": "wn-ts-node",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Wordnet interface library - TypeScript port",
   "keywords": [
     "wordnet",

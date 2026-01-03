@@ -1,5 +1,16 @@
 # wn-serverless-dict
 
+## 0.3.0
+
+### Minor Changes
+
+- fix form table population issue
+
+### Patch Changes
+
+- Updated dependencies
+  - wn-ts-node@0.8.1
+
 ## 0.2.0
 
 ### Minor Changes

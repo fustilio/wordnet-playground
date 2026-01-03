@@ -1,5 +1,12 @@
 # wn-ts-web-showcase
 
+## 0.1.5
+
+### Patch Changes
+
+- Updated dependencies
+  - wn-ts-web@0.8.1
+
 ## 0.1.4
 
 ### Patch Changes
