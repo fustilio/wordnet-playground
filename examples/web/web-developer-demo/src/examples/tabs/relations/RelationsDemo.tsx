@@ -214,14 +214,14 @@ export function RelationsDemo() {
       // Add related words as potential relations
       relatedWords.forEach((word: WordQueryResult, index: number) => {
         if (word.id !== synsetId) { // Don't include the same synset
-          realRelations.push({
-            id: `word-${index}`,
-            lemma: word.lemma,
-            pos: word.pos,
-            language: word.language,
-            lexicon: word.lexicon,
-            relationType: 'related_word'
-          });
+            realRelations.push({
+              id: `word-${index}`,
+              lemma: word.lemma || '',
+              pos: word.pos || '',
+              language: word.language || 'en',
+              lexicon: word.lexicon || '',
+              relationType: 'related_word'
+            });
         }
       });
 
@@ -234,10 +234,10 @@ export function RelationsDemo() {
           if (wordInfo) {
             realRelations.push({
               id: `synset-${index}`,
-              lemma: wordInfo.lemma,
-              pos: synset.pos,
-              language: synset.language,
-              lexicon: synset.lexicon,
+              lemma: wordInfo.lemma || '',
+              pos: synset.pos || '',
+              language: synset.language || 'en',
+              lexicon: synset.lexicon || '',
               relationType: 'related_synset'
             });
           }

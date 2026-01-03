@@ -20,10 +20,9 @@ export async function translateWord(
   toLang: string
 ): Promise<string[]> {
   try {
-    // Create WordNet instance
-    const wordnet = await createWordNetInstance({
-      lexicons: ['oewn:2024', 'omw-fr:1.4'], // English and French
-    });
+    // Create WordNet instance - note: createWordNetInstance only supports single lexicon
+    // For multiple lexicons, you would need to use a different approach
+    const { wordnet } = await createWordNetInstance('oewn:2024');
 
     // Use quickTranslate for simple results
     const translations = await quickTranslate(wordnet, word, fromLang, toLang);
@@ -43,10 +42,9 @@ export async function translateWordDetailed(
   toLang: string
 ) {
   try {
-    // Create WordNet instance
-    const wordnet = await createWordNetInstance({
-      lexicons: ['oewn:2024', 'omw-fr:1.4'], // English and French
-    });
+    // Create WordNet instance - note: createWordNetInstance only supports single lexicon
+    // For multiple lexicons, you would need to use a different approach
+    const { wordnet } = await createWordNetInstance('oewn:2024');
 
     // Use TranslationHelper for detailed results
     const translator = new TranslationHelper(wordnet);
@@ -70,9 +68,7 @@ export async function translateWordDetailed(
  */
 export async function getAvailableLanguages(): Promise<string[]> {
   try {
-    const wordnet = await createWordNetInstance({
-      lexicons: ['oewn:2024', 'omw-fr:1.4'],
-    });
+    const { wordnet } = await createWordNetInstance('oewn:2024');
 
     const translator = new TranslationHelper(wordnet);
     return await translator.getAvailableLanguages();

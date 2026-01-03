@@ -9,7 +9,6 @@ import { SearchForm } from '../shared/SearchForm';
 // Kernel Demo Component
 const KernelDemoContent: React.FC = () => {
   const {
-    wordnet,
     loading,
     error,
     initialized,
@@ -51,7 +50,7 @@ const KernelDemoContent: React.FC = () => {
       setSearchResults(wordResults);
       
       if (wordResults.length > 0) {
-        const synsetResults = await synsets({ wordId: wordResults[0].id });
+        const synsetResults = await synsets({ form: wordResults[0].lemma });
         if (synsetResults.length > 0) {
           setSelectedSynset(synsetResults[0]);
           await loadSynsetData(synsetResults[0]);

@@ -61,9 +61,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          'sqlite-wasm': ['@sqlite.org/sqlite-wasm'],
-          'wordnet-core': ['wn-ts-core'],
-          'comlink': ['comlink']
+          'sqlite-wasm': ['@sqlite.org/sqlite-wasm']
         }
       }
     }

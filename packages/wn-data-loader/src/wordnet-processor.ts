@@ -2,13 +2,10 @@ import { createDefaultProcessorFactory } from "@fustilio/data-loader";
 import type { 
   WordNetProcessingResult, 
   WordNetProcessingOptions, 
-  WordNetContentType,
-  WordNetDataSource,
-  WordNetDataSourceRegistry,
-  ProgressCallback
+  WordNetDataSourceRegistry
 } from "./types.js";
 import { WordNetContentDetector } from "./wordnet-content-detector.js";
-import { getWordNetDataSource, isValidWordNetProject, WORDNET_DATA_SOURCES } from "./data-sources.js";
+import { getWordNetDataSource, WORDNET_DATA_SOURCES } from "./data-sources.js";
 
 /**
  * WordNet-specific data processor
