@@ -56,7 +56,26 @@ export async function clearConflictingLexiconData(
     
     // Delete words and synsets that reference these lexicons
     const lexiconIdsToDelete = baseId ? [lexiconId, baseId] : [lexiconId];
-    
+
+    // First get all word IDs for the lexicons so we can delete their forms
+    const wordIdsToDelete: string[] = [];
+    for (const lexiconIdToDelete of lexiconIdsToDelete) {
+      const words = await db
+        .selectFrom('words')
+        .select('id')
+        .where('lexicon', '=', lexiconIdToDelete)
+        .execute();
+      wordIdsToDelete.push(...words.map((w: any) => w.id));
+    }
+
+    // Delete forms that reference these words
+    if (wordIdsToDelete.length > 0) {
+      for (const wordId of wordIdsToDelete) {
+        await db.deleteFrom('forms').where('word_id', '=', wordId).execute();
+      }
+      logger?.step(`Deleted forms for ${wordIdsToDelete.length} words`);
+    }
+
     // Delete words one by one to avoid SQL variable limits
     for (const lexiconIdToDelete of lexiconIdsToDelete) {
       await db.deleteFrom('words').where('lexicon', '=', lexiconIdToDelete).execute();
@@ -144,11 +163,12 @@ export async function insertLMFDataInTransaction(
   dataToInsert: {
     lexicons: Database["lexicons"][];
     words: Database["words"][];
+    forms?: Database["forms"][];
     synsets: Database["synsets"][];
     senses: Database["senses"][];
     definitions: Database["definitions"][];
   },
-  logger?: { 
+  logger?: {
     step: (message: string, data?: any) => void;
     debug: (message: string, data?: any) => void;
     error: (message: string, data?: any) => void;
@@ -157,12 +177,13 @@ export async function insertLMFDataInTransaction(
   logger?.debug(`Starting insertLMFDataInTransaction with data:`, {
     lexicons: dataToInsert.lexicons?.length || 0,
     words: dataToInsert.words?.length || 0,
+    forms: dataToInsert.forms?.length || 0,
     synsets: dataToInsert.synsets?.length || 0,
     senses: dataToInsert.senses?.length || 0,
     definitions: dataToInsert.definitions?.length || 0
   });
-  
-  const { lexicons, words, synsets, senses, definitions } = dataToInsert;
+
+  const { lexicons, words, forms, synsets, senses, definitions } = dataToInsert;
 
   // Validate foreign key references before starting transaction - TEMPORARILY DISABLED TO ISOLATE ISSUE
   // validateForeignKeyReferences(dataToInsert, logger);
@@ -231,6 +252,35 @@ export async function insertLMFDataInTransaction(
       });
     }
     logger?.debug(`inserted ${words.length} words`);
+  }
+
+  // Process forms in batches (must be after words since forms reference words)
+  if (forms && forms.length > 0) {
+    logger?.step(`inserting ${forms.length} forms in batches of ${BATCH_SIZE}`);
+    for (let i = 0; i < forms.length; i += BATCH_SIZE) {
+      const batch = forms.slice(i, i + BATCH_SIZE);
+      const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+      const totalBatches = Math.ceil(forms.length / BATCH_SIZE);
+
+      logger?.step(`Processing forms batch ${batchNumber}/${totalBatches} (${i + 1}-${Math.min(i + BATCH_SIZE, forms.length)})`);
+
+      await db.transaction().execute(async (trx) => {
+        for (const form of batch) {
+          if (!form) continue;
+          try {
+            await trx.insertInto('forms').values(form as any).execute();
+          } catch (error) {
+            // Ignore duplicate key errors
+            if (error instanceof Error && error.message && error.message.includes('UNIQUE constraint failed')) {
+              continue;
+            }
+            logger?.error(`Failed to insert form: ${form.written_form}`, error);
+            throw error;
+          }
+        }
+      });
+    }
+    logger?.debug(`inserted ${forms.length} forms`);
   }
 
   // Process synsets in batches

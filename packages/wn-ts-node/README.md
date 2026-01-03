@@ -80,3 +80,11 @@ wn-cli data export --format json
 - [API Reference](../../docs/api/UNIFIED_API.md)
 - [Examples](../../docs/examples/README.md)
 - [Getting Started](../../docs/getting-started/README.md)
+
+## Troubleshooting
+
+- [Troubleshooting Guide](./TROUBLESHOOTING.md) - Common issues and solutions
+
+## Contributing
+
+- [Bug Reporting Guide](./BUG_REPORTING.md) - How to submit bug reports for wn-ts-node

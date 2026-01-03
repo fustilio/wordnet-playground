@@ -584,12 +584,14 @@ export class NodeDataManager extends SharedDataManager {
     const dataToInsert: {
       lexicons: any[];
       words: any[];
+      forms: any[];
       synsets: any[];
       senses: any[];
       definitions: any[];
     } = {
       lexicons: [],
       words: [],
+      forms: [],
       synsets: [],
       senses: [],
       definitions: []
@@ -647,6 +649,31 @@ export class NodeDataManager extends SharedDataManager {
         language: word.language || null,
         lexicon: word.lexicon
       }));
+
+      // Extract forms from words
+      for (const word of lmfDocument.words) {
+        if (word.forms && word.forms.length > 0) {
+          for (const form of word.forms) {
+            dataToInsert.forms.push({
+              id: form.id || `${word.id}-form-${dataToInsert.forms.length}`,
+              word_id: word.id,
+              written_form: form.writtenForm,
+              script: form.script || null,
+              tag: form.tag || null
+            });
+          }
+        } else {
+          // If no forms are defined, create a default form from the lemma
+          // This ensures backwards compatibility with data that doesn't explicitly define forms
+          dataToInsert.forms.push({
+            id: `${word.id}-lemma-form`,
+            word_id: word.id,
+            written_form: word.lemma,
+            script: null,
+            tag: null
+          });
+        }
+      }
     }
 
     // Prepare senses
@@ -674,6 +701,7 @@ export class NodeDataManager extends SharedDataManager {
     this.logger.info(`LMF data inserted successfully`, {
       lexicons: dataToInsert.lexicons.length,
       words: dataToInsert.words.length,
+      forms: dataToInsert.forms.length,
       synsets: dataToInsert.synsets.length,
       senses: dataToInsert.senses.length,
       definitions: dataToInsert.definitions.length
