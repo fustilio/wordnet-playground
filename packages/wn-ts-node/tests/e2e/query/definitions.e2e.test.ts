@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { setupTestEnvironment } from '../shared/test-setup.js';
 import { logger } from 'wn-ts-core/utils';
-import type { Wordnet } from '../../src/wordnet.js';
+import type { Wordnet } from '../../../src/wordnet.js';
 
 describe('Definition Queries', () => {
   let wordnetClient: Wordnet;
@@ -36,7 +36,7 @@ describe('Definition Queries', () => {
       expect(definitions.length).toBeGreaterThan(0);
       
       // Verify that definitions are strings
-      definitions.forEach(definition => {
+      definitions.forEach((definition: any) => {
         expect(typeof definition.text).toBe('string');
         expect(definition.text.length).toBeGreaterThan(0);
       });
@@ -226,7 +226,7 @@ describe('Definition Queries', () => {
       expect(results).toHaveLength(5);
       
       // All results should be identical
-      results.forEach(result => {
+      results.forEach((result: any) => {
         expect(Array.isArray(result)).toBe(true);
         expect(result).toEqual(results[0]);
       });
@@ -241,14 +241,14 @@ describe('Definition Queries', () => {
       expect(synsets.length).toBeGreaterThan(0);
       
       // Get definitions for multiple synsets
-      const definitionPromises = synsets.slice(0, 3).map(synset => 
+      const definitionPromises = synsets.slice(0, 3).map((synset: any) => 
         wordnetClient.getDefinitions(synset.id)
       );
       
       const allDefinitions = await Promise.all(definitionPromises);
       expect(allDefinitions).toHaveLength(3);
       
-      allDefinitions.forEach(definitions => {
+      allDefinitions.forEach((definitions: any) => {
         expect(Array.isArray(definitions)).toBe(true);
       });
       

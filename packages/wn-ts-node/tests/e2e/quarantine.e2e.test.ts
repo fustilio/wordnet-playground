@@ -5,7 +5,7 @@ import { existsSync, rmSync, mkdtempSync } from 'fs';
 import { config, download, add, Wordnet } from '../../src/index.js';
 import { decompressXz } from '../../src/utils/archive.js';
 import { logger } from 'wn-ts-core/utils';
-import { ProgressLogger } from '../utils/progress-logger.js';
+import { ProgressLogger } from '../unit/utils/progress-logger.js';
 import type { Synset } from 'wn-ts-core';
 
 describe('Quarantined E2E Tests', () => {

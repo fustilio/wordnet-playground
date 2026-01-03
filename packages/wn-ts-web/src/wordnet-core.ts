@@ -17,7 +17,8 @@ import type {
   Relation,
   WordQuery,
   SynsetQuery,
-  SenseQuery
+  SynsetQueryWithIli,
+  SenseQueryWithWordId
 } from 'wn-ts-core';
 import { createScopedLogger } from 'utils/logger';
 
@@ -63,7 +64,7 @@ export class WebWordNetCore implements WordNetCore {
     throw new Error(`Word with id ${wordId} not found`);
   }
 
-  async synsets(query?: SynsetQuery): Promise<Synset[]> {
+  async synsets(query?: SynsetQueryWithIli): Promise<Synset[]> {
     if (!this.initialized) {
       throw new Error('WebWordNetCore not initialized');
     }
@@ -79,7 +80,7 @@ export class WebWordNetCore implements WordNetCore {
     throw new Error(`Synset with id ${synsetId} not found`);
   }
 
-  async senses(query?: SenseQuery): Promise<Sense[]> {
+  async senses(query?: SenseQueryWithWordId): Promise<Sense[]> {
     if (!this.initialized) {
       throw new Error('WebWordNetCore not initialized');
     }

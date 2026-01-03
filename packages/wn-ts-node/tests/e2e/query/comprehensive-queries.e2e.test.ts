@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { setupTestEnvironment } from '../shared/test-setup.js';
 import { logger } from 'wn-ts-core/utils';
-import type { Wordnet } from '../../src/wordnet.js';
+import type { Wordnet } from '../../../src/wordnet.js';
 
 describe('Comprehensive Query Operations', () => {
   let wordnetClient: Wordnet;
@@ -63,7 +63,7 @@ describe('Comprehensive Query Operations', () => {
         maxResults: 10 
       });
       expect(Array.isArray(fuzzyWords)).toBe(true);
-      expect(fuzzyWords.some(w => w.lemma.includes('computer'))).toBe(true);
+      expect(fuzzyWords.some((w: any) => w.lemma.includes('computer'))).toBe(true);
       
       // Test part of speech filtering
       const nounWords = await wordnetClient.words({ 
@@ -72,7 +72,7 @@ describe('Comprehensive Query Operations', () => {
         maxResults: 5 
       });
       expect(Array.isArray(nounWords)).toBe(true);
-      expect(nounWords.every(w => w.pos === 'n')).toBe(true);
+      expect(nounWords.every((w: any) => w.pos === 'n')).toBe(true);
       
       // Test lexicon filtering
       const oewnWords = await wordnetClient.words({ 
@@ -80,7 +80,7 @@ describe('Comprehensive Query Operations', () => {
         maxResults: 5 
       });
       expect(Array.isArray(oewnWords)).toBe(true);
-      expect(oewnWords.every(w => w.lexicon === 'oewn')).toBe(true);
+      expect(oewnWords.every((w: any) => w.lexicon === 'oewn')).toBe(true);
       
       // Test language filtering
       const enWords = await wordnetClient.words({ 
@@ -88,7 +88,7 @@ describe('Comprehensive Query Operations', () => {
         maxResults: 5 
       });
       expect(Array.isArray(enWords)).toBe(true);
-      expect(enWords.every(w => w.language === 'en')).toBe(true);
+      expect(enWords.every((w: any) => w.language === 'en')).toBe(true);
       
       logger.success('Advanced filtering options working correctly');
     });
@@ -108,7 +108,7 @@ describe('Comprehensive Query Operations', () => {
         // Test with language filter
         const enWords = await wordnetClient.getWordsByIliAndLanguage(sampleIli, 'en');
         expect(Array.isArray(enWords)).toBe(true);
-        expect(enWords.every(w => w.language === 'en')).toBe(true);
+        expect(enWords.every((w: any) => w.language === 'en')).toBe(true);
         
         logger.success(`ILI queries working for ILI ${sampleIli}`);
       }
@@ -124,7 +124,7 @@ describe('Comprehensive Query Operations', () => {
       // Test getWordsByIds
       const words = await wordnetClient.words({ maxResults: 3 });
       if (words.length > 0) {
-        const wordIds = words.map(w => w.id);
+        const wordIds = words.map((w: any) => w.id);
         const foundWords = await queryService.getWordsByIds(wordIds);
         expect(Array.isArray(foundWords)).toBe(true);
         expect(foundWords.length).toBe(wordIds.length);
@@ -133,14 +133,14 @@ describe('Comprehensive Query Operations', () => {
       // Test getSynsetsByLexicon
       const oewnSynsets = await queryService.getSynsets({ lexicon: 'oewn', maxResults: 5 });
       expect(Array.isArray(oewnSynsets)).toBe(true);
-      expect(oewnSynsets.every(s => s.lexicon === 'oewn')).toBe(true);
+      expect(oewnSynsets.every((s: any) => s.lexicon === 'oewn')).toBe(true);
       
       // Test getSensesByWordId
       const testWords = await wordnetClient.words({ form: 'computer', maxResults: 1 });
       if (testWords.length > 0) {
         const senses = await queryService.getSensesByWordId(testWords[0]!.id);
         expect(Array.isArray(senses)).toBe(true);
-        expect(senses.every(s => s.word_id === testWords[0]!.id)).toBe(true);
+        expect(senses.every((s: any) => s.word_id === testWords[0]!.id)).toBe(true);
       }
       
       logger.success('Direct query service methods working correctly');
@@ -158,7 +158,7 @@ describe('Comprehensive Query Operations', () => {
         if (synset) {
           const relations = await queryService.getRelationsBySynsetId(synset.id);
           expect(Array.isArray(relations)).toBe(true);
-          expect(relations.every(r => r.source_id === synset.id)).toBe(true);
+          expect(relations.every((r: any) => r.source_id === synset.id)).toBe(true);
           
           logger.success(`Found ${relations.length} relations for synset ${synset.id}`);
         }
@@ -177,7 +177,7 @@ describe('Comprehensive Query Operations', () => {
         if (word) {
           const forms = await queryService.getFormsByWordId(word.id);
           expect(Array.isArray(forms)).toBe(true);
-          expect(forms.every(f => f.word_id === word.id)).toBe(true);
+          expect(forms.every((f: any) => f.word_id === word.id)).toBe(true);
           
           logger.success(`Found ${forms.length} forms for word ${word.lemma}`);
         }

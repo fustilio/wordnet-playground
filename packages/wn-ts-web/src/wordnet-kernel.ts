@@ -11,7 +11,8 @@ import { WebWordnet } from './client/submodules/web-wordnet.js';
 import type { 
   WordQuery, 
   SynsetQuery, 
-  SenseQuery,
+  SynsetQueryWithIli,
+  SenseQueryWithWordId,
   Word,
   Synset,
   Sense,
@@ -71,7 +72,7 @@ export class WebWordNetKernel {
     return this.wordnet.word(wordId);
   }
 
-  async synsets(query?: SynsetQuery): Promise<Synset[]> {
+  async synsets(query?: SynsetQueryWithIli): Promise<Synset[]> {
     return this.wordnet.synsets(query);
   }
 
@@ -79,7 +80,7 @@ export class WebWordNetKernel {
     return this.wordnet.synset(synsetId);
   }
 
-  async senses(query?: SenseQuery): Promise<Sense[]> {
+  async senses(query?: SenseQueryWithWordId): Promise<Sense[]> {
     return this.wordnet.senses(query);
   }
 

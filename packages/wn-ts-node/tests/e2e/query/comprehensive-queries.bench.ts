@@ -53,8 +53,8 @@
  */
 
 import { bench, describe } from 'vitest';
-import { Wordnet } from '../../src/wordnet';
-import { setupTestEnvironment } from '../shared/test-setup';
+import { Wordnet } from '../../../src/wordnet.js';
+import { setupTestEnvironment } from '../shared/test-setup.js';
 
 let wordnetClient: Wordnet;
 async function setupWordnet() {
@@ -367,7 +367,7 @@ describe('Comprehensive Query Performance Benchmarks', () => {
         for (const synset of synsets) {
           const synsetWords = await wordnetClient.getSynsetWords(synset.id);
           // Filter out the original word to get synonyms
-          synsetWords.filter(w => w.lemma !== 'happy');
+          synsetWords.filter((w: any) => w.lemma !== 'happy');
         }
       }, { setup: setupWordnet });
 
@@ -375,7 +375,7 @@ describe('Comprehensive Query Performance Benchmarks', () => {
         const synsets = await wordnetClient.synsets({ form: 'run', pos: 'v' });
         for (const synset of synsets) {
           const synsetWords = await wordnetClient.getSynsetWords(synset.id);
-          synsetWords.filter(w => w.lemma !== 'run');
+          synsetWords.filter((w: any) => w.lemma !== 'run');
         }
       }, { setup: setupWordnet });
 
@@ -383,7 +383,7 @@ describe('Comprehensive Query Performance Benchmarks', () => {
         const synsets = await wordnetClient.synsets({ form: 'beautiful', pos: 'a' });
         for (const synset of synsets) {
           const synsetWords = await wordnetClient.getSynsetWords(synset.id);
-          synsetWords.filter(w => w.lemma !== 'beautiful');
+          synsetWords.filter((w: any) => w.lemma !== 'beautiful');
         }
       }, { setup: setupWordnet });
     });
@@ -505,7 +505,7 @@ describe('Comprehensive Query Performance Benchmarks', () => {
         const queryService = await wordnetClient.getQueryService();
         const words = await wordnetClient.words({ maxResults: 3 });
         if (words.length > 0) {
-          const wordIds = words.map(w => w.id);
+          const wordIds = words.map((w: any) => w.id);
           await queryService.getWordsByIds(wordIds);
         }
       }, { setup: setupWordnet });

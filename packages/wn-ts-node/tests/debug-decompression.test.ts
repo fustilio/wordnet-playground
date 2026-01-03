@@ -2,7 +2,7 @@
  * Debug test to investigate decompression issues
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { add, download } from '../src/index.js';
 import { config } from '../src/config.js';
 import { join } from 'path';

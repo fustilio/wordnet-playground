@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { setupTestEnvironment } from '../shared/test-setup.js';
-import { config, download, add, remove, lexicons } from '../../src/index.js';
+import { config, download, add, remove, lexicons } from '../../../src/index.js';
 import { logger } from 'wn-ts-core/utils';
 
 describe('Lexicon Management', () => {
@@ -27,7 +27,7 @@ describe('Lexicon Management', () => {
       await add(filePath, { force: true });
       
       const lexList = await lexicons();
-      expect(lexList.some(l => l.id.startsWith('oewn'))).toBe(true);
+      expect(lexList.some((l: any) => l.id.startsWith('oewn'))).toBe(true);
       
       logger.success('OEWN:2024 successfully downloaded and installed');
     });
@@ -40,7 +40,7 @@ describe('Lexicon Management', () => {
       await add(filePath, { force: true });
       
       const lexList = await lexicons();
-      const oewnLexicons = lexList.filter(l => l.id.startsWith('oewn'));
+      const oewnLexicons = lexList.filter((l: any) => l.id.startsWith('oewn'));
       
       // Should still have the lexicon (not duplicated)
       expect(oewnLexicons.length).toBeGreaterThan(0);
@@ -53,13 +53,13 @@ describe('Lexicon Management', () => {
       
       // First ensure we have a lexicon to remove
       const lexListBefore = await lexicons();
-      const oewnLexicon = lexListBefore.find(l => l.id.startsWith('oewn'));
+      const oewnLexicon = lexListBefore.find((l: any) => l.id.startsWith('oewn'));
       
       if (oewnLexicon) {
         await remove('oewn');
         
         const lexListAfter = await lexicons();
-        expect(lexListAfter.some(l => l.id.startsWith('oewn'))).toBe(false);
+        expect(lexListAfter.some((l: any) => l.id.startsWith('oewn'))).toBe(false);
         
         logger.success('Lexicon removal successful');
       } else {
@@ -75,7 +75,7 @@ describe('Lexicon Management', () => {
       await add(filePath, { force: true });
       
       const lexList = await lexicons();
-      expect(lexList.some(l => l.id.startsWith('oewn'))).toBe(true);
+      expect(lexList.some((l: any) => l.id.startsWith('oewn'))).toBe(true);
       
       logger.success('Reinstallation after removal successful');
     });
@@ -92,7 +92,7 @@ describe('Lexicon Management', () => {
       expect(availableProjects.length).toBeGreaterThan(0);
 
       // Check for specific known projects
-      const projectIds = availableProjects.map(p => p.id);
+      const projectIds = availableProjects.map((p: any) => p.id);
       expect(projectIds).toContain('oewn');
       
       logger.success('Project index loaded successfully');

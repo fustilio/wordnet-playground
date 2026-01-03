@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { setupTestEnvironment } from '../shared/test-setup.js';
 import { logger } from 'wn-ts-core/utils';
-import type { Wordnet } from '../../src/wordnet.js';
+import type { Wordnet } from '../../../src/wordnet.js';
 import type { Word } from 'wn-ts-core';
 import type { PartOfSpeech } from 'wn-ts-core';
 
@@ -19,7 +19,7 @@ class PolylingualDictionary {
           fuzzy: true,
         });
         if (words.length > 0) {
-          cognates[lang] = words.map(w => w.lemma);
+          cognates[lang] = words.map((w: any) => w.lemma);
         }
       } catch (error) {
         // Language not available, skip
@@ -53,7 +53,7 @@ class PolylingualDictionary {
               );
               if (words.length > 0) {
                 if (!translations[lang]) translations[lang] = [];
-                translations[lang].push(...words.map(w => w.lemma));
+                translations[lang].push(...words.map((w: any) => w.lemma));
               }
             } catch (error) {
               // Language not available, skip
@@ -120,12 +120,12 @@ describe('Translation Queries', () => {
       // Test English words
       const enWords = await wordnetClient.words({ form: 'computer', language: 'en' });
       expect(enWords.length).toBeGreaterThan(0);
-      expect(enWords.every(w => w.language === 'en')).toBe(true);
+      expect(enWords.every((w: any) => w.language === 'en')).toBe(true);
 
       // Test French words
       const frWords = await wordnetClient.words({ form: 'ordinateur', language: 'fr' });
       expect(frWords.length).toBeGreaterThan(0);
-      expect(frWords.every(w => w.language === 'fr')).toBe(true);
+      expect(frWords.every((w: any) => w.language === 'fr')).toBe(true);
 
       logger.success(
         `Found ${enWords.length} English and ${frWords.length} French words`
@@ -141,7 +141,7 @@ describe('Translation Queries', () => {
         language: 'en',
       });
       expect(enSynsets.length).toBeGreaterThan(0);
-      expect(enSynsets.every(s => s.language === 'en')).toBe(true);
+      expect(enSynsets.every((s: any) => s.language === 'en')).toBe(true);
 
       // Test French synsets
       const frSynsets = await wordnetClient.synsets({
@@ -149,7 +149,7 @@ describe('Translation Queries', () => {
         language: 'fr',
       });
       expect(frSynsets.length).toBeGreaterThan(0);
-      expect(frSynsets.every(s => s.language === 'fr')).toBe(true);
+      expect(frSynsets.every((s: any) => s.language === 'fr')).toBe(true);
 
       logger.success(
         `Found ${enSynsets.length} English and ${frSynsets.length} French synsets`
@@ -161,7 +161,7 @@ describe('Translation Queries', () => {
 
       // First, let's check what lexicons are available
       const lexicons = await wordnetClient.lexicons();
-      logger.info(`Available lexicons: ${lexicons.map(l => l.id).join(', ')}`);
+      logger.info(`Available lexicons: ${lexicons.map((l: any) => l.id).join(', ')}`);
 
       // Test English words with lexicon and language filtering
       const enResults = await wordnetClient.words({ 
@@ -199,7 +199,7 @@ describe('Translation Queries', () => {
 
       // First find an English synset with an ILI
       const enSynsets = await wordnetClient.synsets({ form: 'water', language: 'en' });
-      const synsetWithIli = enSynsets.find(s => s.ili);
+      const synsetWithIli = enSynsets.find((s: any) => s.ili);
 
       if (synsetWithIli && synsetWithIli.ili) {
         // Find French words with the same ILI
@@ -210,7 +210,7 @@ describe('Translation Queries', () => {
         expect(Array.isArray(frWords)).toBe(true);
 
         if (frWords.length > 0) {
-          expect(frWords.some(w => w.lemma === 'eau')).toBe(true);
+          expect(frWords.some((w: any) => w.lemma === 'eau')).toBe(true);
           logger.success(
             `Found French translation 'eau' for water concept via ILI ${synsetWithIli.ili}`
           );
@@ -252,20 +252,20 @@ describe('Translation Queries', () => {
           pos: pos as any,
           language: 'en',
         });
-        const allIlis = englishSynsets.map(s => s.ili).filter(Boolean);
+        const allIlis = englishSynsets.map((s: any) => s.ili).filter(Boolean);
 
         // Find French words with matching ILIs
         const allMatchingFrenchWords = await Promise.all(
-          allIlis.map(ili => wordnetClient.getWordsByIliAndLanguage(ili!, 'fr'))
+          allIlis.map((ili: any) => wordnetClient.getWordsByIliAndLanguage(ili!, 'fr'))
         );
 
         // Return unique words
         return allMatchingFrenchWords
           .flat()
           .filter(
-            (word, index, self) => index === self.findIndex(t => t.id === word.id)
+            (word: any, index: any, self: any) => index === self.findIndex((t: any) => t.id === word.id)
           )
-          .map(w => ({
+          .map((w: any) => ({
             id: w.id,
             lemma: w.lemma,
             pos: w.pos,
@@ -274,11 +274,11 @@ describe('Translation Queries', () => {
 
       const translatedWater = await translateFromEnglishToFrench('water', 'n');
       expect(translatedWater.length).toBeGreaterThan(0);
-      expect(translatedWater.some(w => w.lemma === 'eau')).toBe(true);
+      expect(translatedWater.some((w: any) => w.lemma === 'eau')).toBe(true);
 
       const translatedComputer = await translateFromEnglishToFrench('computer', 'n');
       expect(translatedComputer.length).toBeGreaterThan(0);
-      expect(translatedComputer.some(w => w.lemma === 'ordinateur')).toBe(true);
+      expect(translatedComputer.some((w: any) => w.lemma === 'ordinateur')).toBe(true);
 
       logger.success('Translation workflow completed successfully');
     });
@@ -342,7 +342,7 @@ describe('Translation Queries', () => {
         form: 'computer',
         language: 'en',
       });
-      const synsetWithIli = enSynsets.find(s => s.ili);
+      const synsetWithIli = enSynsets.find((s: any) => s.ili);
 
       if (synsetWithIli && synsetWithIli.ili) {
         // Find all synsets with this ILI
@@ -439,7 +439,7 @@ describe('Translation Queries', () => {
       const results = await Promise.all(queries);
       expect(results.length).toBe(6);
 
-      results.forEach((result, index) => {
+      results.forEach((result: any, index: any) => {
         expect(Array.isArray(result)).toBe(true);
         if (result.length > 0) {
           logger.success(`Query ${index + 1} returned ${result.length} results`);

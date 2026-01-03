@@ -18,7 +18,7 @@ async function initializeXmlIntrospect() {
       process.versions?.node &&
       !(globalThis as any).__vitest_browser_runner__) {
     try {
-      const xmlIntrospect = await import('xml-introspect/browser') as any;
+      const xmlIntrospect = await import('xml-introspect/browser');
       XMLIntrospector = xmlIntrospect.XMLIntrospector;
       StreamingXMLIntrospector = xmlIntrospect.StreamingXMLIntrospector;
       XMLAnalyzer = xmlIntrospect.XMLAnalyzer;

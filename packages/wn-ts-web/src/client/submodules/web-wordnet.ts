@@ -17,7 +17,8 @@ import type {
   ILI,
   WordQuery,
   SynsetQuery,
-  SenseQuery,
+  SynsetQueryWithIli,
+  SenseQueryWithWordId,
   Relation,
 } from "wn-ts-core";
 
@@ -462,7 +463,7 @@ export class WebWordnet implements WordNetCore {
     }
   }
 
-  async synsets(query?: SynsetQuery): Promise<Synset[]> {
+  async synsets(query?: SynsetQueryWithIli): Promise<Synset[]> {
     if (!this.initialized || !this.queryService)
       throw new Error("WebWordnet not initialized");
 
@@ -562,7 +563,7 @@ export class WebWordnet implements WordNetCore {
     return ili;
   }
 
-  async senses(query?: SenseQuery): Promise<Sense[]> {
+  async senses(query?: SenseQueryWithWordId): Promise<Sense[]> {
     if (!this.initialized || !this.queryService)
       throw new Error("WebWordnet not initialized");
 

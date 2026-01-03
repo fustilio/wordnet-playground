@@ -8,7 +8,8 @@ import type {
   ILI,
   WordQuery,
   SynsetQuery,
-  SenseQuery,
+  SynsetQueryWithIli,
+  SenseQueryWithWordId,
   WordNetCore,
   Definition
 } from 'wn-ts-core';
@@ -122,9 +123,9 @@ export class Wordnet implements WordNetCore {
   /**
    * Get synsets with various query options
    */
-  async synsets(query?: SynsetQuery): Promise<Synset[]>;
+  async synsets(query?: SynsetQueryWithIli): Promise<Synset[]>;
   async synsets(form: string, pos?: PartOfSpeech, options?: { lexicon?: string | string[] }): Promise<Synset[]>;
-  async synsets(formOrQuery?: string | SynsetQuery, pos?: PartOfSpeech, options?: { lexicon?: string | string[] }): Promise<Synset[]> {
+  async synsets(formOrQuery?: string | SynsetQueryWithIli, pos?: PartOfSpeech, options?: { lexicon?: string | string[] }): Promise<Synset[]> {
     await this.ensureInitialized();
     
     // Handle the overloaded call pattern
@@ -142,9 +143,9 @@ export class Wordnet implements WordNetCore {
   /**
    * Get senses with various query options
    */
-  async senses(query?: SenseQuery): Promise<Sense[]>;
+  async senses(query?: SenseQueryWithWordId): Promise<Sense[]>;
   async senses(form: string, pos?: PartOfSpeech, options?: { lexicon?: string | string[] }): Promise<Sense[]>;
-  async senses(formOrQuery?: string | SenseQuery, pos?: PartOfSpeech, options?: { lexicon?: string | string[] }): Promise<Sense[]> {
+  async senses(formOrQuery?: string | SenseQueryWithWordId, pos?: PartOfSpeech, options?: { lexicon?: string | string[] }): Promise<Sense[]> {
     await this.ensureInitialized();
     
     // Handle the overloaded call pattern

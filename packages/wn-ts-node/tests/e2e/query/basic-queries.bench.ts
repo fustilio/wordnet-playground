@@ -97,8 +97,8 @@
  */
 
 import { bench, describe } from 'vitest';
-import { Wordnet } from '../../src/wordnet';
-import { setupTestEnvironment } from '../shared/test-setup';
+import { Wordnet } from '../../../src/wordnet.js';
+import { setupTestEnvironment } from '../shared/test-setup.js';
 
 let wordnetClient: Wordnet;
 async function setupWordnet() {

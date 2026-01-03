@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { setupTestEnvironment } from '../shared/test-setup.js';
 import { logger } from 'wn-ts-core/utils';
-import type { Wordnet } from '../../src/wordnet.js';
+import type { Wordnet } from '../../../src/wordnet.js';
 import type { SynsetQuery, WordQuery } from 'wn-ts-core';
 
 describe('Basic Query Operations', () => {
@@ -24,7 +24,7 @@ describe('Basic Query Operations', () => {
       
       const words = await wordnetClient.words({ form: 'computer' });
       expect(words.length).toBeGreaterThan(0);
-      expect(words.every(w => w.lemma.toLowerCase().includes('computer'))).toBe(true);
+      expect(words.every((w: any) => w.lemma.toLowerCase().includes('computer'))).toBe(true);
       
       logger.success(`Found ${words.length} words for 'computer'`);
     });
@@ -35,8 +35,8 @@ describe('Basic Query Operations', () => {
       const nounWords = await wordnetClient.words({ form: 'run', pos: 'n' });
       const verbWords = await wordnetClient.words({ form: 'run', pos: 'v' });
       
-      expect(nounWords.every(w => w.pos === 'n')).toBe(true);
-      expect(verbWords.every(w => w.pos === 'v')).toBe(true);
+      expect(nounWords.every((w: any) => w.pos === 'n')).toBe(true);
+      expect(verbWords.every((w: any) => w.pos === 'v')).toBe(true);
       
       logger.success(`Found ${nounWords.length} noun and ${verbWords.length} verb forms of 'run'`);
     });
@@ -51,7 +51,7 @@ describe('Basic Query Operations', () => {
       });
       
       expect(fuzzyResults.length).toBeGreaterThan(0);
-      expect(fuzzyResults.some(w => w.lemma.includes('computer'))).toBe(true);
+      expect(fuzzyResults.some((w: any) => w.lemma.includes('computer'))).toBe(true);
       
       logger.success(`Fuzzy search for 'comput' found ${fuzzyResults.length} results`);
     });
@@ -89,8 +89,8 @@ describe('Basic Query Operations', () => {
       const nounSynsets = await wordnetClient.synsets({ form: 'light', pos: 'n' });
       const adjSynsets = await wordnetClient.synsets({ form: 'light', pos: 'a' });
       
-      expect(nounSynsets.every(s => s.pos === 'n')).toBe(true);
-      expect(adjSynsets.every(s => s.pos === 'a')).toBe(true);
+      expect(nounSynsets.every((s: any) => s.pos === 'n')).toBe(true);
+      expect(adjSynsets.every((s: any) => s.pos === 'a')).toBe(true);
       
       logger.success(`Found ${nounSynsets.length} noun and ${adjSynsets.length} adjective synsets for 'light'`);
     });
@@ -150,7 +150,7 @@ describe('Basic Query Operations', () => {
         const word = words[0];
         if (word) {
           const senses = await wordnetClient.senses({ wordIdOrForm: word.id });
-          expect(senses.every(s => s.wordId === word.id)).toBe(true);
+          expect(senses.every((s: any) => s.wordId === word.id)).toBe(true);
           
           logger.success(`Found ${senses.length} senses for word ${word.lemma}`);
         }
@@ -165,7 +165,7 @@ describe('Basic Query Operations', () => {
       const lexicons = await wordnetClient.lexicons();
       expect(lexicons.length).toBeGreaterThan(0);
       
-      const oewnLexicon = lexicons.find(l => l.id === 'oewn');
+      const oewnLexicon = lexicons.find((l: any) => l.id === 'oewn');
       expect(oewnLexicon).toBeDefined();
       expect(oewnLexicon?.language).toBe('en');
       
@@ -176,7 +176,7 @@ describe('Basic Query Operations', () => {
       logger.info('📚 Testing word filtering by lexicon...');
       
       const oewnWords = await wordnetClient.words({ lexicon: 'oewn', maxResults: 10 });
-      expect(oewnWords.every(w => w.lexicon === 'oewn')).toBe(true);
+      expect(oewnWords.every((w: any) => w.lexicon === 'oewn')).toBe(true);
       
       logger.success(`Found ${oewnWords.length} OEWN words`);
     });
@@ -216,7 +216,7 @@ describe('Basic Query Operations', () => {
 
       const results = await Promise.all(queries);
       expect(results.length).toBe(4);
-      results.forEach(result => {
+      results.forEach((result: any) => {
         expect(Array.isArray(result)).toBe(true);
       });
       
@@ -283,13 +283,13 @@ describe('Basic Query Operations', () => {
           ]);
 
           // Normalize all results for comparison
-          const normalizedV1 = v1Results.map(normalizeSynset).sort((a, b) => a.id.localeCompare(b.id));
-          const normalizedV2 = v2Results.map(normalizeSynset).sort((a, b) => a.id.localeCompare(b.id));
-          const normalizedV3 = v3Results.map(normalizeSynset).sort((a, b) => a.id.localeCompare(b.id));
-          const normalizedV4 = v4Results.map(normalizeSynset).sort((a, b) => a.id.localeCompare(b.id));
-          const normalizedV5 = v5Results.map(normalizeSynset).sort((a, b) => a.id.localeCompare(b.id));
-          const normalizedV6 = v6Results.map(normalizeSynset).sort((a, b) => a.id.localeCompare(b.id));
-          const normalizedFast = fastResults.map(normalizeSynset).sort((a, b) => a.id.localeCompare(b.id));
+          const normalizedV1 = v1Results.map(normalizeSynset).sort((a: any, b: any) => a.id.localeCompare(b.id));
+          const normalizedV2 = v2Results.map(normalizeSynset).sort((a: any, b: any) => a.id.localeCompare(b.id));
+          const normalizedV3 = v3Results.map(normalizeSynset).sort((a: any, b: any) => a.id.localeCompare(b.id));
+          const normalizedV4 = v4Results.map(normalizeSynset).sort((a: any, b: any) => a.id.localeCompare(b.id));
+          const normalizedV5 = v5Results.map(normalizeSynset).sort((a: any, b: any) => a.id.localeCompare(b.id));
+          const normalizedV6 = v6Results.map(normalizeSynset).sort((a: any, b: any) => a.id.localeCompare(b.id));
+          const normalizedFast = fastResults.map(normalizeSynset).sort((a: any, b: any) => a.id.localeCompare(b.id));
 
           // Verify all strategies return the same number of results
           expect(normalizedV1.length).toBe(normalizedV2.length);
@@ -334,13 +334,13 @@ describe('Basic Query Operations', () => {
           ]);
 
           // Normalize all results for comparison
-          const normalizedV1 = v1Results.map(normalizeSynset).sort((a, b) => a.id.localeCompare(b.id));
-          const normalizedV2 = v2Results.map(normalizeSynset).sort((a, b) => a.id.localeCompare(b.id));
-          const normalizedV3 = v3Results.map(normalizeSynset).sort((a, b) => a.id.localeCompare(b.id));
-          const normalizedV4 = v4Results.map(normalizeSynset).sort((a, b) => a.id.localeCompare(b.id));
-          const normalizedV5 = v5Results.map(normalizeSynset).sort((a, b) => a.id.localeCompare(b.id));
-          const normalizedV6 = v6Results.map(normalizeSynset).sort((a, b) => a.id.localeCompare(b.id));
-          const normalizedFast = fastResults.map(normalizeSynset).sort((a, b) => a.id.localeCompare(b.id));
+          const normalizedV1 = v1Results.map(normalizeSynset).sort((a: any, b: any) => a.id.localeCompare(b.id));
+          const normalizedV2 = v2Results.map(normalizeSynset).sort((a: any, b: any) => a.id.localeCompare(b.id));
+          const normalizedV3 = v3Results.map(normalizeSynset).sort((a: any, b: any) => a.id.localeCompare(b.id));
+          const normalizedV4 = v4Results.map(normalizeSynset).sort((a: any, b: any) => a.id.localeCompare(b.id));
+          const normalizedV5 = v5Results.map(normalizeSynset).sort((a: any, b: any) => a.id.localeCompare(b.id));
+          const normalizedV6 = v6Results.map(normalizeSynset).sort((a: any, b: any) => a.id.localeCompare(b.id));
+          const normalizedFast = fastResults.map(normalizeSynset).sort((a: any, b: any) => a.id.localeCompare(b.id));
 
           // Verify all strategies return the same number of results
           expect(normalizedV1.length).toBe(normalizedV2.length);
@@ -382,9 +382,9 @@ describe('Basic Query Operations', () => {
           ]);
 
           // Normalize all results for comparison
-          const normalizedV1 = v1Results.map(normalizeWord).sort((a, b) => a.id.localeCompare(b.id));
-          const normalizedFast = fastResults.map(normalizeWord).sort((a, b) => a.id.localeCompare(b.id));
-          const normalizedFuzzy = fuzzyResults.map(normalizeWord).sort((a, b) => a.id.localeCompare(b.id));
+          const normalizedV1 = v1Results.map(normalizeWord).sort((a: any, b: any) => a.id.localeCompare(b.id));
+          const normalizedFast = fastResults.map(normalizeWord).sort((a: any, b: any) => a.id.localeCompare(b.id));
+          const normalizedFuzzy = fuzzyResults.map(normalizeWord).sort((a: any, b: any) => a.id.localeCompare(b.id));
 
           // For fuzzy search, we expect different results, so only compare V1 vs Fast
           if (testCase.fuzzy) {
@@ -445,13 +445,13 @@ describe('Basic Query Operations', () => {
         expect(fastResults.length).toBeLessThanOrEqual(maxResults);
 
         // All strategies should return the same results
-        const normalizedV1 = v1Results.map(normalizeSynset).sort((a, b) => a.id.localeCompare(b.id));
-        const normalizedV2 = v2Results.map(normalizeSynset).sort((a, b) => a.id.localeCompare(b.id));
-        const normalizedV3 = v3Results.map(normalizeSynset).sort((a, b) => a.id.localeCompare(b.id));
-        const normalizedV4 = v4Results.map(normalizeSynset).sort((a, b) => a.id.localeCompare(b.id));
-        const normalizedV5 = v5Results.map(normalizeSynset).sort((a, b) => a.id.localeCompare(b.id));
-        const normalizedV6 = v6Results.map(normalizeSynset).sort((a, b) => a.id.localeCompare(b.id));
-        const normalizedFast = fastResults.map(normalizeSynset).sort((a, b) => a.id.localeCompare(b.id));
+        const normalizedV1 = v1Results.map(normalizeSynset).sort((a: any, b: any) => a.id.localeCompare(b.id));
+        const normalizedV2 = v2Results.map(normalizeSynset).sort((a: any, b: any) => a.id.localeCompare(b.id));
+        const normalizedV3 = v3Results.map(normalizeSynset).sort((a: any, b: any) => a.id.localeCompare(b.id));
+        const normalizedV4 = v4Results.map(normalizeSynset).sort((a: any, b: any) => a.id.localeCompare(b.id));
+        const normalizedV5 = v5Results.map(normalizeSynset).sort((a: any, b: any) => a.id.localeCompare(b.id));
+        const normalizedV6 = v6Results.map(normalizeSynset).sort((a: any, b: any) => a.id.localeCompare(b.id));
+        const normalizedFast = fastResults.map(normalizeSynset).sort((a: any, b: any) => a.id.localeCompare(b.id));
 
         expect(normalizedV1).toEqual(normalizedV2);
         expect(normalizedV1).toEqual(normalizedV3);

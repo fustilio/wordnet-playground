@@ -128,10 +128,10 @@ describe('ConfigManager', () => {
       
       const index = tempConfig.index;
       expect(index.test).toBeDefined();
-      expect(index.test.type).toBe('wordnet');
-      expect(index.test.label).toBe('Test WordNet');
-      expect(index.test.language).toBe('en');
-      expect(index.test.license).toBe('MIT');
+      expect(index.test?.type).toBe('wordnet');
+      expect(index.test?.label).toBe('Test WordNet');
+      expect(index.test?.language).toBe('en');
+      expect(index.test?.license).toBe('MIT');
     });
 
     it('should add project version', () => {
@@ -139,8 +139,8 @@ describe('ConfigManager', () => {
       tempConfig.addProjectVersion('test', '1.0', 'https://example.com/test.xml.gz');
       
       const project = tempConfig.index.test;
-      expect(project.versions['1.0']).toBeDefined();
-      expect(project.versions['1.0'].resource_urls).toEqual(['https://example.com/test.xml.gz']);
+      expect(project?.versions['1.0']).toBeDefined();
+      expect((project?.versions['1.0'] as any).resource_urls).toEqual(['https://example.com/test.xml.gz']);
     });
 
     it('should add project version with error', () => {
@@ -148,7 +148,7 @@ describe('ConfigManager', () => {
       tempConfig.addProjectVersion('test', '1.0', undefined, 'This version is deprecated');
       
       const project = tempConfig.index.test;
-      expect(project.versions['1.0'].error).toBe('This version is deprecated');
+      expect(project?.versions['1.0']?.error).toBe('This version is deprecated');
     });
 
     it('should throw error when adding duplicate project', () => {
@@ -251,8 +251,8 @@ describe('ConfigManager', () => {
       
       const index = tempConfig.index;
       expect(index.test).toBeDefined();
-      expect(index.test.label).toBe('Test WordNet');
-      expect(index.test.versions['1.0'].resource_urls).toEqual(['https://example.com/test.xml.gz']);
+      expect(index.test?.label).toBe('Test WordNet');
+      expect((index.test?.versions['1.0'] as any).resource_urls).toEqual(['https://example.com/test.xml.gz']);
     });
 
     it('should handle multiline URLs', () => {
@@ -271,7 +271,7 @@ describe('ConfigManager', () => {
       tempConfig.loadIndex(tempIndexPath);
       
       const project = tempConfig.index.test;
-      expect(project.versions['1.0'].resource_urls).toEqual([
+      expect((project?.versions['1.0'] as any).resource_urls).toEqual([
         'https://example.com/test1.xml.gz',
         'https://example.com/test2.xml.gz'
       ]);
@@ -337,9 +337,9 @@ describe('ConfigManager', () => {
       expect(index.cili).toBeDefined();
       
       // Check project structure
-      expect(index.oewn.label).toBe('Open English WordNet');
-      expect(index.oewn.language).toBe('en');
-      expect(index.oewn.versions).toBeDefined();
+      expect(index.oewn?.label).toBe('Open English WordNet');
+      expect(index.oewn?.language).toBe('en');
+      expect(index.oewn?.versions).toBeDefined();
     });
 
     it('should get project info for default projects', () => {

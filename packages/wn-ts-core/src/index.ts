@@ -92,7 +92,9 @@ export type {
   // Query types
   WordQuery,
   SynsetQuery,
+  SynsetQueryWithIli,
   SenseQuery,
+  SenseQueryWithWordId,
   // Configuration types
   WordnetConfig,
   WordnetOptions,

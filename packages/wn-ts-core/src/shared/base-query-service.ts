@@ -663,7 +663,7 @@ export abstract class BaseKyselyQueryService {
   // V5 Strategy - Ultra-fast with caching and optimized queries
   // Performance: ~50,000+ Hz (ultra-fast)
   // Best for: Production applications with repeated queries
-  async getSensesV5(options: SenseQuery & QueryOptions = { language: undefined }): Promise<Sense[]> {
+  async getSensesV5(options: SenseQuery & QueryOptions & { wordIdOrForm?: string } = { language: undefined }): Promise<Sense[]> {
 
     // V5 Optimization: Create cache key for query
     const cacheKey = `senses:${JSON.stringify(options)}`;
@@ -700,7 +700,7 @@ export abstract class BaseKyselyQueryService {
   // V6 Strategy - Memory-optimized with batch loading
   // Performance: ~1,000+ Hz (very fast)
   // Best for: Consistent performance without caching complexity
-  async getSensesV6(options: SenseQuery & QueryOptions = { language: undefined }): Promise<Sense[]> {
+  async getSensesV6(options: SenseQuery & QueryOptions & { wordIdOrForm?: string } = { language: undefined }): Promise<Sense[]> {
 
     const query = getSensesQuery(this.db, options);
     const results = await query.execute();

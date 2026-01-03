@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { setupTestEnvironment } from '../shared/test-setup.js';
 import { logger } from 'wn-ts-core/utils';
-import type { Wordnet } from '../../src/wordnet.js';
+import type { Wordnet } from '../../../src/wordnet.js';
 import type { PartOfSpeech, Word } from 'wn-ts-core';
 
 class SenseDisambiguator {
@@ -15,17 +15,17 @@ class SenseDisambiguator {
     }
 
     // Simple context-based disambiguation
-    const scoredSynsets = synsets.map((synset) => {
+    const scoredSynsets = synsets.map((synset: any) => {
       let score = 0;
 
       // Check if context words appear in definitions
       if (context) {
         const contextWords = context.toLowerCase().split(/\s+/);
         const definitionText = (synset.definitions || [])
-          .map((d) => d.text.toLowerCase())
+          .map((d: any) => d.text.toLowerCase())
           .join(' ');
 
-        contextWords.forEach(contextWord => {
+        contextWords.forEach((contextWord: string) => {
           if (definitionText.includes(contextWord)) {
             score += 1;
           }
@@ -39,7 +39,7 @@ class SenseDisambiguator {
     });
 
     // Sort by score and return top synsets
-    return scoredSynsets.sort((a, b) => b.score - a.score).map(item => item.synset);
+    return scoredSynsets.sort((a: any, b: any) => b.score - a.score).map((item: any) => item.synset);
   }
 }
 
@@ -65,7 +65,7 @@ class AdvancedThesaurus {
         const targetSynset = await this.wordnetClient.getSynsetById(relation.target);
         if (targetSynset) {
           const targetWords = await this.wordnetClient.getSynsetWords(targetSynset.id);
-          const targetLemmas = targetWords.map(w => w.lemma);
+          const targetLemmas = targetWords.map((w: any) => w.lemma);
 
           switch (relation.type) {
             case 'hypernym':
@@ -96,14 +96,14 @@ class AdvancedThesaurus {
     for (const synset of synsets) {
       // Look for antonym relations
       const antonymRelations =
-        synset.relations?.filter(r => r.type === 'antonym' || r.type === 'opposite') ||
+        synset.relations?.filter((r: any) => r.type === 'antonym' || r.type === 'opposite') ||
         [];
 
       for (const relation of antonymRelations) {
         const targetSynset = await this.wordnetClient.getSynsetById(relation.target);
         if (targetSynset) {
           const targetWords = await this.wordnetClient.getSynsetWords(targetSynset.id);
-          antonyms.push(...targetWords.map(w => w.lemma));
+          antonyms.push(...targetWords.map((w: any) => w.lemma));
         }
       }
     }
@@ -122,7 +122,7 @@ class AdvancedThesaurus {
     for (const synset of synsets) {
       const meronymRelations =
         synset.relations?.filter(
-          r =>
+          (r: any) =>
             r.type === 'meronym' ||
             r.type === 'part_meronym' ||
             r.type === 'member_meronym'
@@ -132,7 +132,7 @@ class AdvancedThesaurus {
         const targetSynset = await this.wordnetClient.getSynsetById(relation.target);
         if (targetSynset) {
           const targetWords = await this.wordnetClient.getSynsetWords(targetSynset.id);
-          meronyms.push(...targetWords.map(w => w.lemma));
+          meronyms.push(...targetWords.map((w: any) => w.lemma));
         }
       }
     }
@@ -204,7 +204,7 @@ class SimpleThesaurus {
 
     for (const synset of synsets) {
       const synsetWords = await this.wordnetClient.getSynsetWords(synset.id);
-      synonyms.push(...synsetWords.map(w => w.lemma).filter(w => w !== word));
+      synonyms.push(...synsetWords.map((w: any) => w.lemma).filter((w: any) => w !== word));
     }
 
     return [...new Set(synonyms)]; // Remove duplicates
@@ -227,7 +227,7 @@ class SemanticThesaurus {
       for (const synset of synsets) {
         // Get synonyms
         const synsetWords = await this.wordnetClient.getSynsetWords(synset.id);
-        synsetWords.forEach(w => {
+        synsetWords.forEach((w: any) => {
           if (w.lemma !== word) {
             similarWords.add(w.lemma);
           }
@@ -457,7 +457,7 @@ describe('Thesaurus Queries', () => {
 
           for (const synset of synsets) {
             const synsetWords = await this.wordnetClient.getSynsetWords(synset.id);
-            synonyms.push(...synsetWords.map((w: Word) => w.lemma).filter(lemma => lemma !== word));
+            synonyms.push(...synsetWords.map((w: Word) => w.lemma).filter((lemma: any) => lemma !== word));
           }
 
           return [...new Set(synonyms)];
