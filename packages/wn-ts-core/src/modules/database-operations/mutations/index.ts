@@ -71,6 +71,7 @@ export {
 export {
   prepareLexiconData,           // Prepare lexicon data for insertion
   prepareWordData,              // Prepare word data for insertion
+  prepareFormData,              // Prepare form data for insertion
   prepareSynsetData,            // Prepare synset data for insertion
   prepareSenseData,             // Prepare sense data for insertion
   prepareDefinitionData,        // Prepare definition data for insertion

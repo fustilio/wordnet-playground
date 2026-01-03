@@ -15,7 +15,7 @@ import type {
   DefinitionTable,
   ExampleTable,
   RelationTable
-} from './database-types.js';
+} from '../types/database.js';
 
 /**
  * Map LMF lexicons to database records

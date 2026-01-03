@@ -33,7 +33,7 @@ export function prepareWordData(
   projectIdWithVersion: string
 ): Database["words"][] {
   const lexicons = lmfDocument.lexicons || [];
-  
+
   return (lmfDocument.words || []).map((word: Word) => ({
     id: word.id,
     lemma: word.lemma,
@@ -41,6 +41,42 @@ export function prepareWordData(
     language: word.language || lexicons[0]?.language || "en",
     lexicon: projectIdWithVersion, // Always use full package ID for consistency
   }));
+}
+
+/**
+ * Prepare form data for insertion from LMF document
+ */
+export function prepareFormData(
+  lmfDocument: LMFDocument
+): Database["forms"][] {
+  const forms: Database["forms"][] = [];
+
+  for (const word of lmfDocument.words || []) {
+    if (word.forms && word.forms.length > 0) {
+      // Extract explicit forms from the word
+      for (const form of word.forms) {
+        forms.push({
+          id: form.id || `${word.id}-form-${forms.length}`,
+          word_id: word.id,
+          written_form: form.writtenForm,
+          script: form.script || null,
+          tag: form.tag || null
+        });
+      }
+    } else {
+      // If no forms are defined, create a default form from the lemma
+      // This ensures backwards compatibility with data that doesn't explicitly define forms
+      forms.push({
+        id: `${word.id}-lemma-form`,
+        word_id: word.id,
+        written_form: word.lemma,
+        script: null,
+        tag: null
+      });
+    }
+  }
+
+  return forms;
 }
 
 /**

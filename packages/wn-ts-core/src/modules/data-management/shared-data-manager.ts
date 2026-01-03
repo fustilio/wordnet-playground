@@ -11,6 +11,7 @@ import type { Kysely } from 'kysely';
 import {
   prepareLexiconData,
   prepareWordData,
+  prepareFormData,
   prepareSynsetData,
   prepareSenseData,
   prepareDefinitionData,
@@ -498,7 +499,17 @@ export class SharedDataManager {
         this.logger.error(`Error preparing word data:`, error);
         throw error;
       }
-      
+
+      this.logger.debug(`Preparing form data...`);
+      let formsToInsert: any[];
+      try {
+        formsToInsert = prepareFormData(lmfDocument);
+        this.logger.debug(`Prepared ${formsToInsert.length} forms`);
+      } catch (error) {
+        this.logger.error(`Error preparing form data:`, error);
+        throw error;
+      }
+
       this.logger.debug(`Preparing synset data...`);
       let synsetsToInsert: any[];
       try {
@@ -536,6 +547,7 @@ export class SharedDataManager {
       this.logger.step(`preparing final insertion data`, {
         lexicons: lexiconsToInsert.length,
         words: wordsToInsert.length,
+        forms: formsToInsert.length,
         synsets: synsetsToInsert.length,
         senses: sensesToInsert.length,
         definitions: definitionsToInsert.length,
@@ -548,6 +560,7 @@ export class SharedDataManager {
         {
           lexicons: lexiconsToInsert,
           words: wordsToInsert,
+          forms: formsToInsert,
           synsets: synsetsToInsert,
           senses: sensesToInsert,
           definitions: definitionsToInsert,
@@ -560,6 +573,7 @@ export class SharedDataManager {
         projectId: projectId,
         lexicons: lexiconsToInsert.length,
         words: wordsToInsert.length,
+        forms: formsToInsert.length,
         synsets: synsetsToInsert.length,
         senses: sensesToInsert.length,
         definitions: definitionsToInsert.length,
