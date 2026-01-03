@@ -37,9 +37,11 @@ export function clearDataManagementSingletons(): void {
  */
 export async function getDataManagementDb(): Promise<KyselyWordnet> {
   if (!_dataManagementDb) {
+    // Don't use forceRecreate in production - it deletes existing data!
+    // Only recreate if explicitly requested via options
     _dataManagementDb = new KyselyWordnet('*', { 
       filename: config.databasePath,
-      forceRecreate: true
+      forceRecreate: false // Changed from true - this was causing Bug #2!
     });
     await _dataManagementDb.initialize();
   }

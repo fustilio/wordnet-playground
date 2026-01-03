@@ -1,10 +1,22 @@
 # wn-ts-node
 
+## 0.8.2
+
+### Patch Changes
+
+- fix data manager bug
+
 ## 0.8.1
 
 ### Patch Changes
 
 - fix form table population issue
+
+### Critical Bug Fixes
+
+- **Bug #1 - Network Fetch Failures**: Fixed download() function with proper headers, timeout handling, and better error messages
+- **Bug #2 - Empty Database Queries**: Fixed database path consistency and removed forceRecreate in production code
+- See [CHANGELOG_BUG_FIXES.md](./CHANGELOG_BUG_FIXES.md) for details
 
 ## 0.8.0
 

@@ -1,5 +1,13 @@
 # wn-serverless-dict
 
+## 0.3.1
+
+### Patch Changes
+
+- fix data manager bug
+- Updated dependencies
+  - wn-ts-node@0.8.2
+
 ## 0.3.0
 
 ### Minor Changes

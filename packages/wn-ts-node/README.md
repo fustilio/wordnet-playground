@@ -77,13 +77,15 @@ wn-cli data export --format json
 
 ## Further Reading
 
-- [API Reference](../../docs/api/UNIFIED_API.md)
-- [Examples](../../docs/examples/README.md)
-- [Getting Started](../../docs/getting-started/README.md)
+- [Documentation](../../docs/) - Complete documentation
+- [API Reference](../../docs/api/) - API documentation
+- [Examples](../../docs/examples/) - Working examples
+- [Getting Started](../../docs/getting-started/) - Quick start guides
 
 ## Troubleshooting
 
 - [Troubleshooting Guide](./TROUBLESHOOTING.md) - Common issues and solutions
+- [Recent Bug Fixes](./CHANGELOG_BUG_FIXES.md) - Critical bugs fixed in v0.8.1
 
 ## Contributing
 

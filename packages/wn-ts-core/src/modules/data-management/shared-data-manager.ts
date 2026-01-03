@@ -157,7 +157,32 @@ export class SharedDataManager {
 
         await this.loadData(data, projectId, progress);
         
-        this.logger.info(`✅ Successfully loaded ${projectId}`);
+        // Validate that data was actually inserted
+        const hasData = await this.hasData();
+        if (!hasData) {
+          const stats = await this.getStatistics().catch(() => ({
+            totalWords: 0,
+            totalSynsets: 0,
+            totalSenses: 0,
+            totalILIs: 0,
+            totalLexicons: 0,
+          }));
+          
+          throw new Error(
+            `Database initialization succeeded but no data was inserted. ` +
+            `Statistics: ${JSON.stringify(stats)}. ` +
+            `This indicates the data loading process failed silently. ` +
+            `Please check the logs above for any errors during parsing or insertion.`
+          );
+        }
+        
+        const stats = await this.getStatistics();
+        this.logger.info(`✅ Successfully loaded ${projectId}`, {
+          words: stats.totalWords,
+          synsets: stats.totalSynsets,
+          senses: stats.totalSenses,
+          lexicons: stats.totalLexicons,
+        });
         return; // Success, exit early
       } catch (error) {
         this.logger.warn(`⚠️ Failed to download from ${url}:`, {
@@ -423,12 +448,52 @@ export class SharedDataManager {
         senses: lmfDocument.senses?.length || 0
       });
       
+      // Validate that we have data to insert
+      if (!lmfDocument.lexicons || lmfDocument.lexicons.length === 0) {
+        throw new Error(
+          `LMF document contains no lexicons. ` +
+          `This may indicate a parsing error or an empty/invalid XML file. ` +
+          `Document structure: ${JSON.stringify({
+            hasLexicons: !!lmfDocument.lexicons,
+            lexiconCount: lmfDocument.lexicons?.length || 0,
+            hasWords: !!lmfDocument.words,
+            wordCount: lmfDocument.words?.length || 0,
+            hasSynsets: !!lmfDocument.synsets,
+            synsetCount: lmfDocument.synsets?.length || 0,
+          })}`
+        );
+      }
+      
       this.logger.debug(`Calling insertLMFData...`);
       try {
-      await this.insertLMFData(lmfDocument, projectId, progress);
+        await this.insertLMFData(lmfDocument, projectId, progress);
         this.logger.debug(`insertLMFData completed successfully`);
+        
+        // Verify data was actually inserted
+        const stats = await this.getStatistics().catch(() => null);
+        if (stats) {
+          this.logger.debug(`Database statistics after insertion:`, stats);
+          if (stats.totalWords === 0 && stats.totalSynsets === 0) {
+            throw new Error(
+              `Data insertion completed but database is still empty. ` +
+              `This indicates the insertion process failed silently. ` +
+              `Expected to insert ${lmfDocument.words?.length || 0} words and ` +
+              `${lmfDocument.synsets?.length || 0} synsets, but database shows 0 words and 0 synsets.`
+            );
+          }
+        }
       } catch (error) {
         this.logger.error(`insertLMFData failed with error:`, error);
+        // Re-throw with more context
+        if (error instanceof Error) {
+          throw new Error(
+            `Failed to insert LMF data into database: ${error.message}. ` +
+            `Document had ${lmfDocument.lexicons?.length || 0} lexicons, ` +
+            `${lmfDocument.words?.length || 0} words, ` +
+            `${lmfDocument.synsets?.length || 0} synsets. ` +
+            `Original error: ${error.stack || error.message}`
+          );
+        }
         throw error;
       }
 

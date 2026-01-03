@@ -1,5 +1,12 @@
 # wn-cli
 
+## 0.6.2
+
+### Patch Changes
+
+- Updated dependencies
+  - wn-ts-node@0.8.2
+
 ## 0.6.1
 
 ### Patch Changes

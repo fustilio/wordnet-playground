@@ -104,10 +104,10 @@ Memory usage: < 2x input size for processing.
 
 ## Documentation
 
-- [API Reference](./docs/api/API_REFERENCE.md)
-- [Architecture](./docs/architecture/SYSTEM_ARCHITECTURE.md)
-- [Examples](./docs/examples/EXAMPLES_OVERVIEW.md)
-- [Migration Guide](./docs/getting-started/MIGRATION_GUIDE.md)
+- [Documentation Site](./docs/) - Comprehensive guides and API reference
+- [Getting Started](./docs/getting-started/) - Quick start guides
+- [API Reference](./docs/api/) - Complete API documentation
+- [Examples](./docs/examples/) - Working code examples
 
 ## License
 

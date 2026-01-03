@@ -125,12 +125,71 @@ export class NodeDataManager extends SharedDataManager {
    */
   async downloadFile(url: string, _progress?: (progress: number) => void): Promise<ArrayBuffer> {
     this.logger.debug(`📥 Downloading file from: ${url}`);
-    // Note: nodeDownloadFile might have a different signature, so we'll implement a simple version
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    
+    // Check if fetch is available (Node.js 18+ has global fetch)
+    if (typeof fetch === 'undefined') {
+      throw new Error(
+        `fetch is not available in this Node.js environment. ` +
+        `This library requires Node.js 18+ which includes native fetch support. ` +
+        `Current Node.js version: ${process.version}. ` +
+        `Please upgrade Node.js or use a fetch polyfill.`
+      );
     }
-    return await response.arrayBuffer();
+    
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+    }, 300000); // 5 minute timeout for large files
+    
+    try {
+      // Use fetch with proper headers and timeout
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'wn-ts-node/0.8.1 (WordNet TypeScript Client)',
+          'Accept': '*/*',
+          'Accept-Encoding': 'gzip, deflate, br',
+        },
+        // Follow redirects (default is 'follow')
+        redirect: 'follow',
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unable to read error response');
+        throw new Error(
+          `HTTP ${response.status}: ${response.statusText}. URL: ${url}. Response: ${errorText.substring(0, 200)}`
+        );
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      
+      if (arrayBuffer.byteLength === 0) {
+        throw new Error(`Downloaded file is empty (0 bytes) from URL: ${url}`);
+      }
+      
+      this.logger.debug(`✅ Downloaded ${arrayBuffer.byteLength} bytes from ${url}`);
+      return arrayBuffer;
+    } catch (error) {
+      // Provide more detailed error information
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new Error(`Download timeout after 5 minutes for URL: ${url}`);
+        }
+        if (error.message.includes('fetch failed')) {
+          // Network-level error - provide more context
+          throw new Error(
+            `Network fetch failed for URL: ${url}. ` +
+            `This may be due to network connectivity, DNS resolution, SSL/TLS issues, or firewall blocking. ` +
+            `Original error: ${error.message}`
+          );
+        }
+        throw error;
+      }
+      throw new Error(`Unknown error downloading from ${url}: ${String(error)}`);
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   async loadFile(path: string): Promise<string> {

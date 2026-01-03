@@ -1,5 +1,12 @@
 # nextjs-dictionary-api
 
+## 0.1.3
+
+### Patch Changes
+
+- Updated dependencies
+  - wn-serverless-dict@0.3.1
+
 ## 0.1.2
 
 ### Patch Changes

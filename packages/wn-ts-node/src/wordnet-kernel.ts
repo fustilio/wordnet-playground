@@ -9,6 +9,7 @@ import { createWordNet, type WordNetWithPlugins } from 'wn-ts-core';
 import { similarity, translation } from 'wn-ts-core/plugins';
 import { NodeWordNetCore } from './wordnet-core.js';
 import type { NodeWordnetConfig } from './kysely-wordnet.js';
+import { config } from './config.js';
 
 /**
  * Kernel-based WordNet for Node.js
@@ -19,12 +20,14 @@ export class NodeWordNetKernel {
   private core: NodeWordNetCore;
 
   constructor(lexicon: string | string[] = '*', options: Partial<NodeWordnetConfig> = {}) {
-    // Provide default filename if not specified
-    const config: NodeWordnetConfig = {
-      filename: options.filename || ':memory:',
+    // Provide default filename if not specified - use config.databasePath instead of :memory:
+    // This ensures NodeWordNetKernel uses the same database as download()
+    // This fixes Bug #2: Empty database queries
+    const kernelConfig: NodeWordnetConfig = {
+      filename: options.filename || config.databasePath,
       ...options
     };
-    this.core = new NodeWordNetCore(lexicon, config);
+    this.core = new NodeWordNetCore(lexicon, kernelConfig);
     this.wordnet = createWordNet({
       core: this.core,
       plugins: [similarity, translation] as const
