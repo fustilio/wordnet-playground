@@ -84,18 +84,16 @@ export interface QueryCache<K = string, V = any> {
 /**
  * LRU cache implementation using the industry-standard lru-cache library
  *
- * Features:
- * - Automatic eviction of least recently used entries
- * - TTL (time-to-live) support
- * - Statistics tracking
- * - Battle-tested and widely used
+ * This is a thin wrapper around lru-cache that adds:
+ * - Pattern-based invalidation
+ * - Consistent QueryCache interface
+ * - Statistics in our preferred format
  *
  * @example
  * ```typescript
  * const cache = new LRUCache({
  *   maxSize: 1000,      // Max 1000 entries
  *   ttl: 60000,         // 60 second default TTL
- *   enableStats: true   // Track hits/misses
  * });
  *
  * cache.set('key', 'value');
@@ -105,38 +103,37 @@ export interface QueryCache<K = string, V = any> {
  * console.log(`Hit rate: ${stats.hitRate}`);
  * ```
  */
-export class LRUCache<K = string, V = any> implements QueryCache<K, V> {
+export class LRUCache<K extends {} = string, V extends {} = any> implements QueryCache<K, V> {
   private cache: LRU<K, V>;
+  private readonly maxSize: number;
   private hits = 0;
   private misses = 0;
-  private readonly enableStats: boolean;
-  private readonly maxSize: number;
 
   constructor(config: CacheConfig = {}) {
     this.maxSize = config.maxSize ?? 1000;
-    this.enableStats = config.enableStats ?? true;
 
-    this.cache = new LRU<K, V>({
+    const lruOptions: LRU.Options<K, V, unknown> = {
       max: this.maxSize,
-      ttl: config.ttl,
       // Update age on get to keep frequently accessed items fresh
       updateAgeOnGet: true,
       // Allow individual TTL per entry
       ttlAutopurge: true,
-    });
+    };
+    
+    if (config.ttl !== undefined) {
+      lruOptions.ttl = config.ttl;
+    }
+
+    this.cache = new LRU<K, V>(lruOptions);
   }
 
   get(key: K): V | undefined {
     const value = this.cache.get(key);
-
-    if (this.enableStats) {
-      if (value !== undefined) {
-        this.hits++;
-      } else {
-        this.misses++;
-      }
+    if (value !== undefined) {
+      this.hits++;
+    } else {
+      this.misses++;
     }
-
     return value;
   }
 
@@ -158,6 +155,8 @@ export class LRUCache<K = string, V = any> implements QueryCache<K, V> {
 
   clear(): void {
     this.cache.clear();
+    this.hits = 0;
+    this.misses = 0;
   }
 
   stats(): CacheStats {
@@ -216,19 +215,19 @@ export class LRUCache<K = string, V = any> implements QueryCache<K, V> {
  * ```
  */
 export class NullCache implements QueryCache {
-  get(): undefined {
+  get(_key: any): undefined {
     return undefined;
   }
 
-  set(): void {
+  set(_key: any, _value: any, _ttl?: number): void {
     // No-op
   }
 
-  has(): boolean {
+  has(_key: any): boolean {
     return false;
   }
 
-  delete(): boolean {
+  delete(_key: any): boolean {
     return false;
   }
 
@@ -245,7 +244,7 @@ export class NullCache implements QueryCache {
     };
   }
 
-  invalidate(): number {
+  invalidate(_pattern: string | RegExp): number {
     return 0;
   }
 }

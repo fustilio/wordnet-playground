@@ -10,7 +10,7 @@ import type { Database } from '../types/database.js';
 import type { PartOfSpeech, Lexicon, Word, Synset, Sense, ILI, WordQuery, SynsetQuery, SenseQuery } from '../core/types.js';
 import { batchInsert } from './batch-insert.js';
 import type { QueryCache } from './query-cache.js';
-import { createCacheKey, defaultKeySerializer } from './query-cache.js';
+import { createCacheKey } from './query-cache.js';
 import { 
   getWordsBySynsetAndLanguageQuery,
   getWordsQuery,
