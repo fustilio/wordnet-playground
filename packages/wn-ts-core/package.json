@@ -21,68 +21,68 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./shared": {
-      "types": "./src/shared/index.ts",
-      "default": "./src/shared/index.ts"
+      "types": "./dist/shared/index.d.ts",
+      "default": "./dist/shared/index.js"
     },
     "./utils": {
-      "types": "./src/utils/index.ts",
-      "default": "./src/utils/index.ts"
+      "types": "./dist/utils/index.d.ts",
+      "default": "./dist/utils/index.js"
     },
     "./test": {
-      "types": "./src/test/index.ts",
-      "default": "./src/test/index.ts"
+      "types": "./dist/test/index.d.ts",
+      "default": "./dist/test/index.js"
     },
     "./plugins": {
-      "types": "./src/plugins/index.ts",
-      "default": "./src/plugins/index.ts"
+      "types": "./dist/plugins/index.d.ts",
+      "default": "./dist/plugins/index.js"
     },
     "./plugins/microkernel": {
-      "types": "./src/plugins/microkernel/index.ts",
-      "default": "./src/plugins/microkernel/index.ts"
+      "types": "./dist/plugins/microkernel/index.d.ts",
+      "default": "./dist/plugins/microkernel/index.js"
     },
-    "./index.json": "./src/index.json",
+    "./index.json": "./dist/index.json",
     "./lmf": {
-      "types": "./src/lmf/index.ts",
-      "default": "./src/lmf/index.ts"
+      "types": "./dist/lmf/index.d.ts",
+      "default": "./dist/lmf/index.js"
     },
     "./parsers": {
-      "types": "./src/parsers/index.ts",
-      "default": "./src/parsers/index.ts"
+      "types": "./dist/parsers/index.d.ts",
+      "default": "./dist/parsers/index.js"
     },
     "./tests/integration/platform-integration/platform-test-framework": {
-      "types": "./tests/integration/platform-integration/platform-test-framework.ts",
-      "default": "./tests/integration/platform-integration/platform-test-framework.ts"
+      "types": "./tests/integration/platform-integration/platform-test-framework.d.ts",
+      "default": "./tests/integration/platform-integration/platform-test-framework.js"
     },
     "./tests/integration/platform-integration/core-behavioral-tests": {
-      "types": "./tests/integration/platform-integration/core-behavioral-tests.ts",
-      "default": "./tests/integration/platform-integration/core-behavioral-tests.ts"
+      "types": "./tests/integration/platform-integration/core-behavioral-tests.d.ts",
+      "default": "./tests/integration/platform-integration/core-behavioral-tests.js"
     },
     "./queries": {
-      "types": "./src/modules/database-operations/queries/index.ts",
-      "default": "./src/modules/database-operations/queries/index.ts"
+      "types": "./dist/modules/database-operations/queries/index.d.ts",
+      "default": "./dist/modules/database-operations/queries/index.js"
     },
     "./mutations": {
-      "types": "./src/modules/database-operations/mutations/index.ts",
-      "default": "./src/modules/database-operations/mutations/index.ts"
+      "types": "./dist/modules/database-operations/mutations/index.d.ts",
+      "default": "./dist/modules/database-operations/mutations/index.js"
     },
     "./operations/lmf": {
-      "types": "./src/modules/database-operations/lmf/index.ts",
-      "default": "./src/modules/database-operations/lmf/index.ts"
+      "types": "./dist/modules/database-operations/lmf/index.d.ts",
+      "default": "./dist/modules/database-operations/lmf/index.js"
     },
     "./config/project-config": {
-      "types": "./src/config/project-config.ts",
-      "default": "./src/config/project-config.ts"
+      "types": "./dist/config/project-config.d.ts",
+      "default": "./dist/config/project-config.js"
     }
   },
   "files": [
     "tools/"
   ],
   "scripts": {
-    "build": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
     "format": "prettier --write src/**/*.ts",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
@@ -131,5 +131,7 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts"
 }
