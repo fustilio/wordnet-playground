@@ -93,6 +93,12 @@ export interface BatchProcessingOptions {
 }
 
 /**
+ * Word frequency data for scoring
+ * Maps word (lowercase) to frequency rank (lower = more common)
+ */
+export type WordFrequencyData = Map<string, number> | Record<string, number>;
+
+/**
  * Dictionary generation options
  */
 export interface GeneratorOptions {
@@ -110,6 +116,8 @@ export interface GeneratorOptions {
   format?: 'standard' | 'compact' | 'lookup';
   /** Batch processing options */
   batch?: BatchProcessingOptions;
+  /** Optional external word frequency data (e.g., from A1-C2 word lists) */
+  wordFrequencyData?: WordFrequencyData;
 }
 
 /**

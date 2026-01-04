@@ -93,7 +93,7 @@ export async function extractCoreVocabulary(
   wordnet: Wordnet,
   options: GeneratorOptions
 ): Promise<Map<string, any>> {
-  const { limit, pos, languages } = options;
+  const { limit, pos, languages, wordFrequencyData } = options;
   const vocabulary = new Map();
 
   console.log(`\n[Generator] Extracting core vocabulary:`);
@@ -145,17 +145,193 @@ export async function extractCoreVocabulary(
 
   console.log(`[Generator] Found ${synsetsByIli.size} unique ILI entries`);
 
-  // Score ILI groups by total member count across all languages
-  const scoredIlis = Array.from(synsetsByIli.entries())
-    .map(([ili, synsets]) => {
-      // Calculate score: sum of member counts across all synsets for this ILI
-      const totalMembers = synsets.reduce((sum, s) => sum + (s.memberIds?.length || 1), 0);
-      return {
-        ili,
-        synsets,
-        score: totalMembers
-      };
-    })
+  // Build word frequency map and sense position data for scoring
+  // Only process synsets that are candidates (already filtered by ILI)
+  const wordFrequencyMap = new Map<string, number>();
+  const wordSynsetPositions = new Map<string, Map<string, number>>(); // word -> synsetId -> position
+  const synsetLemmasCache = new Map<string, string[]>(); // synsetId -> lemmas
+
+  console.log(`[Generator] Collecting word frequency data from candidate synsets...`);
+  
+  // First pass: collect word frequency data (only from candidate synsets)
+  let processedCount = 0;
+  const allCandidateSynsets: Array<{ synset: any; ili: string }> = [];
+  
+  for (const [ili, synsets] of synsetsByIli.entries()) {
+    for (const synset of synsets) {
+      allCandidateSynsets.push({ synset, ili });
+    }
+  }
+  
+  const totalSynsets = allCandidateSynsets.length;
+  console.log(`[Generator] Processing ${totalSynsets} candidate synsets for frequency data...`);
+  
+  for (const { synset } of allCandidateSynsets) {
+    const lang = synset.language || 'en';
+    if (!languages.includes(lang)) continue;
+
+    try {
+      const lemmas = await wordnet.getSynsetLemmas(synset.id);
+      synsetLemmasCache.set(synset.id, lemmas);
+      
+      // Count word frequency (how many synsets contain each word)
+      for (const lemma of lemmas) {
+        const wordKey = `${lemma.toLowerCase()}:${lang}`;
+        wordFrequencyMap.set(wordKey, (wordFrequencyMap.get(wordKey) || 0) + 1);
+      }
+      
+      processedCount++;
+      if (processedCount % 1000 === 0) {
+        console.log(`[Generator] Processed ${processedCount}/${totalSynsets} synsets for frequency data...`);
+      }
+    } catch (error) {
+      // Skip if we can't get lemmas
+    }
+  }
+
+  // Second pass: collect sense ordering data (only for words that appear in multiple synsets)
+  // This is the key optimization - we only need sense ordering for ambiguous words
+  console.log(`[Generator] Collecting sense ordering data for ambiguous words (appearing in 2+ synsets)...`);
+  const ambiguousWords = Array.from(wordFrequencyMap.entries())
+    .filter(([_, count]) => count > 1)
+    .map(([wordKey]) => wordKey);
+  
+  console.log(`[Generator] Found ${ambiguousWords.length} ambiguous words (out of ${wordFrequencyMap.size} total)`);
+  
+  let wordProcessedCount = 0;
+  for (const wordKey of ambiguousWords) {
+    const [lemma, lang] = wordKey.split(':');
+    
+    // Get all synsets for this word (ordered by frequency in WordNet)
+    const posList: PartOfSpeech[] = (pos || ['n', 'v', 'a', 'r']) as PartOfSpeech[];
+    
+    for (const p of posList) {
+      try {
+        const wordSynsets = await wordnet.synsets({ form: lemma, language: lang, pos: p });
+        if (wordSynsets.length > 0) {
+          // Store position for each synset
+          if (!wordSynsetPositions.has(wordKey)) {
+            wordSynsetPositions.set(wordKey, new Map());
+          }
+          const positions = wordSynsetPositions.get(wordKey)!;
+          wordSynsets.forEach((s, idx) => {
+            positions.set(s.id, idx);
+          });
+          break; // Found the word, no need to check other POS
+        }
+      } catch (error) {
+        // Skip if we can't get synsets
+      }
+    }
+    
+    wordProcessedCount++;
+    if (wordProcessedCount % 500 === 0) {
+      console.log(`[Generator] Processed ${wordProcessedCount}/${ambiguousWords.length} words for sense ordering...`);
+    }
+  }
+
+  console.log(`[Generator] Scoring ${synsetsByIli.size} ILI groups using improved algorithm...`);
+
+  // Score ILI groups using improved algorithm
+  const scoredIlis: Array<{
+    ili: string;
+    synsets: any[];
+    score: number;
+    minSensePosition: number | null;
+    totalWords: number;
+    languagesWithData: number;
+  }> = [];
+
+  for (const [ili, synsets] of synsetsByIli.entries()) {
+    let score = 0;
+    let totalWords = 0;
+    let minSensePosition = Infinity;
+    let languagesWithData = 0;
+    const seenWords = new Set<string>();
+
+    for (const synset of synsets) {
+      const lang = synset.language || 'en';
+      if (!languages.includes(lang)) continue;
+
+      const lemmas = synsetLemmasCache.get(synset.id) || [];
+      if (lemmas.length === 0) continue;
+
+      languagesWithData++;
+      
+      for (const lemma of lemmas) {
+        const wordKey = `${lemma.toLowerCase()}:${lang}`;
+        
+        // Avoid double-counting the same word across synsets
+        if (seenWords.has(wordKey)) continue;
+        seenWords.add(wordKey);
+        
+        totalWords++;
+        
+        // Factor 1: Word frequency (inverse - words in fewer synsets are more specific/common)
+        const freq = wordFrequencyMap.get(wordKey) || 1;
+        score += 1000 / freq; // Higher score for words in fewer synsets
+        
+        // Factor 1b: External word frequency data (if provided, e.g., A1-C2 word lists)
+        if (wordFrequencyData) {
+          const externalFreq = wordFrequencyData instanceof Map 
+            ? wordFrequencyData.get(lemma.toLowerCase())
+            : wordFrequencyData[lemma.toLowerCase()];
+          if (externalFreq !== undefined && externalFreq > 0) {
+            // Lower rank = more common, so higher score
+            score += 2000 / externalFreq;
+          }
+        }
+        
+        // Factor 2: Sense position (lower position = more common sense, this is the KEY factor)
+        const positions = wordSynsetPositions.get(wordKey);
+        if (positions) {
+          const position = positions.get(synset.id);
+          if (position !== undefined && position >= 0) {
+            minSensePosition = Math.min(minSensePosition, position);
+            score += (100 - position * 10); // Higher score for lower position (sense 0 = most common)
+          }
+        }
+        
+        // Factor 3: Prefer base/canonical forms (simple words, not compounds)
+        if (lemma.length <= 8 && !lemma.includes(' ') && !lemma.includes('-')) {
+          score += 50;
+        }
+      }
+      
+      // Factor 4: Slight penalty for synsets with too many members (often less common compound terms)
+      const memberCount = synset.memberIds?.length || lemmas.length;
+      if (memberCount > 10) {
+        score -= 20;
+      }
+    }
+    
+    // Factor 5: Bonus for cross-lingual coverage
+    if (languages.length >= 2) {
+      score += languagesWithData * 100;
+    }
+    
+    // Factor 6: Ensure we have words in at least one language
+    if (totalWords === 0) {
+      score = -Infinity;
+    }
+    
+    // Factor 7: Strong bonus for primary senses (most important factor)
+    if (minSensePosition < Infinity) {
+      score += (1000 - minSensePosition * 100); // Strong bonus for sense 0, 1, 2, etc.
+    }
+
+    scoredIlis.push({
+      ili,
+      synsets,
+      score,
+      minSensePosition: minSensePosition === Infinity ? null : minSensePosition,
+      totalWords,
+      languagesWithData
+    });
+  }
+
+  // Filter and sort
+  const filteredAndSorted = scoredIlis
     .filter(item => {
       // Filter by POS if specified
       if (!pos) return true;
@@ -164,12 +340,13 @@ export async function extractCoreVocabulary(
     .sort((a, b) => b.score - a.score)
     .slice(0, limit); // Get top N ILI groups
 
-  console.log(`[Generator] After filtering and sorting: ${scoredIlis.length} ILI groups`);
-  if (scoredIlis.length > 0) {
+  console.log(`[Generator] After filtering and sorting: ${filteredAndSorted.length} ILI groups`);
+  if (filteredAndSorted.length > 0) {
     console.log(`[Generator] Top 5 ILIs by score:`);
-    scoredIlis.slice(0, 5).forEach((item, idx) => {
+    filteredAndSorted.slice(0, 5).forEach((item, idx) => {
       const firstSynset = item.synsets[0];
-      console.log(`  ${idx + 1}. ILI: ${item.ili}, Score: ${item.score}, POS: ${firstSynset?.pos || 'unknown'}`);
+      const senseInfo = item.minSensePosition !== null ? `, Sense: ${item.minSensePosition}` : '';
+      console.log(`  ${idx + 1}. ILI: ${item.ili}, Score: ${item.score.toFixed(2)}${senseInfo}, POS: ${firstSynset?.pos || 'unknown'}`);
     });
   }
 
@@ -177,10 +354,10 @@ export async function extractCoreVocabulary(
   const batchConfig = { ...DEFAULT_BATCH_CONFIG, ...options.batch };
 
   // Process ILI groups in batches for memory efficiency
-  console.log(`[Generator] Processing ${scoredIlis.length} ILI groups in batches...`);
+  console.log(`[Generator] Processing ${filteredAndSorted.length} ILI groups in batches...`);
 
   await processBatch(
-    scoredIlis,
+    filteredAndSorted,
     async (batch, batchIndex) => {
       const batchResults: Array<[string, any]> = [];
 
