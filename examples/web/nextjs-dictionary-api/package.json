@@ -18,7 +18,8 @@
     "check-dicts": "node scripts/check-dicts.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "test:generation-speed": "node scripts/test-generation-speed.js"
   },
   "dependencies": {
     "next": "^15.1.6",

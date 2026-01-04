@@ -8,6 +8,8 @@ export default defineConfig({
     include: ['**/*.test.{ts,js,mjs}'],
     exclude: ['node_modules', '.next', 'dist'],
     testTimeout: 30000,
+    // Performance tests can take longer - they set their own timeouts
+    hookTimeout: 600000, // 10 minutes for hooks
   },
   resolve: {
     alias: {

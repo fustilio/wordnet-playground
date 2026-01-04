@@ -146,48 +146,77 @@ export async function extractCoreVocabulary(
   console.log(`[Generator] Found ${synsetsByIli.size} unique ILI entries`);
 
   // Build word frequency map and sense position data for scoring
-  // Only process synsets that are candidates (already filtered by ILI)
   const wordFrequencyMap = new Map<string, number>();
   const wordSynsetPositions = new Map<string, Map<string, number>>(); // word -> synsetId -> position
   const synsetLemmasCache = new Map<string, string[]>(); // synsetId -> lemmas
 
-  console.log(`[Generator] Collecting word frequency data from candidate synsets...`);
+  console.log(`[Generator] Pre-loading lemmas for candidate synsets (first pass)...`);
   
-  // First pass: collect word frequency data (only from candidate synsets)
+  // First pass: pre-load all lemmas for candidate synsets and build initial frequency map
   let processedCount = 0;
   const allCandidateSynsets: Array<{ synset: any; ili: string }> = [];
   
   for (const [ili, synsets] of synsetsByIli.entries()) {
     for (const synset of synsets) {
+      const lang = synset.language || 'en';
+      if (!languages.includes(lang)) continue;
+      // Filter by POS if specified
+      if (pos && !pos.includes(synset.pos)) continue;
       allCandidateSynsets.push({ synset, ili });
     }
   }
   
   const totalSynsets = allCandidateSynsets.length;
-  console.log(`[Generator] Processing ${totalSynsets} candidate synsets for frequency data...`);
+  const startTime = Date.now();
+  console.log(`[Generator] Processing ${totalSynsets} candidate synsets (filtered by POS and language)...`);
+  console.log(`[Generator] This may take a few minutes. Progress will be shown every 5,000 synsets.`);
   
-  for (const { synset } of allCandidateSynsets) {
-    const lang = synset.language || 'en';
-    if (!languages.includes(lang)) continue;
-
-    try {
-      const lemmas = await wordnet.getSynsetLemmas(synset.id);
-      synsetLemmasCache.set(synset.id, lemmas);
-      
-      // Count word frequency (how many synsets contain each word)
-      for (const lemma of lemmas) {
-        const wordKey = `${lemma.toLowerCase()}:${lang}`;
-        wordFrequencyMap.set(wordKey, (wordFrequencyMap.get(wordKey) || 0) + 1);
+  // Pre-load lemmas in batches for efficiency
+  // Process in chunks to show progress and allow for better memory management
+  const chunkSize = 1000;
+  for (let i = 0; i < allCandidateSynsets.length; i += chunkSize) {
+    const chunk = allCandidateSynsets.slice(i, i + chunkSize);
+    
+    // Process chunk in parallel (but limit concurrency)
+    const chunkPromises = chunk.map(async ({ synset }) => {
+      try {
+        const lemmas = await wordnet.getSynsetLemmas(synset.id);
+        synsetLemmasCache.set(synset.id, lemmas);
+        
+        // Build frequency map (how many synsets contain each word)
+        const lang = synset.language || 'en';
+        for (const lemma of lemmas) {
+          const wordKey = `${lemma.toLowerCase()}:${lang}`;
+          wordFrequencyMap.set(wordKey, (wordFrequencyMap.get(wordKey) || 0) + 1);
+        }
+        
+        return true;
+      } catch (error) {
+        return false;
       }
+    });
+    
+    await Promise.all(chunkPromises);
+    processedCount += chunk.length;
+    
+    // Show progress with time estimates
+    if (processedCount % 5000 === 0 || processedCount === totalSynsets) {
+      const elapsed = (Date.now() - startTime) / 1000;
+      const rate = processedCount / elapsed;
+      const remaining = totalSynsets - processedCount;
+      const eta = remaining / rate;
+      const percent = ((processedCount / totalSynsets) * 100).toFixed(1);
       
-      processedCount++;
-      if (processedCount % 1000 === 0) {
-        console.log(`[Generator] Processed ${processedCount}/${totalSynsets} synsets for frequency data...`);
-      }
-    } catch (error) {
-      // Skip if we can't get lemmas
+      console.log(
+        `[Generator] Processed ${processedCount}/${totalSynsets} synsets (${percent}%) | ` +
+        `Rate: ${rate.toFixed(0)}/s | ETA: ${eta > 60 ? `${(eta / 60).toFixed(1)}m` : `${eta.toFixed(0)}s`}`
+      );
     }
   }
+  
+  const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(`[Generator] Completed lemma pre-loading in ${elapsed}s`);
+  console.log(`[Generator] Found ${wordFrequencyMap.size} unique words across candidate synsets`);
 
   // Second pass: collect sense ordering data (only for words that appear in multiple synsets)
   // This is the key optimization - we only need sense ordering for ambiguous words
@@ -198,36 +227,61 @@ export async function extractCoreVocabulary(
   
   console.log(`[Generator] Found ${ambiguousWords.length} ambiguous words (out of ${wordFrequencyMap.size} total)`);
   
-  let wordProcessedCount = 0;
-  for (const wordKey of ambiguousWords) {
-    const [lemma, lang] = wordKey.split(':');
+  if (ambiguousWords.length > 0) {
+    const senseStartTime = Date.now();
+    let wordProcessedCount = 0;
     
-    // Get all synsets for this word (ordered by frequency in WordNet)
-    const posList: PartOfSpeech[] = (pos || ['n', 'v', 'a', 'r']) as PartOfSpeech[];
-    
-    for (const p of posList) {
-      try {
-        const wordSynsets = await wordnet.synsets({ form: lemma, language: lang, pos: p });
-        if (wordSynsets.length > 0) {
-          // Store position for each synset
-          if (!wordSynsetPositions.has(wordKey)) {
-            wordSynsetPositions.set(wordKey, new Map());
+    // Process in chunks for better progress reporting
+    const wordChunkSize = 100;
+    for (let i = 0; i < ambiguousWords.length; i += wordChunkSize) {
+      const chunk = ambiguousWords.slice(i, i + wordChunkSize);
+      
+      // Process chunk
+      for (const wordKey of chunk) {
+        const [lemma, lang] = wordKey.split(':');
+        
+        // Get all synsets for this word (ordered by frequency in WordNet)
+        const posList: PartOfSpeech[] = (pos || ['n', 'v', 'a', 'r']) as PartOfSpeech[];
+        
+        for (const p of posList) {
+          try {
+            const wordSynsets = await wordnet.synsets({ form: lemma, language: lang, pos: p });
+            if (wordSynsets.length > 0) {
+              // Store position for each synset
+              if (!wordSynsetPositions.has(wordKey)) {
+                wordSynsetPositions.set(wordKey, new Map());
+              }
+              const positions = wordSynsetPositions.get(wordKey)!;
+              wordSynsets.forEach((s, idx) => {
+                positions.set(s.id, idx);
+              });
+              break; // Found the word, no need to check other POS
+            }
+          } catch (error) {
+            // Skip if we can't get synsets
           }
-          const positions = wordSynsetPositions.get(wordKey)!;
-          wordSynsets.forEach((s, idx) => {
-            positions.set(s.id, idx);
-          });
-          break; // Found the word, no need to check other POS
         }
-      } catch (error) {
-        // Skip if we can't get synsets
+        
+        wordProcessedCount++;
+      }
+      
+      // Show progress
+      if (wordProcessedCount % 500 === 0 || wordProcessedCount === ambiguousWords.length) {
+        const elapsed = (Date.now() - senseStartTime) / 1000;
+        const rate = wordProcessedCount / elapsed;
+        const remaining = ambiguousWords.length - wordProcessedCount;
+        const eta = remaining / rate;
+        const percent = ((wordProcessedCount / ambiguousWords.length) * 100).toFixed(1);
+        
+        console.log(
+          `[Generator] Processed ${wordProcessedCount}/${ambiguousWords.length} words (${percent}%) | ` +
+          `Rate: ${rate.toFixed(0)}/s | ETA: ${eta > 60 ? `${(eta / 60).toFixed(1)}m` : `${eta.toFixed(0)}s`}`
+        );
       }
     }
     
-    wordProcessedCount++;
-    if (wordProcessedCount % 500 === 0) {
-      console.log(`[Generator] Processed ${wordProcessedCount}/${ambiguousWords.length} words for sense ordering...`);
-    }
+    const senseElapsed = ((Date.now() - senseStartTime) / 1000).toFixed(1);
+    console.log(`[Generator] Completed sense ordering collection in ${senseElapsed}s`);
   }
 
   console.log(`[Generator] Scoring ${synsetsByIli.size} ILI groups using improved algorithm...`);
@@ -342,12 +396,20 @@ export async function extractCoreVocabulary(
 
   console.log(`[Generator] After filtering and sorting: ${filteredAndSorted.length} ILI groups`);
   if (filteredAndSorted.length > 0) {
-    console.log(`[Generator] Top 5 ILIs by score:`);
+    console.log(`[Generator] Top 5 ILIs by score (higher = better, prioritizes common meanings):`);
     filteredAndSorted.slice(0, 5).forEach((item, idx) => {
       const firstSynset = item.synsets[0];
       const senseInfo = item.minSensePosition !== null ? `, Sense: ${item.minSensePosition}` : '';
-      console.log(`  ${idx + 1}. ILI: ${item.ili}, Score: ${item.score.toFixed(2)}${senseInfo}, POS: ${firstSynset?.pos || 'unknown'}`);
+      const scoreFormatted = item.score > 1000 ? item.score.toFixed(0) : item.score.toFixed(2);
+      console.log(`  ${idx + 1}. ILI: ${item.ili}, Score: ${scoreFormatted}${senseInfo}, POS: ${firstSynset?.pos || 'unknown'}, Words: ${item.totalWords}`);
     });
+    
+    // Show score distribution
+    const scores = filteredAndSorted.map(item => item.score);
+    const minScore = Math.min(...scores);
+    const maxScore = Math.max(...scores);
+    const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length;
+    console.log(`[Generator] Score range: ${minScore.toFixed(0)} - ${maxScore.toFixed(0)} (avg: ${avgScore.toFixed(0)})`);
   }
 
   // Get batch configuration

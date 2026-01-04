@@ -123,7 +123,7 @@ describe('Dictionary Files', () => {
             expect(Array.isArray(translations)).toBe(true);
             
             // If translations exist, verify they're strings
-            translations.forEach(trans => {
+            translations.forEach((trans: string) => {
               expect(typeof trans).toBe('string');
               expect(trans.length).toBeGreaterThan(0);
             });
