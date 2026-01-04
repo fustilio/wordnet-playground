@@ -10,10 +10,15 @@
     "dev": "next dev --turbo",
     "start": "next start",
     "lint": "next lint",
-    "pregenerate-dict": "pnpm --filter wn-serverless-dict build",
+    "pregenerate-dict": "node scripts/ensure-built.mjs",
     "generate-dict": "pnpm run generate-dict:base && pnpm run generate-dict:pairs",
-    "generate-dict:base": "node ../../../packages/wn-serverless-dict/dist/cli/index.js small serverless-dict",
-    "generate-dict:pairs": "node ../../../packages/wn-serverless-dict/dist/cli/index.js en-th dict-en-th && node ../../../packages/wn-serverless-dict/dist/cli/index.js en-fr dict-en-fr && node ../../../packages/wn-serverless-dict/dist/cli/index.js th-fr dict-th-fr"
+    "generate-dict:base": "node ../../../packages/wn-serverless-dict/dist/cli/index.js small serverless-dict --skip-if-exists",
+    "generate-dict:pairs": "node ../../../packages/wn-serverless-dict/dist/cli/index.js en-th dict-en-th --skip-if-exists && node ../../../packages/wn-serverless-dict/dist/cli/index.js en-fr dict-en-fr --skip-if-exists && node ../../../packages/wn-serverless-dict/dist/cli/index.js th-fr dict-th-fr --skip-if-exists",
+    "generate-dict:force": "node ../../../packages/wn-serverless-dict/dist/cli/index.js small serverless-dict --force && node ../../../packages/wn-serverless-dict/dist/cli/index.js en-th dict-en-th --force && node ../../../packages/wn-serverless-dict/dist/cli/index.js en-fr dict-en-fr --force && node ../../../packages/wn-serverless-dict/dist/cli/index.js th-fr dict-th-fr --force",
+    "check-dicts": "node scripts/check-dicts.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "next": "^15.1.6",
@@ -30,7 +35,8 @@
     "eslint-config-next": "15.1.6",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "engines": {
     "node": ">=18"

@@ -41,16 +41,12 @@ describe('Critical Bug Fixes', () => {
       // 4. No "fetch failed" errors occur
 
       let downloadProgress: number = 0;
-      let lastProgressMessage: string = '';
 
       await expect(
         download('oewn:2024', {
           force: true,
-          progress: (progress, message) => {
+          progress: (progress: number, _message?: string) => {
             downloadProgress = progress;
-            if (message) {
-              lastProgressMessage = message;
-            }
           },
         })
       ).resolves.not.toThrow();

@@ -116,8 +116,16 @@ export async function extractCoreVocabulary(
         
         // Filter to only synsets with ILI and group by ILI
         for (const synset of synsets) {
-          // CRITICAL: Only include synsets with ILI for cross-language linking
+          // CRITICAL: Only include synsets with valid ILI for cross-language linking
           if (!synset.ili) continue;
+          
+          // Validate ILI format: must be "i" followed by digits (e.g., i12345)
+          // This filters out placeholders like "in" and any other invalid formats
+          const isValidILI = /^i\d+$/.test(synset.ili);
+          if (!isValidILI) {
+            // Skip invalid ILIs (placeholders, empty strings, etc.)
+            continue;
+          }
           
           if (!seenSynsetIds.has(synset.id)) {
             seenSynsetIds.add(synset.id);
@@ -215,7 +223,20 @@ export async function extractCoreVocabulary(
         }
 
         // Only add entry if it has words in at least one language
+        // For language-pair dictionaries, require words in ALL target languages
         if (Object.keys(entry.words).length > 0) {
+          // If this is a language-pair dictionary (exactly 2 languages), 
+          // filter out ILIs that don't have translations in both languages
+          if (languages.length === 2) {
+            const hasAllLanguages = languages.every(lang => 
+              entry.words[lang] && entry.words[lang].length > 0
+            );
+            if (!hasAllLanguages) {
+              // Skip this ILI - it doesn't have translations in all target languages
+              continue;
+            }
+          }
+          
           batchResults.push([ili, entry]);
           vocabulary.set(ili, entry);
         }
@@ -260,13 +281,42 @@ export function buildServerlessStructure(vocabulary: Map<string, any>): Dictiona
   // Build word index and synset data
   let totalWords = 0;
   vocabulary.forEach((entry, ili) => {
-    // Store synset in compact format
-    structure.s[ili] = [entry.pos, entry.def, entry.words];
+    // Validate ILI format one more time (safety check)
+    if (!/^i\d+$/.test(ili)) {
+      console.warn(`⚠️  Skipping invalid ILI format: ${ili}`);
+      return;
+    }
+    
+    // Validate entry has real data
+    if (!entry.def || entry.def.trim().length === 0) {
+      console.warn(`⚠️  Skipping ILI ${ili} with empty definition`);
+      return;
+    }
+    
+    // Filter out empty or invalid words
+    const validWords: Record<string, string[]> = {};
+    Object.entries(entry.words).forEach(([lang, words]) => {
+      const filtered = (words as string[]).filter(word => 
+        word && typeof word === 'string' && word.trim().length > 0
+      );
+      if (filtered.length > 0) {
+        validWords[lang] = filtered;
+      }
+    });
+    
+    // Only add if we have valid words
+    if (Object.keys(validWords).length === 0) {
+      console.warn(`⚠️  Skipping ILI ${ili} with no valid words`);
+      return;
+    }
+    
+    // Store synset in compact format with validated data
+    structure.s[ili] = [entry.pos, entry.def.trim(), validWords];
 
     // Build word index for each language
-    Object.entries(entry.words).forEach(([lang, words]) => {
-      (words as string[]).forEach(word => {
-        const key = `${word.toLowerCase()}:${lang}`;
+    Object.entries(validWords).forEach(([lang, words]) => {
+      words.forEach(word => {
+        const key = `${word.toLowerCase().trim()}:${lang}`;
         if (!structure.w[key]) {
           structure.w[key] = [];
         }
@@ -280,6 +330,17 @@ export function buildServerlessStructure(vocabulary: Map<string, any>): Dictiona
 
   structure.m.c = vocabulary.size;
   structure.m.w = totalWords;
+  
+  // Extract languages from vocabulary entries
+  const detectedLanguages = new Set<string>();
+  vocabulary.forEach((entry) => {
+    Object.keys(entry.words).forEach(lang => detectedLanguages.add(lang));
+  });
+  
+  // Set languages metadata if not already set
+  if (!structure.m.langs || structure.m.langs.length === 0) {
+    structure.m.langs = Array.from(detectedLanguages).sort();
+  }
 
   return structure;
 }
@@ -342,7 +403,21 @@ export async function generateLanguagePair(
  * Create ES module code from dictionary data
  */
 export function createESModule(data: DictionaryData, moduleName: string = 'dictionary'): string {
-  const langs = data.m.langs || ['en'];
+  // Extract languages from metadata or detect from data
+  let langs = data.m.langs;
+  if (!langs || langs.length === 0) {
+    // Fallback: detect languages from synset data
+    const detectedLangs = new Set<string>();
+    Object.values(data.s).forEach((synset: any) => {
+      if (Array.isArray(synset) && synset[2] && typeof synset[2] === 'object') {
+        Object.keys(synset[2]).forEach(lang => detectedLangs.add(lang));
+      }
+    });
+    langs = Array.from(detectedLangs).sort();
+  }
+  if (!langs || langs.length === 0) {
+    langs = ['en']; // Final fallback
+  }
   const langPair = langs.length === 2 ? `${langs[0]}-${langs[1]}` : 'multilingual';
 
   return `/**

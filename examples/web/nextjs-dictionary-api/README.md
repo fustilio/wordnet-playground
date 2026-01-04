@@ -29,7 +29,7 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser
 
-> **Note**: The dictionary is automatically generated when you run `pnpm dev` or `pnpm build`. This builds the required packages (`wn-ts-core` and `wn-ts-node`) and creates `serverless-dict.json` and `serverless-dict.js` files.
+> **Note**: The dictionary is automatically generated when you run `pnpm dev` or `pnpm build`. Dictionary generation is **cached** - it only regenerates if files are missing. Use `pnpm run generate-dict:force` to force regeneration.
 
 ## API Endpoints
 

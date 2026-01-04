@@ -53,38 +53,94 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const dict = await getDictionary();
+    const dictModule = await getDictionary();
+    // Handle both default export and named exports
+    const dict = dictModule.default || dictModule;
+    const { lookup, translate, meta, languages } = dict;
 
     console.log('[EN-FR] Translation request:', { word, from, to });
-    console.log('[EN-FR] Dictionary metadata:', dict.meta);
+    console.log('[EN-FR] Dictionary metadata:', meta);
+    console.log('[EN-FR] Available languages:', languages);
 
-    // Translate word
-    const translations = dict.translate(word, from, to);
+    // Translate word - handle both function signature styles
+    let translations: string[] = [];
+    if (typeof translate === 'function') {
+      const result = translate(word, from, to);
+      translations = Array.isArray(result) ? result : (result.translations || []);
+    }
     console.log('[EN-FR] Translations found:', translations);
 
     // Get full synset information
-    const synsets = dict.lookup(word, from);
-    console.log('[EN-FR] Synsets found:', synsets.length);
+    const synsets = lookup(word, from) || [];
+    let synsetArray = Array.isArray(synsets) ? synsets : (synsets.results || []);
+    
+    // Filter out synsets that don't have translations in the target language
+    // This removes generic/placeholder ILIs like "in" that have no translations
+    synsetArray = synsetArray.filter((s: any) => {
+      if (!s.translations || !s.translations[to]) return false;
+      return s.translations[to].length > 0;
+    });
+    
+    console.log('[EN-FR] Synsets found:', synsetArray.length);
+
+    // Provide helpful message if word not found
+    if (synsetArray.length === 0) {
+      return NextResponse.json({
+        word,
+        from,
+        to,
+        translations: [],
+        synsets: [],
+        message: `Word "${word}" not found in dictionary. This dictionary contains the top 1000 most common words. Try words like: computer, water, technology, etc.`,
+        meta: {
+          languages: languages || ['en', 'fr'],
+          memoryOptimized: true,
+          dictionaryType: 'language-pair',
+          dictionaryStats: meta
+        },
+        debug: {
+          synsetsFound: 0,
+          translationsFound: 0
+        }
+      }, { status: 404 });
+    }
+
+    // Use detected languages from earlier, or detect from current synsets
+    if (!detectedLanguages || detectedLanguages.length === 1) {
+      const langSet = new Set<string>();
+      synsetArray.forEach((s: any) => {
+        if (s.translations) {
+          Object.keys(s.translations).forEach(lang => langSet.add(lang));
+        }
+      });
+      if (langSet.size > 0) {
+        detectedLanguages = Array.from(langSet).sort();
+      } else if (!detectedLanguages || detectedLanguages.length === 1) {
+        detectedLanguages = ['en', 'fr']; // Default fallback
+      }
+    }
 
     return NextResponse.json({
       word,
       from,
       to,
       translations,
-      synsets: synsets.map((s: any) => ({
+      synsets: synsetArray.map((s: any) => ({
         ili: s.ili,
         pos: s.pos,
-        definition: s.definition
+        definition: s.definition,
+        translations: s.translations || {}
       })),
       meta: {
-        languages: dict.languages,
+        languages: detectedLanguages,
         memoryOptimized: true,
         dictionaryType: 'language-pair',
-        dictionaryStats: dict.meta
+        dictionaryStats: meta
       },
       debug: {
-        synsetsFound: synsets.length,
-        translationsFound: translations.length
+        synsetsFound: synsetArray.length,
+        translationsFound: translations.length,
+        availableLanguages: detectedLanguages
       }
     });
   } catch (error) {
@@ -113,12 +169,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const dict = await getDictionary();
+    const dictModule = await getDictionary();
+    const dict = dictModule.default || dictModule;
+    const { translate } = dict;
 
-    const results = words.map(word => ({
-      word,
-      translations: dict.translate(word, from, to)
-    }));
+    const results = words.map(word => {
+      const result = translate(word, from, to);
+      return {
+        word,
+        translations: Array.isArray(result) ? result : (result.translations || [])
+      };
+    });
 
     return NextResponse.json({
       from,

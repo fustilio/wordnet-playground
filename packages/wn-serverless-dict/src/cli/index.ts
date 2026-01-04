@@ -4,7 +4,7 @@
  * CLI tool for generating serverless dictionaries
  */
 
-import { writeFileSync } from 'fs';
+import { writeFileSync, existsSync, statSync } from 'fs';
 import { gzipSync } from 'zlib';
 import { Wordnet, download, add, lexicons } from 'wn-ts-node';
 import { PRESETS, generateDictionary, createESModule } from '../generators/index.js';
@@ -28,6 +28,8 @@ async function main() {
   const chunkSize = chunkSizeArg ? parseInt(chunkSizeArg.split('=')[1]) : 100;
 
   const noProgressFlag = args.includes('--no-progress');
+  const forceFlag = args.includes('--force');
+  const skipIfExistsFlag = args.includes('--skip-if-exists') || args.includes('--cache');
 
   // Filter out flags to get positional arguments
   const positionalArgs = args.filter(arg => !arg.startsWith('--'));
@@ -40,6 +42,23 @@ async function main() {
     console.log('\nAvailable presets:');
     showPresets();
     process.exit(1);
+  }
+
+  // Check if files already exist (for caching) - do this BEFORE expensive operations
+  if (skipIfExistsFlag) {
+    const jsonPath = `${outputName}.json`;
+    const modulePath = `${outputName}.js`;
+    
+    const jsonExists = existsSync(jsonPath) && statSync(jsonPath).size > 0;
+    const moduleExists = existsSync(modulePath) && statSync(modulePath).size > 0;
+    
+    if (jsonExists && moduleExists) {
+      console.log(`⏭️  Skipping generation - files already exist:`);
+      console.log(`   ✅ ${jsonPath}`);
+      console.log(`   ✅ ${modulePath}`);
+      console.log(`\n💡 Use --force to regenerate anyway\n`);
+      process.exit(0);
+    }
   }
 
   console.log(`
@@ -209,6 +228,9 @@ OPTIONS:
   --help, -h             Show this help
   --chunk-size=N         Set batch processing chunk size (default: 100)
   --no-progress          Disable progress bar
+  --force                Force regeneration even if files exist
+  --skip-if-exists       Skip generation if output files already exist (caching)
+  --cache                Alias for --skip-if-exists
 
 PRESETS:
   Use predefined presets for common use cases:
