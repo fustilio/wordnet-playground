@@ -123,9 +123,12 @@ export class NodeDataManager extends SharedDataManager {
   /**
    * Download file from URL
    */
-  async downloadFile(url: string, _progress?: (progress: number) => void): Promise<ArrayBuffer> {
+  async downloadFile(url: string, progress?: (progress: number) => void): Promise<ArrayBuffer> {
     this.logger.debug(`📥 Downloading file from: ${url}`);
-    
+
+    // Suppress unused parameter warning
+    void progress;
+
     // Check if fetch is available (Node.js 18+ has global fetch)
     if (typeof fetch === 'undefined') {
       throw new Error(
@@ -135,13 +138,13 @@ export class NodeDataManager extends SharedDataManager {
         `Please upgrade Node.js or use a fetch polyfill.`
       );
     }
-    
+
     // Create AbortController for timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       controller.abort();
     }, 300000); // 5 minute timeout for large files
-    
+
     try {
       // Use fetch with proper headers and timeout
       const response = await fetch(url, {
@@ -154,20 +157,20 @@ export class NodeDataManager extends SharedDataManager {
         // Follow redirects (default is 'follow')
         redirect: 'follow',
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'Unable to read error response');
         throw new Error(
           `HTTP ${response.status}: ${response.statusText}. URL: ${url}. Response: ${errorText.substring(0, 200)}`
         );
       }
-      
+
       const arrayBuffer = await response.arrayBuffer();
-      
+
       if (arrayBuffer.byteLength === 0) {
         throw new Error(`Downloaded file is empty (0 bytes) from URL: ${url}`);
       }
-      
+
       this.logger.debug(`✅ Downloaded ${arrayBuffer.byteLength} bytes from ${url}`);
       return arrayBuffer;
     } catch (error) {

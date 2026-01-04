@@ -9,7 +9,7 @@ import { createWordNet, type WordNetWithPlugins } from 'wn-ts-core';
 import { similarity, translation } from 'wn-ts-core/plugins';
 import { NodeWordNetCore } from './wordnet-core.js';
 import type { NodeWordnetConfig } from './kysely-wordnet.js';
-import { config } from './config.js';
+import { config as globalConfig } from './config.js';
 
 /**
  * Kernel-based WordNet for Node.js
@@ -18,16 +18,19 @@ import { config } from './config.js';
 export class NodeWordNetKernel {
   private wordnet: WordNetWithPlugins<readonly [typeof similarity, typeof translation]>;
   private core: NodeWordNetCore;
+  private lexicon: string | string[];
+  private config: NodeWordnetConfig;
 
   constructor(lexicon: string | string[] = '*', options: Partial<NodeWordnetConfig> = {}) {
-    // Provide default filename if not specified - use config.databasePath instead of :memory:
-    // This ensures NodeWordNetKernel uses the same database as download()
-    // This fixes Bug #2: Empty database queries
-    const kernelConfig: NodeWordnetConfig = {
-      filename: options.filename || config.databasePath,
+    // Use global config's database path by default instead of in-memory
+    // This ensures that download() and initialize() use the same database
+    const config: NodeWordnetConfig = {
+      filename: options.filename || globalConfig.databasePath,
       ...options
     };
-    this.core = new NodeWordNetCore(lexicon, kernelConfig);
+    this.lexicon = lexicon;
+    this.config = config;
+    this.core = new NodeWordNetCore(lexicon, config);
     this.wordnet = createWordNet({
       core: this.core,
       plugins: [similarity, translation] as const
@@ -37,6 +40,30 @@ export class NodeWordNetKernel {
   // Initialize the WordNet instance
   async initialize(): Promise<void> {
     await this.core.initialize();
+
+    // Auto-download data if database is empty and lexicon is specified
+    // Only auto-download if not using in-memory database and lexicon is a project ID (contains ':')
+    if (this.config.filename !== ':memory:') {
+      const lexiconStr = Array.isArray(this.lexicon) ? this.lexicon[0] : this.lexicon;
+
+      // Check if lexicon looks like a project ID (e.g., 'oewn:2024')
+      if (lexiconStr && lexiconStr !== '*' && lexiconStr.includes(':')) {
+        // Check if database has data
+        try {
+          const words = await this.words();
+          if (words.length === 0) {
+            // Database is empty, auto-download
+            console.log(`Database is empty. Auto-downloading project: ${lexiconStr}...`);
+            const { download } = await import('./data-management/index.js');
+            await download(lexiconStr);
+            console.log(`Successfully downloaded and loaded: ${lexiconStr}`);
+          }
+        } catch (error) {
+          // If checking fails, log but don't crash
+          console.warn(`Failed to check database status or auto-download:`, error);
+        }
+      }
+    }
   }
 
   // Close the WordNet instance
