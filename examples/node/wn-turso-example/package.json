@@ -1,0 +1,27 @@
+{
+  "name": "wn-turso-example",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Examples demonstrating wn-turso pipeline and database functionality",
+  "scripts": {
+    "pipeline": "tsx src/pipeline-demo.ts",
+    "turso": "tsx src/turso-demo.ts"
+  },
+  "dependencies": {
+    "wn-turso": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "vitest": "catalog:"
+  },
+  "keywords": [
+    "wordnet",
+    "turso",
+    "libsql",
+    "pipeline",
+    "etl",
+    "demo"
+  ],
+  "license": "MIT"
+}

@@ -1,0 +1,80 @@
+{
+  "name": "wn-turso",
+  "version": "0.1.0",
+  "description": "Turso/libsql database backend and data pipeline utilities for WordNet",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./database": {
+      "types": "./dist/database/index.d.ts",
+      "import": "./dist/database/index.js"
+    },
+    "./adapters": {
+      "types": "./dist/adapters/index.d.ts",
+      "import": "./dist/adapters/index.js"
+    },
+    "./pipeline": {
+      "types": "./dist/pipeline/index.d.ts",
+      "import": "./dist/pipeline/index.js"
+    },
+    "./config": {
+      "types": "./dist/config.d.ts",
+      "import": "./dist/config.js"
+    }
+  },
+  "bin": {
+    "wn-turso": "./dist/cli/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rimraf dist",
+    "prebuild": "pnpm run clean",
+    "postbuild": "node scripts/make-executable.cjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "vitest run tests/e2e"
+  },
+  "keywords": [
+    "wordnet",
+    "turso",
+    "libsql",
+    "sqlite",
+    "serverless",
+    "edge",
+    "database",
+    "pipeline",
+    "etl"
+  ],
+  "dependencies": {
+    "@libsql/client": "^0.14.0",
+    "kysely": "catalog:",
+    "wn-ts-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "rimraf": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fustilio/wordnet-playground.git",
+    "directory": "packages/wn-turso"
+  },
+  "license": "MIT"
+}
