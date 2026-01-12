@@ -19,7 +19,7 @@ describe("Checksum Utilities", () => {
       const checksum2 = computeChecksum(data);
 
       expect(checksum1).toBe(checksum2);
-      expect(checksum1).toHaveLength(32); // MD5 hash length
+      expect(checksum1).toHaveLength(8); // FNV-1a 32-bit hash length
     });
 
     it("should produce different checksums for different data", () => {
@@ -93,7 +93,7 @@ describe("Checksum Utilities", () => {
       ]);
 
       expect(checksum).toBeDefined();
-      expect(checksum).toHaveLength(32);
+      expect(checksum).toHaveLength(8);
     });
 
     it("should handle nested objects", () => {
@@ -105,7 +105,7 @@ describe("Checksum Utilities", () => {
       const checksum = computeChecksum(data);
 
       expect(checksum).toBeDefined();
-      expect(checksum).toHaveLength(32);
+      expect(checksum).toHaveLength(8);
     });
 
     it("should handle arrays", () => {
@@ -114,7 +114,7 @@ describe("Checksum Utilities", () => {
       const checksum = computeChecksum(data);
 
       expect(checksum).toBeDefined();
-      expect(checksum).toHaveLength(32);
+      expect(checksum).toHaveLength(8);
     });
 
     it("should handle null and undefined values", () => {
@@ -123,7 +123,7 @@ describe("Checksum Utilities", () => {
       const checksum = computeChecksum(data);
 
       expect(checksum).toBeDefined();
-      expect(checksum).toHaveLength(32);
+      expect(checksum).toHaveLength(8);
     });
   });
 
@@ -138,9 +138,9 @@ describe("Checksum Utilities", () => {
       const checksums = checksumBatch(rows);
 
       expect(checksums).toHaveLength(3);
-      expect(checksums[0]).toHaveLength(32);
-      expect(checksums[1]).toHaveLength(32);
-      expect(checksums[2]).toHaveLength(32);
+      expect(checksums[0]).toHaveLength(8);
+      expect(checksums[1]).toHaveLength(8);
+      expect(checksums[2]).toHaveLength(8);
       // Each should be unique
       expect(new Set(checksums).size).toBe(3);
     });

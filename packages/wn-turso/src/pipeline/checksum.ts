@@ -3,18 +3,42 @@
  *
  * Provides deterministic hashing functions to detect unchanged rows
  * and skip unnecessary writes, following production ETL patterns.
+ *
+ * Uses FNV-1a hash which is fast, has good distribution, and works
+ * in both Node.js and browser environments (no crypto dependencies).
  */
 
-import { createHash } from "node:crypto";
 import type { Kysely } from "kysely";
 import type { AnyDatabase } from "./types.js";
+
+/**
+ * FNV-1a hash implementation
+ * Fast, non-cryptographic hash with good distribution
+ * Works in all JavaScript environments (Node.js, browsers, edge runtimes)
+ */
+function fnv1aHash(str: string): string {
+  // FNV-1a 32-bit constants
+  const FNV_PRIME = 0x01000193;
+  const FNV_OFFSET = 0x811c9dc5;
+
+  let hash = FNV_OFFSET;
+
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    // Multiply by prime (with 32-bit overflow)
+    hash = Math.imul(hash, FNV_PRIME);
+  }
+
+  // Convert to unsigned 32-bit and then to hex
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
 
 /**
  * Compute a deterministic checksum for a row
  *
  * @param data - The row data to hash
  * @param fields - Optional array of field names to hash (undefined = all fields)
- * @returns MD5 hash string
+ * @returns Hash string (8 hex characters)
  */
 export function computeChecksum(
   data: Record<string, unknown>,
@@ -36,8 +60,8 @@ export function computeChecksum(
   // Deterministic JSON serialization (sorted keys)
   const json = JSON.stringify(dataToHash, Object.keys(dataToHash).sort());
 
-  // Compute MD5 hash (fast, good enough for deduplication)
-  return createHash("md5").update(json).digest("hex");
+  // Compute FNV-1a hash (fast, works in all environments)
+  return fnv1aHash(json);
 }
 
 /**

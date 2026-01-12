@@ -351,7 +351,7 @@ Functions for manual checksum management.
 
 | Function                                                        | Description                             |
 | --------------------------------------------------------------- | --------------------------------------- |
-| `computeChecksum(data, fields?)`                                | Compute MD5 hash of row                 |
+| `computeChecksum(data, fields?)`                                | Compute FNV-1a hash of row              |
 | `checksumBatch(rows, fields?)`                                  | Compute checksums for array             |
 | `loadChecksumsFromTable(db, table, keyField, checksumColumn)`   | Load existing checksums from DB         |
 | `compareChecksums(rows, keyField, existingChecksums, fields?)`  | Compare rows against existing checksums |
