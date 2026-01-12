@@ -172,6 +172,21 @@ export class Pipeline<T> {
   }
 
   /**
+   * Deduplicate rows by comparing checksums
+   * Skips rows that haven't changed based on checksum comparison
+   */
+  deduplicateByChecksum(options: {
+    keyField: string;
+    checksumFields?: string[];
+    existingChecksums: Map<string, string>;
+  }): Pipeline<T> {
+    this.operations.push(
+      operators.deduplicateByChecksum(options) as Operator<unknown, unknown>
+    );
+    return this;
+  }
+
+  /**
    * Build the pipeline as an async iterable
    * Useful for manual iteration or custom sinks
    */

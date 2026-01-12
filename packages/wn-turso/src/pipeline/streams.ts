@@ -9,6 +9,7 @@ import type {
   PipelineResult,
   AnyDatabase,
 } from "./types.js";
+import { computeChecksum, loadChecksumsFromTable } from "./checksum.js";
 
 /**
  * Stream rows from a table as an async generator
@@ -82,25 +83,98 @@ export async function writeBatches<T extends Record<string, unknown>>(
   rows: AsyncIterable<T>,
   options: SinkOptions = {}
 ): Promise<PipelineResult> {
-  const { batchSize = 100, onConflict = "error", onProgress } = options;
+  const {
+    batchSize = 100,
+    onConflict = "error",
+    onProgress,
+    checksumDeduplication,
+  } = options;
   const startTime = Date.now();
 
   let processed = 0;
   let inserted = 0;
   let skipped = 0;
+  let skipped_unchanged = 0;
   let errors = 0;
   let batch: T[] = [];
+
+  // Load existing checksums if deduplication is enabled
+  let existingChecksums: Map<string, string> | undefined;
+  const checksumColumn =
+    checksumDeduplication?.checksumColumn || "_etl_checksum";
+  const keyField = checksumDeduplication?.keyField || "id";
+  const checksumFields = checksumDeduplication?.fields;
+  const checksumStrategy = checksumDeduplication?.strategy || "skip";
+
+  if (checksumDeduplication?.enabled) {
+    try {
+      existingChecksums = await loadChecksumsFromTable(
+        db,
+        table,
+        keyField,
+        checksumColumn
+      );
+    } catch (error) {
+      // Table might not exist yet or checksum column might not exist
+      // In this case, treat all rows as new
+      existingChecksums = new Map();
+    }
+  }
 
   const flushBatch = async () => {
     if (batch.length === 0) return;
 
     try {
+      let rowsToWrite = batch;
+
+      // Filter out unchanged rows if deduplication is enabled
+      if (checksumDeduplication?.enabled && existingChecksums) {
+        const originalCount = batch.length;
+
+        // Compute checksums and add to rows
+        const batchWithChecksums = batch.map((row) => {
+          const checksum = computeChecksum(row, checksumFields);
+
+          // Include checksum in the row to be written
+          return {
+            ...row,
+            [checksumColumn]: checksum,
+          };
+        });
+
+        // Filter based on strategy
+        if (checksumStrategy === "skip") {
+          rowsToWrite = batchWithChecksums.filter((row) => {
+            const key = String(row[keyField]);
+            const checksum = String(row[checksumColumn]);
+            const existingChecksum = existingChecksums!.get(key);
+
+            // Write if new or changed
+            return (
+              existingChecksum === undefined || checksum !== existingChecksum
+            );
+          }) as T[];
+
+          const unchangedCount = originalCount - rowsToWrite.length;
+          skipped_unchanged += unchangedCount;
+        } else {
+          // strategy === 'update': write all rows but include checksum
+          rowsToWrite = batchWithChecksums as T[];
+        }
+      }
+
+      // Skip if all rows were filtered out
+      if (rowsToWrite.length === 0) {
+        batch = [];
+        return;
+      }
+
       // Type assertion needed: treating database as having arbitrary tables
       // for dynamic table access. Type safety maintained through generic T.
       const typedDb = db as Kysely<AnyDatabase>;
       let query = typedDb
         .insertInto(table as keyof AnyDatabase & string)
-        .values(batch as Record<string, unknown>[]);
+        .values(rowsToWrite as Record<string, unknown>[]);
 
       if (onConflict === "ignore" || onConflict === "replace") {
         // For both ignore and replace, use doNothing for simplicity
@@ -109,7 +183,7 @@ export async function writeBatches<T extends Record<string, unknown>>(
       }
 
       await query.execute();
-      inserted += batch.length;
+      inserted += rowsToWrite.length;
     } catch (error) {
       if (onConflict === "error") {
         throw error;
@@ -146,6 +220,7 @@ export async function writeBatches<T extends Record<string, unknown>>(
     processed,
     inserted,
     skipped,
+    skipped_unchanged,
     errors,
     duration: Date.now() - startTime,
   };

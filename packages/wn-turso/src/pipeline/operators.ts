@@ -2,14 +2,13 @@
  * Pipeline operators for transforming data streams
  */
 
-import type { Operator } from './types.js';
+import type { Operator } from "./types.js";
+import { computeChecksum } from "./checksum.js";
 
 /**
  * Filter rows based on a predicate
  */
-export function filter<T>(
-  predicate: (row: T) => boolean
-): Operator<T, T> {
+export function filter<T>(predicate: (row: T) => boolean): Operator<T, T> {
   return async function* (input: AsyncIterable<T>): AsyncIterable<T> {
     for await (const row of input) {
       if (predicate(row)) {
@@ -22,9 +21,7 @@ export function filter<T>(
 /**
  * Map rows to a new shape
  */
-export function map<In, Out>(
-  fn: (row: In) => Out
-): Operator<In, Out> {
+export function map<In, Out>(fn: (row: In) => Out): Operator<In, Out> {
   return async function* (input: AsyncIterable<In>): AsyncIterable<Out> {
     for await (const row of input) {
       yield fn(row);
@@ -69,9 +66,10 @@ export function transformAsync<In, Out>(
  * Extend rows with additional properties
  * Useful for adding columns to a "working DB" schema
  */
-export function extend<T extends Record<string, unknown>, Ext extends Record<string, unknown>>(
-  fn: (row: T) => Ext
-): Operator<T, T & Ext> {
+export function extend<
+  T extends Record<string, unknown>,
+  Ext extends Record<string, unknown>,
+>(fn: (row: T) => Ext): Operator<T, T & Ext> {
   return async function* (input: AsyncIterable<T>): AsyncIterable<T & Ext> {
     for await (const row of input) {
       const extension = fn(row);
@@ -83,9 +81,10 @@ export function extend<T extends Record<string, unknown>, Ext extends Record<str
 /**
  * Async extend for operations that need to await
  */
-export function extendAsync<T extends Record<string, unknown>, Ext extends Record<string, unknown>>(
-  fn: (row: T) => Promise<Ext>
-): Operator<T, T & Ext> {
+export function extendAsync<
+  T extends Record<string, unknown>,
+  Ext extends Record<string, unknown>,
+>(fn: (row: T) => Promise<Ext>): Operator<T, T & Ext> {
   return async function* (input: AsyncIterable<T>): AsyncIterable<T & Ext> {
     for await (const row of input) {
       const extension = await fn(row);
@@ -199,6 +198,34 @@ export function distinct<T, K>(keyFn: (row: T) => K): Operator<T, T> {
 }
 
 /**
+ * Deduplicate rows by comparing checksums
+ * Skips rows that haven't changed based on checksum comparison
+ */
+export function deduplicateByChecksum<
+  T extends Record<string, unknown>,
+>(options: {
+  keyField: string;
+  checksumFields?: string[];
+  existingChecksums: Map<string, string>;
+}): Operator<T, T> {
+  const { keyField, checksumFields, existingChecksums } = options;
+
+  return async function* (input: AsyncIterable<T>): AsyncIterable<T> {
+    for await (const row of input) {
+      const key = String(row[keyField]);
+      const checksum = computeChecksum(row, checksumFields);
+      const existingChecksum = existingChecksums.get(key);
+
+      // Yield if new or changed
+      if (existingChecksum === undefined || checksum !== existingChecksum) {
+        yield row;
+      }
+      // Skip if unchanged (checksum matches)
+    }
+  };
+}
+
+/**
  * Compose multiple operators into one
  */
 export function compose<A, B, C>(
@@ -216,7 +243,9 @@ export function compose<A, B, C, D, E>(
   op3: Operator<C, D>,
   op4: Operator<D, E>
 ): Operator<A, E>;
-export function compose(...operators: Operator<unknown, unknown>[]): Operator<unknown, unknown> {
+export function compose(
+  ...operators: Operator<unknown, unknown>[]
+): Operator<unknown, unknown> {
   return (input: AsyncIterable<unknown>) =>
     operators.reduce((acc, op) => op(acc), input);
 }

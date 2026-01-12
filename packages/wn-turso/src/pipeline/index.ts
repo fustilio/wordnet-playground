@@ -3,13 +3,13 @@
  */
 
 // High-level pipeline builder
-export { Pipeline } from './pipeline-builder.js';
+export { Pipeline } from "./pipeline-builder.js";
 
 // Sources
-export { tursoSource, kyselySource, arraySource } from './source.js';
+export { tursoSource, kyselySource, arraySource } from "./source.js";
 
 // Sinks
-export { tursoSink, kyselySink, arraySink } from './sink.js';
+export { tursoSink, kyselySink, arraySink } from "./sink.js";
 
 // Operators
 export {
@@ -26,11 +26,21 @@ export {
   take,
   skip,
   distinct,
+  deduplicateByChecksum,
   compose,
-} from './operators.js';
+} from "./operators.js";
 
 // Low-level streaming utilities
-export { streamTable, writeBatches, countRows } from './streams.js';
+export { streamTable, writeBatches, countRows } from "./streams.js";
+
+// Checksum utilities
+export {
+  computeChecksum,
+  checksumBatch,
+  loadChecksumsFromTable,
+  compareChecksums,
+  filterChangedRows,
+} from "./checksum.js";
 
 // Types
 export type {
@@ -41,5 +51,7 @@ export type {
   ProgressCallback,
   SourceOptions,
   SinkOptions,
+  ChecksumDeduplication,
   Operator,
-} from './types.js';
+} from "./types.js";
+export type { ChecksumComparison } from "./checksum.js";

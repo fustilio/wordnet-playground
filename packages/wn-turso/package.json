@@ -1,6 +1,6 @@
 {
   "name": "wn-turso",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Turso/libsql database backend and data pipeline utilities for WordNet",
   "type": "module",
   "main": "./dist/index.js",

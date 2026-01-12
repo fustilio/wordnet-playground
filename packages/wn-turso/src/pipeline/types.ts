@@ -14,6 +14,8 @@ export interface PipelineResult {
   inserted: number;
   /** Rows skipped (filtered out or null from transform) */
   skipped: number;
+  /** Rows skipped due to unchanged checksum */
+  skipped_unchanged?: number;
   /** Rows that failed */
   errors: number;
   /** Duration in milliseconds */
@@ -93,6 +95,22 @@ export interface SourceOptions {
 }
 
 /**
+ * Checksum deduplication options for sinks
+ */
+export interface ChecksumDeduplication {
+  /** Enable checksum-based deduplication */
+  enabled: true;
+  /** Fields to include in checksum (undefined = all fields) */
+  fields?: string[];
+  /** Column name to store checksums (default: '_etl_checksum') */
+  checksumColumn?: string;
+  /** Key field for row identification (default: 'id') */
+  keyField?: string;
+  /** Strategy when checksum matches: 'skip' = don't write, 'update' = write anyway */
+  strategy?: "skip" | "update";
+}
+
+/**
  * Options for creating a sink
  */
 export interface SinkOptions {
@@ -102,6 +120,8 @@ export interface SinkOptions {
   onConflict?: "ignore" | "replace" | "error";
   /** Progress callback */
   onProgress?: ProgressCallback;
+  /** Checksum-based deduplication to skip unchanged rows */
+  checksumDeduplication?: ChecksumDeduplication;
 }
 
 /**
