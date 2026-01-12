@@ -7,11 +7,20 @@ import type {
   PipelineSink,
   PipelineResult,
   Operator,
-} from './types.js';
-import * as operators from './operators.js';
+} from "./types.js";
+import * as operators from "./operators.js";
 
 /**
  * Fluent pipeline builder for data transfer operations
+ *
+ * Type Safety Strategy:
+ * - Public API uses generics (T, U, etc.) for compile-time type safety
+ * - Internal storage uses `unknown` for type erasure to avoid complex recursive types
+ * - Type assertions (`as unknown as Pipeline<U>`) are safe because:
+ *   1. Operations are stored in order and applied sequentially
+ *   2. Each operation's types are validated at the call site
+ *   3. The final type T is tracked through the fluent chain
+ * - This pattern is similar to RxJS, Lodash chain, and other fluent APIs
  *
  * @example
  * ```typescript
@@ -26,10 +35,11 @@ import * as operators from './operators.js';
  * ```
  */
 export class Pipeline<T> {
-  private source: PipelineSource<any>;
-  private operations: Operator<any, any>[] = [];
+  // Internal state uses unknown for type erasure - public API maintains type safety
+  private source: PipelineSource<unknown>;
+  private operations: Operator<unknown, unknown>[] = [];
 
-  private constructor(source: PipelineSource<any>) {
+  private constructor(source: PipelineSource<unknown>) {
     this.source = source;
   }
 
@@ -37,14 +47,16 @@ export class Pipeline<T> {
    * Create a new pipeline from a source
    */
   static from<T>(source: PipelineSource<T>): Pipeline<T> {
-    return new Pipeline<T>(source);
+    return new Pipeline<T>(source as PipelineSource<unknown>);
   }
 
   /**
    * Filter rows based on a predicate
    */
   filter(predicate: (row: T) => boolean): Pipeline<T> {
-    this.operations.push(operators.filter(predicate));
+    this.operations.push(
+      operators.filter(predicate) as Operator<unknown, unknown>
+    );
     return this;
   }
 
@@ -52,7 +64,9 @@ export class Pipeline<T> {
    * Map rows to a new shape
    */
   map<U>(fn: (row: T) => U): Pipeline<U> {
-    this.operations.push(operators.map(fn));
+    this.operations.push(operators.map(fn) as Operator<unknown, unknown>);
+    // Type assertion safe: we're changing the generic parameter to match
+    // the output type of the map operation
     return this as unknown as Pipeline<U>;
   }
 
@@ -60,15 +74,19 @@ export class Pipeline<T> {
    * Transform rows, returning null to skip a row
    */
   transform<U>(fn: (row: T) => U | null | undefined): Pipeline<U> {
-    this.operations.push(operators.transform(fn));
+    this.operations.push(operators.transform(fn) as Operator<unknown, unknown>);
     return this as unknown as Pipeline<U>;
   }
 
   /**
    * Async transform for operations that need to await
    */
-  transformAsync<U>(fn: (row: T) => Promise<U | null | undefined>): Pipeline<U> {
-    this.operations.push(operators.transformAsync(fn));
+  transformAsync<U>(
+    fn: (row: T) => Promise<U | null | undefined>
+  ): Pipeline<U> {
+    this.operations.push(
+      operators.transformAsync(fn) as Operator<unknown, unknown>
+    );
     return this as unknown as Pipeline<U>;
   }
 
@@ -76,20 +94,30 @@ export class Pipeline<T> {
    * Extend rows with additional properties
    * Useful for adding columns to a "working DB" schema
    */
-  extend<Ext extends Record<string, any>>(
+  extend<Ext extends Record<string, unknown>>(
     fn: (row: T) => Ext
   ): Pipeline<T & Ext> {
-    this.operations.push(operators.extend(fn as any));
+    // Type assertion safe: we widen T to unknown for internal storage,
+    // but the actual function maintains its type at runtime
+    this.operations.push(
+      operators.extend(
+        fn as (row: unknown) => Record<string, unknown>
+      ) as Operator<unknown, unknown>
+    );
     return this as unknown as Pipeline<T & Ext>;
   }
 
   /**
    * Async extend for operations that need to await
    */
-  extendAsync<Ext extends Record<string, any>>(
+  extendAsync<Ext extends Record<string, unknown>>(
     fn: (row: T) => Promise<Ext>
   ): Pipeline<T & Ext> {
-    this.operations.push(operators.extendAsync(fn as any));
+    this.operations.push(
+      operators.extendAsync(
+        fn as (row: unknown) => Promise<Record<string, unknown>>
+      ) as Operator<unknown, unknown>
+    );
     return this as unknown as Pipeline<T & Ext>;
   }
 
@@ -97,7 +125,7 @@ export class Pipeline<T> {
    * Batch rows into arrays
    */
   batch(size: number): Pipeline<T[]> {
-    this.operations.push(operators.batch(size));
+    this.operations.push(operators.batch(size) as Operator<unknown, unknown>);
     return this as unknown as Pipeline<T[]>;
   }
 
@@ -105,7 +133,7 @@ export class Pipeline<T> {
    * Side effect for each row (logging, metrics)
    */
   tap(fn: (row: T) => void): Pipeline<T> {
-    this.operations.push(operators.tap(fn));
+    this.operations.push(operators.tap(fn) as Operator<unknown, unknown>);
     return this;
   }
 
@@ -113,7 +141,7 @@ export class Pipeline<T> {
    * Async side effect
    */
   tapAsync(fn: (row: T) => Promise<void>): Pipeline<T> {
-    this.operations.push(operators.tapAsync(fn));
+    this.operations.push(operators.tapAsync(fn) as Operator<unknown, unknown>);
     return this;
   }
 
@@ -121,7 +149,7 @@ export class Pipeline<T> {
    * Take first n rows
    */
   take(n: number): Pipeline<T> {
-    this.operations.push(operators.take(n));
+    this.operations.push(operators.take(n) as Operator<unknown, unknown>);
     return this;
   }
 
@@ -129,7 +157,7 @@ export class Pipeline<T> {
    * Skip first n rows
    */
   skip(n: number): Pipeline<T> {
-    this.operations.push(operators.skip(n));
+    this.operations.push(operators.skip(n) as Operator<unknown, unknown>);
     return this;
   }
 
@@ -137,7 +165,9 @@ export class Pipeline<T> {
    * Deduplicate rows by key
    */
   distinct<K>(keyFn: (row: T) => K): Pipeline<T> {
-    this.operations.push(operators.distinct(keyFn));
+    this.operations.push(
+      operators.distinct(keyFn) as Operator<unknown, unknown>
+    );
     return this;
   }
 
@@ -146,13 +176,13 @@ export class Pipeline<T> {
    * Useful for manual iteration or custom sinks
    */
   build(): AsyncIterable<T> {
-    let stream: AsyncIterable<any> = this.source.read();
+    let stream: AsyncIterable<unknown> = this.source.read();
 
     for (const op of this.operations) {
       stream = op(stream);
     }
 
-    return stream;
+    return stream as AsyncIterable<T>;
   }
 
   /**

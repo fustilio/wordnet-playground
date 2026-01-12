@@ -2,16 +2,18 @@
  * Pipeline sinks for writing data
  */
 
-import type { Kysely } from 'kysely';
-import { TursoDatabase } from '../database/turso-database.js';
-import type { TursoDatabaseConfig } from '../config.js';
-import type { PipelineSink, SinkOptions, PipelineResult } from './types.js';
-import { writeBatches } from './streams.js';
+import type { Kysely } from "kysely";
+import { TursoDatabase } from "../database/turso-database.js";
+import type { TursoDatabaseConfig } from "../config.js";
+import type { PipelineSink, SinkOptions, PipelineResult } from "./types.js";
+import { writeBatches } from "./streams.js";
 
 /**
  * Create a pipeline sink for a Turso database
+ *
+ * @typeParam T - The row type being written to the table
  */
-export function tursoSink<T extends Record<string, any>>(
+export function tursoSink<T extends Record<string, unknown>>(
   config: TursoDatabaseConfig,
   table: string,
   options: SinkOptions = {}
@@ -27,7 +29,14 @@ export function tursoSink<T extends Record<string, any>>(
       await db.initialize();
 
       try {
-        return await writeBatches<T>(db.getDatabase(), table, data, options);
+        // Double assertion needed: Database type lacks index signature required
+        // for dynamic table access. We go through unknown to safely widen the type.
+        return await writeBatches<T>(
+          db.getDatabase() as unknown as Kysely<Record<string, unknown>>,
+          table,
+          data,
+          options
+        );
       } finally {
         await db.close();
       }
@@ -38,9 +47,11 @@ export function tursoSink<T extends Record<string, any>>(
 /**
  * Create a pipeline sink from a Kysely database instance
  * (for use with existing connections)
+ *
+ * @typeParam T - The row type being written to the table
  */
-export function kyselySink<T extends Record<string, any>>(
-  db: Kysely<any>,
+export function kyselySink<T extends Record<string, unknown>>(
+  db: Kysely<Record<string, unknown>>,
   table: string,
   options: SinkOptions = {}
 ): PipelineSink<T> {
@@ -55,13 +66,15 @@ export function kyselySink<T extends Record<string, any>>(
 
 /**
  * Create a sink that collects items into an array (for testing)
+ *
+ * @typeParam T - The item type being collected
  */
 export function arraySink<T>(): PipelineSink<T> & { items: T[] } {
   const items: T[] = [];
   const startTime = Date.now();
 
   return {
-    name: 'array',
+    name: "array",
     items,
 
     async write(data: AsyncIterable<T>): Promise<PipelineResult> {

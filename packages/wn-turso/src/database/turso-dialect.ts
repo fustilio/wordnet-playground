@@ -6,6 +6,7 @@ import {
   SqliteAdapter,
   SqliteIntrospector,
   SqliteQueryCompiler,
+  type DatabaseConnection,
   type Dialect,
   type Kysely,
 } from 'kysely';
@@ -14,7 +15,7 @@ import type { Client } from '@libsql/client';
 
 export interface TursoDialectConfig {
   client: Client;
-  onCreateConnection?: (connection: any) => Promise<void>;
+  onCreateConnection?: (connection: DatabaseConnection) => Promise<void>;
 }
 
 /**
@@ -28,13 +29,13 @@ export function createTursoDialect(config: TursoDialectConfig): Dialect {
     createDriver: () =>
       new TursoDriver({
         client: config.client,
-        async onCreateConnection(connection) {
+        async onCreateConnection(connection: DatabaseConnection) {
           if (config.onCreateConnection) {
             await config.onCreateConnection(connection);
           }
         },
       }),
-    createIntrospector: (db: Kysely<any>) => new SqliteIntrospector(db),
+    createIntrospector: (db: Kysely<Record<string, unknown>>) => new SqliteIntrospector(db),
     createQueryCompiler: () => new SqliteQueryCompiler(),
   };
 }

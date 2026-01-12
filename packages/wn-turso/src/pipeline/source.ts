@@ -2,34 +2,39 @@
  * Pipeline sources for reading data
  */
 
-import type { Kysely } from 'kysely';
-import { TursoDatabase } from '../database/turso-database.js';
-import type { TursoDatabaseConfig } from '../config.js';
-import type { PipelineSource, SourceOptions } from './types.js';
-import { streamTable, countRows } from './streams.js';
+import type { Kysely } from "kysely";
+import { TursoDatabase } from "../database/turso-database.js";
+import type { TursoDatabaseConfig } from "../config.js";
+import type { PipelineSource, SourceOptions } from "./types.js";
+import { streamTable, countRows } from "./streams.js";
 
 /**
  * Create a pipeline source from a Turso database
+ *
+ * @typeParam T - The row type being read from the table
  */
-export function tursoSource<T extends Record<string, any>>(
+export function tursoSource<T extends Record<string, unknown>>(
   config: TursoDatabaseConfig,
   table: string,
   options: SourceOptions = {}
 ): PipelineSource<T> {
-  let db: TursoDatabase | null = null;
-
   return {
     name: `turso:${config.url}/${table}`,
 
     async *read(): AsyncIterable<T> {
-      db = new TursoDatabase(config);
+      const db = new TursoDatabase(config);
       await db.initialize();
 
       try {
-        yield* streamTable<T>(db.getDatabase(), table, options);
+        // Double assertion needed: Database type lacks index signature required
+        // for dynamic table access. We go through unknown to safely widen the type.
+        yield* streamTable<T>(
+          db.getDatabase() as unknown as Kysely<Record<string, unknown>>,
+          table,
+          options
+        );
       } finally {
         await db.close();
-        db = null;
       }
     },
 
@@ -38,7 +43,13 @@ export function tursoSource<T extends Record<string, any>>(
       await tempDb.initialize();
 
       try {
-        return await countRows(tempDb.getDatabase(), table, options);
+        // Double assertion needed: Database type lacks index signature required
+        // for dynamic table access. We go through unknown to safely widen the type.
+        return await countRows(
+          tempDb.getDatabase() as unknown as Kysely<Record<string, unknown>>,
+          table,
+          options
+        );
       } finally {
         await tempDb.close();
       }
@@ -49,9 +60,11 @@ export function tursoSource<T extends Record<string, any>>(
 /**
  * Create a pipeline source from a Kysely database instance
  * (for use with existing connections)
+ *
+ * @typeParam T - The row type being read from the table
  */
-export function kyselySource<T extends Record<string, any>>(
-  db: Kysely<any>,
+export function kyselySource<T extends Record<string, unknown>>(
+  db: Kysely<Record<string, unknown>>,
   table: string,
   options: SourceOptions = {}
 ): PipelineSource<T> {
@@ -70,11 +83,10 @@ export function kyselySource<T extends Record<string, any>>(
 
 /**
  * Create a source from an array (for testing)
+ *
+ * @typeParam T - The item type in the array
  */
-export function arraySource<T>(
-  items: T[],
-  name: string = 'array'
-): PipelineSource<T> {
+export function arraySource<T>(items: T[], name = "array"): PipelineSource<T> {
   return {
     name,
 

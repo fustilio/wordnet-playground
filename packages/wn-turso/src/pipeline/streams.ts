@@ -2,14 +2,21 @@
  * Low-level streaming utilities for pipeline operations
  */
 
-import type { Kysely } from 'kysely';
-import type { SourceOptions, SinkOptions, PipelineResult } from './types.js';
+import type { Kysely } from "kysely";
+import type {
+  SourceOptions,
+  SinkOptions,
+  PipelineResult,
+  AnyDatabase,
+} from "./types.js";
 
 /**
  * Stream rows from a table as an async generator
+ *
+ * @typeParam T - The row type being streamed
  */
 export async function* streamTable<T>(
-  db: Kysely<any>,
+  db: Kysely<Record<string, unknown>>,
   table: string,
   options: SourceOptions = {}
 ): AsyncGenerator<T> {
@@ -20,14 +27,18 @@ export async function* streamTable<T>(
   let totalFetched = 0;
 
   while (hasMore) {
-    let query = db.selectFrom(table).selectAll();
+    // Type assertion needed: we're treating the database as having arbitrary tables
+    // for dynamic table access. The actual type safety comes from the generic T.
+    let query = (db as Kysely<AnyDatabase>)
+      .selectFrom(table as keyof AnyDatabase & string)
+      .selectAll();
 
     if (where) {
       query = where(query);
     }
 
     if (orderBy) {
-      query = query.orderBy(orderBy as any);
+      query = query.orderBy(orderBy);
     }
 
     // Apply pagination
@@ -62,14 +73,16 @@ export async function* streamTable<T>(
 
 /**
  * Write rows in batches to a table
+ *
+ * @typeParam T - The row type being written
  */
-export async function writeBatches<T extends Record<string, any>>(
-  db: Kysely<any>,
+export async function writeBatches<T extends Record<string, unknown>>(
+  db: Kysely<Record<string, unknown>>,
   table: string,
   rows: AsyncIterable<T>,
   options: SinkOptions = {}
 ): Promise<PipelineResult> {
-  const { batchSize = 100, onConflict = 'error', onProgress } = options;
+  const { batchSize = 100, onConflict = "error", onProgress } = options;
   const startTime = Date.now();
 
   let processed = 0;
@@ -82,20 +95,23 @@ export async function writeBatches<T extends Record<string, any>>(
     if (batch.length === 0) return;
 
     try {
-      let query = db.insertInto(table).values(batch as any);
+      // Type assertion needed: treating database as having arbitrary tables
+      // for dynamic table access. Type safety maintained through generic T.
+      const typedDb = db as Kysely<AnyDatabase>;
+      let query = typedDb
+        .insertInto(table as keyof AnyDatabase & string)
+        .values(batch as Record<string, unknown>[]);
 
-      if (onConflict === 'ignore') {
-        query = query.onConflict((oc) => oc.doNothing()) as any;
-      } else if (onConflict === 'replace') {
-        // For replace, we need to know the primary key columns
-        // This is a simplified version - full implementation would need schema introspection
-        query = query.onConflict((oc) => oc.doNothing()) as any;
+      if (onConflict === "ignore" || onConflict === "replace") {
+        // For both ignore and replace, use doNothing for simplicity
+        // Full replace would need schema introspection for primary key columns
+        query = query.onConflict((oc) => oc.doNothing());
       }
 
       await query.execute();
       inserted += batch.length;
     } catch (error) {
-      if (onConflict === 'error') {
+      if (onConflict === "error") {
         throw error;
       }
       // For ignore/replace, count as errors
@@ -139,18 +155,22 @@ export async function writeBatches<T extends Record<string, any>>(
  * Count rows in a table with optional filter
  */
 export async function countRows(
-  db: Kysely<any>,
+  db: Kysely<Record<string, unknown>>,
   table: string,
   options: SourceOptions = {}
 ): Promise<number> {
   const { where } = options;
 
-  let query = db.selectFrom(table).select((eb: any) => eb.fn.count('*').as('count'));
+  // Type assertion needed: treating database as having arbitrary tables
+  const typedDb = db as Kysely<AnyDatabase>;
+  let query = typedDb
+    .selectFrom(table as keyof AnyDatabase & string)
+    .select((eb) => eb.fn.countAll().as("count"));
 
   if (where) {
     query = where(query);
   }
 
-  const result = await query.executeTakeFirst() as { count: number | bigint } | undefined;
+  const result = await query.executeTakeFirst();
   return Number(result?.count ?? 0);
 }

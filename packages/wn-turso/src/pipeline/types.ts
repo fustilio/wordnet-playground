@@ -2,6 +2,8 @@
  * Pipeline types
  */
 
+import type { SelectQueryBuilder } from "kysely";
+
 /**
  * Pipeline result after transfer
  */
@@ -59,14 +61,30 @@ export interface PipelineSink<T> {
 }
 
 /**
+ * Helper type for dynamic database schema
+ * Represents a database with arbitrary tables and columns
+ */
+export type AnyDatabase = Record<string, Record<string, unknown>>;
+
+/**
+ * Type for where clause modifier function
+ * Works with any SelectQueryBuilder
+ */
+export type WhereClauseModifier = <
+  QB extends SelectQueryBuilder<AnyDatabase, string, Record<string, unknown>>,
+>(
+  qb: QB
+) => QB;
+
+/**
  * Options for creating a source
  */
 export interface SourceOptions {
   /** Batch size for reading */
   batchSize?: number;
   /** Where clause modifier */
-  where?: (qb: any) => any;
-  /** Order by clause */
+  where?: WhereClauseModifier;
+  /** Order by column */
   orderBy?: string;
   /** Limit rows */
   limit?: number;
@@ -81,7 +99,7 @@ export interface SinkOptions {
   /** Batch size for writing */
   batchSize?: number;
   /** Conflict resolution strategy */
-  onConflict?: 'ignore' | 'replace' | 'error';
+  onConflict?: "ignore" | "replace" | "error";
   /** Progress callback */
   onProgress?: ProgressCallback;
 }

@@ -69,7 +69,7 @@ export function transformAsync<In, Out>(
  * Extend rows with additional properties
  * Useful for adding columns to a "working DB" schema
  */
-export function extend<T extends Record<string, any>, Ext extends Record<string, any>>(
+export function extend<T extends Record<string, unknown>, Ext extends Record<string, unknown>>(
   fn: (row: T) => Ext
 ): Operator<T, T & Ext> {
   return async function* (input: AsyncIterable<T>): AsyncIterable<T & Ext> {
@@ -83,7 +83,7 @@ export function extend<T extends Record<string, any>, Ext extends Record<string,
 /**
  * Async extend for operations that need to await
  */
-export function extendAsync<T extends Record<string, any>, Ext extends Record<string, any>>(
+export function extendAsync<T extends Record<string, unknown>, Ext extends Record<string, unknown>>(
   fn: (row: T) => Promise<Ext>
 ): Operator<T, T & Ext> {
   return async function* (input: AsyncIterable<T>): AsyncIterable<T & Ext> {
@@ -216,7 +216,7 @@ export function compose<A, B, C, D, E>(
   op3: Operator<C, D>,
   op4: Operator<D, E>
 ): Operator<A, E>;
-export function compose(...operators: Operator<any, any>[]): Operator<any, any> {
-  return (input: AsyncIterable<any>) =>
+export function compose(...operators: Operator<unknown, unknown>[]): Operator<unknown, unknown> {
+  return (input: AsyncIterable<unknown>) =>
     operators.reduce((acc, op) => op(acc), input);
 }
