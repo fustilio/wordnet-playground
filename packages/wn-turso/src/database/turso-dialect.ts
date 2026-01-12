@@ -6,7 +6,6 @@ import {
   SqliteAdapter,
   SqliteIntrospector,
   SqliteQueryCompiler,
-  CompiledQuery,
   type Dialect,
   type Kysely,
 } from 'kysely';

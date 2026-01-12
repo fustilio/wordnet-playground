@@ -2,9 +2,6 @@
  * Pipeline types
  */
 
-import type { Kysely } from 'kysely';
-import type { TursoDatabaseConfig } from '../config.js';
-
 /**
  * Pipeline result after transfer
  */
@@ -64,7 +61,7 @@ export interface PipelineSink<T> {
 /**
  * Options for creating a source
  */
-export interface SourceOptions<T> {
+export interface SourceOptions {
   /** Batch size for reading */
   batchSize?: number;
   /** Where clause modifier */

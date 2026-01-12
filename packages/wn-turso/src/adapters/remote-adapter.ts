@@ -11,7 +11,6 @@ import type { TursoAdapter, TursoAdapterInfo } from './adapter.js';
  */
 export class RemoteTursoAdapter implements TursoAdapter {
   private client?: Client;
-  private config?: TursoDatabaseConfig;
   private connected = false;
 
   async initialize(config: TursoDatabaseConfig): Promise<void> {
@@ -19,7 +18,6 @@ export class RemoteTursoAdapter implements TursoAdapter {
       throw new Error('authToken is required for remote Turso connections');
     }
 
-    this.config = config;
     this.client = createClient({
       url: config.url,
       authToken: config.authToken,

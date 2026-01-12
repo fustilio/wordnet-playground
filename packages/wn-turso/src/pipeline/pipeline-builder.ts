@@ -7,7 +7,6 @@ import type {
   PipelineSink,
   PipelineResult,
   Operator,
-  ProgressCallback,
 } from './types.js';
 import * as operators from './operators.js';
 

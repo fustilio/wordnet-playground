@@ -14,7 +14,7 @@ import { streamTable, countRows } from './streams.js';
 export function tursoSource<T extends Record<string, any>>(
   config: TursoDatabaseConfig,
   table: string,
-  options: SourceOptions<T> = {}
+  options: SourceOptions = {}
 ): PipelineSource<T> {
   let db: TursoDatabase | null = null;
 
@@ -38,7 +38,7 @@ export function tursoSource<T extends Record<string, any>>(
       await tempDb.initialize();
 
       try {
-        return await countRows<T>(tempDb.getDatabase(), table, options);
+        return await countRows(tempDb.getDatabase(), table, options);
       } finally {
         await tempDb.close();
       }
@@ -53,7 +53,7 @@ export function tursoSource<T extends Record<string, any>>(
 export function kyselySource<T extends Record<string, any>>(
   db: Kysely<any>,
   table: string,
-  options: SourceOptions<T> = {}
+  options: SourceOptions = {}
 ): PipelineSource<T> {
   return {
     name: `kysely:${table}`,
@@ -63,7 +63,7 @@ export function kyselySource<T extends Record<string, any>>(
     },
 
     async count(): Promise<number> {
-      return countRows<T>(db, table, options);
+      return countRows(db, table, options);
     },
   };
 }

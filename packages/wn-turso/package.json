@@ -1,6 +1,6 @@
 {
   "name": "wn-turso",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Turso/libsql database backend and data pipeline utilities for WordNet",
   "type": "module",
   "main": "./dist/index.js",
@@ -12,16 +12,16 @@
       "import": "./dist/index.js"
     },
     "./database": {
-      "types": "./dist/database/index.d.ts",
-      "import": "./dist/database/index.js"
+      "types": "./dist/database.d.ts",
+      "import": "./dist/database.js"
     },
     "./adapters": {
-      "types": "./dist/adapters/index.d.ts",
-      "import": "./dist/adapters/index.js"
+      "types": "./dist/adapters.d.ts",
+      "import": "./dist/adapters.js"
     },
     "./pipeline": {
-      "types": "./dist/pipeline/index.d.ts",
-      "import": "./dist/pipeline/index.js"
+      "types": "./dist/pipeline.d.ts",
+      "import": "./dist/pipeline.js"
     },
     "./config": {
       "types": "./dist/config.d.ts",
@@ -36,8 +36,8 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "vite build",
+    "dev": "vite build --watch",
     "clean": "rimraf dist",
     "prebuild": "pnpm run clean",
     "postbuild": "node scripts/make-executable.cjs",
@@ -59,14 +59,16 @@
   ],
   "dependencies": {
     "@libsql/client": "^0.14.0",
-    "kysely": "catalog:",
-    "wn-ts-core": "workspace:*"
+    "kysely": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "rimraf": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:"
+    "vite": "catalog:",
+    "vite-plugin-dts": "catalog:",
+    "vitest": "catalog:",
+    "wn-ts-core": "workspace:*"
   },
   "engines": {
     "node": ">=18"

@@ -11,7 +11,7 @@ import type { SourceOptions, SinkOptions, PipelineResult } from './types.js';
 export async function* streamTable<T>(
   db: Kysely<any>,
   table: string,
-  options: SourceOptions<T> = {}
+  options: SourceOptions = {}
 ): AsyncGenerator<T> {
   const { batchSize = 1000, where, orderBy, limit, offset = 0 } = options;
 
@@ -92,7 +92,7 @@ export async function writeBatches<T extends Record<string, any>>(
         query = query.onConflict((oc) => oc.doNothing()) as any;
       }
 
-      const result = await query.execute();
+      await query.execute();
       inserted += batch.length;
     } catch (error) {
       if (onConflict === 'error') {
@@ -138,10 +138,10 @@ export async function writeBatches<T extends Record<string, any>>(
 /**
  * Count rows in a table with optional filter
  */
-export async function countRows<T>(
+export async function countRows(
   db: Kysely<any>,
   table: string,
-  options: SourceOptions<T> = {}
+  options: SourceOptions = {}
 ): Promise<number> {
   const { where } = options;
 

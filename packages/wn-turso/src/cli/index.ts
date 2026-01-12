@@ -7,7 +7,7 @@
 import { parseArgs } from 'util';
 
 async function main() {
-  const { values, positionals } = parseArgs({
+  const { positionals } = parseArgs({
     allowPositionals: true,
     options: {
       help: { type: 'boolean', short: 'h' },

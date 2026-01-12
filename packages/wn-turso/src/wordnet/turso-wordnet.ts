@@ -31,11 +31,10 @@ export interface TursoWordnetOptions {
 export class TursoWordnet {
   private database?: TursoDatabase;
   private config: TursoDatabaseConfig;
-  private options: TursoWordnetOptions;
 
-  constructor(config: TursoDatabaseConfig, options: TursoWordnetOptions = {}) {
+  constructor(config: TursoDatabaseConfig, _options: TursoWordnetOptions = {}) {
     this.config = config;
-    this.options = options;
+    // Options reserved for future use (e.g., verbose logging)
   }
 
   /**
