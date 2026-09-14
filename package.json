@@ -30,6 +30,8 @@
     "changeset": "changeset",
     "changeset:version": "changeset version",
     "changeset:publish": "changeset publish",
+    "pub:packages": "pnpm build && changeset publish",
+    "workflow:release": "gh workflow run release.yml --ref main -R fustilio/wordnet-playground",
     "clean": "pnpm --filter wn-ts-core clean",
     "demo": "pnpm --filter wn-ts-node-demo test",
     "demo:all-use-cases": "pnpm --filter wn-ts-node-demo all-use-cases",

@@ -1,0 +1,78 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write # OIDC trusted publishing to npm (tokenless)
+
+jobs:
+  # Cheap pre-check so a push with no changeset exits in seconds instead of
+  # installing + building the workspace for changesets/action to no-op.
+  detect:
+    name: Detect release work
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      work: ${{ steps.check.outputs.work }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: check
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "work=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if ls .changeset/*.md 2>/dev/null | grep -v README.md | grep -q .; then
+            echo "work=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          case "$(git log -1 --format=%s)" in
+            "chore: version packages"*|"Merge pull request "*"/changeset-release/"*)
+              echo "work=true" >> "$GITHUB_OUTPUT"; exit 0 ;;
+          esac
+          echo "No changesets and not a Version-PR merge → skipping release."
+          echo "work=false" >> "$GITHUB_OUTPUT"
+
+  release:
+    name: Version or publish packages
+    needs: detect
+    if: needs.detect.outputs.work == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+          # pnpm version comes from package.json `packageManager` (pnpm 10,
+          # required for npm OIDC trusted publishing).
+
+      - uses: actions/setup-node@v7
+        with:
+          # Node 24 ships npm >= 11.5.1, required for the OIDC publish handshake.
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Stays on v1: v2 requires @changesets/cli v3 and renames the inputs.
+      - uses: changesets/action@v1
+        with:
+          version: pnpm changeset:version
+          publish: pnpm pub:packages
+          commit: "chore: version packages"
+          title: "chore: version packages"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # No NPM_TOKEN: OIDC trusted publishing, configured per package via
+          # scripts/configure-trusted-publishers.sh.
